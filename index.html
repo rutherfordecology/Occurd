@@ -3788,6 +3788,35 @@ document.getElementById('dlChecklistBtn').addEventListener('click', () => {
   </div>
   <div class="changelog-scroll" id="changelogScroll">
     <div class="changelog-version">
+      <span class="changelog-version-tag">v2.97</span>
+      <span class="changelog-date">May 2026</span>
+      <ul>
+        <li>Removed establishment means filter (Native/Introduced/Naturalised) — GBIF data coverage for this field is too patchy to be useful as a fetch filter; <code>establishmentMeans</code> is still included in CSV and GeoJSON exports where populated</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v2.92</span>
+      <span class="changelog-date">May 2026</span>
+      <ul>
+        <li>Added <code>establishmentMeans</code> field to all occurrence exports (CSV, GeoJSON) — shows Native, Introduced, Naturalised etc. where populated by the source dataset</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v2.91</span>
+      <span class="changelog-date">May 2026</span>
+      <ul>
+        <li>Notes for nerds link in NZTCS modal now opens the nerds panel on top rather than replacing it — NZTCS modal stays open underneath so you can still accept and continue</li>
+        <li>Added iNaturalist geoprivacy section to Notes for nerds panel explaining the 0.2° × 0.2° obscuring box and its size at NZ latitudes</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v2.89</span>
+      <span class="changelog-date">May 2026</span>
+      <ul>
+        <li>Buffer polygons labelled as "Polygon name + Nkm buffer" (e.g. "Wetland + 1km buffer") — stacking buffers chains the labels</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
       <span class="changelog-version-tag">v2.88</span>
       <span class="changelog-date">May 2026</span>
       <ul>
