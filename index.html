@@ -407,7 +407,7 @@ html, body { max-width: 100vw; overflow-x: hidden; }
       <img src="occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v2.98</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v2.99</span></h1>
   </div>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
     <button class="about-btn" id="aboutBtn">&#9432; About</button>
@@ -3326,6 +3326,31 @@ function buildTaxonParams(keys) {
 
 const MAX_RECORDS = 10000; // hard limit — queries above this are rejected before fetching begins
 
+// Return the WKT to use for a GBIF query.
+// If the polygon has many vertices the WKT string becomes very long and mobile proxies
+// can silently truncate the URL, causing network errors. Simplify progressively until
+// the WKT is under 3 000 chars (~120 pts), which is well within all proxy limits.
+function getQueryWKT(poly) {
+  if (poly.wkt.length <= 3000) return poly.wkt;
+  try {
+    const coords = poly.latlngs.map(ll => {
+      const lat = ll.lat !== undefined ? ll.lat : ll[0];
+      const lng = ll.lng !== undefined ? ll.lng : ll[1];
+      return [lng, lat];
+    });
+    const ring = [...coords];
+    if (ring[0][0] !== ring[ring.length-1][0] || ring[0][1] !== ring[ring.length-1][1]) ring.push(ring[0]);
+    const geojson = { type: 'Feature', geometry: { type: 'Polygon', coordinates: [ring] } };
+    for (const tol of [0.005, 0.01, 0.02, 0.05, 0.1]) {
+      const simplified = turf.simplify(geojson, { tolerance: tol, highQuality: false });
+      const r = simplified.geometry.coordinates[0];
+      const wkt = 'POLYGON((' + r.map(c => c[0].toFixed(6) + ' ' + c[1].toFixed(6)).join(',') + '))';
+      if (wkt.length <= 3000) return wkt;
+    }
+  } catch(e) {}
+  return poly.wkt; // fallback — let GBIF handle it
+}
+
 // GBIF live occurrence search API — returns same records as the GBIF browser (no snapshot lag)
 runBtn.addEventListener('click', async () => {
   // Lock any polygon still in edit mode before fetching
@@ -3350,7 +3375,7 @@ runBtn.addEventListener('click', async () => {
     const poly = polygons[pi];
     const polyLabel = polygons.length > 1 ? ' (polygon ' + (pi+1) + '/' + polygons.length + ')' : '';
 
-    const baseParams = [['geometry', poly.wkt], ['hasCoordinate', 'true'], ['limit', '300']];
+    const baseParams = [['geometry', getQueryWKT(poly)], ['hasCoordinate', 'true'], ['limit', '300']];
     if (dateFrom && dateTo) baseParams.push(['eventDate', dateFrom + ',' + dateTo]);
 if (document.getElementById('excludeEdna').checked) {
       ['HUMAN_OBSERVATION','MACHINE_OBSERVATION','PRESERVED_SPECIMEN','LIVING_SPECIMEN',
@@ -3387,7 +3412,7 @@ if (document.getElementById('excludeEdna').checked) {
             );
             setFetchMode(false); return;
           }
-          await new Promise(r => setTimeout(r, 800 * pageAttempt));
+          await new Promise(r => setTimeout(r, (window.innerWidth < 768 ? 1500 : 800) * pageAttempt));
         }
       }
       try {
