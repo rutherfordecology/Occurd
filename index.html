@@ -411,7 +411,7 @@ html, body { max-width: 100vw; overflow-x: hidden; }
       <img src="occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v2.92</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v2.93</span></h1>
   </div>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
     <button class="about-btn" id="aboutBtn">&#9432; About</button>
@@ -523,6 +523,16 @@ html, body { max-width: 100vw; overflow-x: hidden; }
         <input type="checkbox" id="excludeEdna">
         <span>Exclude eDNA records</span>
       </label>
+      <div style="margin-top:0.6rem;">
+        <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.07em;color:var(--text3);margin-bottom:4px;">Establishment</div>
+        <div style="display:flex;flex-wrap:wrap;gap:4px;">
+          <button class="estab-fc active" data-e="all">All</button>
+          <button class="estab-fc" data-e="NATIVE">Native</button>
+          <button class="estab-fc" data-e="INTRODUCED">Introduced</button>
+          <button class="estab-fc" data-e="NATURALISED">Naturalised</button>
+          <button class="estab-fc" data-e="INVASIVE">Invasive</button>
+        </div>
+      </div>
       </div><!-- /s2 -->
 
     </div>
@@ -583,16 +593,6 @@ html, body { max-width: 100vw; overflow-x: hidden; }
         <button id="selectAllChipsBtn" style="background:none;border:none;cursor:pointer;font-size:11px;color:var(--green);font-family:var(--font-sans);padding:2px 4px;border-radius:3px;font-weight:500;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">Deselect all</button>
       </div>
       <div class="filter-chips" id="filterChips"></div>
-      <div id="estabFilterRow" style="display:none;margin-top:0.6rem;border-top:1px solid var(--border);padding-top:0.5rem;">
-        <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.07em;color:var(--text3);margin-bottom:4px;">Establishment</div>
-        <div style="display:flex;flex-wrap:wrap;gap:4px;">
-          <button class="estab-fc active" data-e="all">All</button>
-          <button class="estab-fc" data-e="NATIVE">Native</button>
-          <button class="estab-fc" data-e="INTRODUCED">Introduced</button>
-          <button class="estab-fc" data-e="NATURALISED">Naturalised</button>
-          <button class="estab-fc" data-e="INVASIVE">Invasive</button>
-        </div>
-      </div>
     </div>
 
     <div class="sidebar-section" id="nerdsSection" style="border-bottom:none;">
@@ -1430,7 +1430,6 @@ function clearResults() {
   currentNztcsFilter = 'all';
   currentEstabFilter = 'all';
   document.querySelectorAll('.estab-fc').forEach(b => b.classList.toggle('active', b.dataset.e === 'all'));
-  document.getElementById('estabFilterRow').style.display = 'none';
   nztcsUnlocked = false;
   const nztcsBtn = document.getElementById('clNztcsBtn');
   if (nztcsBtn) { nztcsBtn.textContent = '🔒 NZTCS'; nztcsBtn.classList.remove('unlocked'); nztcsBtn.title = 'Click to activate NZTCS conservation status'; nztcsBtn.style.display = 'none'; }
@@ -2193,7 +2192,7 @@ function updateNztcsChipCounts() {
   });
 }
 
-document.getElementById('estabFilterRow').addEventListener('click', e => {
+document.getElementById('s2').addEventListener('click', e => {
   const btn = e.target.closest('.estab-fc');
   if (!btn) return;
   currentEstabFilter = btn.dataset.e;
@@ -3274,8 +3273,6 @@ function buildFilterChips(records) {
     legendItems.appendChild(item);
   });
   filterSection.style.display = 'block'; legend.style.display = 'block';
-  const hasEstab = allRecords.some(r => r.establishmentMeans);
-  document.getElementById('estabFilterRow').style.display = hasEstab ? 'block' : 'none';
 
   syncSelectAllBtn();
   if (selectAllBtn) selectAllBtn.onclick = () => {
@@ -3386,6 +3383,7 @@ runBtn.addEventListener('click', async () => {
 
     const baseParams = [['geometry', poly.wkt], ['hasCoordinate', 'true'], ['limit', '300']];
     if (dateFrom && dateTo) baseParams.push(['eventDate', dateFrom + ',' + dateTo]);
+    if (currentEstabFilter !== 'all') baseParams.push(['establishmentMeans', currentEstabFilter]);
     if (document.getElementById('excludeEdna').checked) {
       ['HUMAN_OBSERVATION','MACHINE_OBSERVATION','PRESERVED_SPECIMEN','LIVING_SPECIMEN',
        'FOSSIL_SPECIMEN','OCCURRENCE','LITERATURE','MATERIAL_CITATION']
