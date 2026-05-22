@@ -408,7 +408,7 @@ html, body { max-width: 100vw; overflow-x: hidden; }
       <img src="occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v3.02</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v3.03</span></h1>
   </div>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
     <button class="about-btn" id="aboutBtn">&#9432; About</button>
@@ -1120,20 +1120,10 @@ map.on(L.Draw.Event.CREATED, e => {
       const selected = browsePolygons.filter(bp => bp.selected);
       const drawnEntry = polygons.find(p => p.id === pendingEditId);
       if (drawnEntry) {
-        // Build turf clip polygon from the drawn area
-        clipTurfPolygons = [];
-        try { clipTurfPolygons.push(turf.polygon([closeRingCoords(drawnEntry.latlngs.map(llToGeoJSON))])); } catch(e) {}
-        // Move drawn polygon to reference layer — visible but not queried
-        const idx = polygons.indexOf(drawnEntry);
-        if (idx !== -1) polygons.splice(idx, 1);
-        if (pendingEditLayer && pendingEditLayer.editing) pendingEditLayer.editing.disable();
-        drawnEntry.layer.setStyle({ dashArray: '8,5', fillOpacity: 0.03, opacity: 0.4, weight: 1.5 });
-        refLayers.push(drawnEntry.layer);
-        pendingEditLayer = null; pendingEditId = null;
-        // Add KMZ polygons and exit browse mode (keep data for re-selection)
+        // Add KMZ polygons alongside the drawn polygon — user can delete either
         exitBrowseMode(true);
         selected.forEach(bp => addPolygonSafe(bp.latlngs, bp.name, bp.holes || []));
-        setStatus(count.toLocaleString() + ' polygon' + (count === 1 ? '' : 's') + ' added — records will be clipped to your drawn area. Ready to fetch.', 'success');
+        setStatus(count.toLocaleString() + ' polygon' + (count === 1 ? '' : 's') + ' added from your selection. Drag corners or fetch when ready.', 'success');
       }
     } else {
       reenterBrowseMode();
@@ -3988,6 +3978,13 @@ window._qeiiState = { active: false, features: [] };
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v3.03</span>
+      <span class="changelog-date">May 2026</span>
+      <ul>
+        <li>Drawing around KMZ polygons now keeps the drawn polygon in the list alongside the selected KMZ polygons — consistent with QEII behaviour; delete either polygon if you only want the other</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v3.01</span>
       <span class="changelog-date">May 2026</span>
