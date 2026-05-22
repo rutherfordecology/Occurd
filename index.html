@@ -297,6 +297,25 @@ html, body { max-width: 100vw; overflow-x: hidden; }
   #map-wrap { height: calc(100vh - 52px); }
 }
 
+/* QEII layer toggle button */
+.qeii-toggle-btn {
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius);
+  padding: 5px 9px;
+  font-size: 11px;
+  font-family: var(--font-sans);
+  font-weight: 600;
+  cursor: pointer;
+  color: var(--text2);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.18);
+  transition: all 0.15s;
+  white-space: nowrap;
+  letter-spacing: 0.02em;
+}
+.qeii-toggle-btn:hover { background: var(--green-light); color: var(--green-dark); border-color: var(--green-mid); }
+.qeii-toggle-btn.active { background: #1a5940; color: #fff; border-color: #1a5940; }
+
 /* Changelog panel — slides up from bottom of sidebar */
 .changelog-overlay { display:none; position:fixed; inset:0; z-index:9998; }
 .changelog-overlay.open { display:block; }
@@ -407,7 +426,7 @@ html, body { max-width: 100vw; overflow-x: hidden; }
       <img src="occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v2.99</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v3.00</span></h1>
   </div>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
     <button class="about-btn" id="aboutBtn">&#9432; About</button>
@@ -3804,6 +3823,126 @@ document.getElementById('dlChecklistBtn').addEventListener('click', () => {
     // Footer stays in sidebar — sidebar is already below map via CSS order
   }
 })();
+
+// ── QEII National Trust covenant layer ───────────────────────────────────────
+(function() {
+  let qeiiActive = false;
+  let qeiiLayer  = null;   // L.geoJSON layer currently on map
+  let qeiiLoading = false;
+
+  // Add a custom Leaflet control (bottom-left, above attribution)
+  const QeiiControl = L.Control.extend({
+    options: { position: 'bottomleft' },
+    onAdd: function() {
+      const btn = L.DomUtil.create('button', 'qeii-toggle-btn');
+      btn.id   = 'qeiiToggleBtn';
+      btn.textContent = '🌿 QEII covenants';
+      btn.title = 'Toggle QEII National Trust covenant polygons';
+      L.DomEvent.on(btn, 'click', L.DomEvent.stopPropagation);
+      L.DomEvent.on(btn, 'click', toggleQeii);
+      return btn;
+    }
+  });
+  new QeiiControl().addTo(map);
+
+  function toggleQeii() {
+    qeiiActive = !qeiiActive;
+    const btn = document.getElementById('qeiiToggleBtn');
+    if (btn) btn.classList.toggle('active', qeiiActive);
+    if (qeiiActive) {
+      fetchQeii();
+    } else {
+      clearQeii();
+    }
+  }
+
+  function clearQeii() {
+    if (qeiiLayer) { map.removeLayer(qeiiLayer); qeiiLayer = null; }
+  }
+
+  async function fetchQeii() {
+    if (!qeiiActive) return;
+    if (qeiiLoading) return;
+    qeiiLoading = true;
+
+    const btn = document.getElementById('qeiiToggleBtn');
+    if (btn) btn.textContent = '⏳ Loading…';
+
+    try {
+      const bounds = map.getBounds();
+      // ArcGIS envelope query — filter to current map view
+      const env = [
+        bounds.getWest(), bounds.getSouth(),
+        bounds.getEast(), bounds.getNorth()
+      ].join(',');
+
+      const url = 'https://services-ap1.arcgis.com/h9r62GhsQQYscUHs/arcgis/rest/services/QEII_National_Trust_protected_areas/FeatureServer/0/query?' +
+        new URLSearchParams({
+          geometry:        env,
+          geometryType:    'esriGeometryEnvelope',
+          spatialRel:      'esriSpatialRelIntersects',
+          inSR:            '4326',
+          outSR:           '4326',
+          outFields:       'CovNumber,Type,AreaSurvHa,DateRegd,QEIIRegion,TA_Name',
+          returnGeometry:  'true',
+          f:               'geojson',
+          resultRecordCount: 1000
+        });
+
+      const resp = await fetch(url);
+      if (!resp.ok) throw new Error('HTTP ' + resp.status);
+      const data = await resp.json();
+
+      // If toggled off while loading, discard result
+      if (!qeiiActive) return;
+
+      clearQeii();
+
+      qeiiLayer = L.geoJSON(data, {
+        style: {
+          color:       '#0e6655',
+          weight:      1.5,
+          fillColor:   '#1abc9c',
+          fillOpacity: 0.18,
+          dashArray:   '4 3'
+        },
+        onEachFeature: function(feature, layer) {
+          const p = feature.properties || {};
+          const ha = p.AreaSurvHa ? parseFloat(p.AreaSurvHa).toFixed(1) + ' ha' : '—';
+          const date = p.DateRegd ? new Date(p.DateRegd).toLocaleDateString('en-NZ', { year:'numeric', month:'short' }) : '—';
+          layer.bindPopup(
+            '<div style="font-size:12px;line-height:1.7;min-width:160px;">' +
+            '<strong style="font-size:13px;">' + (p.CovNumber || 'QEII Covenant') + '</strong><br>' +
+            (p.Type ? '<span style="color:#555;">' + p.Type + '</span><br>' : '') +
+            '<span style="color:#555;">Area: ' + ha + '</span><br>' +
+            '<span style="color:#555;">Registered: ' + date + '</span><br>' +
+            (p.TA_Name ? '<span style="color:#555;">TA: ' + p.TA_Name + '</span><br>' : '') +
+            (p.QEIIRegion ? '<span style="color:#555;">Region: ' + p.QEIIRegion + '</span>' : '') +
+            '</div>',
+            { maxWidth: 240 }
+          );
+          layer.on('mouseover', function() { layer.setStyle({ fillOpacity: 0.38, weight: 2.5 }); });
+          layer.on('mouseout',  function() { layer.setStyle({ fillOpacity: 0.18, weight: 1.5 }); });
+        }
+      }).addTo(map);
+
+    } catch(e) {
+      console.warn('QEII fetch failed:', e);
+    } finally {
+      qeiiLoading = false;
+      const b = document.getElementById('qeiiToggleBtn');
+      if (b) b.textContent = '🌿 QEII covenants';
+    }
+  }
+
+  // Refresh covenants when map is panned/zoomed (debounced)
+  let qeiiMoveTimer = null;
+  map.on('moveend', function() {
+    if (!qeiiActive) return;
+    clearTimeout(qeiiMoveTimer);
+    qeiiMoveTimer = setTimeout(fetchQeii, 400);
+  });
+})();
 </script>
 
 <!-- Changelog panel -->
@@ -3814,6 +3953,13 @@ document.getElementById('dlChecklistBtn').addEventListener('click', () => {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v3.00</span>
+      <span class="changelog-date">May 2026</span>
+      <ul>
+        <li>QEII National Trust covenant layer — click the "🌿 QEII covenants" button (bottom-left of map) to overlay all QEII covenant polygons in the current map view; click a polygon to see covenant number, type, area (ha), registration date and territorial authority; layer refreshes automatically on pan and zoom</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v2.97</span>
       <span class="changelog-date">May 2026</span>
