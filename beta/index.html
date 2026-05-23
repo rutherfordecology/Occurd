@@ -104,6 +104,8 @@ header { background: var(--green-dark); color: white; padding: 0 1.5rem; display
 .sp-input:focus { border-color: var(--green-mid); }
 .sp-input.sp-active { border-color: var(--green); background: var(--green-light); font-weight: 500; }
 .sp-input:disabled { opacity: 0.45; cursor: not-allowed; }
+@keyframes sp-shake { 0%,100%{transform:translateX(0)} 20%,60%{transform:translateX(-5px)} 40%,80%{transform:translateX(5px)} }
+.sp-input.sp-warn { border-color: var(--amber-mid) !important; background: var(--amber-light) !important; animation: sp-shake 0.35s ease; }
 .sp-clear { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; font-size: 15px; color: var(--text3); line-height: 1; padding: 2px; display: none; }
 .sp-clear:hover { color: var(--red); }
 #spDrop { position: fixed; z-index: 9500; background: var(--surface); border: 1px solid var(--border2); border-radius: var(--radius); box-shadow: 0 6px 18px rgba(0,0,0,0.14); max-height: 220px; overflow-y: auto; display: none; }
@@ -425,7 +427,7 @@ html, body { max-width: 100vw; overflow-x: hidden; }
       <img src="../occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v3.15b</span> <span style="font-size:10px;font-weight:700;color:#fbbf24;letter-spacing:0.06em;background:rgba(251,191,36,0.15);padding:1px 6px;border-radius:8px;">BETA</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v3.17b</span> <span style="font-size:10px;font-weight:700;color:#fbbf24;letter-spacing:0.06em;background:rgba(251,191,36,0.15);padding:1px 6px;border-radius:8px;">BETA</span></h1>
   </div>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
     <button class="about-btn" id="aboutBtn">&#9432; About</button>
@@ -3268,6 +3270,43 @@ function buildChecklist(records) {
     if (!byGroup[g][name].common && r.vernacularName && !isBandingCode(r.vernacularName)) byGroup[g][name].common = r.vernacularName;
     if (!byGroup[g][name].common && r.taxonKey) byGroup[g][name].common = cachedName(r.taxonKey);
   });
+
+  // ── NZ vernacular / Māori name enrichment ────────────────────────────────
+  // When the map is centred in NZ, replace or supplement GBIF vernacular names
+  // with names from NZTCS (maori + common fields) and NZOR (vernacular index).
+  // Priority: nztcs.json (maori · common) > nzor_names.json > GBIF vernacularName
+  const _spFld = document.getElementById('spField');
+  const _inNZ  = _spFld && _spFld.style.display !== 'none';
+  if (_inNZ) {
+    Object.values(byGroup).forEach(group => {
+      Object.entries(group).forEach(([name, info]) => {
+        // 1. nztcs.json — loaded if user has unlocked NZTCS status; has explicit maori + common fields
+        if (nztcsData) {
+          const m = lookupNztcs(info.record);
+          if (m && m.entry) {
+            const parts = [m.entry.maori, m.entry.common]
+              .filter(Boolean)
+              .filter((v, i, a) => a.indexOf(v) === i); // deduplicate (e.g. "kea" / "kea")
+            if (parts.length) { info.common = parts.join(' · '); return; }
+          }
+        }
+        // 2. NZOR reverse index — loaded in background when map enters NZ
+        if (typeof window.getNzorVernacular === 'function') {
+          const v = window.getNzorVernacular(info.record.species || name);
+          if (v) { info.common = v; return; }
+        }
+        // 3. Already set from GBIF vernacularName / cachedName above — keep as-is
+      });
+    });
+    // If NZOR data hasn't arrived yet, trigger a load and re-render when ready
+    if (!window._nzorReady() && typeof window.ensureNzorLoaded === 'function') {
+      window.ensureNzorLoaded().then(ok => {
+        if (ok && allRecords.length > 0) buildChecklist(allRecords);
+      });
+    }
+  }
+  // ─────────────────────────────────────────────────────────────────────────
+
   clScroll.innerHTML = '';
   let hasUncertain = false;
   Object.keys(byGroup).sort().forEach(g => {
@@ -3478,6 +3517,20 @@ runBtn.addEventListener('click', async () => {
     return;
   }
   if (polygons.length === 0) return;
+
+  // Guard: species field visible, user typed something but never selected from dropdown
+  const _spField = document.getElementById('spField');
+  const _spInput = document.getElementById('spInput');
+  if (_spField && _spField.style.display !== 'none' &&
+      _spInput && _spInput.value.trim() &&
+      !_spInput.classList.contains('sp-active')) {
+    setStatus('Please select a species from the dropdown — type a name and click a suggestion.', 'warning');
+    _spInput.classList.add('sp-warn');
+    setTimeout(() => _spInput.classList.remove('sp-warn'), 600);
+    _spInput.focus();
+    return;
+  }
+
   setFetchMode(true); fetchAbortFlag = false; clearResults();
   taxonMenu.style.display = 'none';
 
@@ -3948,42 +4001,72 @@ document.getElementById('dlChecklistBtn').addEventListener('click', () => {
   document.body.appendChild(drop);
 
   let nzorData     = null;   // loaded lazily
+  let nzorPromise  = null;   // shared load promise — prevents duplicate fetches
   let nzorLoading  = false;
+  let nzorSciIndex = null;   // built once: lowercase sci name → [vernacular display names]
   let selectedKey  = null;   // GBIF taxon key once resolved
   let debounce     = null;
   let focusIdx     = -1;
   let curItems     = [];
 
   window.getSpeciesTaxonKey = () => selectedKey;
+  window._nzorReady = () => !!nzorData;
+
+  // Reverse index: sci name (lowercase) → vernacular display names from NZOR
+  function buildSciIndex() {
+    if (nzorSciIndex || !nzorData) return;
+    nzorSciIndex = {};
+    for (const val of Object.values(nzorData)) {
+      if (val.cls === 'v' && val.sci) {
+        const k = val.sci.toLowerCase();
+        if (!nzorSciIndex[k]) nzorSciIndex[k] = [];
+        if (!nzorSciIndex[k].includes(val.n)) nzorSciIndex[k].push(val.n);
+      }
+    }
+  }
+
+  // Returns vernacular name(s) for a scientific name — used by species checklist
+  window.getNzorVernacular = function(sciName) {
+    if (!sciName) return '';
+    if (!nzorSciIndex) buildSciIndex();
+    if (!nzorSciIndex) return '';
+    const hits = nzorSciIndex[sciName.toLowerCase()];
+    if (!hits || !hits.length) return '';
+    // Deduplicate and return up to 2 names joined
+    const uniq = hits.filter((v, i, a) => a.indexOf(v) === i);
+    return uniq.slice(0, 2).join(' · ');
+  };
+
+  // Exposed so buildChecklist can trigger a load and re-render when NZOR arrives
+  window.ensureNzorLoaded = function() {
+    if (nzorData) return Promise.resolve(true);
+    return ensureData(true);
+  };
 
   // Show/hide field based on whether map is centred in NZ
+  // Also pre-loads NZOR data in background so checklist has names ready after a fetch
   function checkNZGate() {
     const c = map.getCenter();
     const inNZ = c.lat >= NZ_BOUNDS.minLat && c.lat <= NZ_BOUNDS.maxLat &&
                  c.lng >= NZ_BOUNDS.minLng && c.lng <= NZ_BOUNDS.maxLng;
     field.style.display = inNZ ? 'block' : 'none';
+    if (inNZ && !nzorData && !nzorLoading) ensureData(true); // silent background load
   }
   map.on('moveend', checkNZGate);
   setTimeout(checkNZGate, 600); // check after map initialises
 
-  // Lazy-load NZOR names
-  async function ensureData() {
+  // Load NZOR names — shared promise so concurrent callers all wait on the same fetch
+  async function ensureData(silent) {
     if (nzorData) return true;
-    if (nzorLoading) return false;
-    nzorLoading = true;
-    showDrop([{ _loading: true }]);
-    try {
-      const r = await fetch(NZOR_URL);
-      if (!r.ok) throw new Error('HTTP ' + r.status);
-      nzorData = await r.json();
-      return true;
-    } catch(e) {
-      console.warn('NZOR load failed:', e);
-      nzorData = null;
-      return false;
-    } finally {
-      nzorLoading = false;
+    if (!nzorPromise) {
+      nzorLoading = true;
+      if (!silent) showDrop([{ _loading: true }]);
+      nzorPromise = fetch(NZOR_URL)
+        .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+        .then(data => { nzorData = data; nzorLoading = false; nzorPromise = null; return true; })
+        .catch(e => { console.warn('NZOR load failed:', e); nzorData = null; nzorLoading = false; nzorPromise = null; return false; });
     }
+    return nzorPromise;
   }
 
   function normQuery(s) {
@@ -4286,6 +4369,20 @@ window._qeiiState = { active: false, features: [] };
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v3.17b</span>
+      <span class="changelog-date">May 2026</span>
+      <ul>
+        <li>NZ vernacular &amp; Māori names in species checklist — when the map is centred in New Zealand, common and Māori names from NZTCS and NZOR replace generic GBIF vernacular names in the species list (e.g. kererū · New Zealand pigeon, tūī, kea); NZOR data loads silently in the background as soon as the map enters NZ bounds</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v3.16b</span>
+      <span class="changelog-date">May 2026</span>
+      <ul>
+        <li>Species search guard — if you've typed in the species field but haven't selected from the dropdown, clicking Fetch now shows a warning and shakes the input rather than silently fetching all taxa</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v3.09</span>
       <span class="changelog-date">May 2026</span>
