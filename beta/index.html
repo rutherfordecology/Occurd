@@ -439,6 +439,24 @@ html, body { max-width: 100vw; overflow-x: hidden; }
 .miller-item.miller-sel .miller-arr { color:rgba(255,255,255,0.6); }
 .miller-msg { padding:18px 12px;text-align:center;font-size:12px;color:var(--text3);font-style:italic; }
 .miller-drill-hint { font-size:10px;color:var(--text3);padding:4px 14px 0;min-height:18px; }
+.miller-search-row { padding:8px 14px 0;flex-shrink:0; }
+.miller-search-wrap { position:relative; }
+.miller-search-in { width:100%;box-sizing:border-box;border:1px solid var(--border);border-radius:8px;padding:7px 28px 7px 30px;font-size:12.5px;font-family:var(--font-sans);background:var(--surface);color:var(--text1);outline:none; }
+.miller-search-in:focus { border-color:var(--green);box-shadow:0 0 0 2px rgba(42,94,58,0.1); }
+.miller-search-icon { position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:11px;color:var(--text3);pointer-events:none; }
+.miller-search-x { position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:16px;color:var(--text3);line-height:1;padding:0 2px; }
+.miller-search-x:hover { color:var(--text1); }
+.miller-drop { position:absolute;top:calc(100% + 4px);left:0;right:0;background:#fff;border:1px solid var(--border);border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,0.13);z-index:200;max-height:260px;overflow-y:auto; }
+.miller-sug { display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:pointer;border-bottom:0.5px solid #f0ece8;transition:background 0.08s; }
+.miller-sug:last-child { border-bottom:none; }
+.miller-sug:hover { background:var(--surface2); }
+.miller-sug-info { flex:1;min-width:0; }
+.miller-sug-main { font-size:12.5px;color:var(--text1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+.miller-sug-main.vern { font-weight:500; }
+.miller-sug-main.sci { font-style:italic; }
+.miller-sug-sub { font-size:11px;color:var(--text3);font-style:italic;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:1px; }
+.miller-sug-rank { font-size:9px;text-transform:uppercase;letter-spacing:0.06em;color:var(--text3);background:var(--surface2);padding:1px 5px;border-radius:3px;flex-shrink:0;white-space:nowrap; }
+.miller-sug-msg { padding:14px 12px;text-align:center;font-size:12px;color:var(--text3); }
 .taxo-ftr { display:flex;align-items:center;padding:11px 16px;border-top:1px solid var(--border);flex-shrink:0; }
 .taxo-add { flex:1;background:var(--green);color:#fff;border:none;border-radius:8px;padding:9px 14px;font-size:12.5px;font-weight:600;cursor:pointer;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;transition:background 0.15s; }
 .taxo-add:hover:not(:disabled) { background:var(--green-dark,#1b5e3a); }
@@ -463,7 +481,7 @@ html, body { max-width: 100vw; overflow-x: hidden; }
       <img src="../occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v3.27b</span> <span style="font-size:10px;font-weight:700;color:#fbbf24;letter-spacing:0.06em;background:rgba(251,191,36,0.15);padding:1px 6px;border-radius:8px;">BETA</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v3.28b</span> <span style="font-size:10px;font-weight:700;color:#fbbf24;letter-spacing:0.06em;background:rgba(251,191,36,0.15);padding:1px 6px;border-radius:8px;">BETA</span></h1>
   </div>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
     <button class="about-btn" id="aboutBtn">&#9432; About</button>
@@ -4153,6 +4171,9 @@ document.getElementById('dlChecklistBtn').addEventListener('click', () => {
     return ensureData(true);
   };
 
+  // Expose search function so the taxonomy browser can use it for common/Māori name lookup
+  window._nzorSearch = function(q) { return nzorData ? search(q) : []; };
+
   // Show/hide field based on whether map is centred in NZ
   // Also pre-loads NZOR data in background so checklist has names ready after a fetch
   function checkNZGate() {
@@ -4574,6 +4595,8 @@ window._qeiiState = { active: false, features: [] };
   let cols      = [KINGDOMS, [], []];
   let selIdx    = [-1, -1, -1];    // selected index per column
   let selNodes  = [null, null, null]; // selected node per column
+  let jumpAncestry      = [];   // [{key,name,rank}…] set after a search jump, for breadcrumb
+  let millerSearchTimer = null; // debounce handle
 
   // ── Render ────────────────────────────────────────────────────────────────
   const COL_HEADERS = ['Kingdom', 'Phylum / Class', 'Order / Family'];
@@ -4659,6 +4682,7 @@ window._qeiiState = { active: false, features: [] };
 
   // ── Interaction ───────────────────────────────────────────────────────────
   async function onItemClick(ci, i, node) {
+    jumpAncestry = [];   // manual navigation clears any search-jump ancestry
     if (ci === 2) {
       // Drill in: shift cols left, clicked col-2 item becomes new col-1 selection
       navStack.push({
@@ -4792,6 +4816,7 @@ window._qeiiState = { active: false, features: [] };
 
   function goBack() {
     if (!navStack.length) return;
+    jumpAncestry = [];   // back navigation clears search-jump ancestry
     const prev = navStack.pop();
     cols      = prev.cols;
     selIdx    = prev.selIdx;
@@ -4817,7 +4842,18 @@ window._qeiiState = { active: false, features: [] };
     const el = document.getElementById('taxoCrumb');
     if (!el) return;
     const parts = [];
-    if (navStack.length > 0) {
+    if (jumpAncestry.length > 0) {
+      // Show ancestry path from the search jump (exclude the last entry = the taxon itself,
+      // which is shown via selNodes below)
+      const ancestors = jumpAncestry.slice(0, -1);
+      if (ancestors.length <= 3) {
+        ancestors.forEach(n => parts.push(nodeName(n)));
+      } else {
+        parts.push(nodeName(ancestors[0]));
+        parts.push('…');
+        parts.push(nodeName(ancestors[ancestors.length - 1]));
+      }
+    } else if (navStack.length > 0) {
       const f0 = navStack[0];
       const anchor = f0.selNodes.find(n => n);
       if (anchor) parts.push(nodeName(anchor));
@@ -4844,12 +4880,253 @@ window._qeiiState = { active: false, features: [] };
     }
   }
 
+  // ── Search bar ────────────────────────────────────────────────────────────
+  function initSearch() {
+    const inp = document.getElementById('millerSearchIn');
+    const clr = document.getElementById('millerSearchX');
+    if (!inp) return;
+
+    inp.addEventListener('input', () => {
+      const q = inp.value.trim();
+      clr.style.display = q ? '' : 'none';
+      clearTimeout(millerSearchTimer);
+      if (!q) { hideMillerDrop(); return; }
+      millerSearchTimer = setTimeout(() => doMillerSearch(q), 280);
+    });
+
+    inp.addEventListener('keydown', e => {
+      if (e.key === 'Escape') {
+        inp.value = ''; clr.style.display = 'none'; hideMillerDrop();
+      }
+    });
+
+    clr.addEventListener('click', () => {
+      inp.value = ''; clr.style.display = 'none'; hideMillerDrop(); inp.focus();
+    });
+
+    // Close dropdown when clicking outside the search wrap
+    document.addEventListener('click', e => {
+      const wrap = document.querySelector('.miller-search-wrap');
+      if (wrap && !wrap.contains(e.target)) hideMillerDrop();
+    }, true);
+  }
+
+  function hideMillerDrop() {
+    const drop = document.getElementById('millerDrop');
+    if (drop) { drop.style.display = 'none'; drop.innerHTML = ''; }
+  }
+
+  async function doMillerSearch(q) {
+    const drop = document.getElementById('millerDrop');
+    if (!drop) return;
+    drop.innerHTML = '<div class="miller-sug-msg">Searching…</div>';
+    drop.style.display = '';
+
+    const [nzorResults, gbifResults] = await Promise.all([
+      searchNzor(q),
+      searchGbif(q),
+    ]);
+
+    // Merge: NZOR vernacular/common first, then GBIF scientific; deduplicate by key
+    const seen = new Set();
+    const results = [];
+    for (const r of [...nzorResults, ...gbifResults]) {
+      const dk = r.gbifKey ? String(r.gbifKey) : ('nzor_' + r.display);
+      if (!seen.has(dk)) { seen.add(dk); results.push(r); }
+    }
+    showMillerDrop(results);
+  }
+
+  async function searchNzor(q) {
+    if (typeof window._nzorSearch !== 'function') return [];
+    const hits = window._nzorSearch(q).slice(0, 10);
+    return hits.map(h => ({
+      type:     (h.cls === 'v' || h.cls === 'g') ? 'vernacular' : 'scientific',
+      display:  h.n,
+      subLabel: h.sci || '',
+      rank:     '',
+      gbifKey:  null,
+      nzorData: h,
+    }));
+  }
+
+  async function searchGbif(q) {
+    try {
+      const url = 'https://api.gbif.org/v1/species/suggest?datasetKey=d7dddbf4-2cf0-4f39-9b2a-bb099caae36c&q='
+                + encodeURIComponent(q) + '&limit=10';
+      const res = await fetch(url);
+      if (!res.ok) return [];
+      const arr = await res.json();
+      return arr.map(s => ({
+        type:     'scientific',
+        display:  s.canonicalName || s.scientificName || s.name || '?',
+        subLabel: s.family || s.order || '',
+        rank:     RANK_LABELS[s.rank] || s.rank || '',
+        gbifKey:  s.key,
+        nzorData: null,
+      }));
+    } catch(e) { return []; }
+  }
+
+  function showMillerDrop(results) {
+    const drop = document.getElementById('millerDrop');
+    if (!drop) return;
+    drop.innerHTML = '';
+    if (!results.length) {
+      drop.innerHTML = '<div class="miller-sug-msg">No results found</div>';
+      drop.style.display = '';
+      return;
+    }
+    results.forEach(r => {
+      const row = document.createElement('div');
+      row.className = 'miller-sug';
+      const rankHtml = r.rank ? `<span class="miller-sug-rank">${r.rank}</span>` : '';
+      const mainClass = r.type === 'vernacular' ? 'vern' : 'sci';
+      row.innerHTML =
+        `<div class="miller-sug-info">` +
+          `<div class="miller-sug-main ${mainClass}">${r.display}</div>` +
+          (r.subLabel ? `<div class="miller-sug-sub">${r.subLabel}</div>` : '') +
+        `</div>` + rankHtml;
+      row.addEventListener('click', () => resolveAndJump(r));
+      drop.appendChild(row);
+    });
+    drop.style.display = '';
+  }
+
+  async function resolveAndJump(result) {
+    hideMillerDrop();
+    const inp = document.getElementById('millerSearchIn');
+    const clr = document.getElementById('millerSearchX');
+
+    // Resolve a GBIF backbone key for NZOR-only vernacular results
+    let gbifKey = result.gbifKey;
+    if (!gbifKey && result.nzorData) {
+      const sci = result.nzorData.sci || result.nzorData.n;
+      try {
+        const url = 'https://api.gbif.org/v1/species/match?name='
+                  + encodeURIComponent(sci)
+                  + '&datasetKey=d7dddbf4-2cf0-4f39-9b2a-bb099caae36c&verbose=false';
+        const res = await fetch(url);
+        if (res.ok) {
+          const j = await res.json();
+          if (j.matchType !== 'NONE' && j.usageKey) gbifKey = j.usageKey;
+        }
+      } catch(e) {}
+    }
+    if (!gbifKey) return; // can't resolve — nothing to show
+
+    if (inp) inp.value = result.display;
+    if (clr) clr.style.display = '';
+    await jumpToTaxon(gbifKey);
+  }
+
+  async function jumpToTaxon(gbifKey) {
+    try {
+      const [taxonRes, parentsRes] = await Promise.all([
+        fetch('https://api.gbif.org/v1/species/' + gbifKey),
+        fetch('https://api.gbif.org/v1/species/' + gbifKey + '/parents'),
+      ]);
+      if (!taxonRes.ok || !parentsRes.ok) return;
+      const taxon   = await taxonRes.json();
+      // parents[] is ordered closest-first (direct parent at index 0, kingdom last)
+      const parents = await parentsRes.json();
+
+      const directParent = parents[0];
+      if (!directParent) return;
+
+      // Breadcrumb: ancestors in kingdom-first order, then the taxon itself
+      jumpAncestry = [...parents].reverse().concat([taxon]);
+
+      // Reset navigation state (keep API cache)
+      navStack.length = 0;
+      cols     = [[], [], []];
+      selIdx   = [-1, -1, -1];
+      selNodes = [null, null, null];
+
+      // Show loading state in col 0
+      const colEl0 = document.getElementById('millerCol0');
+      if (colEl0) {
+        colEl0.innerHTML = '';
+        const hdr = document.createElement('div');
+        hdr.className = 'miller-col-hdr';
+        hdr.textContent = RANK_LABELS[directParent.rank] || 'Taxa';
+        colEl0.appendChild(hdr);
+        const msg = document.createElement('div');
+        msg.className = 'miller-msg';
+        msg.textContent = 'Loading…';
+        colEl0.appendChild(msg);
+      }
+
+      // Load col 0: siblings of target (direct parent's children)
+      const parentKey = directParent.key;
+      let siblings;
+      if (cache[parentKey]) {
+        siblings = cache[parentKey];
+      } else {
+        const [childrenRes, nzKeys] = await Promise.all([
+          fetch('https://api.gbif.org/v1/species/' + parentKey + '/children?limit=200'),
+          getNZKeys(parentKey, directParent.rank),
+        ]);
+        if (!childrenRes.ok) return;
+        const cj = await childrenRes.json();
+        let children = (cj.results || []).filter(x =>
+          x.rank && VALID_RANKS.has(x.rank) &&
+          (!x.taxonomicStatus || x.taxonomicStatus === 'ACCEPTED' || x.taxonomicStatus === 'DOUBTFUL')
+        );
+        if (nzKeys && nzKeys.size > 0) {
+          const filtered = children.filter(c => nzKeys.has(String(c.key)));
+          // Ensure target is present even if NZ-filter would exclude it
+          if (!filtered.some(c => c.key === gbifKey)) {
+            const targetNode = children.find(c => c.key === gbifKey) || taxon;
+            filtered.unshift(targetNode);
+          }
+          siblings = filtered;
+        } else {
+          siblings = children;
+        }
+        siblings.sort((a,b) => (a.canonicalName||'').localeCompare(b.canonicalName||''));
+        cache[parentKey] = siblings;
+      }
+
+      // Select the target in col 0
+      const targetIdx  = siblings.findIndex(n => n.key === gbifKey);
+      const targetNode = targetIdx >= 0 ? siblings[targetIdx] : taxon;
+      cols[0]     = siblings;
+      selIdx[0]   = targetIdx >= 0 ? targetIdx : 0;
+      selNodes[0] = targetNode;
+
+      renderAll();
+      updateCrumb();
+      updateAddBtn();
+
+      // Scroll selected item into view
+      const colEl = document.getElementById('millerCol0');
+      if (colEl) {
+        const sel = colEl.querySelector('.miller-item.selected');
+        if (sel) sel.scrollIntoView({ block: 'center' });
+      }
+
+      // Load col 1 with target's own children
+      await loadCol(1, targetNode);
+
+    } catch(e) {
+      console.warn('jumpToTaxon error:', e);
+    }
+  }
+
   // ── Open / close ──────────────────────────────────────────────────────────
   function reset() {
     navStack.length = 0;
-    cols     = [[], [], []];  // col 0 loaded async via loadKingdoms()
-    selIdx   = [-1, -1, -1];
-    selNodes = [null, null, null];
+    cols         = [[], [], []];  // col 0 loaded async via loadKingdoms()
+    selIdx       = [-1, -1, -1];
+    selNodes     = [null, null, null];
+    jumpAncestry = [];
+    clearTimeout(millerSearchTimer);
+    const inp = document.getElementById('millerSearchIn');
+    const clr = document.getElementById('millerSearchX');
+    if (inp) inp.value = '';
+    if (clr) clr.style.display = 'none';
+    hideMillerDrop();
   }
 
   async function open() {
@@ -4885,6 +5162,7 @@ window._qeiiState = { active: false, features: [] };
         window.addSpeciesEntry(nodeName(node), node.key, null);
       close();
     });
+    initSearch();
   });
 })();
 </script>
@@ -4897,6 +5175,13 @@ window._qeiiState = { active: false, features: [] };
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v3.28b</span>
+      <span class="changelog-date">May 2026</span>
+      <ul>
+        <li>Taxonomy browser search bar — type a scientific name, common name or Māori name to jump directly to any taxon; GBIF backbone and NZOR are searched in parallel; selecting a result loads that taxon's siblings into the browser and shows its children, with the full ancestry path shown in the breadcrumb</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v3.27b</span>
       <span class="changelog-date">May 2026</span>
@@ -5540,6 +5825,16 @@ window._qeiiState = { active: false, features: [] };
       <button id="taxoBackBtn" style="background:none;border:none;cursor:pointer;font-size:12px;color:var(--text3);padding:2px 6px;border-radius:4px;flex-shrink:0;font-family:var(--font-sans);" disabled title="Go back one level">◀ Back</button>
       <span class="taxo-crumb" id="taxoCrumb">Select a kingdom to start</span>
       <button class="taxo-x" id="taxoBrowserClose" title="Close">&#215;</button>
+    </div>
+    <div class="miller-search-row">
+      <div class="miller-search-wrap">
+        <span class="miller-search-icon">&#x2315;</span>
+        <input class="miller-search-in" id="millerSearchIn" type="text"
+               placeholder="Search taxa, common names, Māori names…"
+               autocomplete="off" spellcheck="false">
+        <button class="miller-search-x" id="millerSearchX" style="display:none" title="Clear">&#215;</button>
+        <div class="miller-drop" id="millerDrop" style="display:none"></div>
+      </div>
     </div>
     <div class="taxo-body">
       <div class="miller-wrap" id="millerWrap">
