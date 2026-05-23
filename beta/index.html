@@ -280,6 +280,8 @@ html, body { max-width: 100vw; overflow-x: hidden; }
   .metrics { grid-template-columns: repeat(3, 1fr); }
   /* Hide Leaflet's built-in draw action buttons — we provide touch-safe replacements */
   .leaflet-draw-actions { display: none !important; }
+  /* Tree of life not available on small screens */
+  #taxoBrowseBtn { display: none !important; }
 }
 @media (max-width: 400px) {
   .sidebar-section { padding: 0.75rem 0.9rem; }
@@ -485,7 +487,7 @@ html, body { max-width: 100vw; overflow-x: hidden; }
       <img src="../occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v3.39b</span> <span style="font-size:10px;font-weight:700;color:#fbbf24;letter-spacing:0.06em;background:rgba(251,191,36,0.15);padding:1px 6px;border-radius:8px;">BETA</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v3.40b</span> <span style="font-size:10px;font-weight:700;color:#fbbf24;letter-spacing:0.06em;background:rgba(251,191,36,0.15);padding:1px 6px;border-radius:8px;">BETA</span></h1>
   </div>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
     <button class="about-btn" id="aboutBtn">&#9432; About</button>
@@ -4723,10 +4725,7 @@ window._qeiiState = { active: false, features: [] };
         item.appendChild(cntSpan);
       }
 
-      const rankSpan = document.createElement('span');
-      rankSpan.className = 'miller-rank';
-      rankSpan.textContent = rank;
-      item.appendChild(rankSpan);
+      // rank badge removed — column header already shows the rank
 
       if (hasKids) {
         const arr = document.createElement('span');
@@ -5295,6 +5294,7 @@ window._qeiiState = { active: false, features: [] };
   }
 
   async function open() {
+    if (window.innerWidth < 700) return; // not available on small screens
     reset();
     const modal = document.getElementById('taxoBrowser');
     if (!modal) return;
@@ -5340,6 +5340,14 @@ window._qeiiState = { active: false, features: [] };
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v3.40b</span>
+      <span class="changelog-date">May 2026</span>
+      <ul>
+        <li>Tree of life column items no longer show a rank badge per row — the column header already shows the rank, so showing it on every item was redundant and made columns cramped</li>
+        <li>Tree of life is hidden and unavailable on small screens (under 700px)</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v3.39b</span>
       <span class="changelog-date">May 2026</span>
