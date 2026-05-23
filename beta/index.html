@@ -432,7 +432,7 @@ html, body { max-width: 100vw; overflow-x: hidden; }
       <img src="../occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v3.22b</span> <span style="font-size:10px;font-weight:700;color:#fbbf24;letter-spacing:0.06em;background:rgba(251,191,36,0.15);padding:1px 6px;border-radius:8px;">BETA</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v3.23b</span> <span style="font-size:10px;font-weight:700;color:#fbbf24;letter-spacing:0.06em;background:rgba(251,191,36,0.15);padding:1px 6px;border-radius:8px;">BETA</span></h1>
   </div>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
     <button class="about-btn" id="aboutBtn">&#9432; About</button>
@@ -4213,12 +4213,27 @@ document.getElementById('dlChecklistBtn').addEventListener('click', () => {
       input.classList.add('sp-active');
       let resolvedKey = null;
       try {
+        // Primary: species/match — only accept if it actually returned a GENUS rank
         const r = await fetch('https://api.gbif.org/v1/species/match?verbose=false&rank=GENUS&name=' + encodeURIComponent(genusName));
         if (r.ok) {
           const j = await r.json();
-          resolvedKey = j.usageKey || null;
+          if (j.usageKey && j.rank === 'GENUS' && j.matchType !== 'NONE') {
+            resolvedKey = j.usageKey;
+          }
         }
       } catch(e) {}
+      if (!resolvedKey) {
+        // Fallback: backbone suggest API — look for an exact canonical name match at genus rank
+        try {
+          const r2 = await fetch('https://api.gbif.org/v1/species/suggest?datasetKey=d7dddbf4-2cf0-4f39-9b2a-bb099caae36c&rank=GENUS&q=' + encodeURIComponent(genusName) + '&limit=10');
+          if (r2.ok) {
+            const arr = await r2.json();
+            const exact = arr.find(x => x.rank === 'GENUS' && x.canonicalName &&
+              x.canonicalName.toLowerCase() === genusName.toLowerCase());
+            if (exact) resolvedKey = exact.key;
+          }
+        } catch(e2) {}
+      }
       if (typeof window.addSpeciesEntry === 'function') {
         window.addSpeciesEntry('all ' + genusName, resolvedKey, resolvedKey ? null : genusName);
       }
@@ -4477,6 +4492,13 @@ window._qeiiState = { active: false, features: [] };
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v3.23b</span>
+      <span class="changelog-date">May 2026</span>
+      <ul>
+        <li>Fix genus taxon key lookup — now validates GBIF returns a genus-rank match (not a higher group), with backbone suggest API as fallback; prevents inflated record counts when genus name matched a family or order</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v3.22b</span>
       <span class="changelog-date">May 2026</span>
