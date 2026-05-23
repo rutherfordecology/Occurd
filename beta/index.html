@@ -481,7 +481,7 @@ html, body { max-width: 100vw; overflow-x: hidden; }
       <img src="../occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v3.31b</span> <span style="font-size:10px;font-weight:700;color:#fbbf24;letter-spacing:0.06em;background:rgba(251,191,36,0.15);padding:1px 6px;border-radius:8px;">BETA</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v3.32b</span> <span style="font-size:10px;font-weight:700;color:#fbbf24;letter-spacing:0.06em;background:rgba(251,191,36,0.15);padding:1px 6px;border-radius:8px;">BETA</span></h1>
   </div>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
     <button class="about-btn" id="aboutBtn">&#9432; About</button>
@@ -4932,15 +4932,16 @@ window._qeiiState = { active: false, features: [] };
     drop.innerHTML = '<div class="miller-sug-msg">Searching…</div>';
     drop.style.display = '';
 
-    const [nzorResults, gbifResults] = await Promise.all([
+    const [nzorResults, gbifResults, gbifFullResults] = await Promise.all([
       searchNzor(q),
       searchGbif(q),
+      searchGbifFull(q),
     ]);
 
-    // Merge and deduplicate by key
+    // Merge and deduplicate by key: NZOR vernacular → GBIF full-text (vernacular) → GBIF suggest (scientific)
     const seen = new Set();
     const results = [];
-    for (const r of [...nzorResults, ...gbifResults]) {
+    for (const r of [...nzorResults, ...gbifFullResults, ...gbifResults]) {
       const dk = r.gbifKey ? String(r.gbifKey) : ('nzor_' + r.display);
       if (!seen.has(dk)) { seen.add(dk); results.push(r); }
     }
@@ -4985,6 +4986,36 @@ window._qeiiState = { active: false, features: [] };
         gbifKey:  s.key,
         nzorData: null,
       }));
+    } catch(e) { return []; }
+  }
+
+  // GBIF full-text search (species/search) — catches vernacular names not in NZOR
+  async function searchGbifFull(q) {
+    try {
+      const url = 'https://api.gbif.org/v1/species/search?q='
+                + encodeURIComponent(q)
+                + '&datasetKey=d7dddbf4-2cf0-4f39-9b2a-bb099caae36c&limit=8&status=ACCEPTED';
+      const res = await fetch(url);
+      if (!res.ok) return [];
+      const j = await res.json();
+      const ql = q.toLowerCase();
+      return (j.results || []).map(s => {
+        const canonical = (s.canonicalName || '').toLowerCase();
+        // If the canonical name doesn't contain the query it matched via vernacular name
+        const isVernMatch = !canonical.includes(ql);
+        return {
+          type:     isVernMatch ? 'vernacular' : 'scientific',
+          display:  isVernMatch
+            ? (s.vernacularName || s.canonicalName || s.scientificName || '?')
+            : (s.canonicalName || s.scientificName || '?'),
+          subLabel: isVernMatch
+            ? (s.canonicalName || '')
+            : (s.family || s.order || ''),
+          rank:     RANK_LABELS[s.rank] || s.rank || '',
+          gbifKey:  s.key,
+          nzorData: null,
+        };
+      });
     } catch(e) { return []; }
   }
 
@@ -5195,6 +5226,13 @@ window._qeiiState = { active: false, features: [] };
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v3.32b</span>
+      <span class="changelog-date">May 2026</span>
+      <ul>
+        <li>Taxonomy browser search now queries three sources in parallel: NZOR (common/Māori names), GBIF backbone full-text search (catches vernacular names not held in NZOR, e.g. plain "mahoe"), and GBIF backbone suggest (scientific names)</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v3.31b</span>
       <span class="changelog-date">May 2026</span>
