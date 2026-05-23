@@ -463,7 +463,7 @@ html, body { max-width: 100vw; overflow-x: hidden; }
       <img src="../occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v3.26b</span> <span style="font-size:10px;font-weight:700;color:#fbbf24;letter-spacing:0.06em;background:rgba(251,191,36,0.15);padding:1px 6px;border-radius:8px;">BETA</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v3.27b</span> <span style="font-size:10px;font-weight:700;color:#fbbf24;letter-spacing:0.06em;background:rgba(251,191,36,0.15);padding:1px 6px;border-radius:8px;">BETA</span></h1>
   </div>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
     <button class="about-btn" id="aboutBtn">&#9432; About</button>
@@ -4556,8 +4556,18 @@ window._qeiiState = { active: false, features: [] };
   };
   const VALID_RANKS = new Set(Object.keys(RANK_LABELS));
 
+  // Maps a parent rank → the GBIF occurrence facet field for its children
+  // e.g. children of a CLASS are ORDERs → facet by orderKey
+  const RANK_TO_CHILD_FACET = {
+    KINGDOM:'phylumKey', PHYLUM:'classKey',  CLASS:'orderKey',
+    ORDER:'familyKey',   FAMILY:'genusKey',  GENUS:'speciesKey',
+    SUBPHYLUM:'classKey', SUBCLASS:'orderKey', SUBORDER:'familyKey',
+    SUBFAMILY:'genusKey', TRIBE:'genusKey',  SUBGENUS:'speciesKey',
+  };
+
   // ── State ─────────────────────────────────────────────────────────────────
-  const cache    = {};   // taxon key → [children]
+  const cache    = {};   // taxon key → NZ-filtered [children]
+  const nzCache  = {};   // 'root' | taxonKey → Set<string> of NZ child keys (null = no filter)
   const navStack = [];   // [{cols, selIdx, selNodes}] for back navigation
 
   // 3 columns: cols[0] = current root's children, cols[1] = col0-sel children, cols[2] = col1-sel children
@@ -4685,10 +4695,38 @@ window._qeiiState = { active: false, features: [] };
     }
   }
 
+  // Fetch the set of child taxon keys that have NZ occurrence records.
+  // parentKey=null → root level (uses kingdomKey facet with no taxon filter).
+  // Returns a Set<string> of keys, or null if the call fails / rank unsupported.
+  async function getNZKeys(parentKey, parentRank) {
+    const cacheKey = parentKey || 'root';
+    if (nzCache[cacheKey] !== undefined) return nzCache[cacheKey];
+    let facetField, baseUrl;
+    if (!parentKey) {
+      facetField = 'kingdomKey';
+      baseUrl    = 'https://api.gbif.org/v1/occurrence/search?country=NZ&limit=0';
+    } else {
+      facetField = RANK_TO_CHILD_FACET[parentRank];
+      if (!facetField) { nzCache[cacheKey] = null; return null; }
+      baseUrl = 'https://api.gbif.org/v1/occurrence/search?country=NZ&taxonKey='+parentKey+'&limit=0';
+    }
+    try {
+      const res = await fetch(baseUrl + '&facet=' + facetField + '&facetLimit=1000&facetMincount=1');
+      if (!res.ok) throw new Error('HTTP '+res.status);
+      const j = await res.json();
+      const keys = new Set((j.facets?.[0]?.counts || []).map(c => String(c.name)));
+      nzCache[cacheKey] = keys;
+      return keys;
+    } catch(e) {
+      nzCache[cacheKey] = null; // fallback: no filter
+      return null;
+    }
+  }
+
   async function loadCol(ci, parentNode) {
     const key = parentNode.key;
     if (!cache[key]) {
-      // Show loading indicator
+      // Show loading indicator while both API calls run
       const colEl = document.getElementById('millerCol' + ci);
       if (colEl) {
         colEl.innerHTML = '';
@@ -4702,13 +4740,21 @@ window._qeiiState = { active: false, features: [] };
         colEl.appendChild(msg);
       }
       try {
-        const res = await fetch('https://api.gbif.org/v1/species/'+key+'/children?limit=100');
-        if (!res.ok) throw new Error('HTTP '+res.status);
-        const j = await res.json();
-        const children = (j.results || []).filter(x =>
+        // Fetch taxonomy children and NZ occurrence facets in parallel
+        const [taxoRes, nzKeys] = await Promise.all([
+          fetch('https://api.gbif.org/v1/species/'+key+'/children?limit=100'),
+          getNZKeys(key, parentNode.rank),
+        ]);
+        if (!taxoRes.ok) throw new Error('HTTP '+taxoRes.status);
+        const j = await taxoRes.json();
+        let children = (j.results || []).filter(x =>
           x.rank && VALID_RANKS.has(x.rank) &&
           (!x.taxonomicStatus || x.taxonomicStatus === 'ACCEPTED' || x.taxonomicStatus === 'DOUBTFUL')
         );
+        // Filter to NZ-present taxa only
+        if (nzKeys && nzKeys.size > 0) {
+          children = children.filter(c => nzKeys.has(String(c.key)));
+        }
         children.sort((a,b) => (a.canonicalName||'').localeCompare(b.canonicalName||''));
         cache[key] = children;
       } catch(e) {
@@ -4719,6 +4765,29 @@ window._qeiiState = { active: false, features: [] };
     renderCol(ci);
     updateHint();
     updateAddBtn();
+  }
+
+  // Load the kingdoms column filtered to those with NZ occurrences
+  async function loadKingdoms() {
+    const colEl = document.getElementById('millerCol0');
+    if (colEl) {
+      colEl.innerHTML = '';
+      const hdr = document.createElement('div');
+      hdr.className = 'miller-col-hdr';
+      hdr.textContent = 'Kingdom';
+      colEl.appendChild(hdr);
+      const msg = document.createElement('div');
+      msg.className = 'miller-msg';
+      msg.textContent = 'Loading…';
+      colEl.appendChild(msg);
+    }
+    const nzKeys = await getNZKeys(null, null);
+    cols[0] = (nzKeys && nzKeys.size > 0)
+      ? KINGDOMS.filter(k => nzKeys.has(String(k.key)))
+      : KINGDOMS;
+    renderCol(0);
+    updateHint();
+    updateBackBtn();
   }
 
   function goBack() {
@@ -4778,12 +4847,12 @@ window._qeiiState = { active: false, features: [] };
   // ── Open / close ──────────────────────────────────────────────────────────
   function reset() {
     navStack.length = 0;
-    cols     = [KINGDOMS, [], []];
+    cols     = [[], [], []];  // col 0 loaded async via loadKingdoms()
     selIdx   = [-1, -1, -1];
     selNodes = [null, null, null];
   }
 
-  function open() {
+  async function open() {
     reset();
     const modal = document.getElementById('taxoBrowser');
     if (!modal) return;
@@ -4791,6 +4860,7 @@ window._qeiiState = { active: false, features: [] };
     renderAll();
     updateCrumb();
     updateAddBtn();
+    await loadKingdoms();  // fetches NZ-filtered kingdoms then renders col 0
   }
 
   function close() {
@@ -4827,6 +4897,13 @@ window._qeiiState = { active: false, features: [] };
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v3.27b</span>
+      <span class="changelog-date">May 2026</span>
+      <ul>
+        <li>Taxonomy browser now filters to NZ-present taxa only — each column load runs a parallel GBIF occurrence facet query (country=NZ) alongside the taxonomy children fetch, so only groups with actual NZ records appear; kingdoms, phyla, classes, orders and families with no NZ occurrences are hidden</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v3.26b</span>
       <span class="changelog-date">May 2026</span>
@@ -5459,7 +5536,7 @@ window._qeiiState = { active: false, features: [] };
 <div id="taxoBrowser" class="taxo-overlay" style="display:none">
   <div class="taxo-box">
     <div class="taxo-hdr">
-      <span class="taxo-title">Browse taxonomy</span>
+      <span class="taxo-title">Browse NZ taxonomy</span>
       <button id="taxoBackBtn" style="background:none;border:none;cursor:pointer;font-size:12px;color:var(--text3);padding:2px 6px;border-radius:4px;flex-shrink:0;font-family:var(--font-sans);" disabled title="Go back one level">◀ Back</button>
       <span class="taxo-crumb" id="taxoCrumb">Select a kingdom to start</span>
       <button class="taxo-x" id="taxoBrowserClose" title="Close">&#215;</button>
