@@ -453,7 +453,7 @@ html, body { max-width: 100vw; overflow-x: hidden; }
       <img src="../occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v3.24b</span> <span style="font-size:10px;font-weight:700;color:#fbbf24;letter-spacing:0.06em;background:rgba(251,191,36,0.15);padding:1px 6px;border-radius:8px;">BETA</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v3.25b</span> <span style="font-size:10px;font-weight:700;color:#fbbf24;letter-spacing:0.06em;background:rgba(251,191,36,0.15);padding:1px 6px;border-radius:8px;">BETA</span></h1>
   </div>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
     <button class="about-btn" id="aboutBtn">&#9432; About</button>
@@ -693,6 +693,21 @@ html, body { max-width: 100vw; overflow-x: hidden; }
         ← Click here to start drawing
       </div>
     </div>
+    <script>
+      // Position draw hint against the actual draw button, not a fixed offset.
+      // Runs after all Leaflet controls are added so the DOM is settled.
+      window._positionDrawHint = function() {
+        const hint = document.getElementById('drawHint');
+        if (!hint || hint.style.display === 'none') return;
+        const btn  = document.querySelector('.leaflet-draw-draw-polygon');
+        const wrap = document.getElementById('map-wrap');
+        if (!btn || !wrap) return;
+        const wr = wrap.getBoundingClientRect();
+        const br = btn.getBoundingClientRect();
+        hint.style.top  = Math.round(br.top  - wr.top  + (br.height - 32) / 2) + 'px';
+        hint.style.left = Math.round(br.right - wr.left + 8) + 'px';
+      };
+    </script>
     <div id="drawActionBar">
       <button id="finishDrawBtn">&#x2713; Finish</button>
       <button id="undoPointBtn">&#x21A9; Undo point</button>
@@ -918,6 +933,8 @@ const greyscaleLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/
   attribution: '&copy; <a href="https://openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>', maxZoom: 19 });
 osmLayer.addTo(map);
 L.control.layers({ 'Map': osmLayer, 'Greyscale': greyscaleLayer, 'Satellite': satelliteLayer }, {}, { position: 'topleft' }).addTo(map);
+// Align draw hint with the actual polygon button after all controls are rendered
+setTimeout(() => { if (typeof window._positionDrawHint === 'function') window._positionDrawHint(); }, 150);
 window.addEventListener('load', () => {
   setTimeout(() => map.invalidateSize(), 100);
   if (navigator.geolocation) {
@@ -4906,6 +4923,13 @@ window._qeiiState = { active: false, features: [] };
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v3.25b</span>
+      <span class="changelog-date">May 2026</span>
+      <ul>
+        <li>Fix "click here to start drawing" hint — now positions dynamically against the actual draw button rather than a fixed offset, so it stays correct regardless of how many controls are stacked in the top-left corner</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v3.24b</span>
       <span class="changelog-date">May 2026</span>
