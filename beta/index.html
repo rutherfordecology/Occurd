@@ -487,7 +487,7 @@ html, body { max-width: 100vw; overflow-x: hidden; }
       <img src="../occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v3.40b</span> <span style="font-size:10px;font-weight:700;color:#fbbf24;letter-spacing:0.06em;background:rgba(251,191,36,0.15);padding:1px 6px;border-radius:8px;">BETA</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v3.41b</span> <span style="font-size:10px;font-weight:700;color:#fbbf24;letter-spacing:0.06em;background:rgba(251,191,36,0.15);padding:1px 6px;border-radius:8px;">BETA</span></h1>
   </div>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
     <button class="about-btn" id="aboutBtn">&#9432; About</button>
@@ -5230,8 +5230,11 @@ window._qeiiState = { active: false, features: [] };
       selNodes = [null, null, null];
       renderAll(); // show loading state
 
-      const directParent = parents[parents.length - 1]; // e.g. genus Melicytus
-      const grandParent  = parents[parents.length - 2]; // e.g. family Violaceae
+      // Go up 3 levels so columns read left→right as: grandparent → parent → taxon
+      // e.g. for M. ramiflorus: families (col 0) → genera (col 1) → species (col 2)
+      const directParent    = parents[parents.length - 1]; // e.g. genus  Melicytus
+      const grandParent     = parents[parents.length - 2]; // e.g. family Violaceae
+      const greatGrandParent= parents[parents.length - 3]; // e.g. order  Malpighiales
 
       if (!directParent) {
         // Taxon has no parents (e.g. it's a kingdom) — show it alone in col 0
@@ -5240,38 +5243,62 @@ window._qeiiState = { active: false, features: [] };
         return;
       }
 
-      // Load col 0 (grandparent's children, e.g. genera of Violaceae) and
-      // col 1 (directParent's children, e.g. species of Melicytus) in parallel.
-      // Col 0 must include directParent; col 1 must include the target taxon.
+      if (!grandParent) {
+        // Only one parent level — col 0 = siblings, col 1 = taxon's children
+        const col0nodes = await loadSiblings(directParent, gbifKey);
+        const c0i = col0nodes.findIndex(n => n.key === gbifKey);
+        cols[0] = col0nodes; selIdx[0] = c0i >= 0 ? c0i : 0;
+        selNodes[0] = c0i >= 0 ? col0nodes[c0i] : taxon;
+        renderAll(); updateCrumb(); updateAddBtn();
+        await loadCol(1, selNodes[0]);
+        return;
+      }
+
+      // Load col 0 (great-grandparent's children, e.g. families of the order — Violaceae highlighted)
+      // and col 1 (grandparent's children, e.g. genera of Violaceae — Melicytus highlighted) in parallel.
       const [col0nodes, col1nodes] = await Promise.all([
-        loadSiblings(grandParent,   directParent.key),
-        loadSiblings(directParent,  gbifKey),
+        loadSiblings(greatGrandParent, grandParent.key),
+        loadSiblings(grandParent,      directParent.key),
       ]);
 
-      // Wire up col 0: select directParent
-      const c0i = col0nodes.findIndex(n => n.key === directParent.key);
+      // Wire col 0: select grandParent (e.g. Violaceae)
+      const c0i = col0nodes.findIndex(n => n.key === grandParent.key);
       cols[0]     = col0nodes;
       selIdx[0]   = c0i >= 0 ? c0i : 0;
-      selNodes[0] = c0i >= 0 ? col0nodes[c0i] : directParent;
+      selNodes[0] = c0i >= 0 ? col0nodes[c0i] : grandParent;
 
-      // Wire up col 1: select the target taxon
-      const c1i = col1nodes.findIndex(n => n.key === gbifKey);
+      // Wire col 1: select directParent (e.g. Melicytus)
+      const c1i = col1nodes.findIndex(n => n.key === directParent.key);
       cols[1]     = col1nodes;
       selIdx[1]   = c1i >= 0 ? c1i : 0;
-      selNodes[1] = c1i >= 0 ? col1nodes[c1i] : taxon;
+      selNodes[1] = c1i >= 0 ? col1nodes[c1i] : directParent;
 
       renderAll();
       updateCrumb();
       updateAddBtn();
 
-      // Scroll both selected items into view
+      // Scroll col 0 and col 1 selections into view
       ['millerCol0', 'millerCol1'].forEach(id => {
         const el = document.getElementById(id);
-        if (el) { const s = el.querySelector('.miller-item.selected'); if (s) s.scrollIntoView({ block: 'center' }); }
+        if (el) { const s = el.querySelector('.miller-item.miller-sel'); if (s) s.scrollIntoView({ block: 'center' }); }
       });
 
-      // Load col 2 with the target's own children (subspecies etc.)
+      // Load col 2 = directParent's children (e.g. species of Melicytus), then select target
       await loadCol(2, selNodes[1]);
+
+      // Select the target taxon in col 2
+      const c2i = cols[2].findIndex(n => n.key === gbifKey);
+      if (c2i >= 0) {
+        selIdx[2]   = c2i;
+        selNodes[2] = cols[2][c2i];
+        renderCol(2);
+        updateAddBtn();
+        const colEl2 = document.getElementById('millerCol2');
+        if (colEl2) {
+          const sel = colEl2.querySelector('.miller-item.miller-sel');
+          if (sel) sel.scrollIntoView({ block: 'center' });
+        }
+      }
 
     } catch(e) {
       console.warn('jumpToTaxon error:', e);
@@ -5340,6 +5367,13 @@ window._qeiiState = { active: false, features: [] };
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v3.41b</span>
+      <span class="changelog-date">May 2026</span>
+      <ul>
+        <li>Tree of life search jump now positions correctly — searching a species lands with the family in col 0 (highlighted), genus in col 1 (highlighted), and species in col 2 (highlighted); previously the genus was in col 0 with no family context</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v3.40b</span>
       <span class="changelog-date">May 2026</span>
