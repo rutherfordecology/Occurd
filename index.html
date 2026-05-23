@@ -423,7 +423,7 @@ html, body { max-width: 100vw; overflow-x: hidden; }
       <img src="occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v3.10</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v3.11</span></h1>
   </div>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
     <button class="about-btn" id="aboutBtn">&#9432; About</button>
@@ -4003,15 +4003,38 @@ document.getElementById('dlChecklistBtn').addEventListener('click', () => {
     clearTimeout(debounceTimer);
     debounceTimer = setTimeout(async () => {
       try {
-        const resp = await fetch('https://api.gbif.org/v1/species/suggest?limit=10&q=' + encodeURIComponent(q));
-        if (!resp.ok) return;
-        const data = await resp.json();
-        // Filter to accepted/doubtful species/subspecies/genus, exclude higher ranks
+        const enc = encodeURIComponent(q);
+        // Run scientific-name suggest and vernacular-name search in parallel
+        const [sciResp, vernResp] = await Promise.all([
+          fetch('https://api.gbif.org/v1/species/suggest?limit=10&q=' + enc),
+          fetch('https://api.gbif.org/v1/species/search?limit=8&qField=VERNACULAR&q=' + enc)
+        ]);
         const keep = ['SPECIES','SUBSPECIES','VARIETY','GENUS','FAMILY'];
-        const filtered = data.filter(d => keep.includes(d.rank) && d.status !== 'MISAPPLIED');
-        showList(filtered.slice(0, 8));
+        let results = [];
+        if (sciResp.ok) {
+          const sciData = await sciResp.json();
+          results = sciData.filter(d => keep.includes(d.rank) && d.status !== 'MISAPPLIED');
+        }
+        if (vernResp.ok) {
+          const vernData = await vernResp.json();
+          const seen = new Set(results.map(d => d.key));
+          (vernData.results || []).forEach(d => {
+            if (!seen.has(d.key) && keep.includes(d.rank)) {
+              seen.add(d.key);
+              // vernacular search returns different shape — normalise
+              results.push({
+                key:            d.key,
+                scientificName: d.scientificName || d.canonicalName,
+                vernacularName: d.vernacularNames?.[0]?.vernacularName || q,
+                rank:           d.rank,
+                status:         d.taxonomicStatus
+              });
+            }
+          });
+        }
+        showList(results.slice(0, 8));
       } catch(e) { hideList(); }
-    }, 260);
+    }, 300);
   });
 
   input.addEventListener('keydown', e => {
