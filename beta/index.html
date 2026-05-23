@@ -487,7 +487,7 @@ html, body { max-width: 100vw; overflow-x: hidden; }
       <img src="../occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v3.42b</span> <span style="font-size:10px;font-weight:700;color:#fbbf24;letter-spacing:0.06em;background:rgba(251,191,36,0.15);padding:1px 6px;border-radius:8px;">BETA</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v3.43b</span> <span style="font-size:10px;font-weight:700;color:#fbbf24;letter-spacing:0.06em;background:rgba(251,191,36,0.15);padding:1px 6px;border-radius:8px;">BETA</span></h1>
   </div>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
     <button class="about-btn" id="aboutBtn">&#9432; About</button>
@@ -4719,7 +4719,7 @@ window._qeiiState = { active: false, features: [] };
       if (node._nzCount != null) {
         const cntSpan = document.createElement('span');
         cntSpan.className = 'miller-count';
-        cntSpan.title = node._nzCount.toLocaleString() + ' NZ occurrence records (GBIF)';
+        cntSpan.title = node._nzCount.toLocaleString() + ' GBIF records from all time for NZ';
         cntSpan.textContent = node._nzCount >= 1000
           ? '(' + (node._nzCount / 1000).toFixed(node._nzCount >= 10000 ? 0 : 1) + 'k)'
           : '(' + node._nzCount + ')';
@@ -4752,7 +4752,7 @@ window._qeiiState = { active: false, features: [] };
   function updateHint() {
     const el = document.getElementById('millerHint');
     if (!el) return;
-    const note = ' · Numbers are NZ GBIF records';
+    const note = ' · Numbers are GBIF records from all time for NZ';
     if (cols[2] && cols[2].length > 0 && selIdx[1] >= 0) {
       el.textContent = 'Click any item in the right column to drill deeper ›' + note;
     } else if (selIdx[0] < 0) {
