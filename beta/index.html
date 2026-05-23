@@ -122,6 +122,7 @@ header { background: var(--green-dark); color: white; padding: 0 1.5rem; display
 .sp-common { font-size: 11px; color: var(--text2); margin-top: 1px; }
 .sp-common.sp-genus-tag { color: var(--blue); font-style: normal; }
 .sp-loading { font-size: 11px; color: var(--text3); padding: 8px 11px; font-style: italic; }
+.nvs-badge { font-size:9px;font-weight:700;letter-spacing:0.06em;background:#e0f2fe;color:#0369a1;padding:1px 5px;border-radius:3px; }
 
 
 @keyframes hintFade { from { opacity:0; transform:translateX(-6px); } to { opacity:1; transform:translateX(0); } }
@@ -484,7 +485,7 @@ html, body { max-width: 100vw; overflow-x: hidden; }
       <img src="../occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v3.38b</span> <span style="font-size:10px;font-weight:700;color:#fbbf24;letter-spacing:0.06em;background:rgba(251,191,36,0.15);padding:1px 6px;border-radius:8px;">BETA</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v3.39b</span> <span style="font-size:10px;font-weight:700;color:#fbbf24;letter-spacing:0.06em;background:rgba(251,191,36,0.15);padding:1px 6px;border-radius:8px;">BETA</span></h1>
   </div>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
     <button class="about-btn" id="aboutBtn">&#9432; About</button>
@@ -4120,6 +4121,7 @@ document.getElementById('dlChecklistBtn').addEventListener('click', () => {
 (function() {
   const NZ_BOUNDS = { minLat: -52, maxLat: -29, minLng: 163, maxLng: 180 };
   const NZOR_URL  = 'https://raw.githubusercontent.com/rutherfordecology/but-is-it-threatened/main/nzor_names.json';
+  const NVS_URL   = 'https://raw.githubusercontent.com/rutherfordecology/but-is-it-threatened/main/nvs.json';
 
   const field  = document.getElementById('spField');
   const input  = document.getElementById('spInput');
@@ -4133,6 +4135,8 @@ document.getElementById('dlChecklistBtn').addEventListener('click', () => {
   let nzorData     = null;   // loaded lazily
   let nzorPromise  = null;   // shared load promise — prevents duplicate fetches
   let nzorLoading  = false;
+  let nvsData      = null;   // NVS codes: {code → {sci, pref?, prefSci?}}
+  let nvsPromise   = null;
   let nzorSciIndex = null;   // built once: lowercase sci name → [vernacular display names]
   let selectedKey  = null;   // GBIF taxon key once resolved
   let debounce     = null;
@@ -4176,6 +4180,55 @@ document.getElementById('dlChecklistBtn').addEventListener('click', () => {
   // Expose search function so the taxonomy browser can use it for common/Māori name lookup
   window._nzorSearch = function(q) { return nzorData ? search(q) : []; };
 
+  // Load NVS codes file independently (small file, loads fast)
+  function ensureNvs() {
+    if (nvsData) return Promise.resolve(true);
+    if (!nvsPromise) {
+      nvsPromise = fetch(NVS_URL)
+        .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+        .then(data => { nvsData = data; nvsPromise = null; return true; })
+        .catch(e => { console.warn('NVS load failed:', e); nvsPromise = null; return false; });
+    }
+    return nvsPromise;
+  }
+
+  // Search NVS codes — exact match first, then prefix matches
+  function searchNvs(q) {
+    if (!nvsData) return [];
+    const norm = q.toLowerCase().trim().replace(/\s+/g, '');
+    if (norm.length < 2) return [];
+    const results = [];
+    const seen = new Set();
+    // Resolve entry, following pref redirect once
+    function resolveEntry(code) {
+      const e = nvsData[code];
+      if (!e) return null;
+      if (e.pref && nvsData[e.pref]) {
+        return { code: e.pref, sci: e.prefSci || nvsData[e.pref].sci || e.sci };
+      }
+      return { code, sci: e.sci };
+    }
+    // Exact match
+    const exact = resolveEntry(norm);
+    if (exact && !seen.has(exact.code)) {
+      seen.add(exact.code);
+      results.push({ cls: 'nvs', n: exact.sci, sci: exact.sci, nvscode: norm, key: norm });
+    }
+    // Prefix matches
+    for (const code of Object.keys(nvsData)) {
+      if (results.length >= 8) break;
+      if (code === norm || !code.startsWith(norm)) continue;
+      const r = resolveEntry(code);
+      if (r && !seen.has(r.code)) {
+        seen.add(r.code);
+        results.push({ cls: 'nvs', n: r.sci, sci: r.sci, nvscode: code, key: code });
+      }
+    }
+    return results;
+  }
+
+  window._nvsSearch = function(q) { return nvsData ? searchNvs(q) : []; };
+
   // Show/hide field based on whether map is centred in NZ
   // Also pre-loads NZOR data in background so checklist has names ready after a fetch
   function checkNZGate() {
@@ -4184,6 +4237,7 @@ document.getElementById('dlChecklistBtn').addEventListener('click', () => {
                  c.lng >= NZ_BOUNDS.minLng && c.lng <= NZ_BOUNDS.maxLng;
     field.style.display = inNZ ? 'block' : 'none';
     if (inNZ && !nzorData && !nzorLoading) ensureData(true); // silent background load
+    if (inNZ && !nvsData && !nvsPromise) ensureNvs();        // load NVS codes in parallel
   }
   map.on('moveend', checkNZGate);
   setTimeout(checkNZGate, 600); // check after map initialises
@@ -4260,6 +4314,11 @@ document.getElementById('dlChecklistBtn').addEventListener('click', () => {
         el.innerHTML =
           '<div class="sp-sci">' + item.n + '</div>' +
           '<div class="sp-common sp-genus-tag">all species in this genus</div>';
+      } else if (item.cls === 'nvs') {
+        // NVS code match
+        el.innerHTML =
+          '<div class="sp-sci">' + item.sci + '</div>' +
+          '<div class="sp-common"><span class="nvs-badge">NVS ' + item.nvscode.toUpperCase() + '</span></div>';
       } else {
         // vernacular entry: show common name + scientific
         // scientific entry: show scientific name only
@@ -4318,8 +4377,10 @@ document.getElementById('dlChecklistBtn').addEventListener('click', () => {
 
     // ── Species selection ─────────────────────────────────────────────────
     // Resolve scientific name
-    const sciName = item.cls === 'v' ? (item.sci || item.n) : item.n;
-    const displayName = item.n + (item.cls === 'v' && item.sci ? ' (' + item.sci + ')' : '');
+    const sciName = (item.cls === 'v' || item.cls === 'nvs') ? (item.sci || item.n) : item.n;
+    const displayName = item.cls === 'nvs'
+      ? item.sci + ' (NVS ' + item.nvscode.toUpperCase() + ')'
+      : item.n + (item.cls === 'v' && item.sci ? ' (' + item.sci + ')' : '');
 
     // Show resolving state briefly
     input.value = displayName;
@@ -4365,7 +4426,11 @@ document.getElementById('dlChecklistBtn').addEventListener('click', () => {
     debounce = setTimeout(async () => {
       const ok = await ensureData();
       if (!ok) { hideDrop(); return; }
-      showDrop(search(q));
+      ensureNvs(); // kick off NVS load if not already loaded (non-blocking)
+      const nvsResults  = searchNvs(q);
+      const nzorResults = search(q);
+      // NVS exact/prefix matches first, then NZOR
+      showDrop([...nvsResults, ...nzorResults]);
     }, 200);
   });
 
@@ -4946,16 +5011,17 @@ window._qeiiState = { active: false, features: [] };
     drop.innerHTML = '<div class="miller-sug-msg">Searching…</div>';
     drop.style.display = '';
 
-    const [nzorResults, gbifResults, gbifFullResults] = await Promise.all([
+    const [nzorResults, nvsResults, gbifResults, gbifFullResults] = await Promise.all([
       searchNzor(q),
+      searchNvsForTaxo(q),
       searchGbif(q),
       searchGbifFull(q),
     ]);
 
-    // Merge and deduplicate by key: NZOR vernacular → GBIF full-text (vernacular) → GBIF suggest (scientific)
+    // Merge and deduplicate: NZOR vernacular → NVS codes → GBIF full-text → GBIF suggest (scientific)
     const seen = new Set();
     const results = [];
-    for (const r of [...nzorResults, ...gbifFullResults, ...gbifResults]) {
+    for (const r of [...nzorResults, ...nvsResults, ...gbifFullResults, ...gbifResults]) {
       const dk = r.gbifKey ? String(r.gbifKey) : ('nzor_' + r.display);
       if (!seen.has(dk)) { seen.add(dk); results.push(r); }
     }
@@ -4975,6 +5041,20 @@ window._qeiiState = { active: false, features: [] };
       return aStart - bStart;
     });
     showMillerDrop(results);
+  }
+
+  async function searchNvsForTaxo(q) {
+    if (typeof window._nvsSearch !== 'function') return [];
+    const hits = window._nvsSearch(q).slice(0, 8);
+    return hits.map(h => ({
+      type:     'scientific',
+      display:  h.sci,
+      subLabel: 'NVS ' + h.nvscode.toUpperCase(),
+      rank:     '',
+      gbifKey:  null,
+      nzorData: null,
+      nvsSci:   h.sci,
+    }));
   }
 
   async function searchNzor(q) {
@@ -5068,10 +5148,13 @@ window._qeiiState = { active: false, features: [] };
     const inp = document.getElementById('millerSearchIn');
     const clr = document.getElementById('millerSearchX');
 
-    // Resolve a GBIF backbone key for NZOR-only vernacular results
+    // Resolve a GBIF backbone key for NZOR/NVS results that don't have one yet
     let gbifKey = result.gbifKey;
-    if (!gbifKey && result.nzorData) {
-      const sci = result.nzorData.sci || result.nzorData.n;
+    const sciToResolve = (!gbifKey && result.nvsSci)  ? result.nvsSci
+                       : (!gbifKey && result.nzorData) ? (result.nzorData.sci || result.nzorData.n)
+                       : null;
+    if (!gbifKey && sciToResolve) {
+      const sci = sciToResolve;
       try {
         const url = 'https://api.gbif.org/v1/species/match?name='
                   + encodeURIComponent(sci)
@@ -5257,6 +5340,13 @@ window._qeiiState = { active: false, features: [] };
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v3.39b</span>
+      <span class="changelog-date">May 2026</span>
+      <ul>
+        <li>NVS code search — type a National Vegetation Survey code (e.g. PIPCRA, ACASP) in the NZ species search or the Tree of life to find the matching species; codes and their preferred synonyms are resolved from the NVS dataset and matched to GBIF; results show a blue NVS badge</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v3.38b</span>
       <span class="changelog-date">May 2026</span>
