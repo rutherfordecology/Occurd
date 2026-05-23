@@ -76,6 +76,7 @@ header { background: var(--green-dark); color: white; padding: 0 1.5rem; display
 .poly-item.species-entry { background: var(--blue-light); border-color: var(--blue-mid); }
 .poly-item.species-entry .poly-item-name { color: var(--blue); cursor: default; }
 .poly-item.species-entry .poly-remove { color: var(--blue-mid); }
+.poly-group-label { font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text3); margin: 0.5rem 0 0.25rem; padding: 0 1px; }
 .poly-item-row { display: flex; align-items: center; gap: 6px; width: 100%; }
 .poly-buffer-row { display: flex; align-items: center; gap: 3px; padding-top: 3px; border-top: 0.5px solid var(--green-mid); }
 .poly-buffer-label { font-size: 10px; color: var(--text3); font-weight: 600; flex-shrink: 0; margin-right: 2px; }
@@ -430,7 +431,7 @@ html, body { max-width: 100vw; overflow-x: hidden; }
       <img src="../occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v3.20b</span> <span style="font-size:10px;font-weight:700;color:#fbbf24;letter-spacing:0.06em;background:rgba(251,191,36,0.15);padding:1px 6px;border-radius:8px;">BETA</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v3.21b</span> <span style="font-size:10px;font-weight:700;color:#fbbf24;letter-spacing:0.06em;background:rgba(251,191,36,0.15);padding:1px 6px;border-radius:8px;">BETA</span></h1>
   </div>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
     <button class="about-btn" id="aboutBtn">&#9432; About</button>
@@ -1697,33 +1698,27 @@ function removePolygon(id) {
 
 function renderPolyList() {
   polyEmpty.style.display = polygons.length === 0 ? 'block' : 'none';
-  polyList.querySelectorAll('.poly-item').forEach(el => el.remove());
-  polygons.forEach(p => {
+  polyList.querySelectorAll('.poly-item, .poly-group-label').forEach(el => el.remove());
+
+  const geomPolys     = polygons.filter(p => p.type !== 'species');
+  const speciesPolys  = polygons.filter(p => p.type === 'species');
+  const showHeaders   = geomPolys.length > 0 && speciesPolys.length > 0;
+
+  function addGroupLabel(text) {
+    const lbl = document.createElement('div');
+    lbl.className = 'poly-group-label';
+    lbl.textContent = text;
+    polyList.appendChild(lbl);
+  }
+
+  function renderGeom(p) {
     const el = document.createElement('div'); el.className = 'poly-item';
-
-    // ── Species entry: compact blue chip, no buffer row, no name edit ──────
-    if (p.type === 'species') {
-      el.classList.add('species-entry');
-      const topRow = document.createElement('div'); topRow.className = 'poly-item-row';
-      topRow.innerHTML =
-        '<span class="poly-item-name">&#128269; ' + p.name + '</span>' +
-        '<span class="poly-remove" data-id="' + p.id + '">&#x2715;</span>';
-      topRow.querySelector('.poly-remove').addEventListener('click', () => removePolygon(p.id));
-      el.appendChild(topRow);
-      polyList.appendChild(el);
-      return;
-    }
-
-    // ── Geometry polygon ──────────────────────────────────────────────────
-    // Top row: name + count + remove
     const topRow = document.createElement('div'); topRow.className = 'poly-item-row';
     topRow.innerHTML =
       '<span class="poly-item-name" title="Click to rename">&#10003; ' + p.label + '</span>' +
       '<span class="poly-item-count">' + p.latlngs.length + ' pts</span>' +
       '<span class="poly-remove" data-id="' + p.id + '">&#x2715;</span>';
     el.appendChild(topRow);
-
-    // Buffer row — each button adds a new buffered polygon to the list
     const bufRow = document.createElement('div'); bufRow.className = 'poly-buffer-row';
     bufRow.innerHTML = '<span class="poly-buffer-label">Add buffer:</span>' +
       [1,2,5,10].map(km => '<button class="poly-buf-btn" data-km="' + km + '">' + km + ' km</button>').join('');
@@ -1731,8 +1726,6 @@ function renderPolyList() {
       btn.addEventListener('click', () => addBufferPolygon(p, parseInt(btn.dataset.km)));
     });
     el.appendChild(bufRow);
-
-    // Click name to edit inline
     const nameSpan = topRow.querySelector('.poly-item-name');
     nameSpan.addEventListener('click', () => {
       const input = document.createElement('input');
@@ -1747,10 +1740,25 @@ function renderPolyList() {
       input.addEventListener('blur', commit);
       input.addEventListener('keydown', e => { if (e.key === 'Enter') input.blur(); if (e.key === 'Escape') { input.value = p.label; input.blur(); } });
     });
-
     topRow.querySelector('.poly-remove').addEventListener('click', () => removePolygon(p.id));
     polyList.appendChild(el);
-  });
+  }
+
+  function renderSpecies(p) {
+    const el = document.createElement('div'); el.className = 'poly-item species-entry';
+    const topRow = document.createElement('div'); topRow.className = 'poly-item-row';
+    topRow.innerHTML =
+      '<span class="poly-item-name">&#128269; ' + p.name + '</span>' +
+      '<span class="poly-remove" data-id="' + p.id + '">&#x2715;</span>';
+    topRow.querySelector('.poly-remove').addEventListener('click', () => removePolygon(p.id));
+    el.appendChild(topRow);
+    polyList.appendChild(el);
+  }
+
+  if (showHeaders) addGroupLabel('Polygons');
+  geomPolys.forEach(renderGeom);
+  if (showHeaders) addGroupLabel('Species');
+  speciesPolys.forEach(renderSpecies);
 }
 
 // Create a new polygon that is a buffered version of an existing polygon
@@ -4427,6 +4435,13 @@ window._qeiiState = { active: false, features: [] };
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v3.21b</span>
+      <span class="changelog-date">May 2026</span>
+      <ul>
+        <li>Polygon list split into two groups — when both geometry polygons and species entries are present, they appear under separate "Polygons" and "Species" headings so it is clear that species entries search across all polygons rather than being tied to a specific one</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v3.20b</span>
       <span class="changelog-date">May 2026</span>
