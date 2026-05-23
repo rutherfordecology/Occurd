@@ -481,7 +481,7 @@ html, body { max-width: 100vw; overflow-x: hidden; }
       <img src="../occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v3.32b</span> <span style="font-size:10px;font-weight:700;color:#fbbf24;letter-spacing:0.06em;background:rgba(251,191,36,0.15);padding:1px 6px;border-radius:8px;">BETA</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v3.33b</span> <span style="font-size:10px;font-weight:700;color:#fbbf24;letter-spacing:0.06em;background:rgba(251,191,36,0.15);padding:1px 6px;border-radius:8px;">BETA</span></h1>
   </div>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
     <button class="about-btn" id="aboutBtn">&#9432; About</button>
@@ -5071,6 +5071,42 @@ window._qeiiState = { active: false, features: [] };
     await jumpToTaxon(gbifKey);
   }
 
+  // Load the children of parentNode from cache or API, always keeping mustIncludeKey present.
+  // Returns a sorted, NZ-filtered children array.
+  async function loadSiblings(parentNode, mustIncludeKey) {
+    if (!parentNode) {
+      // No parent — fall back to kingdoms
+      const nzKeys = await getNZKeys(null, null);
+      return (nzKeys && nzKeys.size > 0)
+        ? KINGDOMS.filter(k => nzKeys.has(String(k.key)))
+        : [...KINGDOMS];
+    }
+    const parentKey = parentNode.key;
+    if (cache[parentKey]) return cache[parentKey];
+    const [childrenRes, nzKeys] = await Promise.all([
+      fetch('https://api.gbif.org/v1/species/' + parentKey + '/children?limit=200'),
+      getNZKeys(parentKey, parentNode.rank),
+    ]);
+    if (!childrenRes.ok) return [];
+    const cj = await childrenRes.json();
+    let children = (cj.results || []).filter(x =>
+      x.rank && VALID_RANKS.has(x.rank) &&
+      (!x.taxonomicStatus || x.taxonomicStatus === 'ACCEPTED' || x.taxonomicStatus === 'DOUBTFUL')
+    );
+    if (nzKeys && nzKeys.size > 0) {
+      const filtered = children.filter(c => nzKeys.has(String(c.key)));
+      // Always keep the must-include key even if NZ filter would drop it
+      if (mustIncludeKey && !filtered.some(c => c.key === mustIncludeKey)) {
+        const keep = children.find(c => c.key === mustIncludeKey);
+        if (keep) filtered.unshift(keep);
+      }
+      children = filtered;
+    }
+    children.sort((a,b) => (a.canonicalName||'').localeCompare(b.canonicalName||''));
+    cache[parentKey] = children;
+    return children;
+  }
+
   async function jumpToTaxon(gbifKey) {
     try {
       const [taxonRes, parentsRes] = await Promise.all([
@@ -5079,13 +5115,10 @@ window._qeiiState = { active: false, features: [] };
       ]);
       if (!taxonRes.ok || !parentsRes.ok) return;
       const taxon   = await taxonRes.json();
-      // parents[] is ordered kingdom-first (root at index 0, direct parent at index last)
+      // parents[] is kingdom-first, direct parent is last
       const parents = await parentsRes.json();
 
-      const directParent = parents[parents.length - 1];
-      if (!directParent) return;
-
-      // Breadcrumb: ancestors already in kingdom-first order, append the taxon itself
+      // Breadcrumb: kingdom-first order, taxon appended
       jumpAncestry = [...parents, taxon];
 
       // Reset navigation state (keep API cache)
@@ -5093,72 +5126,50 @@ window._qeiiState = { active: false, features: [] };
       cols     = [[], [], []];
       selIdx   = [-1, -1, -1];
       selNodes = [null, null, null];
+      renderAll(); // show loading state
 
-      // Show loading state in col 0
-      const colEl0 = document.getElementById('millerCol0');
-      if (colEl0) {
-        colEl0.innerHTML = '';
-        const hdr = document.createElement('div');
-        hdr.className = 'miller-col-hdr';
-        hdr.textContent = RANK_LABELS[directParent.rank] || 'Taxa';
-        colEl0.appendChild(hdr);
-        const msg = document.createElement('div');
-        msg.className = 'miller-msg';
-        msg.textContent = 'Loading…';
-        colEl0.appendChild(msg);
+      const directParent = parents[parents.length - 1]; // e.g. genus Melicytus
+      const grandParent  = parents[parents.length - 2]; // e.g. family Violaceae
+
+      if (!directParent) {
+        // Taxon has no parents (e.g. it's a kingdom) — show it alone in col 0
+        cols[0] = [taxon]; selIdx[0] = 0; selNodes[0] = taxon;
+        renderAll(); updateCrumb(); updateAddBtn();
+        return;
       }
 
-      // Load col 0: siblings of target (direct parent's children)
-      const parentKey = directParent.key;
-      let siblings;
-      if (cache[parentKey]) {
-        siblings = cache[parentKey];
-      } else {
-        const [childrenRes, nzKeys] = await Promise.all([
-          fetch('https://api.gbif.org/v1/species/' + parentKey + '/children?limit=200'),
-          getNZKeys(parentKey, directParent.rank),
-        ]);
-        if (!childrenRes.ok) return;
-        const cj = await childrenRes.json();
-        let children = (cj.results || []).filter(x =>
-          x.rank && VALID_RANKS.has(x.rank) &&
-          (!x.taxonomicStatus || x.taxonomicStatus === 'ACCEPTED' || x.taxonomicStatus === 'DOUBTFUL')
-        );
-        if (nzKeys && nzKeys.size > 0) {
-          const filtered = children.filter(c => nzKeys.has(String(c.key)));
-          // Ensure target is present even if NZ-filter would exclude it
-          if (!filtered.some(c => c.key === gbifKey)) {
-            const targetNode = children.find(c => c.key === gbifKey) || taxon;
-            filtered.unshift(targetNode);
-          }
-          siblings = filtered;
-        } else {
-          siblings = children;
-        }
-        siblings.sort((a,b) => (a.canonicalName||'').localeCompare(b.canonicalName||''));
-        cache[parentKey] = siblings;
-      }
+      // Load col 0 (grandparent's children, e.g. genera of Violaceae) and
+      // col 1 (directParent's children, e.g. species of Melicytus) in parallel.
+      // Col 0 must include directParent; col 1 must include the target taxon.
+      const [col0nodes, col1nodes] = await Promise.all([
+        loadSiblings(grandParent,   directParent.key),
+        loadSiblings(directParent,  gbifKey),
+      ]);
 
-      // Select the target in col 0
-      const targetIdx  = siblings.findIndex(n => n.key === gbifKey);
-      const targetNode = targetIdx >= 0 ? siblings[targetIdx] : taxon;
-      cols[0]     = siblings;
-      selIdx[0]   = targetIdx >= 0 ? targetIdx : 0;
-      selNodes[0] = targetNode;
+      // Wire up col 0: select directParent
+      const c0i = col0nodes.findIndex(n => n.key === directParent.key);
+      cols[0]     = col0nodes;
+      selIdx[0]   = c0i >= 0 ? c0i : 0;
+      selNodes[0] = c0i >= 0 ? col0nodes[c0i] : directParent;
+
+      // Wire up col 1: select the target taxon
+      const c1i = col1nodes.findIndex(n => n.key === gbifKey);
+      cols[1]     = col1nodes;
+      selIdx[1]   = c1i >= 0 ? c1i : 0;
+      selNodes[1] = c1i >= 0 ? col1nodes[c1i] : taxon;
 
       renderAll();
       updateCrumb();
       updateAddBtn();
 
-      // Scroll selected item into view
-      const colEl = document.getElementById('millerCol0');
-      if (colEl) {
-        const sel = colEl.querySelector('.miller-item.selected');
-        if (sel) sel.scrollIntoView({ block: 'center' });
-      }
+      // Scroll both selected items into view
+      ['millerCol0', 'millerCol1'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) { const s = el.querySelector('.miller-item.selected'); if (s) s.scrollIntoView({ block: 'center' }); }
+      });
 
-      // Load col 1 with target's own children
-      await loadCol(1, targetNode);
+      // Load col 2 with the target's own children (subspecies etc.)
+      await loadCol(2, selNodes[1]);
 
     } catch(e) {
       console.warn('jumpToTaxon error:', e);
@@ -5226,6 +5237,13 @@ window._qeiiState = { active: false, features: [] };
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v3.33b</span>
+      <span class="changelog-date">May 2026</span>
+      <ul>
+        <li>Taxonomy browser search jump now positions the result correctly across all three columns — col 0 shows the grandparent's children (e.g. genera in the family), col 1 shows the direct parent's children (e.g. species in the genus) with the target selected, col 2 shows the target's own children (subspecies etc.); previously the target landed alone in col 0</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v3.32b</span>
       <span class="changelog-date">May 2026</span>
