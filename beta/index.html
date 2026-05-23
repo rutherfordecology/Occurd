@@ -481,7 +481,7 @@ html, body { max-width: 100vw; overflow-x: hidden; }
       <img src="../occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v3.30b</span> <span style="font-size:10px;font-weight:700;color:#fbbf24;letter-spacing:0.06em;background:rgba(251,191,36,0.15);padding:1px 6px;border-radius:8px;">BETA</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v3.31b</span> <span style="font-size:10px;font-weight:700;color:#fbbf24;letter-spacing:0.06em;background:rgba(251,191,36,0.15);padding:1px 6px;border-radius:8px;">BETA</span></h1>
   </div>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
     <button class="about-btn" id="aboutBtn">&#9432; About</button>
@@ -4601,15 +4601,25 @@ window._qeiiState = { active: false, features: [] };
   // ── Render ────────────────────────────────────────────────────────────────
   const COL_HEADERS = ['Kingdom', 'Phylum / Class', 'Order / Family'];
 
+  // Derive a column header from the actual rank of the items in that column,
+  // falling back to the position-based label when the column is empty.
+  function colHeaderLabel(ci) {
+    const nodes = cols[ci];
+    if (nodes && nodes.length > 0 && nodes[0].rank) {
+      return RANK_LABELS[nodes[0].rank] || nodes[0].rank;
+    }
+    return COL_HEADERS[ci] || 'Taxa';
+  }
+
   function renderCol(ci) {
     const colEl = document.getElementById('millerCol' + ci);
     if (!colEl) return;
     colEl.innerHTML = '';
 
-    // Column header showing rank context
+    // Column header derived from actual content rank
     const hdr = document.createElement('div');
     hdr.className = 'miller-col-hdr';
-    hdr.textContent = COL_HEADERS[ci] || 'Taxa';
+    hdr.textContent = colHeaderLabel(ci);
     colEl.appendChild(hdr);
 
     const nodes = cols[ci];
@@ -4756,7 +4766,7 @@ window._qeiiState = { active: false, features: [] };
         colEl.innerHTML = '';
         const hdr = document.createElement('div');
         hdr.className = 'miller-col-hdr';
-        hdr.textContent = COL_HEADERS[ci] || 'Taxa';
+        hdr.textContent = COL_HEADERS[ci] || 'Taxa';  // updated after load
         colEl.appendChild(hdr);
         const msg = document.createElement('div');
         msg.className = 'miller-msg';
@@ -4949,7 +4959,7 @@ window._qeiiState = { active: false, features: [] };
 
   async function searchNzor(q) {
     if (typeof window._nzorSearch !== 'function') return [];
-    const hits = window._nzorSearch(q).slice(0, 10);
+    const hits = window._nzorSearch(q).slice(0, 20);
     return hits.map(h => ({
       type:     (h.cls === 'v' || h.cls === 'g') ? 'vernacular' : 'scientific',
       display:  h.n,
@@ -5185,6 +5195,14 @@ window._qeiiState = { active: false, features: [] };
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v3.31b</span>
+      <span class="changelog-date">May 2026</span>
+      <ul>
+        <li>Taxonomy browser column headers now reflect the actual rank of the taxa shown (e.g. Species, Genus, Family) rather than fixed position labels like Kingdom / Phylum</li>
+        <li>NZOR common name search now returns up to 20 results (was 10) to reduce the chance of missing plain common names like "mahoe" when compound forms appear first</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v3.30b</span>
       <span class="changelog-date">May 2026</span>
