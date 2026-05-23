@@ -98,6 +98,21 @@ header { background: var(--green-dark); color: white; padding: 0 1.5rem; display
 .check-row { display: flex; align-items: center; gap: 7px; font-size: 13px; color: var(--text); margin-bottom: 0.45rem; }
 .check-row input[type=checkbox] { width: 14px; height: 14px; accent-color: var(--green); }
 
+/* Species search autocomplete */
+.sp-search-wrap { position: relative; margin-top: 0.6rem; }
+.sp-search-input { width: 100%; padding: 6px 26px 6px 9px; font-size: 12.5px; font-family: var(--font-sans); border: 1px solid var(--border2); border-radius: var(--radius); color: var(--text); background: var(--surface); outline: none; box-sizing: border-box; }
+.sp-search-input:focus { border-color: var(--green-mid); }
+.sp-search-input.sp-has-selection { border-color: var(--green); background: var(--green-light); font-weight: 500; }
+.sp-clear-btn { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; font-size: 15px; color: var(--text3); line-height: 1; padding: 2px; display: none; }
+.sp-clear-btn:hover { color: var(--red); }
+#spSuggestList { position: fixed; z-index: 9500; background: var(--surface); border: 1px solid var(--border2); border-radius: var(--radius); box-shadow: 0 6px 18px rgba(0,0,0,0.14); max-height: 220px; overflow-y: auto; display: none; }
+.sp-suggest-item { padding: 7px 11px; cursor: pointer; border-bottom: 0.5px solid var(--border); }
+.sp-suggest-item:last-child { border-bottom: none; }
+.sp-suggest-item:hover, .sp-suggest-item.sp-focused { background: var(--green-light); }
+.sp-suggest-name { font-size: 12.5px; font-style: italic; color: var(--text); }
+.sp-suggest-common { font-size: 11px; color: var(--text2); margin-top: 1px; }
+.sp-suggest-rank { display: inline-block; font-size: 9px; font-weight: 700; letter-spacing: 0.06em; padding: 1px 5px; border-radius: 8px; background: var(--surface2); color: var(--text3); margin-left: 5px; vertical-align: middle; text-transform: uppercase; }
+
 @keyframes hintFade { from { opacity:0; transform:translateX(-6px); } to { opacity:1; transform:translateX(0); } }
 .run-btn { width: 100%; padding: 9px; font-size: 14px; font-family: var(--font-sans); font-weight: 500; background: var(--green-dark); color: white; border: none; border-radius: var(--radius); cursor: pointer; transition: background 0.15s, opacity 0.15s; }
 .run-btn:hover:not(:disabled) { opacity: 0.88; }
@@ -408,7 +423,7 @@ html, body { max-width: 100vw; overflow-x: hidden; }
       <img src="occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v3.08</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v3.09</span></h1>
   </div>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
     <button class="about-btn" id="aboutBtn">&#9432; About</button>
@@ -516,6 +531,15 @@ html, body { max-width: 100vw; overflow-x: hidden; }
           </div>
         </div>
       </div>
+      <div class="field sp-search-wrap" id="spSearchField">
+        <label style="display:flex;align-items:baseline;gap:5px;">Species search
+          <span style="font-size:10px;color:var(--text3);font-weight:400;">overrides taxon groups</span>
+        </label>
+        <input class="sp-search-input" id="spSearchInput" type="text"
+          placeholder="e.g. Kaka, Nothofagus…" autocomplete="off" spellcheck="false">
+        <button class="sp-clear-btn" id="spClearBtn" title="Clear species">&#215;</button>
+      </div>
+
       <label class="check-row" style="margin-top:0.5rem;">
         <input type="checkbox" id="excludeEdna">
         <span>Exclude eDNA records</span>
@@ -3471,7 +3495,12 @@ if (document.getElementById('excludeEdna').checked) {
        'FOSSIL_SPECIMEN','OCCURRENCE','LITERATURE','MATERIAL_CITATION']
         .forEach(v => baseParams.push(['basisOfRecord', v]));
     }
-    buildTaxonParams(taxonKeys).forEach(p => baseParams.push(p));
+    const _spKey = typeof getSpeciesTaxonKey === 'function' ? getSpeciesTaxonKey() : null;
+    if (_spKey) {
+      baseParams.push(['taxonKey', String(_spKey)]);  // species search overrides taxon groups
+    } else {
+      buildTaxonParams(taxonKeys).forEach(p => baseParams.push(p));
+    }
 
     setStatus('Fetching records from GBIF' + polyLabel + '...', 'info');
     setProgress(5, 'Contacting GBIF...');
@@ -3898,6 +3927,119 @@ document.getElementById('dlChecklistBtn').addEventListener('click', () => {
   btn.addEventListener('click', openChangelog);
 })();
 
+// ── Species search autocomplete ───────────────────────────────────────────────
+(function() {
+  const input    = document.getElementById('spSearchInput');
+  const clearBtn = document.getElementById('spClearBtn');
+  const list     = document.getElementById('spSuggestList');
+
+  let selectedTaxonKey = null;   // set when user picks a suggestion
+  let debounceTimer    = null;
+  let focusedIdx       = -1;
+  let currentItems     = [];
+
+  // Expose taxon key for the fetch function
+  window.getSpeciesTaxonKey = () => selectedTaxonKey;
+
+  function positionList() {
+    const rect = input.getBoundingClientRect();
+    list.style.left  = rect.left + 'px';
+    list.style.top   = (rect.bottom + 2) + 'px';
+    list.style.width = rect.width + 'px';
+  }
+
+  function showList(items) {
+    currentItems = items;
+    focusedIdx   = -1;
+    list.innerHTML = '';
+    if (!items.length) { list.style.display = 'none'; return; }
+    items.forEach((item, i) => {
+      const el = document.createElement('div');
+      el.className = 'sp-suggest-item';
+      const rank = item.rank ? item.rank.charAt(0) + item.rank.slice(1).toLowerCase() : '';
+      el.innerHTML =
+        '<div class="sp-suggest-name">' + (item.scientificName || '') +
+          (rank ? '<span class="sp-suggest-rank">' + rank + '</span>' : '') + '</div>' +
+        (item.vernacularName ? '<div class="sp-suggest-common">' + item.vernacularName + '</div>' : '');
+      el.addEventListener('mousedown', e => { e.preventDefault(); selectItem(item); });
+      list.appendChild(el);
+    });
+    positionList();
+    list.style.display = 'block';
+  }
+
+  function hideList() { list.style.display = 'none'; currentItems = []; focusedIdx = -1; }
+
+  function selectItem(item) {
+    selectedTaxonKey = item.key;
+    input.value = item.scientificName + (item.vernacularName ? ' — ' + item.vernacularName : '');
+    input.classList.add('sp-has-selection');
+    clearBtn.style.display = 'block';
+    hideList();
+  }
+
+  function clearSelection() {
+    selectedTaxonKey = null;
+    input.value = '';
+    input.classList.remove('sp-has-selection');
+    clearBtn.style.display = 'none';
+    hideList();
+    input.focus();
+  }
+
+  clearBtn.addEventListener('click', clearSelection);
+
+  input.addEventListener('input', () => {
+    // If there was a selection, clear the key on any edit
+    if (selectedTaxonKey) { selectedTaxonKey = null; input.classList.remove('sp-has-selection'); clearBtn.style.display = 'none'; }
+    const q = input.value.trim();
+    if (q.length < 2) { hideList(); return; }
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(async () => {
+      try {
+        const resp = await fetch('https://api.gbif.org/v1/species/suggest?limit=10&q=' + encodeURIComponent(q));
+        if (!resp.ok) return;
+        const data = await resp.json();
+        // Filter to accepted/doubtful species/subspecies/genus, exclude higher ranks
+        const keep = ['SPECIES','SUBSPECIES','VARIETY','GENUS','FAMILY'];
+        const filtered = data.filter(d => keep.includes(d.rank) && d.status !== 'MISAPPLIED');
+        showList(filtered.slice(0, 8));
+      } catch(e) { hideList(); }
+    }, 260);
+  });
+
+  input.addEventListener('keydown', e => {
+    const items = list.querySelectorAll('.sp-suggest-item');
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      focusedIdx = Math.min(focusedIdx + 1, items.length - 1);
+      items.forEach((el, i) => el.classList.toggle('sp-focused', i === focusedIdx));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      focusedIdx = Math.max(focusedIdx - 1, 0);
+      items.forEach((el, i) => el.classList.toggle('sp-focused', i === focusedIdx));
+    } else if (e.key === 'Enter' && focusedIdx >= 0 && currentItems[focusedIdx]) {
+      e.preventDefault();
+      selectItem(currentItems[focusedIdx]);
+    } else if (e.key === 'Escape') {
+      hideList();
+    }
+  });
+
+  input.addEventListener('focus', () => {
+    if (!selectedTaxonKey && input.value.trim().length >= 2) {
+      // re-trigger suggest if refocused with text but no selection
+      input.dispatchEvent(new Event('input'));
+    }
+  });
+
+  input.addEventListener('blur', () => setTimeout(hideList, 150));
+
+  // Reposition on scroll/resize
+  window.addEventListener('resize', () => { if (list.style.display !== 'none') positionList(); });
+  document.querySelector('.sidebar').addEventListener('scroll', () => { if (list.style.display !== 'none') positionList(); });
+})();
+
 // Show mobile warning and mobile CSV note on small screens only
 (function() {
   if (window.innerWidth < 768) {
@@ -4083,6 +4225,13 @@ window._qeiiState = { active: false, features: [] };
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v3.09</span>
+      <span class="changelog-date">May 2026</span>
+      <ul>
+        <li>Species search — type a name in the new field (between taxon groups and exclude eDNA) to search GBIF for matching species; select from the autocomplete dropdown; when a species is selected it overrides the taxon group filter and fetches only that taxon across your polygon; clear with ×</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v3.08</span>
       <span class="changelog-date">May 2026</span>
@@ -4627,5 +4776,6 @@ window._qeiiState = { active: false, features: [] };
     </div>
   </div>
 </div>
+<div id="spSuggestList"></div>
 </body>
 </html>
