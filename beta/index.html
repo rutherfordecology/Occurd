@@ -481,7 +481,7 @@ html, body { max-width: 100vw; overflow-x: hidden; }
       <img src="../occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v3.33b</span> <span style="font-size:10px;font-weight:700;color:#fbbf24;letter-spacing:0.06em;background:rgba(251,191,36,0.15);padding:1px 6px;border-radius:8px;">BETA</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v3.34b</span> <span style="font-size:10px;font-weight:700;color:#fbbf24;letter-spacing:0.06em;background:rgba(251,191,36,0.15);padding:1px 6px;border-radius:8px;">BETA</span></h1>
   </div>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
     <button class="about-btn" id="aboutBtn">&#9432; About</button>
@@ -4945,14 +4945,19 @@ window._qeiiState = { active: false, features: [] };
       const dk = r.gbifKey ? String(r.gbifKey) : ('nzor_' + r.display);
       if (!seen.has(dk)) { seen.add(dk); results.push(r); }
     }
-    // Rank: vernacular names before scientific; starts-with query before just-contains
+    // Rank: exact match → vernacular starts-with → scientific starts-with → contains
     const ql = q.toLowerCase();
     results.sort((a, b) => {
+      const adl = a.display.toLowerCase();
+      const bdl = b.display.toLowerCase();
+      const aExact = adl === ql ? 0 : 1;
+      const bExact = bdl === ql ? 0 : 1;
+      if (aExact !== bExact) return aExact - bExact;
       const aVern = a.type === 'vernacular' ? 0 : 1;
       const bVern = b.type === 'vernacular' ? 0 : 1;
       if (aVern !== bVern) return aVern - bVern;
-      const aStart = a.display.toLowerCase().startsWith(ql) ? 0 : 1;
-      const bStart = b.display.toLowerCase().startsWith(ql) ? 0 : 1;
+      const aStart = adl.startsWith(ql) ? 0 : 1;
+      const bStart = bdl.startsWith(ql) ? 0 : 1;
       return aStart - bStart;
     });
     showMillerDrop(results);
@@ -5237,6 +5242,13 @@ window._qeiiState = { active: false, features: [] };
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v3.34b</span>
+      <span class="changelog-date">May 2026</span>
+      <ul>
+        <li>Taxonomy browser search ranking: exact matches now sort to the top — "Whau" will appear above "Whauwhaupaku", "Whauama" etc.</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v3.33b</span>
       <span class="changelog-date">May 2026</span>
