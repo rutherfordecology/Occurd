@@ -93,6 +93,8 @@ header { background: var(--green-dark); color: white; padding: 0 1.5rem; display
 
 .small-btn { margin-top: 0.5rem; padding: 5px 10px; font-size: 12px; font-family: var(--font-sans); border-radius: var(--radius); cursor: pointer; border: 0.5px solid var(--border); background: var(--surface2); color: var(--text2); transition: all 0.12s; }
 .small-btn:hover { background: var(--red-light); color: var(--red); border-color: var(--red-mid); }
+.clear-link { display:none; background:none; border:none; padding:0; margin-top:5px; font-size:11px; font-family:var(--font-sans); color:var(--text3); cursor:pointer; }
+.clear-link:hover { color:var(--red); }
 
 .field { margin-bottom: 0.65rem; }
 .field label { display: block; font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text3); margin-bottom: 4px; }
@@ -481,7 +483,7 @@ html, body { max-width: 100vw; overflow-x: hidden; }
       <img src="../occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v3.34b</span> <span style="font-size:10px;font-weight:700;color:#fbbf24;letter-spacing:0.06em;background:rgba(251,191,36,0.15);padding:1px 6px;border-radius:8px;">BETA</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v3.35b</span> <span style="font-size:10px;font-weight:700;color:#fbbf24;letter-spacing:0.06em;background:rgba(251,191,36,0.15);padding:1px 6px;border-radius:8px;">BETA</span></h1>
   </div>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
     <button class="about-btn" id="aboutBtn">&#9432; About</button>
@@ -518,7 +520,7 @@ html, body { max-width: 100vw; overflow-x: hidden; }
         <div class="poly-list" id="polyList">
           <div class="poly-empty" id="polyEmpty">No polygons loaded</div>
         </div>
-        <button class="small-btn" id="clearAllBtn" style="display:none">&#x2715; Clear all polygons</button>
+        <button class="clear-link" id="clearAllBtn">&#x2715; Clear all</button>
         <!-- KML multi-polygon browse panel -->
         <div class="browse-panel" id="browsePanel">
           <div class="browse-header" id="browseHeader"></div>
@@ -594,9 +596,7 @@ html, body { max-width: 100vw; overflow-x: hidden; }
         Browse taxonomy tree
       </button>
       <div class="field sp-wrap" id="spField" style="display:none;">
-        <label style="display:flex;align-items:baseline;gap:5px;">NZ species search
-          <span style="font-size:10px;color:var(--text3);font-weight:400;">overrides taxon groups</span>
-        </label>
+        <label>NZ species search</label>
         <div style="position:relative;">
           <input class="sp-input" id="spInput" type="text" placeholder="e.g. kea, kererū, Nothofagus…" autocomplete="off" spellcheck="false">
           <button class="sp-clear" id="spClear" title="Clear">&#215;</button>
@@ -4181,6 +4181,8 @@ document.getElementById('dlChecklistBtn').addEventListener('click', () => {
     const inNZ = c.lat >= NZ_BOUNDS.minLat && c.lat <= NZ_BOUNDS.maxLat &&
                  c.lng >= NZ_BOUNDS.minLng && c.lng <= NZ_BOUNDS.maxLng;
     field.style.display = inNZ ? 'block' : 'none';
+    const browseBtn = document.getElementById('taxoBrowseBtn');
+    if (browseBtn) browseBtn.style.display = inNZ ? '' : 'none';
     if (inNZ && !nzorData && !nzorLoading) ensureData(true); // silent background load
   }
   map.on('moveend', checkNZGate);
@@ -5242,6 +5244,13 @@ window._qeiiState = { active: false, features: [] };
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v3.35b</span>
+      <span class="changelog-date">May 2026</span>
+      <ul>
+        <li>Sidebar declutter: "Clear all polygons" is now a small text link rather than a button; "NZ species search" label simplified; taxonomy browser link is now hidden unless the map is centred over New Zealand</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v3.34b</span>
       <span class="changelog-date">May 2026</span>
