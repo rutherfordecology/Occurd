@@ -168,6 +168,10 @@ header { background: var(--green-dark); color: white; padding: 0 1.5rem; display
 
 .checklist-panel { position: absolute; top: 0; right: 0; width: 290px; height: calc(100% - 22px); background: var(--surface); border-left: 1px solid var(--border); display: flex; flex-direction: column; z-index: 900; transform: translateX(100%); transition: transform 0.25s ease; box-shadow: -4px 0 16px rgba(0,0,0,0.08); overflow: visible; }
 .checklist-panel.open { transform: translateX(0); }
+/* Push Leaflet's right-side controls left when the checklist panel is open */
+.leaflet-right { transition: right 0.25s ease; }
+#map.cl-open .leaflet-top.leaflet-right,
+#map.cl-open .leaflet-bottom.leaflet-right { right: 294px; }
 .cl-header { display: flex; align-items: center; justify-content: space-between; padding: 0.85rem 1rem; border-bottom: 1px solid var(--border); flex-shrink: 0; background: var(--surface2); }
 .cl-title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text3); }
 #clToggleHandle { position: absolute; left: -26px; top: 50%; transform: translateY(-50%); width: 26px; height: 64px; background: var(--surface); border: 1px solid var(--border); border-right: none; border-radius: 6px 0 0 6px; cursor: pointer; box-shadow: -3px 0 8px rgba(0,0,0,0.10); display: none; align-items: center; justify-content: center; padding: 0; font-size: 16px; color: var(--text2); z-index: 901; transition: background 0.12s, color 0.12s; }
@@ -427,7 +431,7 @@ html, body { max-width: 100vw; overflow-x: hidden; }
       <img src="../occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v3.17b</span> <span style="font-size:10px;font-weight:700;color:#fbbf24;letter-spacing:0.06em;background:rgba(251,191,36,0.15);padding:1px 6px;border-radius:8px;">BETA</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v3.18b</span> <span style="font-size:10px;font-weight:700;color:#fbbf24;letter-spacing:0.06em;background:rgba(251,191,36,0.15);padding:1px 6px;border-radius:8px;">BETA</span></h1>
   </div>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
     <button class="about-btn" id="aboutBtn">&#9432; About</button>
@@ -1276,6 +1280,10 @@ const outputSection  = document.getElementById('outputSection');
 const checklistPanel = document.getElementById('checklistPanel');
 const clSelectedInfo = document.getElementById('clSelectedInfo');
 const clScroll       = document.getElementById('clScroll');
+// Keep #map.cl-open in sync with checklist panel so Leaflet controls step aside
+new MutationObserver(() => {
+  document.getElementById('map').classList.toggle('cl-open', checklistPanel.classList.contains('open'));
+}).observe(checklistPanel, { attributes: true, attributeFilter: ['class'] });
 const qualityBoxEl   = document.getElementById('qualityBox');
 const richnessBoxEl  = document.getElementById('richnessBox');
 
@@ -4369,6 +4377,13 @@ window._qeiiState = { active: false, features: [] };
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v3.18b</span>
+      <span class="changelog-date">May 2026</span>
+      <ul>
+        <li>Species checklist no longer covers the map controls — Leaflet's layer switcher and zoom buttons slide left when the checklist panel opens, then slide back when it closes</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v3.17b</span>
       <span class="changelog-date">May 2026</span>
