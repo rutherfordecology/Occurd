@@ -118,6 +118,7 @@ header { background: var(--green-dark); color: white; padding: 0 1.5rem; display
 .sp-item:hover, .sp-item.sp-focus { background: var(--green-light); }
 .sp-sci { font-size: 12.5px; font-style: italic; color: var(--text); }
 .sp-common { font-size: 11px; color: var(--text2); margin-top: 1px; }
+.sp-common.sp-genus-tag { color: var(--blue); font-style: normal; }
 .sp-loading { font-size: 11px; color: var(--text3); padding: 8px 11px; font-style: italic; }
 
 
@@ -431,7 +432,7 @@ html, body { max-width: 100vw; overflow-x: hidden; }
       <img src="../occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v3.21b</span> <span style="font-size:10px;font-weight:700;color:#fbbf24;letter-spacing:0.06em;background:rgba(251,191,36,0.15);padding:1px 6px;border-radius:8px;">BETA</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v3.22b</span> <span style="font-size:10px;font-weight:700;color:#fbbf24;letter-spacing:0.06em;background:rgba(251,191,36,0.15);padding:1px 6px;border-radius:8px;">BETA</span></h1>
   </div>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
     <button class="about-btn" id="aboutBtn">&#9432; About</button>
@@ -4146,7 +4147,19 @@ document.getElementById('dlChecklistBtn').addEventListener('click', () => {
     // Starts-with always first; pad remaining slots with contains matches
     const top = starts.slice(0, 10);
     if (top.length < 10) top.push(...contains.slice(0, 10 - top.length));
-    return top.map(k => ({ key: k, ...nzorData[k] }));
+    const results = top.map(k => ({ key: k, ...nzorData[k] }));
+
+    // Genus option: single-word query that is the first word of 2+ scientific names
+    if (!norm.includes(' ') && norm.length >= 3) {
+      const genusPrefix = norm + ' ';
+      const genusHits = starts.filter(k => k.startsWith(genusPrefix) && nzorData[k].cls !== 'v');
+      if (genusHits.length >= 2) {
+        const properGenus = norm.charAt(0).toUpperCase() + norm.slice(1);
+        results.unshift({ key: '_genus_' + norm, n: properGenus, cls: 'g' });
+      }
+    }
+
+    return results;
   }
 
   function posDrop() {
@@ -4167,14 +4180,21 @@ document.getElementById('dlChecklistBtn').addEventListener('click', () => {
     items.forEach((item, i) => {
       const el = document.createElement('div');
       el.className = 'sp-item';
-      // vernacular entry: show common name + scientific
-      // scientific entry: show scientific name only
-      const isVern = item.cls === 'v';
-      const sci  = isVern ? (item.sci  || '') : item.n;
-      const common = isVern ? item.n : '';
-      el.innerHTML =
-        '<div class="sp-sci">' + sci + '</div>' +
-        (common ? '<div class="sp-common">' + common + '</div>' : '');
+      if (item.cls === 'g') {
+        // Genus option — shown at top when query matches 2+ species in that genus
+        el.innerHTML =
+          '<div class="sp-sci">' + item.n + '</div>' +
+          '<div class="sp-common sp-genus-tag">all species in this genus</div>';
+      } else {
+        // vernacular entry: show common name + scientific
+        // scientific entry: show scientific name only
+        const isVern = item.cls === 'v';
+        const sci    = isVern ? (item.sci || '') : item.n;
+        const common = isVern ? item.n : '';
+        el.innerHTML =
+          '<div class="sp-sci">' + sci + '</div>' +
+          (common ? '<div class="sp-common">' + common + '</div>' : '');
+      }
       el.addEventListener('mousedown', e => { e.preventDefault(); selectItem(item); });
       drop.appendChild(el);
     });
@@ -4185,6 +4205,28 @@ document.getElementById('dlChecklistBtn').addEventListener('click', () => {
 
   async function selectItem(item) {
     hideDrop();
+
+    // ── Genus selection ───────────────────────────────────────────────────
+    if (item.cls === 'g') {
+      const genusName = item.n;
+      input.value = 'all ' + genusName;
+      input.classList.add('sp-active');
+      let resolvedKey = null;
+      try {
+        const r = await fetch('https://api.gbif.org/v1/species/match?verbose=false&rank=GENUS&name=' + encodeURIComponent(genusName));
+        if (r.ok) {
+          const j = await r.json();
+          resolvedKey = j.usageKey || null;
+        }
+      } catch(e) {}
+      if (typeof window.addSpeciesEntry === 'function') {
+        window.addSpeciesEntry('all ' + genusName, resolvedKey, resolvedKey ? null : genusName);
+      }
+      input.value = ''; input.classList.remove('sp-active'); selectedKey = null;
+      return;
+    }
+
+    // ── Species selection ─────────────────────────────────────────────────
     // Resolve scientific name
     const sciName = item.cls === 'v' ? (item.sci || item.n) : item.n;
     const displayName = item.n + (item.cls === 'v' && item.sci ? ' (' + item.sci + ')' : '');
@@ -4435,6 +4477,13 @@ window._qeiiState = { active: false, features: [] };
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v3.22b</span>
+      <span class="changelog-date">May 2026</span>
+      <ul>
+        <li>Genus search — when a single-word query matches the start of two or more NZ scientific names, an "all species in this genus" option appears at the top of the dropdown (e.g. type "blechnum" or "senecio"); selecting it adds an "all Blechnum" entry to the species basket and fetches every species in that genus across your polygon</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v3.21b</span>
       <span class="changelog-date">May 2026</span>
