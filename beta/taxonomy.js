@@ -215,7 +215,8 @@
     _jumpSeq++;          // invalidate any in-flight jumpToTaxon async operations
     // Clicking the already-selected item in col 0 drills up one taxonomy level —
     // fetches the anchor's parent and shifts the columns so the anchor moves to col 1.
-    if (ci === 0 && selIdx[0] === i) {
+    // Use key comparison rather than index — selIdx can drift after a drillUp.
+    if (ci === 0 && selNodes[0] && selNodes[0].key === node.key) {
       await drillUp();
       return;
     }
