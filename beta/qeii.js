@@ -37,7 +37,7 @@ window._qeiiState = { active: false, features: [] };
   window._qeiiActivate = function() {
     if (!qeiiUnlocked) {
       qeiiUnlocked = true;
-      btn.innerHTML = '🔓 perpetuity';
+      btn.innerHTML = '🔓 QEII';
     }
     if (!window._qeiiState.active) toggleQeii();
   };
@@ -47,7 +47,7 @@ window._qeiiState = { active: false, features: [] };
       qeiiUnlocked = true;
       popup.style.display = 'none';
       // Change lock icon to unlocked once key accepted
-      btn.innerHTML = '🔓 perpetuity';
+      btn.innerHTML = '🔓 QEII';
       toggleQeii();  // activate immediately
     } else {
       errMsg.style.display = 'block';

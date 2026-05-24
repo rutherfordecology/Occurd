@@ -23,8 +23,8 @@
     const menu = document.getElementById('projectsMenu');
     if (!wrap || !btn || !menu) return;
 
-    _addItem(menu, 'qeii',   '🔐', 'QEII Perpetuity',    'Access key for QEII covenant layer');
-    _addItem(menu, 'kakapo', '🔐', 'Kākāpō · Whenuahou', 'Access key for Kākāpō global records');
+    _addItem(menu, 'qeii',   '🔐', 'QEII',   'Enter access key for QEII covenant layer');
+    _addItem(menu, 'kakapo', '🔐', 'Kākāpō', 'Enter access key for Kākāpō global records');
 
     btn.addEventListener('click', e => {
       e.stopPropagation();
