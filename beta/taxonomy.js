@@ -33,8 +33,8 @@
   // ── State ─────────────────────────────────────────────────────────────────
   const NUM_COLS = 7;    // number of Miller columns
 
-  const cache    = {};   // taxon key → NZ-filtered [children]
-  const nzCache  = {};   // 'root' | taxonKey → Map<key,count> or null
+  const taxoCache = {};   // parentKey → rank-filtered ACCEPTED children, sorted (no NZ filter)
+  const nzCache   = {};   // 'root' | taxonKey → Map<key,count> or null
   const navStack = [];   // [{cols, selIdx, selNodes}] for back navigation
 
   let cols      = [KINGDOMS, ...Array.from({length: NUM_COLS-1}, () => [])];
@@ -289,54 +289,84 @@
     }
   }
 
+  // Fetch taxonomy children for parentKey — rank-filtered, ACCEPTED, sorted by name.
+  // Fast taxonomy API only; no NZ filtering. Results cached in taxoCache.
+  async function fetchTaxoChildren(parentKey) {
+    if (taxoCache[parentKey] !== undefined) return taxoCache[parentKey];
+    taxoCache[parentKey] = [];  // sentinel — prevents concurrent duplicate requests
+    try {
+      const res = await fetch('https://api.gbif.org/v1/species/' + parentKey + '/children?limit=200');
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const j = await res.json();
+      const children = (j.results || []).filter(x =>
+        x.rank && VALID_RANKS.has(x.rank) &&
+        (!x.taxonomicStatus || x.taxonomicStatus === 'ACCEPTED' || x.taxonomicStatus === 'DOUBTFUL')
+      );
+      children.sort((a, b) => (a.canonicalName || '').localeCompare(b.canonicalName || ''));
+      taxoCache[parentKey] = children;
+    } catch(e) { /* leave as [] */ }
+    return taxoCache[parentKey];
+  }
+
+  // Apply NZ occurrence filter and attach counts. Falls back to full list if filtering
+  // would wipe everything (intermediate ranks like Subfamily don't appear in facets).
+  function nzFilterAndCount(children, nzKeys) {
+    if (!nzKeys || !nzKeys.size) {
+      children.forEach(c => { c._nzCount = null; });
+      return children;
+    }
+    const filtered = children.filter(c => nzKeys.has(String(c.key)));
+    const result = filtered.length > 0 ? filtered : children;
+    result.forEach(c => { c._nzCount = nzKeys.get(String(c.key)) || null; });
+    return result;
+  }
+
+  // Two-phase column loader:
+  //   Phase 1 — taxonomy (fast API, often cached): renders column immediately.
+  //   Phase 2 — NZ counts (slow faceted search): runs in background, re-renders
+  //             when done. If NZ data is already cached from a prior loadSiblings
+  //             call, phase 2 is instant.
   async function loadCol(ci, parentNode) {
     const key = parentNode.key;
-    if (!cache[key]) {
-      // Show loading indicator while both API calls run
+    const mySeq = _jumpSeq;
+
+    // Phase 1 — taxonomy
+    let children = taxoCache[key];
+    if (children === undefined) {
+      // Show loading indicator only when taxonomy isn't cached yet
       const colEl = document.getElementById('millerCol' + ci);
       if (colEl) {
         colEl.innerHTML = '';
         const hdr = document.createElement('div');
         hdr.className = 'miller-col-hdr';
-        hdr.textContent = COL_HEADERS[ci] || 'Taxa';  // updated after load
+        hdr.textContent = COL_HEADERS[ci] || 'Taxa';
         colEl.appendChild(hdr);
         const msg = document.createElement('div');
         msg.className = 'miller-msg';
         msg.textContent = 'Loading…';
         colEl.appendChild(msg);
       }
-      try {
-        // Fetch taxonomy children and NZ occurrence facets in parallel
-        const [taxoRes, nzKeys] = await Promise.all([
-          fetch('https://api.gbif.org/v1/species/'+key+'/children?limit=200'),
-          getNZKeys(key, parentNode.rank),
-        ]);
-        if (!taxoRes.ok) throw new Error('HTTP '+taxoRes.status);
-        const j = await taxoRes.json();
-        let children = (j.results || []).filter(x =>
-          x.rank && VALID_RANKS.has(x.rank) &&
-          (!x.taxonomicStatus || x.taxonomicStatus === 'ACCEPTED' || x.taxonomicStatus === 'DOUBTFUL')
-        );
-        // Filter to NZ-present taxa only and attach NZ occurrence counts.
-        // Fall back to unfiltered children if filtering wipes everything out — this
-        // happens when direct children are intermediate ranks (Subfamily, Tribe, etc.)
-        // that don't appear in GBIF occurrence facets (which only go down to genusKey).
-        if (nzKeys && nzKeys.size > 0) {
-          const filtered = children.filter(c => nzKeys.has(String(c.key)));
-          if (filtered.length > 0) children = filtered;
-          // else: keep unfiltered; intermediate-rank children can't be matched by occurrence facets
-        }
-        children.forEach(c => { c._nzCount = nzKeys ? (nzKeys.get(String(c.key)) || null) : null; });
-        children.sort((a,b) => (a.canonicalName||'').localeCompare(b.canonicalName||''));
-        cache[key] = children;
-      } catch(e) {
-        cache[key] = [];
-      }
+      children = await fetchTaxoChildren(key);
+      if (_jumpSeq !== mySeq) return;
     }
-    cols[ci] = cache[key];
+
+    // Show immediately: use cached NZ data if available, otherwise show full taxonomy
+    const cachedNZ = nzCache[key];
+    cols[ci] = (cachedNZ !== undefined) ? nzFilterAndCount(children, cachedNZ) : children;
     renderCol(ci);
     updateHint();
     updateAddBtn();
+
+    // Phase 2 — NZ counts in background (skipped if already cached)
+    if (cachedNZ === undefined) {
+      getNZKeys(key, parentNode.rank).then(nzKeys => {
+        if (_jumpSeq !== mySeq) return;
+        cols[ci] = nzFilterAndCount(children, nzKeys);
+        renderCol(ci);
+        updateHint();
+        updateAddBtn();
+      });
+    }
   }
 
   // Load the kingdoms column filtered to those with NZ occurrences
@@ -647,45 +677,33 @@
 
   // Load the children of parentNode from cache or API, always keeping mustIncludeKey present.
   // Returns a sorted, NZ-filtered children array.
+  // Used by drillUp: fetches parent's siblings with NZ filter (both phases together
+  // since the result is needed immediately for state update).
   async function loadSiblings(parentNode, mustIncludeKey) {
     if (!parentNode) {
-      // No parent — fall back to kingdoms
       const nzKeys = await getNZKeys(null, null);
-      return (nzKeys && nzKeys.size > 0)
+      const kds = (nzKeys && nzKeys.size > 0)
         ? KINGDOMS.filter(k => nzKeys.has(String(k.key)))
         : [...KINGDOMS];
+      kds.forEach(k => { k._nzCount = nzKeys ? (nzKeys.get(String(k.key)) || null) : null; });
+      return kds;
     }
     const parentKey = parentNode.key;
-    if (cache[parentKey]) return cache[parentKey];
-    const [childrenRes, nzKeys] = await Promise.all([
-      fetch('https://api.gbif.org/v1/species/' + parentKey + '/children?limit=200'),
+    const [children, nzKeys] = await Promise.all([
+      fetchTaxoChildren(parentKey),
       getNZKeys(parentKey, parentNode.rank),
     ]);
-    if (!childrenRes.ok) return [];
-    const cj = await childrenRes.json();
-    let children = (cj.results || []).filter(x =>
-      x.rank && VALID_RANKS.has(x.rank) &&
-      (!x.taxonomicStatus || x.taxonomicStatus === 'ACCEPTED' || x.taxonomicStatus === 'DOUBTFUL')
-    );
-    if (nzKeys && nzKeys.size > 0) {
-      const filtered = children.filter(c => nzKeys.has(String(c.key)));
-      // Always keep the must-include key even if NZ filter would drop it
-      if (mustIncludeKey && !filtered.some(c => c.key === mustIncludeKey)) {
-        const keep = children.find(c => c.key === mustIncludeKey);
-        if (keep) filtered.unshift(keep);
-      }
-      // Fall back to unfiltered if filtering wipes everything out — intermediate ranks
-      // (Subfamily, Tribe, etc.) don't appear in GBIF occurrence facets
-      if (filtered.length > 0) children = filtered;
+    let result = nzFilterAndCount(children, nzKeys);
+    // Always keep must-include key even if NZ filter would remove it
+    if (mustIncludeKey && !result.some(c => c.key === mustIncludeKey)) {
+      const keep = children.find(c => c.key === mustIncludeKey);
+      if (keep) result = [keep, ...result];
     }
-    children.forEach(c => { c._nzCount = nzKeys ? (nzKeys.get(String(c.key)) || null) : null; });
-    children.sort((a,b) => (a.canonicalName||'').localeCompare(b.canonicalName||''));
-    cache[parentKey] = children;
-    return children;
+    return result;
   }
 
   async function jumpToTaxon(gbifKey) {
-    const mySeq = ++_jumpSeq;  // snapshot; if user navigates before we finish, bail
+    const mySeq = ++_jumpSeq;
     try {
       const [taxonRes, parentsRes] = await Promise.all([
         fetch('https://api.gbif.org/v1/species/' + gbifKey),
@@ -693,12 +711,10 @@
       ]);
       if (!taxonRes.ok || !parentsRes.ok) return;
       const taxon   = await taxonRes.json();
-      const parents = await parentsRes.json();  // kingdom-first, direct parent last
+      const parents = await parentsRes.json();
       if (_jumpSeq !== mySeq) return;
 
       jumpAncestry = [...parents, taxon];
-
-      // Reset navigation state (keep API cache)
       navStack.length = 0;
       cols     = Array.from({length: NUM_COLS}, () => []);
       selIdx   = new Array(NUM_COLS).fill(-1);
@@ -706,45 +722,44 @@
       renderAll();
 
       const depth = parents.length;
-
       if (!depth) {
-        // Taxon is a kingdom — show it alone in col 0
         cols[0] = [taxon]; selIdx[0] = 0; selNodes[0] = taxon;
         renderAll(); updateCrumb(); updateAddBtn();
         return;
       }
 
-      // General formula for NUM_COLS columns:
-      //   col[ci] (ci = 0..NUM_COLS-2) shows children of parents[srcIdx],
-      //   with parents[hiIdx] highlighted.
-      //   srcIdx = depth - NUM_COLS + ci   (negative → null = kingdom list)
-      //   hiIdx  = depth - NUM_COLS + ci + 1
-      //   col[NUM_COLS-1] is loaded via loadCol from selNodes[NUM_COLS-2].
-      //
-      // This ensures that for a species with N ancestors, the leftmost column
-      // always shows the N-(NUM_COLS-1)th ancestor's children — so even taxa
-      // with intermediate ranks (Subfamily, Tribe) keep the Family visible.
-
-      const colLoaders = [];
+      // ── Phase 1: taxonomy only (fast) ────────────────────────────────────────
+      // For each of the NUM_COLS-1 pre-loaded columns, fetch taxonomy children
+      // in parallel without waiting for slow NZ occurrence counts.
+      const taxoLoaders = [];
       for (let ci = 0; ci < NUM_COLS - 1; ci++) {
-        const srcIdx = depth - NUM_COLS + ci;       // index of the source parent
-        const hiIdx  = depth - NUM_COLS + ci + 1;   // index of the child to highlight
-        if (hiIdx < 0) {
-          colLoaders.push(Promise.resolve(null));
-          continue;
-        }
+        const srcIdx = depth - NUM_COLS + ci;
+        const hiIdx  = depth - NUM_COLS + ci + 1;
+        if (hiIdx < 0) { taxoLoaders.push(Promise.resolve(null)); continue; }
         const srcNode = srcIdx < 0 ? null : parents[srcIdx];
         const mustKey = hiIdx < depth ? parents[hiIdx].key : taxon.key;
-        colLoaders.push(
-          loadSiblings(srcNode, mustKey)
-            .then(nodes => ({ nodes, hiIdx, mustKey }))
-            .catch(() => null)
-        );
+        if (!srcNode) {
+          // No parent → kingdom list
+          taxoLoaders.push(Promise.resolve({ nodes: [...KINGDOMS], hiIdx, mustKey, srcNode: null }));
+        } else {
+          taxoLoaders.push(
+            fetchTaxoChildren(srcNode.key).then(nodes => {
+              // Ensure the highlighted ancestor is present even if not in the child list
+              let result = nodes;
+              if (mustKey && !nodes.some(n => n.key === mustKey)) {
+                const target = hiIdx < depth ? parents[hiIdx] : taxon;
+                result = [target, ...nodes];
+              }
+              return { nodes: result, hiIdx, mustKey, srcNode };
+            }).catch(() => null)
+          );
+        }
       }
 
-      const loaded = await Promise.all(colLoaders);
+      const loaded = await Promise.all(taxoLoaders);
       if (_jumpSeq !== mySeq) return;
 
+      // Apply selections based on ancestry (no NZ filter yet — columns show full taxonomy)
       for (let ci = 0; ci < NUM_COLS - 1; ci++) {
         const res = loaded[ci];
         if (!res || !res.nodes.length) continue;
@@ -760,7 +775,6 @@
       updateCrumb();
       updateAddBtn();
 
-      // Scroll all pre-loaded selections into view
       for (let ci = 0; ci < NUM_COLS - 1; ci++) {
         const colEl = document.getElementById('millerCol' + ci);
         if (colEl) {
@@ -769,18 +783,24 @@
         }
       }
 
-      // Load the rightmost column from the deepest pre-loaded selection
+      // Rightmost column: taxonomy first (fast)
       const lastSrc = selNodes[NUM_COLS - 2];
-      if (!lastSrc) return;
-      await loadCol(NUM_COLS - 1, lastSrc);
+      if (!lastSrc || !lastSrc.key) return;
 
+      const lastChildren = await fetchTaxoChildren(lastSrc.key);
       if (_jumpSeq !== mySeq) return;
 
-      // Highlight the target taxon in the rightmost column
-      const lastIdx = cols[NUM_COLS - 1].findIndex(n => n.key === gbifKey);
-      if (lastIdx >= 0) {
-        selIdx[NUM_COLS - 1]   = lastIdx;
-        selNodes[NUM_COLS - 1] = cols[NUM_COLS - 1][lastIdx];
+      // Apply cached NZ if already available (from a prior search of the same taxa)
+      const cachedLastNZ = nzCache[lastSrc.key];
+      cols[NUM_COLS - 1] = (cachedLastNZ !== undefined)
+        ? nzFilterAndCount(lastChildren, cachedLastNZ)
+        : lastChildren;
+      renderCol(NUM_COLS - 1);
+
+      const highlightInLast = cols[NUM_COLS - 1].findIndex(n => n.key === gbifKey);
+      if (highlightInLast >= 0) {
+        selIdx[NUM_COLS - 1]   = highlightInLast;
+        selNodes[NUM_COLS - 1] = cols[NUM_COLS - 1][highlightInLast];
         renderCol(NUM_COLS - 1);
         updateAddBtn();
         const lastColEl = document.getElementById('millerCol' + (NUM_COLS - 1));
@@ -788,6 +808,46 @@
           const sel = lastColEl.querySelector('.miller-item.miller-sel');
           if (sel) setTimeout(() => sel.scrollIntoView({ block: 'center' }), 0);
         }
+      }
+
+      // ── Phase 2: NZ filter + counts in background ────────────────────────────
+      // Each column updates independently as its NZ data arrives.
+      for (let ci = 0; ci < NUM_COLS - 1; ci++) {
+        const res = loaded[ci];
+        if (!res || !res.srcNode) continue;  // skip kingdom cols (srcNode===null)
+        const { nodes, hiIdx, mustKey, srcNode } = res;
+        ;(async (ci, srcNode, nodes, mustKey) => {
+          const nzKeys = await getNZKeys(srcNode.key, srcNode.rank);
+          if (_jumpSeq !== mySeq) return;
+          let displayed = nzFilterAndCount(nodes, nzKeys);
+          // Keep the selected ancestor visible even if NZ-filtered-out
+          if (mustKey && !displayed.some(n => n.key === mustKey)) {
+            const keep = nodes.find(n => n.key === mustKey);
+            if (keep) displayed = [keep, ...displayed];
+          }
+          cols[ci] = displayed;
+          const si = displayed.findIndex(n => n.key === mustKey);
+          if (si >= 0) { selIdx[ci] = si; selNodes[ci] = displayed[si]; }
+          renderCol(ci);
+          updateCrumb();
+        })(ci, srcNode, nodes, mustKey);
+      }
+
+      // NZ for rightmost column
+      if (cachedLastNZ === undefined) {
+        ;(async () => {
+          const nzKeys = await getNZKeys(lastSrc.key, lastSrc.rank);
+          if (_jumpSeq !== mySeq) return;
+          const displayed = nzFilterAndCount(lastChildren, nzKeys);
+          cols[NUM_COLS - 1] = displayed;
+          const li = displayed.findIndex(n => n.key === gbifKey);
+          if (li >= 0) {
+            selIdx[NUM_COLS - 1]   = li;
+            selNodes[NUM_COLS - 1] = displayed[li];
+          }
+          renderCol(NUM_COLS - 1);
+          updateAddBtn();
+        })();
       }
 
     } catch(e) {
