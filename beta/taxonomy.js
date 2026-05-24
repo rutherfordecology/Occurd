@@ -31,7 +31,7 @@
   };
 
   // ── State ─────────────────────────────────────────────────────────────────
-  const NUM_COLS = 5;    // number of Miller columns
+  const NUM_COLS = 7;    // number of Miller columns
 
   const cache    = {};   // taxon key → NZ-filtered [children]
   const nzCache  = {};   // 'root' | taxonKey → Map<key,count> or null
@@ -45,7 +45,7 @@
   let _jumpSeq          = 0;   // incremented on every navigation; stale async ops check this
 
   // ── Render ────────────────────────────────────────────────────────────────
-  const COL_HEADERS = ['Kingdom', 'Phylum / Class', 'Order / Family', 'Genus', 'Species'];
+  const COL_HEADERS = ['Kingdom', 'Phylum', 'Class', 'Order', 'Family', 'Genus', 'Species'];
 
   // Derive a column header from the actual rank of the items in that column,
   // falling back to the position-based label when the column is empty.
@@ -505,6 +505,16 @@
     showMillerDrop(results);
   }
 
+  // Infer a display rank from a scientific name — good enough for NZOR/NVS results
+  // that don't carry rank metadata. 1 word = Genus, 2 words = Species, 3+ = Subspecies.
+  function inferRankLabel(sciName) {
+    if (!sciName) return '';
+    const words = sciName.trim().split(/\s+/);
+    if (words.length === 1) return 'Genus';
+    if (words.length === 2) return 'Species';
+    return 'Subspecies';
+  }
+
   async function searchNvsForTaxo(q) {
     if (typeof window._nvsSearch !== 'function') return [];
     const hits = window._nvsSearch(q).slice(0, 8);
@@ -512,7 +522,7 @@
       type:     'scientific',
       display:  h.sci,
       subLabel: 'NVS ' + h.nvscode.toUpperCase(),
-      rank:     '',
+      rank:     inferRankLabel(h.sci),
       gbifKey:  null,
       nzorData: null,
       nvsSci:   h.sci,
@@ -526,7 +536,7 @@
       type:     (h.cls === 'v' || h.cls === 'g') ? 'vernacular' : 'scientific',
       display:  h.n,
       subLabel: h.sci || '',
-      rank:     '',
+      rank:     inferRankLabel(h.sci || (h.cls === 'v' || h.cls === 'g' ? '' : h.n)),
       gbifKey:  null,
       nzorData: h,
     }));
