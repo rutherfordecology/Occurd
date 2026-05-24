@@ -37,9 +37,9 @@
       position: 'right',
     },
     {
-      target:   '#fetchBtn',
+      target:   '#runBtn',
       title:    '④ Fetch records',
-      text:     'Click Fetch Data to search GBIF for occurrences inside your polygon. Results appear on the map and in the species list below.',
+      text:     'Click here to search GBIF for occurrences inside your polygon. Results appear on the map and in the species list on the right.',
       position: 'right',
     },
     {
@@ -73,17 +73,17 @@
     overlay.id = 'ob-overlay';
     overlay.style.cssText = [
       'position:fixed;inset:0;z-index:99990;',
-      'background:rgba(0,0,0,0.55);',
-      'pointer-events:none;',          // let spotlight punch through
+      'background:rgba(0,0,0,0.32);',
+      'pointer-events:none;',
       'transition:opacity 0.25s;',
     ].join('');
 
-    // Spotlight cutout — a bright transparent box
+    // Spotlight cutout
     spotlight = document.createElement('div');
     spotlight.id = 'ob-spotlight';
     spotlight.style.cssText = [
       'position:fixed;z-index:99991;',
-      'box-shadow:0 0 0 9999px rgba(0,0,0,0.55);',
+      'box-shadow:0 0 0 9999px rgba(0,0,0,0.32);',
       'border-radius:6px;',
       'pointer-events:none;',
       'transition:all 0.25s;',
@@ -94,11 +94,12 @@
     tooltip.id = 'ob-tooltip';
     tooltip.style.cssText = [
       'position:fixed;z-index:99995;',
-      'background:#fff;border-radius:10px;',
-      'box-shadow:0 6px 32px rgba(0,0,0,0.22);',
+      'background:#f9f8f6;border-radius:10px;',
+      'box-shadow:0 4px 24px rgba(0,0,0,0.13);',
+      'border:1px solid rgba(0,0,0,0.07);',
       'padding:18px 20px 14px;width:260px;',
       'font-family:var(--font-sans,system-ui,sans-serif);',
-      'transition:all 0.2s;',
+      'transition:left 0.2s,top 0.2s;',
     ].join('');
 
     document.body.appendChild(overlay);
