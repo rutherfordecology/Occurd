@@ -1,5 +1,6 @@
 // ── QEII National Trust covenant layer ───────────────────────────────────────
 // Shared state — accessible by the DRAWCREATED handler for auto-selection
+// Activation is handled entirely via the Projects dropdown (kakapo.js).
 window._qeiiState = { active: false, features: [] };
 
 (function() {
@@ -7,59 +8,13 @@ window._qeiiState = { active: false, features: [] };
   let qeiiLoading = false;
   let qeiiUnlocked = false; // true once the user has entered the correct key
 
-  const btn      = document.getElementById('qeiiToggleBtn');
-  const popup    = document.getElementById('qeiiUnlockPopup');
-  const input    = document.getElementById('qeiiKeyInput');
-  const submitBtn= document.getElementById('qeiiKeySubmit');
-  const errMsg   = document.getElementById('qeiiKeyError');
-
-  // Wire up the sidebar footer button
-  if (btn) btn.addEventListener('click', function(e) {
-    e.stopPropagation();
-    if (qeiiUnlocked) {
-      toggleQeii();
-    } else {
-      // Show unlock popup
-      const isOpen = popup.style.display !== 'none';
-      popup.style.display = isOpen ? 'none' : 'block';
-      if (!isOpen) { input.value = ''; errMsg.style.display = 'none'; input.focus(); }
-    }
-  });
-
-  // Dismiss popup on outside click
-  document.addEventListener('click', function(e) {
-    if (popup.style.display !== 'none' && !popup.contains(e.target) && e.target !== btn) {
-      popup.style.display = 'none';
-    }
-  });
-
-  // Exposed so kakapo.js (clients dropdown) can activate QEII programmatically
+  // Exposed so kakapo.js (projects dropdown) can activate QEII programmatically
   window._qeiiActivate = function() {
     if (!qeiiUnlocked) {
       qeiiUnlocked = true;
-      btn.innerHTML = '🔓 QEII';
     }
     if (!window._qeiiState.active) toggleQeii();
   };
-
-  function tryUnlock() {
-    if (input.value.trim().toLowerCase() === 'perpetuity') {
-      qeiiUnlocked = true;
-      popup.style.display = 'none';
-      // Change lock icon to unlocked once key accepted
-      btn.innerHTML = '🔓 QEII';
-      toggleQeii();  // activate immediately
-    } else {
-      errMsg.style.display = 'block';
-      input.select();
-      // Shake the input
-      input.style.borderColor = 'var(--red)';
-      setTimeout(() => { input.style.borderColor = 'var(--border2)'; }, 800);
-    }
-  }
-
-  if (submitBtn) submitBtn.addEventListener('click', tryUnlock);
-  if (input) input.addEventListener('keydown', function(e) { if (e.key === 'Enter') tryUnlock(); });
 
   function _syncBtn() {
     const b = document.getElementById('qeiiToggleBtn');

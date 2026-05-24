@@ -44,7 +44,7 @@
       <img src="../occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v3.62b</span> <span style="font-size:10px;font-weight:700;color:#fbbf24;letter-spacing:0.06em;background:rgba(251,191,36,0.15);padding:1px 6px;border-radius:8px;">BETA</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v3.63b</span> <span style="font-size:10px;font-weight:700;color:#fbbf24;letter-spacing:0.06em;background:rgba(251,191,36,0.15);padding:1px 6px;border-radius:8px;">BETA</span></h1>
   </div>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
     <!-- Projects dropdown -->
@@ -257,25 +257,6 @@
       <div style="display:flex;align-items:center;justify-content:space-between;margin-top:0.6rem;">
         <span class="note">© Rutherford Ecology</span>
         <div style="display:flex;align-items:center;gap:4px;position:relative;">
-          <!-- QEII unlock popup -->
-          <div id="qeiiUnlockPopup" style="display:none;position:absolute;bottom:calc(100% + 8px);right:0;
-            background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius);
-            box-shadow:0 4px 14px rgba(0,0,0,0.15);padding:10px 12px;width:178px;z-index:9999;">
-            <div style="font-size:11px;color:var(--text2);margin-bottom:6px;line-height:1.4;">Enter key to unlock perpetuity layer</div>
-            <div style="display:flex;gap:5px;">
-              <input id="qeiiKeyInput" type="text" placeholder="key…" autocomplete="off" spellcheck="false"
-                style="flex:1;font-size:12px;font-family:var(--font-sans);padding:4px 7px;border:1px solid var(--border2);border-radius:4px;outline:none;color:var(--text);background:var(--surface2);">
-              <button id="qeiiKeySubmit"
-                style="font-size:11px;font-family:var(--font-sans);padding:4px 8px;border-radius:4px;border:none;background:var(--green-dark);color:#fff;cursor:pointer;">↵</button>
-            </div>
-            <div id="qeiiKeyError" style="display:none;font-size:10px;color:var(--red);margin-top:5px;">wrong key</div>
-          </div>
-          <button id="qeiiToggleBtn"
-            style="background:none;border:none;cursor:pointer;font-size:11px;color:var(--text3);font-family:var(--font-sans);padding:2px 4px;border-radius:3px;"
-            title="QEII National Trust covenants"
-            onmouseover="this.style.color='var(--green)'"
-            onmouseout="if(!this.classList.contains('active'))this.style.color='var(--text3)'">&#128274; perpetuity</button>
-          <span style="color:var(--border2);font-size:10px;">|</span>
           <button id="changelogBtn" style="background:none;border:none;cursor:pointer;font-size:11px;color:var(--text3);font-family:var(--font-sans);padding:2px 4px;border-radius:3px;" onmouseover="this.style.color='var(--green)'" onmouseout="this.style.color='var(--text3)'">&#128221; Changelog</button>
         </div>
       </div>
@@ -3720,6 +3701,13 @@ document.getElementById('dlChecklistBtn').addEventListener('click', () => {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v3.63b</span>
+      <span class="changelog-date">May 2026</span>
+      <ul>
+        <li>Removed QEII lock button from sidebar footer — QEII is now activated exclusively via the Projects dropdown</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v3.62b</span>
       <span class="changelog-date">May 2026</span>
