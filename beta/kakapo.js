@@ -116,18 +116,11 @@
   function _activate(id) {
     _unlocked[id] = true;
     _setIcon(id, '🔓');
-    const menu = document.getElementById('clientsMenu');
+    const menu = document.getElementById('projectsMenu');
     if (menu) menu.style.display = 'none';
 
     if (id === 'qeii') {
-      // Delegate to the existing QEII system (qeii.js exposes _qeiiActivate)
-      if (typeof window._qeiiActivate === 'function') {
-        window._qeiiActivate();
-      } else {
-        // Fallback: simulate a click on the QEII toggle
-        const btn = document.getElementById('qeiiToggleBtn');
-        if (btn) btn.click();
-      }
+      if (typeof window._qeiiActivate === 'function') window._qeiiActivate();
     } else if (id === 'kakapo') {
       _loadKakapo();
     }
@@ -139,9 +132,7 @@
     if (id === 'kakapo') {
       if (_kakapoLayer) { map.removeLayer(_kakapoLayer); _kakapoLayer = null; }
       _kakapoLoaded = false;
-      _setLabel('kakapo', 'Kākāpō · Whenuahou');
     }
-    // QEII deactivation via its own toggle (don't double-fire)
   }
 
   function _setIcon(id, icon)  { const el = document.getElementById('projectIcon_'  + id); if (el) el.textContent = icon; }
@@ -152,7 +143,6 @@
     if (_kakapoLoaded) return;
     _kakapoLoaded = true;
     _setIcon('kakapo', '⏳');
-    _setLabel('kakapo', 'Kākāpō · loading…');
 
     try {
       // 1. Resolve GBIF taxon key for Strigops habroptilus
@@ -260,19 +250,12 @@
         } catch (_) {}
       }
 
-      // 7. Update dropdown label
-      const noCoordCount = withoutCoords.length - institutionPlaced.length;
+      // 7. Update icon to show loaded
       _setIcon('kakapo', '🟢');
-      _setLabel('kakapo',
-        `Kākāpō — ${toPlot.length.toLocaleString()} records` +
-        (institutionPlaced.length ? ` (${institutionPlaced.length} at institution)` : '') +
-        (noCoordCount > 0 ? ` · ${noCoordCount} unplaceable` : '')
-      );
 
     } catch (e) {
       console.warn('Kakapo load error:', e);
       _setIcon('kakapo', '❌');
-      _setLabel('kakapo', 'Kākāpō · load failed');
       _kakapoLoaded = false;
     }
   }
