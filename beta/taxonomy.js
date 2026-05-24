@@ -31,20 +31,21 @@
   };
 
   // ── State ─────────────────────────────────────────────────────────────────
+  const NUM_COLS = 5;    // number of Miller columns
+
   const cache    = {};   // taxon key → NZ-filtered [children]
   const nzCache  = {};   // 'root' | taxonKey → Map<key,count> or null
   const navStack = [];   // [{cols, selIdx, selNodes}] for back navigation
 
-  // 3 columns: cols[0] = current root's children, cols[1] = col0-sel children, cols[2] = col1-sel children
-  let cols      = [KINGDOMS, [], []];
-  let selIdx    = [-1, -1, -1];    // selected index per column
-  let selNodes  = [null, null, null]; // selected node per column
+  let cols      = [KINGDOMS, ...Array.from({length: NUM_COLS-1}, () => [])];
+  let selIdx    = new Array(NUM_COLS).fill(-1);
+  let selNodes  = new Array(NUM_COLS).fill(null);
   let jumpAncestry      = [];   // [{key,name,rank}…] set after a search jump, for breadcrumb
   let millerSearchTimer = null; // debounce handle
   let _jumpSeq          = 0;   // incremented on every navigation; stale async ops check this
 
   // ── Render ────────────────────────────────────────────────────────────────
-  const COL_HEADERS = ['Kingdom', 'Phylum / Class', 'Order / Family'];
+  const COL_HEADERS = ['Kingdom', 'Phylum / Class', 'Order / Family', 'Genus', 'Species'];
 
   // Derive a column header from the actual rank of the items in that column,
   // falling back to the position-based label when the column is empty.
@@ -119,7 +120,7 @@
   }
 
   function renderAll() {
-    for (let ci = 0; ci < 3; ci++) renderCol(ci);
+    for (let ci = 0; ci < NUM_COLS; ci++) renderCol(ci);
     updateHint();
     updateBackBtn();
   }
@@ -128,7 +129,8 @@
     const el = document.getElementById('millerHint');
     if (!el) return;
     const note = ' · Numbers are GBIF records from all time for NZ';
-    if (cols[2] && cols[2].length > 0 && selIdx[1] >= 0) {
+    const last = NUM_COLS - 1;
+    if (cols[last] && cols[last].length > 0 && selIdx[last-1] >= 0) {
       el.textContent = 'Click any item in the right column to drill deeper ›' + note;
     } else if (selIdx[0] < 0) {
       el.textContent = 'Select a kingdom to begin · click any item to drill in' + note;
@@ -175,29 +177,26 @@
 
       const c0i = col0nodes.findIndex(n => n.key === directParent.key);
 
-      // Shift: old col0 → col1, old col1 → col2
-      const prevCol0  = cols[0];
-      const prevCol1  = cols[1];
-      const prevSel0  = selIdx[0];
-      const prevSel1  = selIdx[1];
+      // Shift: old col[k] → new col[k+1], rightmost col is dropped; new col[0] = loaded parent
+      const prevCols     = cols.map(c => [...c]);
+      const prevSelIdx   = [...selIdx];
+      const prevSelNodes = [...selNodes];
 
       cols[0]     = col0nodes;
       selIdx[0]   = c0i >= 0 ? c0i : 0;
       selNodes[0] = c0i >= 0 ? col0nodes[c0i] : directParent;
 
-      cols[1]     = prevCol0;
-      selIdx[1]   = prevSel0;
-      selNodes[1] = prevSel0 >= 0 && prevCol0[prevSel0] ? prevCol0[prevSel0] : anchor;
-
-      cols[2]     = prevCol1;
-      selIdx[2]   = prevSel1;
-      selNodes[2] = prevSel1 >= 0 && prevCol1[prevSel1] ? prevCol1[prevSel1] : null;
+      for (let k = 1; k < NUM_COLS; k++) {
+        cols[k]     = prevCols[k-1];
+        selIdx[k]   = prevSelIdx[k-1];
+        selNodes[k] = prevSelNodes[k-1];
+      }
 
       renderAll();
       updateCrumb();
       updateAddBtn();
 
-      for (let ci = 0; ci < 3; ci++) {
+      for (let ci = 0; ci < NUM_COLS; ci++) {
         const colEl = document.getElementById('millerCol' + ci);
         if (colEl) {
           const sel = colEl.querySelector('.miller-item.miller-sel');
@@ -220,35 +219,37 @@
       await drillUp();
       return;
     }
-    if (ci === 2) {
-      // Drill in: shift cols left, clicked col-2 item becomes new col-1 selection
+    if (ci === NUM_COLS - 1) {
+      // Drill in from the rightmost column: shift all cols left, load new rightmost
       const savedSelIdx   = [...selIdx];
       const savedSelNodes = [...selNodes];
-      savedSelIdx[2]   = i;     // remember which col-2 item was drilled into
-      savedSelNodes[2] = node;
+      savedSelIdx[ci]   = i;
+      savedSelNodes[ci] = node;
       navStack.push({
-        cols:      cols.map(c => [...c]),
-        selIdx:    savedSelIdx,
-        selNodes:  savedSelNodes,
+        cols:     cols.map(c => [...c]),
+        selIdx:   savedSelIdx,
+        selNodes: savedSelNodes,
       });
-      cols[0]     = cols[1];
-      cols[1]     = cols[2];
-      cols[2]     = [];
-      selIdx[0]   = selIdx[1];
-      selIdx[1]   = i;
-      selIdx[2]   = -1;
-      selNodes[0] = selNodes[1];
-      selNodes[1] = node;
-      selNodes[2] = null;
+      for (let k = 0; k < NUM_COLS - 1; k++) {
+        cols[k]     = cols[k + 1];
+        selIdx[k]   = selIdx[k + 1];
+        selNodes[k] = selNodes[k + 1];
+      }
+      // The drilled-into item is now at the second-from-right position
+      selIdx[NUM_COLS - 2]   = i;
+      selNodes[NUM_COLS - 2] = node;
+      cols[NUM_COLS - 1]     = [];
+      selIdx[NUM_COLS - 1]   = -1;
+      selNodes[NUM_COLS - 1] = null;
       renderAll();
       updateCrumb();
       updateAddBtn();
-      await loadCol(2, node);
+      await loadCol(NUM_COLS - 1, node);
     } else {
-      // Select: show children in next column, clear deeper
+      // Select: show children in next column, clear all deeper columns
       selIdx[ci]   = i;
       selNodes[ci] = node;
-      for (let d = ci+1; d < 3; d++) {
+      for (let d = ci + 1; d < NUM_COLS; d++) {
         selIdx[d]   = -1;
         cols[d]     = [];
         selNodes[d] = null;
@@ -256,7 +257,7 @@
       renderAll();
       updateCrumb();
       updateAddBtn();
-      if (ci < 2) await loadCol(ci+1, node);
+      if (ci < NUM_COLS - 1) await loadCol(ci + 1, node);
     }
   }
 
@@ -373,7 +374,7 @@
 
   // ── Helpers ───────────────────────────────────────────────────────────────
   function getSelected() {
-    for (let ci = 2; ci >= 0; ci--) {
+    for (let ci = NUM_COLS - 1; ci >= 0; ci--) {
       if (selNodes[ci]) return { node: selNodes[ci], ci };
     }
     return null;
@@ -675,108 +676,100 @@
       ]);
       if (!taxonRes.ok || !parentsRes.ok) return;
       const taxon   = await taxonRes.json();
-      // parents[] is kingdom-first, direct parent is last
-      const parents = await parentsRes.json();
+      const parents = await parentsRes.json();  // kingdom-first, direct parent last
+      if (_jumpSeq !== mySeq) return;
 
-      // Breadcrumb: kingdom-first order, taxon appended
       jumpAncestry = [...parents, taxon];
 
       // Reset navigation state (keep API cache)
       navStack.length = 0;
-      cols     = [[], [], []];
-      selIdx   = [-1, -1, -1];
-      selNodes = [null, null, null];
-      renderAll(); // show loading state
+      cols     = Array.from({length: NUM_COLS}, () => []);
+      selIdx   = new Array(NUM_COLS).fill(-1);
+      selNodes = new Array(NUM_COLS).fill(null);
+      renderAll();
 
-      // Go up 3 levels so columns read left→right as: grandparent → parent → taxon
-      // e.g. for M. ramiflorus: families (col 0) → genera (col 1) → species (col 2)
-      const directParent    = parents[parents.length - 1]; // e.g. genus  Melicytus
-      const grandParent     = parents[parents.length - 2]; // e.g. family Violaceae
-      const greatGrandParent= parents[parents.length - 3]; // e.g. order  Malpighiales
+      const depth = parents.length;
 
-      if (!directParent) {
-        // Taxon has no parents (e.g. it's a kingdom) — show it alone in col 0
+      if (!depth) {
+        // Taxon is a kingdom — show it alone in col 0
         cols[0] = [taxon]; selIdx[0] = 0; selNodes[0] = taxon;
         renderAll(); updateCrumb(); updateAddBtn();
         return;
       }
 
-      if (!grandParent) {
-        // Only one parent level — col 0 = siblings, col 1 = taxon's children
-        const col0nodes = await loadSiblings(directParent, gbifKey);
-        const c0i = col0nodes.findIndex(n => n.key === gbifKey);
-        cols[0] = col0nodes; selIdx[0] = c0i >= 0 ? c0i : 0;
-        selNodes[0] = c0i >= 0 ? col0nodes[c0i] : taxon;
-        renderAll(); updateCrumb(); updateAddBtn();
-        await loadCol(1, selNodes[0]);
-        return;
+      // General formula for NUM_COLS columns:
+      //   col[ci] (ci = 0..NUM_COLS-2) shows children of parents[srcIdx],
+      //   with parents[hiIdx] highlighted.
+      //   srcIdx = depth - NUM_COLS + ci   (negative → null = kingdom list)
+      //   hiIdx  = depth - NUM_COLS + ci + 1
+      //   col[NUM_COLS-1] is loaded via loadCol from selNodes[NUM_COLS-2].
+      //
+      // This ensures that for a species with N ancestors, the leftmost column
+      // always shows the N-(NUM_COLS-1)th ancestor's children — so even taxa
+      // with intermediate ranks (Subfamily, Tribe) keep the Family visible.
+
+      const colLoaders = [];
+      for (let ci = 0; ci < NUM_COLS - 1; ci++) {
+        const srcIdx = depth - NUM_COLS + ci;       // index of the source parent
+        const hiIdx  = depth - NUM_COLS + ci + 1;   // index of the child to highlight
+        if (hiIdx < 0) {
+          colLoaders.push(Promise.resolve(null));
+          continue;
+        }
+        const srcNode = srcIdx < 0 ? null : parents[srcIdx];
+        const mustKey = hiIdx < depth ? parents[hiIdx].key : taxon.key;
+        colLoaders.push(
+          loadSiblings(srcNode, mustKey)
+            .then(nodes => ({ nodes, hiIdx, mustKey }))
+            .catch(() => null)
+        );
       }
 
-      // Load col 0 (great-grandparent's children, e.g. families of the order — Violaceae highlighted)
-      // and col 1 (grandparent's children, e.g. genera of Violaceae — Melicytus highlighted) in parallel.
-      const [col0nodes, col1nodes] = await Promise.all([
-        loadSiblings(greatGrandParent, grandParent.key),
-        loadSiblings(grandParent,      directParent.key),
-      ]);
+      const loaded = await Promise.all(colLoaders);
+      if (_jumpSeq !== mySeq) return;
 
-      // Wire col 0: select grandParent (e.g. Violaceae)
-      const c0i = col0nodes.findIndex(n => n.key === grandParent.key);
-      cols[0]     = col0nodes;
-      selIdx[0]   = c0i >= 0 ? c0i : 0;
-      selNodes[0] = c0i >= 0 ? col0nodes[c0i] : grandParent;
-
-      // Wire col 1: select directParent (e.g. Melicytus)
-      const c1i = col1nodes.findIndex(n => n.key === directParent.key);
-      cols[1]     = col1nodes;
-      selIdx[1]   = c1i >= 0 ? c1i : 0;
-      selNodes[1] = c1i >= 0 ? col1nodes[c1i] : directParent;
-
-      // For species-level (or deeper) results, push a synthetic Back entry showing one level
-      // higher — so pressing Back reveals the parent order in col 0 (e.g. Asparagales when
-      // the jump landed at Asphodelaceae/Phormium/Phormium tenax).
-      const ggGrandParent = parents.length >= 4 ? parents[parents.length - 4] : null;
-      if (ggGrandParent && parents.length >= 6) {
-        const orderSiblings = await loadSiblings(ggGrandParent, greatGrandParent.key);
-        const oIdx = orderSiblings.findIndex(n => n.key === greatGrandParent.key);
-        navStack.push({
-          cols:      [orderSiblings, col0nodes, col1nodes],
-          selIdx:    [oIdx >= 0 ? oIdx : 0, c0i >= 0 ? c0i : 0, c1i >= 0 ? c1i : 0],
-          selNodes:  [
-            oIdx >= 0 ? orderSiblings[oIdx] : greatGrandParent,
-            c0i >= 0 ? col0nodes[c0i] : grandParent,
-            c1i >= 0 ? col1nodes[c1i] : directParent,
-          ],
-        });
+      for (let ci = 0; ci < NUM_COLS - 1; ci++) {
+        const res = loaded[ci];
+        if (!res || !res.nodes.length) continue;
+        const { nodes, hiIdx, mustKey } = res;
+        const highlightNode = hiIdx < depth ? parents[hiIdx] : taxon;
+        const si = nodes.findIndex(n => n.key === mustKey);
+        cols[ci]     = nodes;
+        selIdx[ci]   = si >= 0 ? si : 0;
+        selNodes[ci] = si >= 0 ? nodes[si] : highlightNode;
       }
 
       renderAll();
       updateCrumb();
       updateAddBtn();
 
-      // Scroll col 0 and col 1 selections into view
-      ['millerCol0', 'millerCol1'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) { const s = el.querySelector('.miller-item.miller-sel'); if (s) s.scrollIntoView({ block: 'center' }); }
-      });
+      // Scroll all pre-loaded selections into view
+      for (let ci = 0; ci < NUM_COLS - 1; ci++) {
+        const colEl = document.getElementById('millerCol' + ci);
+        if (colEl) {
+          const sel = colEl.querySelector('.miller-item.miller-sel');
+          if (sel) setTimeout(() => sel.scrollIntoView({ block: 'center' }), 0);
+        }
+      }
 
-      // Load col 2 = directParent's children (e.g. species of Melicytus), then select target
-      await loadCol(2, selNodes[1]);
+      // Load the rightmost column from the deepest pre-loaded selection
+      const lastSrc = selNodes[NUM_COLS - 2];
+      if (!lastSrc) return;
+      await loadCol(NUM_COLS - 1, lastSrc);
 
-      // If the user navigated (clicked Back, drilled, etc.) while col 2 was loading,
-      // bail out so we don't overwrite their new state.
       if (_jumpSeq !== mySeq) return;
 
-      // Select the target taxon in col 2
-      const c2i = cols[2].findIndex(n => n.key === gbifKey);
-      if (c2i >= 0) {
-        selIdx[2]   = c2i;
-        selNodes[2] = cols[2][c2i];
-        renderCol(2);
+      // Highlight the target taxon in the rightmost column
+      const lastIdx = cols[NUM_COLS - 1].findIndex(n => n.key === gbifKey);
+      if (lastIdx >= 0) {
+        selIdx[NUM_COLS - 1]   = lastIdx;
+        selNodes[NUM_COLS - 1] = cols[NUM_COLS - 1][lastIdx];
+        renderCol(NUM_COLS - 1);
         updateAddBtn();
-        const colEl2 = document.getElementById('millerCol2');
-        if (colEl2) {
-          const sel = colEl2.querySelector('.miller-item.miller-sel');
-          if (sel) sel.scrollIntoView({ block: 'center' });
+        const lastColEl = document.getElementById('millerCol' + (NUM_COLS - 1));
+        if (lastColEl) {
+          const sel = lastColEl.querySelector('.miller-item.miller-sel');
+          if (sel) setTimeout(() => sel.scrollIntoView({ block: 'center' }), 0);
         }
       }
 
@@ -788,9 +781,9 @@
   // ── Open / close ──────────────────────────────────────────────────────────
   function reset() {
     navStack.length = 0;
-    cols         = [[], [], []];  // col 0 loaded async via loadKingdoms()
-    selIdx       = [-1, -1, -1];
-    selNodes     = [null, null, null];
+    cols         = Array.from({length: NUM_COLS}, () => []);  // col 0 loaded async via loadKingdoms()
+    selIdx       = new Array(NUM_COLS).fill(-1);
+    selNodes     = new Array(NUM_COLS).fill(null);
     jumpAncestry = [];
     clearTimeout(millerSearchTimer);
     const inp = document.getElementById('millerSearchIn');
