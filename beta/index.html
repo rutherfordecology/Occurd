@@ -44,7 +44,7 @@
       <img src="../occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v3.67b</span> <span style="font-size:10px;font-weight:700;color:#fbbf24;letter-spacing:0.06em;background:rgba(251,191,36,0.15);padding:1px 6px;border-radius:8px;">BETA</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v3.68b</span> <span style="font-size:10px;font-weight:700;color:#fbbf24;letter-spacing:0.06em;background:rgba(251,191,36,0.15);padding:1px 6px;border-radius:8px;">BETA</span></h1>
   </div>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
     <!-- Projects dropdown -->
@@ -2975,8 +2975,10 @@ function buildChecklist(records) {
   clScroll.innerHTML = '';
   let hasUncertain = false;
   Object.keys(byGroup).sort().forEach(g => {
-    const label = (TAXON_COLOURS[g] || { label: g }).label;
-    const gh = document.createElement('div'); gh.className = 'cl-group-header'; gh.textContent = label;
+    const label  = (TAXON_COLOURS[g] || { label: g }).label;
+    const colour = (TAXON_COLOURS[g] || TAXON_COLOURS['Other']).colour;
+    const gh = document.createElement('div'); gh.className = 'cl-group-header';
+    gh.innerHTML = '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:' + colour + ';margin-right:6px;vertical-align:middle;flex-shrink:0;"></span>' + label;
     clScroll.appendChild(gh);
     Object.entries(byGroup[g]).sort((a,b) => a[0].localeCompare(b[0])).forEach(([name, info]) => {
       const row = document.createElement('div'); row.className = 'cl-row';
@@ -3061,7 +3063,7 @@ function buildFilterChips(records) {
     item.innerHTML = '<div class="legend-dot" style="background:' + colour + '"></div>' + label;
     legendItems.appendChild(item);
   });
-  filterSection.style.display = 'block'; legend.style.display = 'block';
+  filterSection.style.display = 'block'; // legend removed — colours shown via dots in species list
 
   syncSelectAllBtn();
   if (selectAllBtn) selectAllBtn.onclick = () => {
@@ -3702,6 +3704,13 @@ document.getElementById('dlChecklistBtn').addEventListener('click', () => {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v3.68b</span>
+      <span class="changelog-date">May 2026</span>
+      <ul>
+        <li>Species list — coloured dot added to each taxon group header; map legend removed (redundant)</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v3.67b</span>
       <span class="changelog-date">May 2026</span>
