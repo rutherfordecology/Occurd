@@ -41,6 +41,7 @@
   let selNodes  = [null, null, null]; // selected node per column
   let jumpAncestry      = [];   // [{key,name,rank}…] set after a search jump, for breadcrumb
   let millerSearchTimer = null; // debounce handle
+  let _jumpSeq          = 0;   // incremented on every navigation; stale async ops check this
 
   // ── Render ────────────────────────────────────────────────────────────────
   const COL_HEADERS = ['Kingdom', 'Phylum / Class', 'Order / Family'];
@@ -144,10 +145,11 @@
   // ── Interaction ───────────────────────────────────────────────────────────
   async function onItemClick(ci, i, node) {
     jumpAncestry = [];   // manual navigation clears any search-jump ancestry
-    // Clicking the already-selected item in col 0 navigates up (same as Back),
-    // so the item shifts into the middle column where its parent becomes visible.
-    if (ci === 0 && selIdx[0] === i && navStack.length > 0) {
-      goBack();
+    _jumpSeq++;          // invalidate any in-flight jumpToTaxon async operations
+    // Clicking the already-selected item in col 0: navigate up if there's a Back state,
+    // otherwise do nothing — re-clicking a selection should never clear the deeper columns.
+    if (ci === 0 && selIdx[0] === i) {
+      if (navStack.length > 0) goBack();
       return;
     }
     if (ci === 2) {
@@ -291,6 +293,7 @@
   function goBack() {
     if (!navStack.length) return;
     jumpAncestry = [];   // back navigation clears search-jump ancestry
+    _jumpSeq++;          // invalidate any in-flight jumpToTaxon async operations
     const prev = navStack.pop();
     cols      = prev.cols;
     selIdx    = prev.selIdx;
@@ -596,6 +599,7 @@
   }
 
   async function jumpToTaxon(gbifKey) {
+    const mySeq = ++_jumpSeq;  // snapshot; if user navigates before we finish, bail
     try {
       const [taxonRes, parentsRes] = await Promise.all([
         fetch('https://api.gbif.org/v1/species/' + gbifKey),
@@ -689,6 +693,10 @@
 
       // Load col 2 = directParent's children (e.g. species of Melicytus), then select target
       await loadCol(2, selNodes[1]);
+
+      // If the user navigated (clicked Back, drilled, etc.) while col 2 was loading,
+      // bail out so we don't overwrite their new state.
+      if (_jumpSeq !== mySeq) return;
 
       // Select the target taxon in col 2
       const c2i = cols[2].findIndex(n => n.key === gbifKey);
