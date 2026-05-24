@@ -43,7 +43,7 @@
     const item = document.createElement('div');
     item.id = 'projectItem_' + id;
     item.style.cssText = [
-      'padding:9px 14px;cursor:pointer;font-size:12px;color:var(--text1)',
+      'padding:9px 14px;cursor:pointer;font-size:12px;color:var(--text)',
       'display:flex;align-items:center;gap:8px;border-bottom:0.5px solid var(--border)',
       'transition:background 0.08s;',
     ].join(';');
