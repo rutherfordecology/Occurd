@@ -142,14 +142,81 @@
     if (btn) btn.disabled = navStack.length === 0;
   }
 
+  // ── Drill up ─────────────────────────────────────────────────────────────
+  // Shift all columns one level higher: col-0 anchor moves to col 1, its parent
+  // fills col 0. Works all the way up to kingdoms. Pushes current state to navStack.
+  async function drillUp() {
+    const anchor = selNodes[0];
+    if (!anchor || !anchor.key) return;
+
+    const mySeq = ++_jumpSeq;
+
+    try {
+      const res = await fetch('https://api.gbif.org/v1/species/' + anchor.key + '/parents');
+      if (!res.ok || _jumpSeq !== mySeq) return;
+      const parents = await res.json();
+      if (_jumpSeq !== mySeq) return;
+
+      const directParent = parents[parents.length - 1];  // immediate parent of anchor
+      const grandParent  = parents[parents.length - 2];  // parent of directParent (may be null)
+
+      if (!directParent) return;  // already at kingdom; can't go higher
+
+      // Load the new col-0 = directParent's siblings (grandParent's children, or kingdoms)
+      const col0nodes = await loadSiblings(grandParent || null, directParent.key);
+      if (_jumpSeq !== mySeq) return;
+
+      // Push current state so Back can restore it
+      navStack.push({
+        cols:     cols.map(c => [...c]),
+        selIdx:   [...selIdx],
+        selNodes: [...selNodes],
+      });
+
+      const c0i = col0nodes.findIndex(n => n.key === directParent.key);
+
+      // Shift: old col0 → col1, old col1 → col2
+      const prevCol0  = cols[0];
+      const prevCol1  = cols[1];
+      const prevSel0  = selIdx[0];
+      const prevSel1  = selIdx[1];
+
+      cols[0]     = col0nodes;
+      selIdx[0]   = c0i >= 0 ? c0i : 0;
+      selNodes[0] = c0i >= 0 ? col0nodes[c0i] : directParent;
+
+      cols[1]     = prevCol0;
+      selIdx[1]   = prevSel0;
+      selNodes[1] = prevSel0 >= 0 && prevCol0[prevSel0] ? prevCol0[prevSel0] : anchor;
+
+      cols[2]     = prevCol1;
+      selIdx[2]   = prevSel1;
+      selNodes[2] = prevSel1 >= 0 && prevCol1[prevSel1] ? prevCol1[prevSel1] : null;
+
+      renderAll();
+      updateCrumb();
+      updateAddBtn();
+
+      for (let ci = 0; ci < 3; ci++) {
+        const colEl = document.getElementById('millerCol' + ci);
+        if (colEl) {
+          const sel = colEl.querySelector('.miller-item.miller-sel');
+          if (sel) setTimeout(() => sel.scrollIntoView({ block: 'center' }), 0);
+        }
+      }
+    } catch(e) {
+      console.warn('drillUp error:', e);
+    }
+  }
+
   // ── Interaction ───────────────────────────────────────────────────────────
   async function onItemClick(ci, i, node) {
     jumpAncestry = [];   // manual navigation clears any search-jump ancestry
     _jumpSeq++;          // invalidate any in-flight jumpToTaxon async operations
-    // Clicking the already-selected item in col 0: navigate up if there's a Back state,
-    // otherwise do nothing — re-clicking a selection should never clear the deeper columns.
+    // Clicking the already-selected item in col 0 drills up one taxonomy level —
+    // fetches the anchor's parent and shifts the columns so the anchor moves to col 1.
     if (ci === 0 && selIdx[0] === i) {
-      if (navStack.length > 0) goBack();
+      await drillUp();
       return;
     }
     if (ci === 2) {
