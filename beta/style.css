@@ -158,7 +158,8 @@ header { background: var(--green-dark); color: white; padding: 0 1.5rem; display
 .cl-search input:focus { outline: none; border-color: var(--green); }
 .cl-scroll { flex: 1; overflow-y: auto; }
 .cl-footer { padding: 7px 10px; font-size: 10px; color: var(--text3); border-top: 0.5px solid var(--border); background: var(--surface2); flex-shrink: 0; line-height: 1.5; }
-.cl-group-header { padding: 5px 10px; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; background: var(--surface2); color: var(--text2); position: sticky; top: 0; z-index: 1; border-bottom: 0.5px solid var(--border); }
+.cl-group-header { padding: 5px 10px; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; background: var(--surface2); color: var(--text2); position: sticky; top: 0; z-index: 1; border-bottom: 0.5px solid var(--border); transition: background 0.1s; user-select: none; }
+.cl-group-header:hover { background: var(--border); }
 .cl-row { display: flex; flex-direction: column; padding: 7px 10px; font-size: 12px; border-bottom: 0.5px solid var(--border); cursor: pointer; transition: background 0.1s; }
 .cl-row:hover { background: var(--green-light); }
 .cl-row.selected { background: var(--green-light); border-left: 3px solid var(--green); padding-left: 7px; }

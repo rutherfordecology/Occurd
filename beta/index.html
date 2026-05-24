@@ -44,7 +44,7 @@
       <img src="../occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v3.68b</span> <span style="font-size:10px;font-weight:700;color:#fbbf24;letter-spacing:0.06em;background:rgba(251,191,36,0.15);padding:1px 6px;border-radius:8px;">BETA</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v3.69b</span> <span style="font-size:10px;font-weight:700;color:#fbbf24;letter-spacing:0.06em;background:rgba(251,191,36,0.15);padding:1px 6px;border-radius:8px;">BETA</span></h1>
   </div>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
     <!-- Projects dropdown -->
@@ -2977,8 +2977,26 @@ function buildChecklist(records) {
   Object.keys(byGroup).sort().forEach(g => {
     const label  = (TAXON_COLOURS[g] || { label: g }).label;
     const colour = (TAXON_COLOURS[g] || TAXON_COLOURS['Other']).colour;
-    const gh = document.createElement('div'); gh.className = 'cl-group-header';
-    gh.innerHTML = '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:' + colour + ';margin-right:6px;vertical-align:middle;flex-shrink:0;"></span>' + label;
+    const gh = document.createElement('div');
+    gh.className = 'cl-group-header';
+    gh.dataset.group = g;
+    gh.title = 'Click to show/hide ' + label + ' records';
+    gh.style.cursor = 'pointer';
+    gh.innerHTML =
+      '<span class="cl-group-dot" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:' + colour + ';margin-right:6px;vertical-align:middle;flex-shrink:0;"></span>' +
+      label;
+    let _lastFire = 0;
+    function handleGroupToggle(e) {
+      e.preventDefault();
+      const now = Date.now();
+      if (now - _lastFire < 300) return;
+      _lastFire = now;
+      if (activeFilters.has(g)) activeFilters.delete(g);
+      else activeFilters.add(g);
+      if (typeof window._filterRefresh === 'function') window._filterRefresh();
+    }
+    gh.addEventListener('click', handleGroupToggle);
+    gh.addEventListener('touchstart', handleGroupToggle, { passive: false });
     clScroll.appendChild(gh);
     Object.entries(byGroup[g]).sort((a,b) => a[0].localeCompare(b[0])).forEach(([name, info]) => {
       const row = document.createElement('div'); row.className = 'cl-row';
@@ -3009,68 +3027,31 @@ function buildChecklist(records) {
   }
 }
 
-// Filter chips
+// Filter — group headers in checklist act as toggles (chips removed)
 function buildFilterChips(records) {
   const groups = {};
   records.forEach(r => { const g = getTaxonGroup(r); groups[g] = (groups[g] || 0) + 1; });
-  filterChips.innerHTML = ''; legendItems.innerHTML = '';
   const allGroupKeys = Object.keys(groups).sort();
-  const chipMap = {};
-  const selectAllBtn = document.getElementById('selectAllChipsBtn');
 
-  function syncSelectAllBtn() {
-    if (selectAllBtn) selectAllBtn.textContent = allGroupKeys.every(k => activeFilters.has(k)) ? 'Deselect all' : 'Select all';
-  }
+  // Initialise all groups as active
+  activeFilters.clear();
+  allGroupKeys.forEach(g => activeFilters.add(g));
 
-  function refreshChips() {
-    allGroupKeys.forEach(k => {
-      if (chipMap[k]) chipMap[k].classList.toggle('off', !activeFilters.has(k));
+  function refreshGroupHeaders() {
+    document.querySelectorAll('.cl-group-header[data-group]').forEach(gh => {
+      const on = activeFilters.has(gh.dataset.group);
+      gh.style.opacity = on ? '1' : '0.35';
     });
     if (viewMode === 'points') renderPoints(allRecords);
     else renderHeatmap(allRecords);
     filterChecklistByTaxon();
-    syncSelectAllBtn();
   }
 
-  allGroupKeys.forEach(g => {
-    const colour = (TAXON_COLOURS[g] || TAXON_COLOURS['Other']).colour;
-    const label  = (TAXON_COLOURS[g] || { label: g }).label;
-    const chip   = document.createElement('div'); chip.className = 'chip'; chip.dataset.group = g;
-    chip.textContent = label + ' (' + groups[g] + ')';
-    chip.style.cssText = 'background:' + colour + '33;border-color:' + colour + ';color:' + colour;
-    chip.title = 'Click to toggle this group on/off';
-    activeFilters.add(g);
-    chipMap[g] = chip;
+  // Expose so group headers (built in buildChecklist) can call back here
+  window._filterRefresh = refreshGroupHeaders;
+  window._filterAllGroupKeys = allGroupKeys;
 
-    let _lastChipFire = 0;
-    function handleChipToggle(e) {
-      e.preventDefault();
-      const now = Date.now();
-      if (now - _lastChipFire < 300) return;
-      _lastChipFire = now;
-      if (activeFilters.has(g)) {
-        activeFilters.delete(g);
-      } else {
-        activeFilters.add(g);
-      }
-      refreshChips();
-    }
-    chip.addEventListener('touchstart', handleChipToggle, { passive: false });
-    chip.addEventListener('click', handleChipToggle);
-
-    filterChips.appendChild(chip);
-    const item = document.createElement('div'); item.className = 'legend-item';
-    item.innerHTML = '<div class="legend-dot" style="background:' + colour + '"></div>' + label;
-    legendItems.appendChild(item);
-  });
-  filterSection.style.display = 'block'; // legend removed — colours shown via dots in species list
-
-  syncSelectAllBtn();
-  if (selectAllBtn) selectAllBtn.onclick = () => {
-    const allOn = allGroupKeys.every(k => activeFilters.has(k));
-    allGroupKeys.forEach(k => allOn ? activeFilters.delete(k) : activeFilters.add(k));
-    refreshChips();
-  };
+  filterSection.style.display = 'none'; // replaced by clickable group headers in checklist
 }
 
 // GBIF credentials
@@ -3704,6 +3685,14 @@ document.getElementById('dlChecklistBtn').addEventListener('click', () => {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v3.69b</span>
+      <span class="changelog-date">May 2026</span>
+      <ul>
+        <li>Taxon group headers in species list are now clickable toggles — click to show/hide that group's records on the map; header dims when off</li>
+        <li>Filter chips section removed — filtering is now done directly from the species list</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v3.68b</span>
       <span class="changelog-date">May 2026</span>
