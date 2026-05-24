@@ -144,6 +144,12 @@
   // ── Interaction ───────────────────────────────────────────────────────────
   async function onItemClick(ci, i, node) {
     jumpAncestry = [];   // manual navigation clears any search-jump ancestry
+    // Clicking the already-selected item in col 0 navigates up (same as Back),
+    // so the item shifts into the middle column where its parent becomes visible.
+    if (ci === 0 && selIdx[0] === i && navStack.length > 0) {
+      goBack();
+      return;
+    }
     if (ci === 2) {
       // Drill in: shift cols left, clicked col-2 item becomes new col-1 selection
       const savedSelIdx   = [...selIdx];
