@@ -44,7 +44,7 @@
       <img src="../occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v3.44b</span> <span style="font-size:10px;font-weight:700;color:#fbbf24;letter-spacing:0.06em;background:rgba(251,191,36,0.15);padding:1px 6px;border-radius:8px;">BETA</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v3.45b</span> <span style="font-size:10px;font-weight:700;color:#fbbf24;letter-spacing:0.06em;background:rgba(251,191,36,0.15);padding:1px 6px;border-radius:8px;">BETA</span></h1>
   </div>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
     <button class="about-btn" id="aboutBtn">&#9432; About</button>
@@ -152,10 +152,13 @@
           </div>
         </div>
       </div>
-      <label class="check-row" style="margin-top:0.25rem;margin-bottom:0.5rem;">
-        <input type="checkbox" id="excludeEdna">
-        <span>Exclude eDNA records</span>
-      </label>
+      <div style="margin-top:0.25rem;margin-bottom:0.5rem;">
+        <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.3rem;">Record types</div>
+        <label class="check-row"><input type="checkbox" id="inclObservations" checked><span>Observations</span></label>
+        <label class="check-row"><input type="checkbox" id="inclPreserved" checked><span>Preserved specimens</span></label>
+        <label class="check-row"><input type="checkbox" id="inclFossils"><span>Fossils</span></label>
+        <label class="check-row"><input type="checkbox" id="inclEdna"><span>eDNA</span></label>
+      </div>
       <div class="field sp-wrap" id="spField" style="display:none;">
         <label style="display:flex;align-items:center;justify-content:space-between;">
           <span>NZ species search</span>
@@ -3235,9 +3238,16 @@ runBtn.addEventListener('click', async () => {
 
     const baseParams = [['geometry', getQueryWKT(geomPoly)], ['hasCoordinate', 'true'], ['limit', '300']];
     if (dateFrom && dateTo) baseParams.push(['eventDate', dateFrom + ',' + dateTo]);
-    if (document.getElementById('excludeEdna').checked) {
-      ['HUMAN_OBSERVATION','MACHINE_OBSERVATION','PRESERVED_SPECIMEN','LIVING_SPECIMEN',
-       'FOSSIL_SPECIMEN','OCCURRENCE','LITERATURE','MATERIAL_CITATION']
+    const _basisMap = {
+      inclObservations: ['HUMAN_OBSERVATION','MACHINE_OBSERVATION','OCCURRENCE'],
+      inclPreserved:    ['PRESERVED_SPECIMEN','LIVING_SPECIMEN','MATERIAL_CITATION'],
+      inclFossils:      ['FOSSIL_SPECIMEN'],
+      inclEdna:         ['MATERIAL_SAMPLE'],
+    };
+    const _basisIds = Object.keys(_basisMap);
+    const _checkedBasis = _basisIds.filter(id => document.getElementById(id).checked);
+    if (_checkedBasis.length > 0 && _checkedBasis.length < _basisIds.length) {
+      _checkedBasis.flatMap(id => _basisMap[id])
         .forEach(v => baseParams.push(['basisOfRecord', v]));
     }
     if (poly.type === 'species') {
@@ -3699,6 +3709,13 @@ document.getElementById('dlChecklistBtn').addEventListener('click', () => {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v3.45b</span>
+      <span class="changelog-date">May 2026</span>
+      <ul>
+        <li>Record type filters — replace the single "Exclude eDNA" checkbox with four inclusion filters: Observations (on by default), Preserved specimens (on by default), Fossils (off by default), and eDNA (off by default); uncheck all but Fossils to fetch only fossil records</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v3.41b</span>
       <span class="changelog-date">May 2026</span>
