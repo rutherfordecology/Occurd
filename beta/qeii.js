@@ -33,8 +33,17 @@ window._qeiiState = { active: false, features: [] };
     }
   });
 
+  // Exposed so kakapo.js (clients dropdown) can activate QEII programmatically
+  window._qeiiActivate = function() {
+    if (!qeiiUnlocked) {
+      qeiiUnlocked = true;
+      btn.innerHTML = '🔓 perpetuity';
+    }
+    if (!window._qeiiState.active) toggleQeii();
+  };
+
   function tryUnlock() {
-    if (input.value.trim().toLowerCase() === 'qeii') {
+    if (input.value.trim().toLowerCase() === 'perpetuity') {
       qeiiUnlocked = true;
       popup.style.display = 'none';
       // Change lock icon to unlocked once key accepted
