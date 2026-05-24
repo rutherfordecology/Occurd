@@ -1,0 +1,739 @@
+// ── Taxonomy Browser — Miller Columns ────────────────────────────────────────
+// Self-contained IIFE. Relies on globals: map (Leaflet), window.addSpeciesEntry,
+// window._nzorSearch, window._nvsSearch (all set by species-search.js).
+(function() {
+  'use strict';
+
+  const KINGDOMS = [
+    { key:1, name:'Animalia',  rank:'KINGDOM' },
+    { key:6, name:'Plantae',   rank:'KINGDOM' },
+    { key:5, name:'Fungi',     rank:'KINGDOM' },
+    { key:4, name:'Chromista', rank:'KINGDOM' },
+    { key:7, name:'Protozoa',  rank:'KINGDOM' },
+    { key:3, name:'Bacteria',  rank:'KINGDOM' },
+  ];
+
+  const RANK_LABELS = {
+    KINGDOM:'Kingdom', PHYLUM:'Phylum', CLASS:'Class', ORDER:'Order',
+    FAMILY:'Family', TRIBE:'Tribe', GENUS:'Genus', SPECIES:'Species',
+    SUBPHYLUM:'Subphylum', SUBCLASS:'Subclass', SUBORDER:'Suborder',
+    SUBFAMILY:'Subfamily', SUBGENUS:'Subgenus',
+  };
+  const VALID_RANKS = new Set(Object.keys(RANK_LABELS));
+
+  // Maps a parent rank → the GBIF occurrence facet field for its children
+  // e.g. children of a CLASS are ORDERs → facet by orderKey
+  const RANK_TO_CHILD_FACET = {
+    KINGDOM:'phylumKey', PHYLUM:'classKey',  CLASS:'orderKey',
+    ORDER:'familyKey',   FAMILY:'genusKey',  GENUS:'speciesKey',
+    SUBPHYLUM:'classKey', SUBCLASS:'orderKey', SUBORDER:'familyKey',
+    SUBFAMILY:'genusKey', TRIBE:'genusKey',  SUBGENUS:'speciesKey',
+  };
+
+  // ── State ─────────────────────────────────────────────────────────────────
+  const cache    = {};   // taxon key → NZ-filtered [children]
+  const nzCache  = {};   // 'root' | taxonKey → Map<key,count> or null
+  const navStack = [];   // [{cols, selIdx, selNodes}] for back navigation
+
+  // 3 columns: cols[0] = current root's children, cols[1] = col0-sel children, cols[2] = col1-sel children
+  let cols      = [KINGDOMS, [], []];
+  let selIdx    = [-1, -1, -1];    // selected index per column
+  let selNodes  = [null, null, null]; // selected node per column
+  let jumpAncestry      = [];   // [{key,name,rank}…] set after a search jump, for breadcrumb
+  let millerSearchTimer = null; // debounce handle
+
+  // ── Render ────────────────────────────────────────────────────────────────
+  const COL_HEADERS = ['Kingdom', 'Phylum / Class', 'Order / Family'];
+
+  // Derive a column header from the actual rank of the items in that column,
+  // falling back to the position-based label when the column is empty.
+  function colHeaderLabel(ci) {
+    const nodes = cols[ci];
+    if (nodes && nodes.length > 0 && nodes[0].rank) {
+      return RANK_LABELS[nodes[0].rank] || nodes[0].rank;
+    }
+    return COL_HEADERS[ci] || 'Taxa';
+  }
+
+  function renderCol(ci) {
+    const colEl = document.getElementById('millerCol' + ci);
+    if (!colEl) return;
+    colEl.innerHTML = '';
+
+    // Column header derived from actual content rank
+    const hdr = document.createElement('div');
+    hdr.className = 'miller-col-hdr';
+    hdr.textContent = colHeaderLabel(ci);
+    colEl.appendChild(hdr);
+
+    const nodes = cols[ci];
+    if (!nodes || nodes.length === 0) {
+      if (ci > 0 && selIdx[ci-1] >= 0) {
+        const msg = document.createElement('div');
+        msg.className = 'miller-msg';
+        msg.textContent = 'No sub-taxa found';
+        colEl.appendChild(msg);
+      }
+      return;
+    }
+
+    nodes.forEach((node, i) => {
+      const name = node.canonicalName || node.scientificName || node.name || '?';
+      const isSel = selIdx[ci] === i;
+      const hasKids = node.numDescendants == null || node.numDescendants > 0;
+
+      const item = document.createElement('div');
+      item.className = 'miller-item' + (isSel ? ' miller-sel' : '');
+
+      const nameSpan = document.createElement('span');
+      nameSpan.className = 'miller-name';
+      nameSpan.textContent = name;
+      item.appendChild(nameSpan);
+
+      if (node._nzCount != null) {
+        const cntSpan = document.createElement('span');
+        cntSpan.className = 'miller-count';
+        cntSpan.title = node._nzCount.toLocaleString() + ' GBIF records from all time for NZ';
+        cntSpan.textContent = node._nzCount >= 1000
+          ? '(' + (node._nzCount / 1000).toFixed(node._nzCount >= 10000 ? 0 : 1) + 'k)'
+          : '(' + node._nzCount + ')';
+        item.appendChild(cntSpan);
+      }
+
+      // rank badge removed — column header already shows the rank
+
+      if (hasKids) {
+        const arr = document.createElement('span');
+        arr.className = 'miller-arr';
+        arr.textContent = '›';
+        item.appendChild(arr);
+      }
+
+      item.addEventListener('click', () => onItemClick(ci, i, node));
+      colEl.appendChild(item);
+
+      // Scroll selected item into view
+      if (isSel) setTimeout(() => item.scrollIntoView({ block:'nearest' }), 0);
+    });
+  }
+
+  function renderAll() {
+    for (let ci = 0; ci < 3; ci++) renderCol(ci);
+    updateHint();
+    updateBackBtn();
+  }
+
+  function updateHint() {
+    const el = document.getElementById('millerHint');
+    if (!el) return;
+    const note = ' · Numbers are GBIF records from all time for NZ';
+    if (cols[2] && cols[2].length > 0 && selIdx[1] >= 0) {
+      el.textContent = 'Click any item in the right column to drill deeper ›' + note;
+    } else if (selIdx[0] < 0) {
+      el.textContent = 'Select a kingdom to begin · click any item to drill in' + note;
+    } else {
+      el.textContent = note.trim();
+    }
+  }
+
+  function updateBackBtn() {
+    const btn = document.getElementById('taxoBackBtn');
+    if (btn) btn.disabled = navStack.length === 0;
+  }
+
+  // ── Interaction ───────────────────────────────────────────────────────────
+  async function onItemClick(ci, i, node) {
+    jumpAncestry = [];   // manual navigation clears any search-jump ancestry
+    if (ci === 2) {
+      // Drill in: shift cols left, clicked col-2 item becomes new col-1 selection
+      const savedSelIdx   = [...selIdx];
+      const savedSelNodes = [...selNodes];
+      savedSelIdx[2]   = i;     // remember which col-2 item was drilled into
+      savedSelNodes[2] = node;
+      navStack.push({
+        cols:      cols.map(c => [...c]),
+        selIdx:    savedSelIdx,
+        selNodes:  savedSelNodes,
+      });
+      cols[0]     = cols[1];
+      cols[1]     = cols[2];
+      cols[2]     = [];
+      selIdx[0]   = selIdx[1];
+      selIdx[1]   = i;
+      selIdx[2]   = -1;
+      selNodes[0] = selNodes[1];
+      selNodes[1] = node;
+      selNodes[2] = null;
+      renderAll();
+      updateCrumb();
+      updateAddBtn();
+      await loadCol(2, node);
+    } else {
+      // Select: show children in next column, clear deeper
+      selIdx[ci]   = i;
+      selNodes[ci] = node;
+      for (let d = ci+1; d < 3; d++) {
+        selIdx[d]   = -1;
+        cols[d]     = [];
+        selNodes[d] = null;
+      }
+      renderAll();
+      updateCrumb();
+      updateAddBtn();
+      if (ci < 2) await loadCol(ci+1, node);
+    }
+  }
+
+  // Fetch child taxon keys that have NZ occurrence records, with their record counts.
+  // parentKey=null → root level (uses kingdomKey facet with no taxon filter).
+  // Returns a Map<string, number> (key → NZ occurrence count), or null on failure.
+  async function getNZKeys(parentKey, parentRank) {
+    const cacheKey = parentKey || 'root';
+    if (nzCache[cacheKey] !== undefined) return nzCache[cacheKey];
+    let facetField, baseUrl;
+    if (!parentKey) {
+      facetField = 'kingdomKey';
+      baseUrl    = 'https://api.gbif.org/v1/occurrence/search?country=NZ&limit=0';
+    } else {
+      facetField = RANK_TO_CHILD_FACET[parentRank];
+      if (!facetField) { nzCache[cacheKey] = null; return null; }
+      baseUrl = 'https://api.gbif.org/v1/occurrence/search?country=NZ&taxonKey='+parentKey+'&limit=0';
+    }
+    try {
+      const res = await fetch(baseUrl + '&facet=' + facetField + '&facetLimit=1000&facetMincount=1');
+      if (!res.ok) throw new Error('HTTP '+res.status);
+      const j = await res.json();
+      const counts = new Map((j.facets?.[0]?.counts || []).map(c => [String(c.name), c.count]));
+      nzCache[cacheKey] = counts;
+      return counts;
+    } catch(e) {
+      nzCache[cacheKey] = null; // fallback: no filter
+      return null;
+    }
+  }
+
+  async function loadCol(ci, parentNode) {
+    const key = parentNode.key;
+    if (!cache[key]) {
+      // Show loading indicator while both API calls run
+      const colEl = document.getElementById('millerCol' + ci);
+      if (colEl) {
+        colEl.innerHTML = '';
+        const hdr = document.createElement('div');
+        hdr.className = 'miller-col-hdr';
+        hdr.textContent = COL_HEADERS[ci] || 'Taxa';  // updated after load
+        colEl.appendChild(hdr);
+        const msg = document.createElement('div');
+        msg.className = 'miller-msg';
+        msg.textContent = 'Loading…';
+        colEl.appendChild(msg);
+      }
+      try {
+        // Fetch taxonomy children and NZ occurrence facets in parallel
+        const [taxoRes, nzKeys] = await Promise.all([
+          fetch('https://api.gbif.org/v1/species/'+key+'/children?limit=100'),
+          getNZKeys(key, parentNode.rank),
+        ]);
+        if (!taxoRes.ok) throw new Error('HTTP '+taxoRes.status);
+        const j = await taxoRes.json();
+        let children = (j.results || []).filter(x =>
+          x.rank && VALID_RANKS.has(x.rank) &&
+          (!x.taxonomicStatus || x.taxonomicStatus === 'ACCEPTED' || x.taxonomicStatus === 'DOUBTFUL')
+        );
+        // Filter to NZ-present taxa only and attach NZ occurrence counts
+        if (nzKeys && nzKeys.size > 0) {
+          children = children.filter(c => nzKeys.has(String(c.key)));
+        }
+        children.forEach(c => { c._nzCount = nzKeys ? (nzKeys.get(String(c.key)) || null) : null; });
+        children.sort((a,b) => (a.canonicalName||'').localeCompare(b.canonicalName||''));
+        cache[key] = children;
+      } catch(e) {
+        cache[key] = [];
+      }
+    }
+    cols[ci] = cache[key];
+    renderCol(ci);
+    updateHint();
+    updateAddBtn();
+  }
+
+  // Load the kingdoms column filtered to those with NZ occurrences
+  async function loadKingdoms() {
+    const colEl = document.getElementById('millerCol0');
+    if (colEl) {
+      colEl.innerHTML = '';
+      const hdr = document.createElement('div');
+      hdr.className = 'miller-col-hdr';
+      hdr.textContent = 'Kingdom';
+      colEl.appendChild(hdr);
+      const msg = document.createElement('div');
+      msg.className = 'miller-msg';
+      msg.textContent = 'Loading…';
+      colEl.appendChild(msg);
+    }
+    const nzKeys = await getNZKeys(null, null);
+    let kingdoms = (nzKeys && nzKeys.size > 0)
+      ? KINGDOMS.filter(k => nzKeys.has(String(k.key)))
+      : [...KINGDOMS];
+    kingdoms.forEach(k => { k._nzCount = nzKeys ? (nzKeys.get(String(k.key)) || null) : null; });
+    cols[0] = kingdoms;
+    renderCol(0);
+    updateHint();
+    updateBackBtn();
+  }
+
+  function goBack() {
+    if (!navStack.length) return;
+    jumpAncestry = [];   // back navigation clears search-jump ancestry
+    const prev = navStack.pop();
+    cols      = prev.cols;
+    selIdx    = prev.selIdx;
+    selNodes  = prev.selNodes;
+    renderAll();
+    updateCrumb();
+    updateAddBtn();
+  }
+
+  // ── Helpers ───────────────────────────────────────────────────────────────
+  function getSelected() {
+    for (let ci = 2; ci >= 0; ci--) {
+      if (selNodes[ci]) return { node: selNodes[ci], ci };
+    }
+    return null;
+  }
+
+  function nodeName(node) {
+    return node ? (node.canonicalName || node.scientificName || node.name || '?') : '?';
+  }
+
+  function updateCrumb() {
+    const el = document.getElementById('taxoCrumb');
+    if (!el) return;
+    const parts = [];
+    if (jumpAncestry.length > 0) {
+      // Show ancestry path from the search jump (exclude the last entry = the taxon itself,
+      // which is shown via selNodes below)
+      const ancestors = jumpAncestry.slice(0, -1);
+      if (ancestors.length <= 3) {
+        ancestors.forEach(n => parts.push(nodeName(n)));
+      } else {
+        parts.push(nodeName(ancestors[0]));
+        parts.push('…');
+        parts.push(nodeName(ancestors[ancestors.length - 1]));
+      }
+    } else if (navStack.length > 0) {
+      const f0 = navStack[0];
+      const anchor = f0.selNodes.find(n => n);
+      if (anchor) parts.push(nodeName(anchor));
+      if (navStack.length > 1) parts.push('…');
+    }
+    selNodes.forEach(n => { if (n) parts.push(nodeName(n)); });
+    el.textContent = parts.length ? parts.join(' › ') : 'Select a kingdom to start';
+  }
+
+  function updateAddBtn() {
+    const btn = document.getElementById('taxoAddBtn');
+    if (!btn) return;
+    const hit = getSelected();
+    if (hit) {
+      const name = nodeName(hit.node);
+      const rank = RANK_LABELS[hit.node.rank] || hit.node.rank || 'taxon';
+      btn.textContent = 'Add ' + name + ' (' + rank + ') to search';
+      btn.disabled    = false;
+      btn._taxoNode   = hit.node;
+    } else {
+      btn.textContent = 'Select a taxon to add to search';
+      btn.disabled    = true;
+      btn._taxoNode   = null;
+    }
+  }
+
+  // ── Search bar ────────────────────────────────────────────────────────────
+  function initSearch() {
+    const inp = document.getElementById('millerSearchIn');
+    const clr = document.getElementById('millerSearchX');
+    if (!inp) return;
+
+    inp.addEventListener('input', () => {
+      const q = inp.value.trim();
+      clr.style.display = q ? '' : 'none';
+      clearTimeout(millerSearchTimer);
+      if (!q) { hideMillerDrop(); return; }
+      millerSearchTimer = setTimeout(() => doMillerSearch(q), 280);
+    });
+
+    inp.addEventListener('keydown', e => {
+      if (e.key === 'Escape') {
+        inp.value = ''; clr.style.display = 'none'; hideMillerDrop();
+      }
+    });
+
+    clr.addEventListener('click', () => {
+      inp.value = ''; clr.style.display = 'none'; hideMillerDrop(); inp.focus();
+    });
+
+    // Close dropdown when clicking outside the search wrap
+    document.addEventListener('click', e => {
+      const wrap = document.querySelector('.miller-search-wrap');
+      if (wrap && !wrap.contains(e.target)) hideMillerDrop();
+    }, true);
+  }
+
+  function hideMillerDrop() {
+    const drop = document.getElementById('millerDrop');
+    if (drop) { drop.style.display = 'none'; drop.innerHTML = ''; }
+  }
+
+  async function doMillerSearch(q) {
+    const drop = document.getElementById('millerDrop');
+    if (!drop) return;
+    drop.innerHTML = '<div class="miller-sug-msg">Searching…</div>';
+    drop.style.display = '';
+
+    const [nzorResults, nvsResults, gbifResults, gbifFullResults] = await Promise.all([
+      searchNzor(q),
+      searchNvsForTaxo(q),
+      searchGbif(q),
+      searchGbifFull(q),
+    ]);
+
+    // Merge and deduplicate: NZOR vernacular → NVS codes → GBIF full-text → GBIF suggest (scientific)
+    const seen = new Set();
+    const results = [];
+    for (const r of [...nzorResults, ...nvsResults, ...gbifFullResults, ...gbifResults]) {
+      const dk = r.gbifKey ? String(r.gbifKey) : ('nzor_' + r.display);
+      if (!seen.has(dk)) { seen.add(dk); results.push(r); }
+    }
+    // Rank: exact match → vernacular starts-with → scientific starts-with → contains
+    const ql = q.toLowerCase();
+    results.sort((a, b) => {
+      const adl = a.display.toLowerCase();
+      const bdl = b.display.toLowerCase();
+      const aExact = adl === ql ? 0 : 1;
+      const bExact = bdl === ql ? 0 : 1;
+      if (aExact !== bExact) return aExact - bExact;
+      const aVern = a.type === 'vernacular' ? 0 : 1;
+      const bVern = b.type === 'vernacular' ? 0 : 1;
+      if (aVern !== bVern) return aVern - bVern;
+      const aStart = adl.startsWith(ql) ? 0 : 1;
+      const bStart = bdl.startsWith(ql) ? 0 : 1;
+      return aStart - bStart;
+    });
+    showMillerDrop(results);
+  }
+
+  async function searchNvsForTaxo(q) {
+    if (typeof window._nvsSearch !== 'function') return [];
+    const hits = window._nvsSearch(q).slice(0, 8);
+    return hits.map(h => ({
+      type:     'scientific',
+      display:  h.sci,
+      subLabel: 'NVS ' + h.nvscode.toUpperCase(),
+      rank:     '',
+      gbifKey:  null,
+      nzorData: null,
+      nvsSci:   h.sci,
+    }));
+  }
+
+  async function searchNzor(q) {
+    if (typeof window._nzorSearch !== 'function') return [];
+    const hits = window._nzorSearch(q).slice(0, 20);
+    return hits.map(h => ({
+      type:     (h.cls === 'v' || h.cls === 'g') ? 'vernacular' : 'scientific',
+      display:  h.n,
+      subLabel: h.sci || '',
+      rank:     '',
+      gbifKey:  null,
+      nzorData: h,
+    }));
+  }
+
+  async function searchGbif(q) {
+    try {
+      const url = 'https://api.gbif.org/v1/species/suggest?datasetKey=d7dddbf4-2cf0-4f39-9b2a-bb099caae36c&q='
+                + encodeURIComponent(q) + '&limit=10';
+      const res = await fetch(url);
+      if (!res.ok) return [];
+      const arr = await res.json();
+      return arr.map(s => ({
+        type:     'scientific',
+        display:  s.canonicalName || s.scientificName || s.name || '?',
+        subLabel: s.family || s.order || '',
+        rank:     RANK_LABELS[s.rank] || s.rank || '',
+        gbifKey:  s.key,
+        nzorData: null,
+      }));
+    } catch(e) { return []; }
+  }
+
+  // GBIF full-text search (species/search) — catches vernacular names not in NZOR
+  async function searchGbifFull(q) {
+    try {
+      const url = 'https://api.gbif.org/v1/species/search?q='
+                + encodeURIComponent(q)
+                + '&datasetKey=d7dddbf4-2cf0-4f39-9b2a-bb099caae36c&limit=8&status=ACCEPTED';
+      const res = await fetch(url);
+      if (!res.ok) return [];
+      const j = await res.json();
+      const ql = q.toLowerCase();
+      return (j.results || []).map(s => {
+        const canonical = (s.canonicalName || '').toLowerCase();
+        // If the canonical name doesn't contain the query it matched via vernacular name
+        const isVernMatch = !canonical.includes(ql);
+        return {
+          type:     isVernMatch ? 'vernacular' : 'scientific',
+          display:  isVernMatch
+            ? (s.vernacularName || s.canonicalName || s.scientificName || '?')
+            : (s.canonicalName || s.scientificName || '?'),
+          subLabel: isVernMatch
+            ? (s.canonicalName || '')
+            : (s.family || s.order || ''),
+          rank:     RANK_LABELS[s.rank] || s.rank || '',
+          gbifKey:  s.key,
+          nzorData: null,
+        };
+      });
+    } catch(e) { return []; }
+  }
+
+  function showMillerDrop(results) {
+    const drop = document.getElementById('millerDrop');
+    if (!drop) return;
+    drop.innerHTML = '';
+    if (!results.length) {
+      drop.innerHTML = '<div class="miller-sug-msg">No results found</div>';
+      drop.style.display = '';
+      return;
+    }
+    results.forEach(r => {
+      const row = document.createElement('div');
+      row.className = 'miller-sug';
+      const rankHtml = r.rank ? `<span class="miller-sug-rank">${r.rank}</span>` : '';
+      const mainClass = r.type === 'vernacular' ? 'vern' : 'sci';
+      row.innerHTML =
+        `<div class="miller-sug-info">` +
+          `<div class="miller-sug-main ${mainClass}">${r.display}</div>` +
+          (r.subLabel ? `<div class="miller-sug-sub">${r.subLabel}</div>` : '') +
+        `</div>` + rankHtml;
+      row.addEventListener('click', () => resolveAndJump(r));
+      drop.appendChild(row);
+    });
+    drop.style.display = '';
+  }
+
+  async function resolveAndJump(result) {
+    hideMillerDrop();
+    const inp = document.getElementById('millerSearchIn');
+    const clr = document.getElementById('millerSearchX');
+
+    // Resolve a GBIF backbone key for NZOR/NVS results that don't have one yet
+    let gbifKey = result.gbifKey;
+    const sciToResolve = (!gbifKey && result.nvsSci)  ? result.nvsSci
+                       : (!gbifKey && result.nzorData) ? (result.nzorData.sci || result.nzorData.n)
+                       : null;
+    if (!gbifKey && sciToResolve) {
+      const sci = sciToResolve;
+      try {
+        const url = 'https://api.gbif.org/v1/species/match?name='
+                  + encodeURIComponent(sci)
+                  + '&datasetKey=d7dddbf4-2cf0-4f39-9b2a-bb099caae36c&verbose=false';
+        const res = await fetch(url);
+        if (res.ok) {
+          const j = await res.json();
+          if (j.matchType !== 'NONE' && j.usageKey) gbifKey = j.usageKey;
+        }
+      } catch(e) {}
+    }
+    if (!gbifKey) return; // can't resolve — nothing to show
+
+    if (inp) inp.value = result.display;
+    if (clr) clr.style.display = '';
+    await jumpToTaxon(gbifKey);
+  }
+
+  // Load the children of parentNode from cache or API, always keeping mustIncludeKey present.
+  // Returns a sorted, NZ-filtered children array.
+  async function loadSiblings(parentNode, mustIncludeKey) {
+    if (!parentNode) {
+      // No parent — fall back to kingdoms
+      const nzKeys = await getNZKeys(null, null);
+      return (nzKeys && nzKeys.size > 0)
+        ? KINGDOMS.filter(k => nzKeys.has(String(k.key)))
+        : [...KINGDOMS];
+    }
+    const parentKey = parentNode.key;
+    if (cache[parentKey]) return cache[parentKey];
+    const [childrenRes, nzKeys] = await Promise.all([
+      fetch('https://api.gbif.org/v1/species/' + parentKey + '/children?limit=200'),
+      getNZKeys(parentKey, parentNode.rank),
+    ]);
+    if (!childrenRes.ok) return [];
+    const cj = await childrenRes.json();
+    let children = (cj.results || []).filter(x =>
+      x.rank && VALID_RANKS.has(x.rank) &&
+      (!x.taxonomicStatus || x.taxonomicStatus === 'ACCEPTED' || x.taxonomicStatus === 'DOUBTFUL')
+    );
+    if (nzKeys && nzKeys.size > 0) {
+      const filtered = children.filter(c => nzKeys.has(String(c.key)));
+      // Always keep the must-include key even if NZ filter would drop it
+      if (mustIncludeKey && !filtered.some(c => c.key === mustIncludeKey)) {
+        const keep = children.find(c => c.key === mustIncludeKey);
+        if (keep) filtered.unshift(keep);
+      }
+      children = filtered;
+    }
+    children.forEach(c => { c._nzCount = nzKeys ? (nzKeys.get(String(c.key)) || null) : null; });
+    children.sort((a,b) => (a.canonicalName||'').localeCompare(b.canonicalName||''));
+    cache[parentKey] = children;
+    return children;
+  }
+
+  async function jumpToTaxon(gbifKey) {
+    try {
+      const [taxonRes, parentsRes] = await Promise.all([
+        fetch('https://api.gbif.org/v1/species/' + gbifKey),
+        fetch('https://api.gbif.org/v1/species/' + gbifKey + '/parents'),
+      ]);
+      if (!taxonRes.ok || !parentsRes.ok) return;
+      const taxon   = await taxonRes.json();
+      // parents[] is kingdom-first, direct parent is last
+      const parents = await parentsRes.json();
+
+      // Breadcrumb: kingdom-first order, taxon appended
+      jumpAncestry = [...parents, taxon];
+
+      // Reset navigation state (keep API cache)
+      navStack.length = 0;
+      cols     = [[], [], []];
+      selIdx   = [-1, -1, -1];
+      selNodes = [null, null, null];
+      renderAll(); // show loading state
+
+      // Go up 3 levels so columns read left→right as: grandparent → parent → taxon
+      // e.g. for M. ramiflorus: families (col 0) → genera (col 1) → species (col 2)
+      const directParent    = parents[parents.length - 1]; // e.g. genus  Melicytus
+      const grandParent     = parents[parents.length - 2]; // e.g. family Violaceae
+      const greatGrandParent= parents[parents.length - 3]; // e.g. order  Malpighiales
+
+      if (!directParent) {
+        // Taxon has no parents (e.g. it's a kingdom) — show it alone in col 0
+        cols[0] = [taxon]; selIdx[0] = 0; selNodes[0] = taxon;
+        renderAll(); updateCrumb(); updateAddBtn();
+        return;
+      }
+
+      if (!grandParent) {
+        // Only one parent level — col 0 = siblings, col 1 = taxon's children
+        const col0nodes = await loadSiblings(directParent, gbifKey);
+        const c0i = col0nodes.findIndex(n => n.key === gbifKey);
+        cols[0] = col0nodes; selIdx[0] = c0i >= 0 ? c0i : 0;
+        selNodes[0] = c0i >= 0 ? col0nodes[c0i] : taxon;
+        renderAll(); updateCrumb(); updateAddBtn();
+        await loadCol(1, selNodes[0]);
+        return;
+      }
+
+      // Load col 0 (great-grandparent's children, e.g. families of the order — Violaceae highlighted)
+      // and col 1 (grandparent's children, e.g. genera of Violaceae — Melicytus highlighted) in parallel.
+      const [col0nodes, col1nodes] = await Promise.all([
+        loadSiblings(greatGrandParent, grandParent.key),
+        loadSiblings(grandParent,      directParent.key),
+      ]);
+
+      // Wire col 0: select grandParent (e.g. Violaceae)
+      const c0i = col0nodes.findIndex(n => n.key === grandParent.key);
+      cols[0]     = col0nodes;
+      selIdx[0]   = c0i >= 0 ? c0i : 0;
+      selNodes[0] = c0i >= 0 ? col0nodes[c0i] : grandParent;
+
+      // Wire col 1: select directParent (e.g. Melicytus)
+      const c1i = col1nodes.findIndex(n => n.key === directParent.key);
+      cols[1]     = col1nodes;
+      selIdx[1]   = c1i >= 0 ? c1i : 0;
+      selNodes[1] = c1i >= 0 ? col1nodes[c1i] : directParent;
+
+      renderAll();
+      updateCrumb();
+      updateAddBtn();
+
+      // Scroll col 0 and col 1 selections into view
+      ['millerCol0', 'millerCol1'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) { const s = el.querySelector('.miller-item.miller-sel'); if (s) s.scrollIntoView({ block: 'center' }); }
+      });
+
+      // Load col 2 = directParent's children (e.g. species of Melicytus), then select target
+      await loadCol(2, selNodes[1]);
+
+      // Select the target taxon in col 2
+      const c2i = cols[2].findIndex(n => n.key === gbifKey);
+      if (c2i >= 0) {
+        selIdx[2]   = c2i;
+        selNodes[2] = cols[2][c2i];
+        renderCol(2);
+        updateAddBtn();
+        const colEl2 = document.getElementById('millerCol2');
+        if (colEl2) {
+          const sel = colEl2.querySelector('.miller-item.miller-sel');
+          if (sel) sel.scrollIntoView({ block: 'center' });
+        }
+      }
+
+    } catch(e) {
+      console.warn('jumpToTaxon error:', e);
+    }
+  }
+
+  // ── Open / close ──────────────────────────────────────────────────────────
+  function reset() {
+    navStack.length = 0;
+    cols         = [[], [], []];  // col 0 loaded async via loadKingdoms()
+    selIdx       = [-1, -1, -1];
+    selNodes     = [null, null, null];
+    jumpAncestry = [];
+    clearTimeout(millerSearchTimer);
+    const inp = document.getElementById('millerSearchIn');
+    const clr = document.getElementById('millerSearchX');
+    if (inp) inp.value = '';
+    if (clr) clr.style.display = 'none';
+    hideMillerDrop();
+  }
+
+  async function open() {
+    if (window.innerWidth < 700) return; // not available on small screens
+    reset();
+    const modal = document.getElementById('taxoBrowser');
+    if (!modal) return;
+    modal.style.display = 'flex';
+    renderAll();
+    updateCrumb();
+    updateAddBtn();
+    await loadKingdoms();  // fetches NZ-filtered kingdoms then renders col 0
+  }
+
+  function close() {
+    const modal = document.getElementById('taxoBrowser');
+    if (modal) modal.style.display = 'none';
+  }
+
+  window.openTaxoBrowser = open;
+
+  document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('taxoBrowseBtn')    ?.addEventListener('click', open);
+    document.getElementById('taxoBrowserClose') ?.addEventListener('click', close);
+    document.getElementById('taxoBackBtn')      ?.addEventListener('click', goBack);
+    document.getElementById('taxoBrowser')      ?.addEventListener('click', e => {
+      if (e.target === document.getElementById('taxoBrowser')) close();
+    });
+    document.getElementById('taxoAddBtn')?.addEventListener('click', () => {
+      const btn  = document.getElementById('taxoAddBtn');
+      const node = btn?._taxoNode;
+      if (!node) return;
+      if (typeof window.addSpeciesEntry === 'function')
+        window.addSpeciesEntry(nodeName(node), node.key, null);
+      close();
+    });
+    initSearch();
+  });
+})();
