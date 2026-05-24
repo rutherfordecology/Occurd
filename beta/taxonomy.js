@@ -634,24 +634,36 @@
         return;
       }
 
-      // Load col 0 (great-grandparent's children, e.g. families of the order — Violaceae highlighted)
-      // and col 1 (grandparent's children, e.g. genera of Violaceae — Melicytus highlighted) in parallel.
+      // For species-level (or deeper) taxa, shift the view up one rank so the parent ORDER
+      // is visible in col 0. For genus-and-above the 3-level view already surfaces the order.
+      //   genus:   col0=orders, col1=families, col2=genera  (no change needed)
+      //   species: col0=orders, col1=families, col2=genera  (genus selected; species reachable by drilling)
+      const ggGrandParent = parents.length >= 4 ? parents[parents.length - 4] : null;
+      const useDeepView   = ggGrandParent != null && parents.length >= 6;
+
+      // Determine sources and highlight targets for each column
+      const col0source = useDeepView ? ggGrandParent    : greatGrandParent;
+      const col0target = useDeepView ? greatGrandParent.key : grandParent.key;
+      const col1source = useDeepView ? greatGrandParent : grandParent;
+      const col1target = useDeepView ? grandParent.key  : directParent.key;
+      const col2target = useDeepView ? directParent.key : gbifKey;
+
       const [col0nodes, col1nodes] = await Promise.all([
-        loadSiblings(greatGrandParent, grandParent.key),
-        loadSiblings(grandParent,      directParent.key),
+        loadSiblings(col0source, col0target),
+        loadSiblings(col1source, col1target),
       ]);
 
-      // Wire col 0: select grandParent (e.g. Violaceae)
-      const c0i = col0nodes.findIndex(n => n.key === grandParent.key);
+      // Wire col 0
+      const c0i = col0nodes.findIndex(n => n.key === col0target);
       cols[0]     = col0nodes;
       selIdx[0]   = c0i >= 0 ? c0i : 0;
-      selNodes[0] = c0i >= 0 ? col0nodes[c0i] : grandParent;
+      selNodes[0] = c0i >= 0 ? col0nodes[c0i] : (useDeepView ? greatGrandParent : grandParent);
 
-      // Wire col 1: select directParent (e.g. Melicytus)
-      const c1i = col1nodes.findIndex(n => n.key === directParent.key);
+      // Wire col 1
+      const c1i = col1nodes.findIndex(n => n.key === col1target);
       cols[1]     = col1nodes;
       selIdx[1]   = c1i >= 0 ? c1i : 0;
-      selNodes[1] = c1i >= 0 ? col1nodes[c1i] : directParent;
+      selNodes[1] = c1i >= 0 ? col1nodes[c1i] : (useDeepView ? grandParent : directParent);
 
       renderAll();
       updateCrumb();
@@ -663,11 +675,10 @@
         if (el) { const s = el.querySelector('.miller-item.miller-sel'); if (s) s.scrollIntoView({ block: 'center' }); }
       });
 
-      // Load col 2 = directParent's children (e.g. species of Melicytus), then select target
+      // Load col 2 = selNodes[1]'s children, then select col2target
       await loadCol(2, selNodes[1]);
 
-      // Select the target taxon in col 2
-      const c2i = cols[2].findIndex(n => n.key === gbifKey);
+      const c2i = cols[2].findIndex(n => n.key === col2target);
       if (c2i >= 0) {
         selIdx[2]   = c2i;
         selNodes[2] = cols[2][c2i];
