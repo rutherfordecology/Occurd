@@ -1,5 +1,5 @@
-// ── Clients dropdown + Kakapo (Strigops habroptilus) client ──────────────────
-// Adds a "Clients" dropdown to the header. Two clients are available:
+// ── Projects dropdown + Kakapo (Strigops habroptilus) project ────────────────
+// Adds a "Projects" dropdown to the header. Two projects are available:
 //   QEII Perpetuity  — key: 'perpetuity'  (delegates to the existing QEII layer)
 //   Kakapo           — key: 'whenuahou'   (fetches all global Kakapo GBIF records)
 //
@@ -18,9 +18,9 @@
 
   // ── Dropdown HTML ─────────────────────────────────────────────────────────
   function _buildDropdown() {
-    const wrap = document.getElementById('clientsDropWrap');
-    const btn  = document.getElementById('clientsDropBtn');
-    const menu = document.getElementById('clientsMenu');
+    const wrap = document.getElementById('projectsDropWrap');
+    const btn  = document.getElementById('projectsDropBtn');
+    const menu = document.getElementById('projectsMenu');
     if (!wrap || !btn || !menu) return;
 
     _addItem(menu, 'qeii',   '🔐', 'QEII Perpetuity',    'Access key for QEII covenant layer');
@@ -41,15 +41,15 @@
 
   function _addItem(menu, id, icon, label, hint) {
     const item = document.createElement('div');
-    item.id = 'clientItem_' + id;
+    item.id = 'projectItem_' + id;
     item.style.cssText = [
       'padding:9px 14px;cursor:pointer;font-size:12px;color:var(--text1)',
       'display:flex;align-items:center;gap:8px;border-bottom:0.5px solid var(--border)',
       'transition:background 0.08s;',
     ].join(';');
     item.innerHTML =
-      `<span id="clientIcon_${id}" style="font-size:14px;flex-shrink:0;">${icon}</span>` +
-      `<span id="clientLabel_${id}">${label}</span>`;
+      `<span id="projectIcon_${id}" style="font-size:14px;flex-shrink:0;">${icon}</span>` +
+      `<span id="projectLabel_${id}">${label}</span>`;
     item.addEventListener('mouseover', () => { item.style.background = 'var(--surface2)'; });
     item.addEventListener('mouseout',  () => { item.style.background = ''; });
     item.addEventListener('click', e => { e.stopPropagation(); _onItemClick(id, hint); });
@@ -64,28 +64,28 @@
     // Remove any other open forms
     _closeAllForms(id);
     // Build inline unlock form beneath the item
-    const item = document.getElementById('clientItem_' + id);
+    const item = document.getElementById('projectItem_' + id);
     if (!item) return;
-    const existing = document.getElementById('clientForm_' + id);
+    const existing = document.getElementById('projectForm_' + id);
     if (existing) { existing.remove(); return; }
 
     const form = document.createElement('div');
-    form.id = 'clientForm_' + id;
+    form.id = 'projectForm_' + id;
     form.style.cssText = 'padding:8px 14px 10px;border-bottom:0.5px solid var(--border);background:var(--surface2);';
     form.innerHTML =
       `<div style="font-size:10px;color:var(--text2);margin-bottom:5px;line-height:1.4;">${hint}</div>` +
       `<div style="display:flex;gap:5px;">` +
-        `<input id="clientInput_${id}" type="password" placeholder="key…" autocomplete="new-password" spellcheck="false"
+        `<input id="projectInput_${id}" type="password" placeholder="key…" autocomplete="new-password" spellcheck="false"
           style="flex:1;font-size:12px;font-family:var(--font-sans);padding:4px 7px;border:1px solid var(--border2);border-radius:4px;outline:none;color:var(--text);background:#fff;">` +
-        `<button id="clientSubmit_${id}"
+        `<button id="projectSubmit_${id}"
           style="font-size:11px;font-family:var(--font-sans);padding:4px 9px;border-radius:4px;border:none;background:var(--green-dark);color:#fff;cursor:pointer;">↵</button>` +
       `</div>` +
-      `<div id="clientErr_${id}" style="display:none;font-size:10px;color:var(--red);margin-top:4px;">Wrong key</div>`;
+      `<div id="projectErr_${id}" style="display:none;font-size:10px;color:var(--red);margin-top:4px;">Wrong key</div>`;
     item.after(form);
 
-    const input  = form.querySelector('#clientInput_'  + id);
-    const submit = form.querySelector('#clientSubmit_' + id);
-    const err    = form.querySelector('#clientErr_'    + id);
+    const input  = form.querySelector('#projectInput_'  + id);
+    const submit = form.querySelector('#projectSubmit_' + id);
+    const err    = form.querySelector('#projectErr_'    + id);
 
     function tryKey() {
       const KEYS = { qeii: 'perpetuity', kakapo: 'whenuahou' };
@@ -107,7 +107,7 @@
   function _closeAllForms(exceptId) {
     ['qeii','kakapo'].forEach(id => {
       if (id === exceptId) return;
-      const f = document.getElementById('clientForm_' + id);
+      const f = document.getElementById('projectForm_' + id);
       if (f) f.remove();
     });
   }
@@ -144,8 +144,8 @@
     // QEII deactivation via its own toggle (don't double-fire)
   }
 
-  function _setIcon(id, icon)  { const el = document.getElementById('clientIcon_'  + id); if (el) el.textContent = icon; }
-  function _setLabel(id, text) { const el = document.getElementById('clientLabel_' + id); if (el) el.textContent = text; }
+  function _setIcon(id, icon)  { const el = document.getElementById('projectIcon_'  + id); if (el) el.textContent = icon; }
+  function _setLabel(id, text) { const el = document.getElementById('projectLabel_' + id); if (el) el.textContent = text; }
 
   // ── Kakapo fetch ──────────────────────────────────────────────────────────
   async function _loadKakapo() {
