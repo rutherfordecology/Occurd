@@ -1,20 +1,12 @@
-// ── Projects dropdown + Kakapo (Strigops habroptilus) project ────────────────
-// Adds a "Projects" dropdown to the header. Two projects are available:
-//   QEII Perpetuity  — key: 'perpetuity'  (delegates to the existing QEII layer)
-//   Kakapo           — key: 'whenuahou'   (fetches all global Kakapo GBIF records)
-//
-// For Kakapo records that lack field coordinates, the publishing organisation's
-// registered coordinates (from the GBIF organisation API) are used as a fallback
-// so they still appear on the map, distinguished by a grey marker.
+// ── Projects dropdown ─────────────────────────────────────────────────────────
+// Adds a "Projects" dropdown to the header.
+// Currently one project: QEII Perpetuity (delegates to qeii.js).
 // ─────────────────────────────────────────────────────────────────────────────
 
 (function () {
   'use strict';
 
-  // ── State ────────────────────────────────────────────────────────────────
-  const _unlocked = {};         // clientId → true once key accepted
-  let   _kakapoLayer  = null;  // Leaflet LayerGroup for kakapo markers
-  let   _kakapoLoaded = false; // prevent double-load
+  const _unlocked = {};
 
   // ── Dropdown HTML ─────────────────────────────────────────────────────────
   function _buildDropdown() {
@@ -23,8 +15,7 @@
     const menu = document.getElementById('projectsMenu');
     if (!wrap || !btn || !menu) return;
 
-    _addItem(menu, 'qeii',   '🔐', 'QEII',   'Enter access key for QEII covenant layer');
-    _addItem(menu, 'kakapo', '🔐', 'Kākāpō', 'Enter access key for Kākāpō global records');
+    _addItem(menu, 'qeii', '🔐', 'QEII', 'Enter access key for QEII covenant layer');
 
     btn.addEventListener('click', e => {
       e.stopPropagation();
@@ -61,9 +52,7 @@
       _deactivate(id);
       return;
     }
-    // Remove any other open forms
     _closeAllForms(id);
-    // Build inline unlock form beneath the item
     const item = document.getElementById('projectItem_' + id);
     if (!item) return;
     const existing = document.getElementById('projectForm_' + id);
@@ -88,7 +77,7 @@
     const err    = form.querySelector('#projectErr_'    + id);
 
     function tryKey() {
-      const KEYS = { qeii: 'perpetuity', kakapo: 'whenuahou' };
+      const KEYS = { qeii: 'perpetuity' };
       if (input.value.trim().toLowerCase() === KEYS[id]) {
         form.remove();
         _activate(id);
@@ -105,7 +94,7 @@
   }
 
   function _closeAllForms(exceptId) {
-    ['qeii','kakapo'].forEach(id => {
+    ['qeii'].forEach(id => {
       if (id === exceptId) return;
       const f = document.getElementById('projectForm_' + id);
       if (f) f.remove();
@@ -118,153 +107,23 @@
     _setIcon(id, '🔓');
     const menu = document.getElementById('projectsMenu');
     if (menu) menu.style.display = 'none';
-
     if (id === 'qeii') {
       if (typeof window._qeiiActivate === 'function') window._qeiiActivate();
-    } else if (id === 'kakapo') {
-      _loadKakapo();
     }
   }
 
   function _deactivate(id) {
     _unlocked[id] = false;
     _setIcon(id, '🔐');
-    if (id === 'kakapo') {
-      if (_kakapoLayer) { map.removeLayer(_kakapoLayer); _kakapoLayer = null; }
-      _kakapoLoaded = false;
-    }
   }
 
-  function _setIcon(id, icon)  { const el = document.getElementById('projectIcon_'  + id); if (el) el.textContent = icon; }
-  function _setLabel(id, text) { const el = document.getElementById('projectLabel_' + id); if (el) el.textContent = text; }
+  function _setIcon(id, icon) { const el = document.getElementById('projectIcon_' + id); if (el) el.textContent = icon; }
 
-  // ── Kakapo fetch ──────────────────────────────────────────────────────────
-  async function _loadKakapo() {
-    if (_kakapoLoaded) return;
-    _kakapoLoaded = true;
-    _setIcon('kakapo', '⏳');
-
-    try {
-      // GBIF backbone taxon key for Strigops habroptila — hardcoded, no match step needed
-      const TAXON_KEY = 2479236;
-
-      // Paginate through all records — no geometry filter, global
-      const allRecords = [];
-      const LIMIT = 300;
-      let offset = 0;
-      while (true) {
-        const res  = await fetch(
-          `https://api.gbif.org/v1/occurrence/search?taxonKey=${TAXON_KEY}&limit=${LIMIT}&offset=${offset}`
-        );
-        const data = await res.json();
-        allRecords.push(...(data.results || []));
-        if (data.endOfRecords) break;
-        offset += LIMIT;
-        if (offset > 9900) break; // safety cap
-      }
-      console.log(`Kākāpō: ${allRecords.length} total GBIF records`);
-
-      // Split coordinated vs uncoordinated
-      const withCoords    = allRecords.filter(r => r.decimalLatitude  != null && r.decimalLongitude != null);
-      const withoutCoords = allRecords.filter(r => r.decimalLatitude  == null || r.decimalLongitude == null);
-      console.log(`Kākāpō: ${withCoords.length} with coords, ${withoutCoords.length} without`);
-
-      // 4. For uncoordinated records: fetch publishing organisation coordinates
-      //    Each unique publishingOrganizationKey → GET /v1/organization/{key}
-      const orgCache = {};
-      const orgKeys  = [...new Set(withoutCoords.map(r => r.publishingOrganizationKey).filter(Boolean))];
-      await Promise.all(orgKeys.map(async orgKey => {
-        try {
-          const r = await fetch(`https://api.gbif.org/v1/organization/${orgKey}`);
-          const d = await r.json();
-          if (d.latitude != null && d.longitude != null) {
-            orgCache[orgKey] = { lat: d.latitude, lng: d.longitude, name: d.title || orgKey };
-          }
-        } catch (_) {}
-      }));
-
-      // Attach institution coordinates to uncoordinated records
-      const institutionPlaced = [];
-      withoutCoords.forEach(r => {
-        const org = r.publishingOrganizationKey && orgCache[r.publishingOrganizationKey];
-        if (org) {
-          institutionPlaced.push(Object.assign({}, r, {
-            decimalLatitude:  org.lat,
-            decimalLongitude: org.lng,
-            _instName:        org.name,
-            _isInst:          true,
-          }));
-        }
-      });
-
-      const toPlot = [...withCoords, ...institutionPlaced];
-
-      // 5. Build Leaflet layer
-      if (_kakapoLayer) map.removeLayer(_kakapoLayer);
-      _kakapoLayer = L.layerGroup().addTo(map);
-
-      toPlot.forEach(r => {
-        const inst = r._isInst;
-        const circle = L.circleMarker(
-          [r.decimalLatitude, r.decimalLongitude],
-          {
-            radius:      inst ? 6 : 7,
-            color:       inst ? '#555'    : '#1a5c34',
-            weight:      1.5,
-            fillColor:   inst ? '#8a8a8a' : '#27ae60',
-            fillOpacity: inst ? 0.80      : 0.82,
-            pane:        'markerPane',
-          }
-        );
-
-        const date  = r.eventDate ? r.eventDate.substring(0, 10) : (r.year ? String(r.year) : '—');
-        const where = inst
-          ? `<em style="color:#888;">Institution: ${r._instName}</em>`
-          : [r.locality, r.stateProvince, r.country].filter(Boolean).join(', ') || '—';
-        const link  = `https://www.gbif.org/occurrence/${r.gbifID || r.key}`;
-
-        circle.bindPopup(
-          `<div style="font-size:12px;line-height:1.8;min-width:190px;">
-            <strong style="font-size:13px;">🦜 Kākāpō</strong>
-            ${inst ? '<span style="font-size:10px;color:#888;"> · institution coords</span>' : ''}<br>
-            <span style="color:#555;">Date: ${date}</span><br>
-            <span style="color:#555;">Basis: ${r.basisOfRecord || '—'}</span><br>
-            <span style="color:#555;">${where}</span><br>
-            ${r.recordedBy ? `<span style="color:#555;">By: ${r.recordedBy}</span><br>` : ''}
-            <a href="${link}" target="_blank" style="color:var(--green-dark);font-size:11px;">View on GBIF ↗</a>
-          </div>`,
-          { maxWidth: 280 }
-        );
-        _kakapoLayer.addLayer(circle);
-      });
-
-      // 6. Fit map to plotted bounds
-      if (toPlot.length > 0) {
-        try {
-          map.fitBounds(
-            L.latLngBounds(toPlot.map(r => [r.decimalLatitude, r.decimalLongitude])).pad(0.08)
-          );
-        } catch (_) {}
-      }
-
-      // 7. Update icon to show loaded
-      _setIcon('kakapo', '🟢');
-
-    } catch (e) {
-      console.warn('Kakapo load error:', e);
-      _setIcon('kakapo', '❌');
-      _kakapoLoaded = false;
-    }
-  }
-
-  // ── Init (after DOM ready) ────────────────────────────────────────────────
-  function _init() {
-    _buildDropdown();
-  }
+  // ── Init ──────────────────────────────────────────────────────────────────
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', _init);
+    document.addEventListener('DOMContentLoaded', _buildDropdown);
   } else {
-    _init();
+    _buildDropdown();
   }
 
 })();
