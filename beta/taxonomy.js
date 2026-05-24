@@ -43,6 +43,7 @@
   let jumpAncestry      = [];   // [{key,name,rank}…] set after a search jump, for breadcrumb
   let millerSearchTimer = null; // debounce handle
   let _jumpSeq          = 0;   // incremented on every navigation; stale async ops check this
+  let _searchSeq        = 0;   // incremented on each search; stale GBIF callbacks bail out
 
   // ── Render ────────────────────────────────────────────────────────────────
   const COL_HEADERS = ['Kingdom', 'Phylum', 'Class', 'Order', 'Family', 'Genus', 'Species'];
@@ -427,23 +428,26 @@
     if (!el) return;
     const parts = [];
     if (jumpAncestry.length > 0) {
-      // Show ancestry path from the search jump (exclude the last entry = the taxon itself,
-      // which is shown via selNodes below)
-      const ancestors = jumpAncestry.slice(0, -1);
-      if (ancestors.length <= 3) {
-        ancestors.forEach(n => parts.push(nodeName(n)));
+      // jumpAncestry = [kingdom … parent, target] — already includes target so DON'T
+      // append selNodes (that caused full ancestry to appear twice).
+      const all = jumpAncestry;
+      if (all.length <= 4) {
+        all.forEach(n => parts.push(nodeName(n)));
       } else {
-        parts.push(nodeName(ancestors[0]));
+        parts.push(nodeName(all[0]));              // Kingdom
         parts.push('…');
-        parts.push(nodeName(ancestors[ancestors.length - 1]));
+        parts.push(nodeName(all[all.length - 2])); // Direct parent
+        parts.push(nodeName(all[all.length - 1])); // Target taxon
       }
-    } else if (navStack.length > 0) {
-      const f0 = navStack[0];
-      const anchor = f0.selNodes.find(n => n);
-      if (anchor) parts.push(nodeName(anchor));
-      if (navStack.length > 1) parts.push('…');
+    } else {
+      if (navStack.length > 0) {
+        const f0 = navStack[0];
+        const anchor = f0.selNodes.find(n => n);
+        if (anchor) parts.push(nodeName(anchor));
+        if (navStack.length > 1) parts.push('…');
+      }
+      selNodes.forEach(n => { if (n) parts.push(nodeName(n)); });
     }
-    selNodes.forEach(n => { if (n) parts.push(nodeName(n)); });
     el.textContent = parts.length ? parts.join(' › ') : 'Select a kingdom to start';
   }
 
@@ -470,7 +474,7 @@
     });
 
     // Desired col width = longest name + room for count badge + arrow + padding
-    const desired = maxNameW + 72;
+    const desired = maxNameW + 90;  // 90px: 18px padding + ~35px count + ~13px arrow + 14px gap/margin
     const currentColW = colEl.getBoundingClientRect().width;
     if (desired > currentColW) {
       const extra = Math.ceil(desired - currentColW);
@@ -533,27 +537,14 @@
     if (drop) { drop.style.display = 'none'; drop.innerHTML = ''; }
   }
 
-  async function doMillerSearch(q) {
-    const drop = document.getElementById('millerDrop');
-    if (!drop) return;
-    drop.innerHTML = '<div class="miller-sug-msg">Searching…</div>';
-    drop.style.display = '';
-
-    const [nzorResults, nvsResults, gbifResults, gbifFullResults] = await Promise.all([
-      searchNzor(q),
-      searchNvsForTaxo(q),
-      searchGbif(q),
-      searchGbifFull(q),
-    ]);
-
-    // Merge and deduplicate: NZOR vernacular → NVS codes → GBIF full-text → GBIF suggest (scientific)
+  // Merge, deduplicate and rank results from multiple sources.
+  function _mergeSearchResults(rawResults, q) {
     const seen = new Set();
     const results = [];
-    for (const r of [...nzorResults, ...nvsResults, ...gbifFullResults, ...gbifResults]) {
+    for (const r of rawResults) {
       const dk = r.gbifKey ? String(r.gbifKey) : ('nzor_' + r.display);
       if (!seen.has(dk)) { seen.add(dk); results.push(r); }
     }
-    // Rank: exact match → vernacular starts-with → scientific starts-with → contains
     const ql = q.toLowerCase();
     results.sort((a, b) => {
       const adl = a.display.toLowerCase();
@@ -568,7 +559,29 @@
       const bStart = bdl.startsWith(ql) ? 0 : 1;
       return aStart - bStart;
     });
-    showMillerDrop(results);
+    return results;
+  }
+
+  async function doMillerSearch(q) {
+    const mySeq = ++_searchSeq;
+    const drop = document.getElementById('millerDrop');
+    if (!drop) return;
+    drop.innerHTML = '<div class="miller-sug-msg">Searching…</div>';
+    drop.style.display = '';
+
+    // Phase 1 — local search (NZOR + NVS are in-memory lookups, no network)
+    const [nzorResults, nvsResults] = await Promise.all([searchNzor(q), searchNvsForTaxo(q)]);
+    if (_searchSeq !== mySeq) return;
+
+    const initial = _mergeSearchResults([...nzorResults, ...nvsResults], q);
+    if (initial.length > 0) showMillerDrop(initial);
+
+    // Phase 2 — GBIF search (network, slower)
+    const [gbifResults, gbifFullResults] = await Promise.all([searchGbif(q), searchGbifFull(q)]);
+    if (_searchSeq !== mySeq) return;
+
+    const all = _mergeSearchResults([...nzorResults, ...nvsResults, ...gbifFullResults, ...gbifResults], q);
+    showMillerDrop(all);
   }
 
   // Infer a display rank from a scientific name — good enough for NZOR/NVS results
