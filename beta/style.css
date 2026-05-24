@@ -402,7 +402,7 @@ html, body { max-width: 100vw; overflow-x: hidden; }
 .taxo-body { flex:1;display:flex;flex-direction:column;overflow:hidden;padding:10px 14px 6px; }
 .miller-wrap { display:flex;flex:1;overflow:hidden;border:1px solid var(--border);border-radius:8px; }
 .miller-col { flex:1;overflow-y:auto;border-right:1px solid var(--border);min-width:0; }
-.miller-col:last-child { border-right:none; }
+.miller-col:last-child { border-right:none; flex: 2; }
 .miller-col-hdr { font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.09em;color:var(--text3);padding:5px 10px 4px;background:var(--surface2);border-bottom:1px solid var(--border);position:sticky;top:0; }
 .miller-item { display:flex;align-items:center;gap:5px;padding:7px 9px;cursor:pointer;font-size:12px;border-bottom:0.5px solid #f2eeea;user-select:none;transition:background 0.08s; }
 .miller-item:hover { background:#f5f2ef; }

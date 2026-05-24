@@ -117,6 +117,9 @@
       // Scroll selected item into view
       if (isSel) setTimeout(() => item.scrollIntoView({ block:'nearest' }), 0);
     });
+
+    // Auto-widen the modal when the species (rightmost) column is rendered
+    if (ci === NUM_COLS - 1) setTimeout(autoWidenModal, 0);
   }
 
   function renderAll() {
@@ -442,6 +445,39 @@
     }
     selNodes.forEach(n => { if (n) parts.push(nodeName(n)); });
     el.textContent = parts.length ? parts.join(' › ') : 'Select a kingdom to start';
+  }
+
+  // ── Auto-widen modal to fit species names ────────────────────────────────────
+  let _txCanvas = null;
+  function _textWidth(str) {
+    if (!_txCanvas) _txCanvas = document.createElement('canvas');
+    const ctx = _txCanvas.getContext('2d');
+    ctx.font = '12px Inter, system-ui, -apple-system, sans-serif';
+    return ctx.measureText(str).width;
+  }
+
+  function autoWidenModal() {
+    const items = cols[NUM_COLS - 1];
+    if (!items || !items.length) return;
+    const box = document.querySelector('.taxo-box');
+    const colEl = document.getElementById('millerCol' + (NUM_COLS - 1));
+    if (!box || !colEl) return;
+
+    let maxNameW = 0;
+    items.forEach(node => {
+      const name = node.canonicalName || node.scientificName || node.name || '';
+      maxNameW = Math.max(maxNameW, _textWidth(name));
+    });
+
+    // Desired col width = longest name + room for count badge + arrow + padding
+    const desired = maxNameW + 72;
+    const currentColW = colEl.getBoundingClientRect().width;
+    if (desired > currentColW) {
+      const extra = Math.ceil(desired - currentColW);
+      const boxW  = box.getBoundingClientRect().width;
+      const maxW  = window.innerWidth * 0.96;
+      box.style.width = Math.round(Math.min(boxW + extra, maxW)) + 'px';
+    }
   }
 
   function updateAddBtn() {
@@ -868,6 +904,9 @@
     if (inp) inp.value = '';
     if (clr) clr.style.display = 'none';
     hideMillerDrop();
+    // Reset any auto-widening so the modal returns to its CSS default width
+    const box = document.querySelector('.taxo-box');
+    if (box) box.style.width = '';
   }
 
   async function open() {
