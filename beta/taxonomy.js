@@ -308,7 +308,7 @@
       try {
         // Fetch taxonomy children and NZ occurrence facets in parallel
         const [taxoRes, nzKeys] = await Promise.all([
-          fetch('https://api.gbif.org/v1/species/'+key+'/children?limit=100'),
+          fetch('https://api.gbif.org/v1/species/'+key+'/children?limit=200'),
           getNZKeys(key, parentNode.rank),
         ]);
         if (!taxoRes.ok) throw new Error('HTTP '+taxoRes.status);
@@ -317,9 +317,14 @@
           x.rank && VALID_RANKS.has(x.rank) &&
           (!x.taxonomicStatus || x.taxonomicStatus === 'ACCEPTED' || x.taxonomicStatus === 'DOUBTFUL')
         );
-        // Filter to NZ-present taxa only and attach NZ occurrence counts
+        // Filter to NZ-present taxa only and attach NZ occurrence counts.
+        // Fall back to unfiltered children if filtering wipes everything out — this
+        // happens when direct children are intermediate ranks (Subfamily, Tribe, etc.)
+        // that don't appear in GBIF occurrence facets (which only go down to genusKey).
         if (nzKeys && nzKeys.size > 0) {
-          children = children.filter(c => nzKeys.has(String(c.key)));
+          const filtered = children.filter(c => nzKeys.has(String(c.key)));
+          if (filtered.length > 0) children = filtered;
+          // else: keep unfiltered; intermediate-rank children can't be matched by occurrence facets
         }
         children.forEach(c => { c._nzCount = nzKeys ? (nzKeys.get(String(c.key)) || null) : null; });
         children.sort((a,b) => (a.canonicalName||'').localeCompare(b.canonicalName||''));
@@ -659,7 +664,9 @@
         const keep = children.find(c => c.key === mustIncludeKey);
         if (keep) filtered.unshift(keep);
       }
-      children = filtered;
+      // Fall back to unfiltered if filtering wipes everything out — intermediate ranks
+      // (Subfamily, Tribe, etc.) don't appear in GBIF occurrence facets
+      if (filtered.length > 0) children = filtered;
     }
     children.forEach(c => { c._nzCount = nzKeys ? (nzKeys.get(String(c.key)) || null) : null; });
     children.sort((a,b) => (a.canonicalName||'').localeCompare(b.canonicalName||''));
