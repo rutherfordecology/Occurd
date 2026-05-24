@@ -145,32 +145,29 @@
     _setIcon('kakapo', '⏳');
 
     try {
-      // 1. Resolve GBIF taxon key for Strigops habroptilus
-      const matchRes = await fetch(
-        'https://api.gbif.org/v1/species/match?name=Strigops+habroptilus&kingdom=Animalia'
-      );
-      const matchData = await matchRes.json();
-      const taxonKey  = matchData.usageKey;
-      if (!taxonKey) throw new Error('Taxon not matched');
+      // GBIF backbone taxon key for Strigops habroptila — hardcoded, no match step needed
+      const TAXON_KEY = 2479236;
 
-      // 2. Paginate through all records (no geometry filter — global)
+      // Paginate through all records — no geometry filter, global
       const allRecords = [];
       const LIMIT = 300;
       let offset = 0;
       while (true) {
         const res  = await fetch(
-          `https://api.gbif.org/v1/occurrence/search?taxonKey=${taxonKey}&limit=${LIMIT}&offset=${offset}`
+          `https://api.gbif.org/v1/occurrence/search?taxonKey=${TAXON_KEY}&limit=${LIMIT}&offset=${offset}`
         );
         const data = await res.json();
         allRecords.push(...(data.results || []));
-        if (data.endOfRecords || allRecords.length >= (data.count || 0)) break;
+        if (data.endOfRecords) break;
         offset += LIMIT;
         if (offset > 9900) break; // safety cap
       }
+      console.log(`Kākāpō: ${allRecords.length} total GBIF records`);
 
-      // 3. Split coordinated vs uncoordinated
+      // Split coordinated vs uncoordinated
       const withCoords    = allRecords.filter(r => r.decimalLatitude  != null && r.decimalLongitude != null);
       const withoutCoords = allRecords.filter(r => r.decimalLatitude  == null || r.decimalLongitude == null);
+      console.log(`Kākāpō: ${withCoords.length} with coords, ${withoutCoords.length} without`);
 
       // 4. For uncoordinated records: fetch publishing organisation coordinates
       //    Each unique publishingOrganizationKey → GET /v1/organization/{key}
@@ -211,11 +208,11 @@
         const circle = L.circleMarker(
           [r.decimalLatitude, r.decimalLongitude],
           {
-            radius:      inst ? 5 : 7,
-            color:       inst ? '#888'    : '#1a5c34',
+            radius:      inst ? 6 : 7,
+            color:       inst ? '#555'    : '#1a5c34',
             weight:      1.5,
-            fillColor:   inst ? '#bbb'    : '#27ae60',
-            fillOpacity: inst ? 0.55      : 0.82,
+            fillColor:   inst ? '#8a8a8a' : '#27ae60',
+            fillOpacity: inst ? 0.80      : 0.82,
             pane:        'markerPane',
           }
         );
