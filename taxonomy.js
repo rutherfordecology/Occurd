@@ -315,6 +315,7 @@
   // Apply NZ occurrence filter and attach counts. Falls back to full list if filtering
   // would wipe everything (intermediate ranks like Subfamily don't appear in facets).
   function nzFilterAndCount(children, nzKeys) {
+    if (!children) return [];
     if (!nzKeys || !nzKeys.size) {
       children.forEach(c => { c._nzCount = null; });
       return children;
@@ -352,6 +353,7 @@
       }
       children = await fetchTaxoChildren(key);
       if (_jumpSeq !== mySeq) return;
+      if (!children) { cols[ci] = []; renderCol(ci); return; }
     }
 
     // Show immediately: use cached NZ data if available, otherwise show full taxonomy
@@ -793,6 +795,7 @@
         } else {
           taxoLoaders.push(
             fetchTaxoChildren(srcNode.key).then(nodes => {
+              if (!nodes) return null;
               // Ensure the highlighted ancestor is present even if not in the child list
               let result = nodes;
               if (mustKey && !nodes.some(n => n.key === mustKey)) {
