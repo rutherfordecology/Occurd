@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 130">
+  <!-- Pin outline — stroke only, no fill, matching the logo mark style -->
+  <path d="M50,4 C25,4 5,24 5,50 C5,77 50,126 50,126 C50,126 95,77 95,50 C95,24 75,4 50,4 Z" fill="white" stroke="#1a5c34" stroke-width="7"/>
+  <!-- Bold O letterform in green -->
+  <text x="50" y="68" text-anchor="middle" dominant-baseline="middle" font-family="Arial Black, Impact, sans-serif" font-weight="900" font-size="62" fill="#1a5c34">O</text>
+</svg>
