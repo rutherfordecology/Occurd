@@ -21,6 +21,12 @@
   };
   const VALID_RANKS = new Set(Object.keys(RANK_LABELS));
 
+  // Rank sort order — lower number = higher in hierarchy = shown first
+  const RANK_ORDER = {
+    KINGDOM:0, PHYLUM:1, SUBPHYLUM:2, CLASS:3, SUBCLASS:4, ORDER:5,
+    SUBORDER:6, FAMILY:7, SUBFAMILY:8, TRIBE:9, GENUS:10, SUBGENUS:11, SPECIES:12
+  };
+
   // Maps a parent rank → the GBIF occurrence facet field for its children
   // e.g. children of a CLASS are ORDERs → facet by orderKey
   const RANK_TO_CHILD_FACET = {
@@ -347,13 +353,18 @@
           });
           // After first page, if more pages remain, surface partial results immediately
           if (offset === 0 && !j.endOfRecords && onFirstPage && all.length > 0) {
-            const partial = [...all].sort((a, b) => (a.canonicalName || '').localeCompare(b.canonicalName || ''));
+            const partial = [...all].sort((a, b) => (RANK_ORDER[a.rank] ?? 99) - (RANK_ORDER[b.rank] ?? 99) || (a.canonicalName || '').localeCompare(b.canonicalName || ''));
             onFirstPage(partial);
           }
           if (j.endOfRecords) break;
           offset += 200;
         }
-        all.sort((a, b) => (a.canonicalName || '').localeCompare(b.canonicalName || ''));
+        // Sort by rank hierarchy first so higher ranks (Phylum) appear before lower (Family/Genus)
+        // even when GBIF mixes ranks as direct children (e.g. incertae sedis placements)
+        all.sort((a, b) =>
+          (RANK_ORDER[a.rank] ?? 99) - (RANK_ORDER[b.rank] ?? 99) ||
+          (a.canonicalName || '').localeCompare(b.canonicalName || '')
+        );
         taxoCache[parentKey] = all;
       } catch(e) { /* don't cache failures — allow retry */ }
       delete taxoInFlight[parentKey];
