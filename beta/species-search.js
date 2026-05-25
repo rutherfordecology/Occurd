@@ -112,19 +112,15 @@
 
   window._nvsSearch = function(q) { return nvsData ? searchNvs(q) : []; };
 
-  let _overNZ = false;
-  window._isOverNZ = () => _overNZ;
-
   // Show/hide field based on whether map is centred in NZ
   // Also pre-loads NZOR data in background so checklist has names ready after a fetch
   function checkNZGate() {
     const c = map.getCenter();
-    _overNZ = c.lat >= NZ_BOUNDS.minLat && c.lat <= NZ_BOUNDS.maxLat &&
-              c.lng >= NZ_BOUNDS.minLng && c.lng <= NZ_BOUNDS.maxLng;
-    field.style.display = _overNZ ? 'block' : 'none';
-    if (_overNZ && !nzorData && !nzorLoading) ensureData(true); // silent background load
-    if (_overNZ && !nvsData && !nvsPromise) ensureNvs();        // load NVS codes in parallel
-    if (window.updateTaxoBrowseGlobal) window.updateTaxoBrowseGlobal();
+    const inNZ = c.lat >= NZ_BOUNDS.minLat && c.lat <= NZ_BOUNDS.maxLat &&
+                 c.lng >= NZ_BOUNDS.minLng && c.lng <= NZ_BOUNDS.maxLng;
+    field.style.display = inNZ ? 'block' : 'none';
+    if (inNZ && !nzorData && !nzorLoading) ensureData(true); // silent background load
+    if (inNZ && !nvsData && !nvsPromise) ensureNvs();        // load NVS codes in parallel
   }
   map.on('moveend', checkNZGate);
   map.on('zoomend', checkNZGate);

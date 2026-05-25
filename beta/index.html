@@ -45,7 +45,7 @@
       <img src="../occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v3.83b</span> <span style="font-size:10px;font-weight:700;color:#fbbf24;letter-spacing:0.06em;background:rgba(251,191,36,0.15);padding:1px 6px;border-radius:8px;">BETA</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v3.84b</span> <span style="font-size:10px;font-weight:700;color:#fbbf24;letter-spacing:0.06em;background:rgba(251,191,36,0.15);padding:1px 6px;border-radius:8px;">BETA</span></h1>
   </div>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
     <!-- Projects dropdown -->
@@ -182,12 +182,6 @@
           <input class="sp-input" id="spInput" type="text" placeholder="e.g. kea, kererū, Nothofagus…" autocomplete="off" spellcheck="false">
           <button class="sp-clear" id="spClear" title="Clear">&#215;</button>
         </div>
-      </div>
-      <div class="field" id="taxoBrowseGlobalRow" style="display:none;">
-        <button class="taxo-browse-link taxo-browse-global" id="taxoBrowseBtnGlobal" title="Browse taxonomy for your drawn polygon">
-          <svg width="11" height="11" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="1.5" r="1.5" fill="currentColor"/><circle cx="2" cy="9.5" r="1.5" fill="currentColor"/><circle cx="10" cy="9.5" r="1.5" fill="currentColor"/><line x1="6" y1="3" x2="6" y2="6.5" stroke="currentColor" stroke-width="1.2"/><line x1="6" y1="6.5" x2="2" y2="8" stroke="currentColor" stroke-width="1.2"/><line x1="6" y1="6.5" x2="10" y2="8" stroke="currentColor" stroke-width="1.2"/></svg>
-          Tree of life
-        </button>
       </div>
       </div><!-- /s2 -->
 
@@ -1333,7 +1327,6 @@ function removePolygon(id) {
 function renderPolyList() {
   polyEmpty.style.display = polygons.length === 0 ? 'block' : 'none';
   polyList.querySelectorAll('.poly-item, .poly-group-label').forEach(el => el.remove());
-  if (window.updateTaxoBrowseGlobal) window.updateTaxoBrowseGlobal();
 
   const geomPolys     = polygons.filter(p => p.type !== 'species');
   const speciesPolys  = polygons.filter(p => p.type === 'species');
@@ -1425,30 +1418,6 @@ function addSpeciesEntry(name, taxonKey, sciName) {
   clearResults(); // results are stale until next fetch
 }
 window.addSpeciesEntry = addSpeciesEntry; // called from the NZ species search IIFE
-
-// Returns the area filter to use for the Tree of Life occurrence counts.
-// { type:'nz' } when map is over NZ, { type:'polygon', wkt } when a polygon is drawn, null otherwise.
-window.getAreaFilter = function() {
-  if (window._isOverNZ && window._isOverNZ()) return { type: 'nz' };
-  const drawn = polygons.filter(p => p.type !== 'species' && p.wkt);
-  if (!drawn.length) return null;
-  if (drawn.length === 1) return { type: 'polygon', wkt: drawn[0].wkt };
-  // Multiple polygons — combine as MULTIPOLYGON
-  const parts = drawn.map(p => {
-    const m = p.wkt.match(/^POLYGON\((.+)\)$/s);
-    return m ? '(' + m[1] + ')' : null;
-  }).filter(Boolean);
-  return { type: 'polygon', wkt: 'MULTIPOLYGON(' + parts.join(',') + ')' };
-};
-
-// Show/hide the global Tree of Life button (non-NZ polygon case)
-window.updateTaxoBrowseGlobal = function() {
-  const row = document.getElementById('taxoBrowseGlobalRow');
-  if (!row) return;
-  const inNZ = window._isOverNZ && window._isOverNZ();
-  const hasPolygon = polygons.some(p => p.type !== 'species' && p.wkt);
-  row.style.display = (!inNZ && hasPolygon) ? 'block' : 'none';
-};
 
 clearAllBtn.addEventListener('click', () => {
   polygons.forEach(p => { if (p.layer) polyLayer.removeLayer(p.layer); }); polygons = []; nextPolyId = 0;
@@ -3723,6 +3692,13 @@ document.getElementById('dlChecklistBtn').addEventListener('click', () => {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v3.84b</span>
+      <span class="changelog-date">May 2026</span>
+      <ul>
+        <li>Tree of Life — reverted global polygon mode; Tree of Life remains NZ-only where NZOR data makes it genuinely useful</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v3.83b</span>
       <span class="changelog-date">May 2026</span>
