@@ -14,20 +14,31 @@
   ];
 
   const RANK_LABELS = {
-    KINGDOM:'Kingdom', PHYLUM:'Phylum', CLASS:'Class', ORDER:'Order',
-    FAMILY:'Family', TRIBE:'Tribe', GENUS:'Genus', SPECIES:'Species',
-    SUBPHYLUM:'Subphylum', SUBCLASS:'Subclass', SUBORDER:'Suborder',
-    SUBFAMILY:'Subfamily', SUBGENUS:'Subgenus',
+    KINGDOM:'Kingdom',
+    PHYLUM:'Phylum',     SUBPHYLUM:'Subphylum',  INFRAPHYLUM:'Infraphylum',
+    DIVISION:'Division', SUBDIVISION:'Subdivision',
+    CLASS:'Class',       SUPERCLASS:'Superclass', SUBCLASS:'Subclass', INFRACLASS:'Infraclass',
+    ORDER:'Order',       SUPERORDER:'Superorder', SUBORDER:'Suborder', INFRAORDER:'Infraorder', PARVORDER:'Parvorder',
+    FAMILY:'Family',     SUPERFAMILY:'Superfamily', SUBFAMILY:'Subfamily', INFRAFAMILY:'Infrafamily',
+    TRIBE:'Tribe',       SUBTRIBE:'Subtribe',
+    GENUS:'Genus',       SUBGENUS:'Subgenus',
+    SPECIES:'Species',
   };
   const VALID_RANKS = new Set(Object.keys(RANK_LABELS));
 
-  // Maps a parent rank → the GBIF occurrence facet field for its children
-  // e.g. children of a CLASS are ORDERs → facet by orderKey
+  // Maps a parent rank → the GBIF occurrence facet field for its direct children.
+  // GBIF occurrence records only index the 7 major ranks (kingdom→species); intermediate
+  // ranks use the closest major-rank facet below them.  nzFilterAndCount() falls back to
+  // showing all children if the facet produces no matches (safe for novel rank combos).
   const RANK_TO_CHILD_FACET = {
-    KINGDOM:'phylumKey', PHYLUM:'classKey',  CLASS:'orderKey',
-    ORDER:'familyKey',   FAMILY:'genusKey',  GENUS:'speciesKey',
-    SUBPHYLUM:'classKey', SUBCLASS:'orderKey', SUBORDER:'familyKey',
-    SUBFAMILY:'genusKey', TRIBE:'genusKey',  SUBGENUS:'speciesKey',
+    KINGDOM:'phylumKey',
+    PHYLUM:'classKey',     SUBPHYLUM:'classKey',   INFRAPHYLUM:'classKey',
+    DIVISION:'classKey',   SUBDIVISION:'classKey',
+    CLASS:'orderKey',      SUPERCLASS:'classKey',  SUBCLASS:'orderKey',  INFRACLASS:'orderKey',
+    ORDER:'familyKey',     SUPERORDER:'orderKey',  SUBORDER:'familyKey', INFRAORDER:'familyKey', PARVORDER:'familyKey',
+    FAMILY:'genusKey',     SUPERFAMILY:'familyKey', SUBFAMILY:'genusKey', INFRAFAMILY:'genusKey',
+    TRIBE:'genusKey',      SUBTRIBE:'genusKey',
+    GENUS:'speciesKey',    SUBGENUS:'speciesKey',
   };
 
   // ── State ─────────────────────────────────────────────────────────────────
@@ -120,7 +131,7 @@
     });
 
     // Auto-widen the modal when the species (rightmost) column is rendered
-    if (ci === NUM_COLS - 1) setTimeout(autoWidenModal, 0);
+    setTimeout(autoWidenModal, 0);
   }
 
   function renderAll() {
@@ -461,26 +472,36 @@
   }
 
   function autoWidenModal() {
-    const items = cols[NUM_COLS - 1];
-    if (!items || !items.length) return;
     const box = document.querySelector('.taxo-box');
-    const colEl = document.getElementById('millerCol' + (NUM_COLS - 1));
-    if (!box || !colEl) return;
+    if (!box) return;
 
-    let maxNameW = 0;
-    items.forEach(node => {
-      const name = node.canonicalName || node.scientificName || node.name || '';
-      maxNameW = Math.max(maxNameW, _textWidth(name));
-    });
+    let totalExtra = 0;
+    for (let ci = 0; ci < NUM_COLS; ci++) {
+      const items = cols[ci];
+      if (!items || !items.length) continue;
+      const colEl = document.getElementById('millerCol' + ci);
+      if (!colEl) continue;
 
-    // Desired col width = longest name + room for count badge + arrow + padding
-    const desired = maxNameW + 90;  // 90px: 18px padding + ~35px count + ~13px arrow + 14px gap/margin
-    const currentColW = colEl.getBoundingClientRect().width;
-    if (desired > currentColW) {
-      const extra = Math.ceil(desired - currentColW);
-      const boxW  = box.getBoundingClientRect().width;
-      const maxW  = window.innerWidth * 0.96;
-      box.style.width = Math.round(Math.min(boxW + extra, maxW)) + 'px';
+      let maxNameW = 0;
+      items.forEach(node => {
+        const name = node.canonicalName || node.scientificName || node.name || '';
+        maxNameW = Math.max(maxNameW, _textWidth(name));
+      });
+
+      // Desired col width = longest name + count badge + arrow + padding
+      // Last col gets a slightly larger allowance for the species column
+      const overhead = (ci === NUM_COLS - 1) ? 90 : 72;
+      const desired = maxNameW + overhead;
+      const currentColW = colEl.getBoundingClientRect().width;
+      if (desired > currentColW) {
+        totalExtra += Math.ceil(desired - currentColW);
+      }
+    }
+
+    if (totalExtra > 0) {
+      const boxW = box.getBoundingClientRect().width;
+      const maxW = window.innerWidth * 0.96;
+      box.style.width = Math.round(Math.min(boxW + totalExtra, maxW)) + 'px';
     }
   }
 
