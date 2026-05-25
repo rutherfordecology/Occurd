@@ -594,16 +594,6 @@
     showMillerDrop(all);
   }
 
-  // Infer a display rank from a scientific name — good enough for NZOR/NVS results
-  // that don't carry rank metadata. 1 word = Genus, 2 words = Species, 3+ = Subspecies.
-  function inferRankLabel(sciName) {
-    if (!sciName) return '';
-    const words = sciName.trim().split(/\s+/);
-    if (words.length === 1) return 'Genus';
-    if (words.length === 2) return 'Species';
-    return 'Subspecies';
-  }
-
   async function searchNvsForTaxo(q) {
     if (typeof window._nvsSearch !== 'function') return [];
     const hits = window._nvsSearch(q).slice(0, 8);
@@ -611,7 +601,8 @@
       type:     'scientific',
       display:  h.sci,
       subLabel: 'NVS ' + h.nvscode.toUpperCase(),
-      rank:     inferRankLabel(h.sci),
+      // NVS entries are almost always binomials; only label 2-word names as Species
+      rank:     (h.sci && h.sci.trim().split(/\s+/).length === 2) ? 'Species' : '',
       gbifKey:  null,
       nzorData: null,
       nvsSci:   h.sci,
@@ -625,7 +616,7 @@
       type:     (h.cls === 'v' || h.cls === 'g') ? 'vernacular' : 'scientific',
       display:  h.n,
       subLabel: h.sci || '',
-      rank:     inferRankLabel(h.sci || (h.cls === 'v' || h.cls === 'g' ? '' : h.n)),
+      rank:     '',   // NZOR covers all ranks — don't guess from word count
       gbifKey:  null,
       nzorData: h,
     }));
