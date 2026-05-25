@@ -36,6 +36,35 @@
   const taxoCache    = {};   // parentKey → rank-filtered ACCEPTED children, sorted (no NZ filter)
   const taxoInFlight = {};   // parentKey → Promise — prevents duplicate fetches without a [] sentinel
   const nzCache      = {};   // 'root' | taxonKey → Map<key,count> or null
+
+  // ── NZ cache persistence (localStorage, 30-day TTL) ──────────────────────
+  const LS_KEY    = 'occurd_nzCache_v1';
+  const LS_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
+
+  function loadNZCacheFromStorage() {
+    try {
+      const raw = localStorage.getItem(LS_KEY);
+      if (!raw) return;
+      const { ts, data } = JSON.parse(raw);
+      if (!ts || Date.now() - ts > LS_TTL_MS) { localStorage.removeItem(LS_KEY); return; }
+      // Deserialise: each value is either null or an array of [key, count] pairs
+      Object.entries(data).forEach(([k, v]) => {
+        nzCache[k] = v === null ? null : new Map(v);
+      });
+    } catch(e) { /* corrupt entry — ignore */ }
+  }
+
+  function saveNZCacheToStorage() {
+    try {
+      const data = {};
+      Object.entries(nzCache).forEach(([k, v]) => {
+        data[k] = v === null ? null : [...v.entries()];
+      });
+      localStorage.setItem(LS_KEY, JSON.stringify({ ts: Date.now(), data }));
+    } catch(e) { /* storage full or unavailable — ignore */ }
+  }
+
+  loadNZCacheFromStorage(); // populate nzCache from previous session if fresh
   const navStack = [];   // [{cols, selIdx, selNodes}] for back navigation
 
   let cols      = [KINGDOMS, ...Array.from({length: NUM_COLS-1}, () => [])];
@@ -287,6 +316,7 @@
       const j = await res.json();
       const counts = new Map((j.facets?.[0]?.counts || []).map(c => [String(c.name), c.count]));
       nzCache[cacheKey] = counts;
+      saveNZCacheToStorage();
       return counts;
     } catch(e) {
       nzCache[cacheKey] = null; // fallback: no filter
