@@ -319,7 +319,7 @@
       );
       children.sort((a, b) => (a.canonicalName || '').localeCompare(b.canonicalName || ''));
       taxoCache[parentKey] = children;
-    } catch(e) { /* leave as [] */ }
+    } catch(e) { delete taxoCache[parentKey]; } // don't cache failures — allow retry
     return taxoCache[parentKey];
   }
 
