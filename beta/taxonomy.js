@@ -91,10 +91,8 @@
     _loadingCount++;
     const el = document.getElementById('taxoLoadingMsg');
     if (!el) return;
-    if (_loadingCount === 1) {
-      el.textContent = LOADING_PHRASES[Math.floor(Math.random() * LOADING_PHRASES.length)];
-      el.style.display = '';
-    }
+    el.textContent = LOADING_PHRASES[Math.floor(Math.random() * LOADING_PHRASES.length)];
+    el.style.display = '';
   }
 
   function hideLoadingPhrase() {
