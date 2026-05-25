@@ -36,6 +36,45 @@
     SUBFAMILY:'genusKey', TRIBE:'genusKey',  SUBGENUS:'speciesKey',
   };
 
+  // ── Loading phrases ───────────────────────────────────────────────────────
+  const LOADING_PHRASES = [
+    'Speciating your patience…',
+    'Loading at a taxonomic rate…',
+    'Please remain clade seated…',
+    'Genus takes time…',
+    'Kingdom come, it\'s loading…',
+    'Taxonomizing the situation…',
+    'Awaiting peer re-viewing…',
+    'Binomially processing…',
+    'Cladistically speaking, almost there…',
+    'Evolving your results naturally…',
+    'This may take a few million years of divergence…',
+    'Running a quick phylo-check…',
+    'Organising life, one rank at a time…',
+    'Hold please — we\'re keying it out…',
+    'Currently suffering from classification lag…',
+  ];
+
+  let _loadingCount = 0;
+
+  function showLoadingPhrase() {
+    _loadingCount++;
+    const el = document.getElementById('taxoLoadingMsg');
+    if (!el) return;
+    if (_loadingCount === 1) {
+      el.textContent = LOADING_PHRASES[Math.floor(Math.random() * LOADING_PHRASES.length)];
+      el.style.display = '';
+    }
+  }
+
+  function hideLoadingPhrase() {
+    _loadingCount = Math.max(0, _loadingCount - 1);
+    if (_loadingCount === 0) {
+      const el = document.getElementById('taxoLoadingMsg');
+      if (el) el.style.display = 'none';
+    }
+  }
+
   // ── State ─────────────────────────────────────────────────────────────────
   const NUM_COLS = 7;    // number of Miller columns
 
@@ -414,6 +453,7 @@
         colEl.appendChild(msg);
       }
       // Pass onFirstPage callback — renders partial names after page 1 if more pages follow
+      showLoadingPhrase();
       children = await fetchTaxoChildren(key, (partial) => {
         if (_jumpSeq !== mySeq) return;
         cols[ci] = partial;
@@ -421,6 +461,7 @@
         updateHint();
         updateAddBtn();
       });
+      hideLoadingPhrase();
       if (_jumpSeq !== mySeq) return;
       if (!children) { cols[ci] = []; renderCol(ci); return; }  // fetch failed — show empty col
     }
@@ -434,13 +475,15 @@
 
     // Phase 2 — NZ counts in background (skipped if already cached)
     if (cachedNZ === undefined) {
+      showLoadingPhrase();
       getGeoKeys(key, parentNode.rank).then(nzKeys => {
+        hideLoadingPhrase();
         if (_jumpSeq !== mySeq) return;
         cols[ci] = nzFilterAndCount(children, nzKeys);
         renderCol(ci);
         updateHint();
         updateAddBtn();
-      });
+      }).catch(() => hideLoadingPhrase());
     }
   }
 
@@ -454,7 +497,9 @@
     updateHint();
     updateBackBtn();
     // Phase 2 — NZ counts in background
+    showLoadingPhrase();
     const nzKeys = await getGeoKeys(null, null);
+    hideLoadingPhrase();
     if (_jumpSeq !== mySeq) return;
     const kingdoms = (nzKeys && nzKeys.size > 0)
       ? KINGDOMS.filter(k => nzKeys.has(String(k.key)))

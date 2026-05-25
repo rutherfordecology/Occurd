@@ -398,6 +398,7 @@ html, body { max-width: 100vw; overflow-x: hidden; }
 .taxo-hdr { display:flex;align-items:center;gap:10px;padding:13px 18px 11px;border-bottom:1px solid var(--border);flex-shrink:0; }
 .taxo-title { font-size:14px;font-weight:700;color:var(--text1);flex-shrink:0; }
 .taxo-crumb { flex:1;font-size:11px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;padding:0 6px; }
+.taxo-loading-msg { font-size:10px;color:var(--text3);font-style:italic;flex-shrink:0;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;opacity:0.8; }
 .taxo-x { background:none;border:none;cursor:pointer;font-size:20px;line-height:1;color:var(--text3);padding:0 2px;flex-shrink:0; }
 .taxo-x:hover { color:var(--text1); }
 .taxo-body { flex:1;display:flex;flex-direction:column;overflow:hidden;padding:10px 14px 6px; }
