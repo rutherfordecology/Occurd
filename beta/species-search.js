@@ -123,7 +123,9 @@
     if (inNZ && !nvsData && !nvsPromise) ensureNvs();        // load NVS codes in parallel
   }
   map.on('moveend', checkNZGate);
-  setTimeout(checkNZGate, 600); // check after map initialises
+  map.on('zoomend', checkNZGate);
+  setTimeout(checkNZGate, 600);   // initial check
+  setTimeout(checkNZGate, 2500);  // fallback — catches VPN/geolocation delay cases
 
   // Load NZOR names — shared promise so concurrent callers all wait on the same fetch
   async function ensureData(silent) {
