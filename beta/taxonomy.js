@@ -33,8 +33,9 @@
   // ── State ─────────────────────────────────────────────────────────────────
   const NUM_COLS = 7;    // number of Miller columns
 
-  const taxoCache = {};   // parentKey → rank-filtered ACCEPTED children, sorted (no NZ filter)
-  const nzCache   = {};   // 'root' | taxonKey → Map<key,count> or null
+  const taxoCache    = {};   // parentKey → rank-filtered ACCEPTED children, sorted (no NZ filter)
+  const taxoInFlight = {};   // parentKey → Promise — prevents duplicate fetches without a [] sentinel
+  const nzCache      = {};   // 'root' | taxonKey → Map<key,count> or null
   const navStack = [];   // [{cols, selIdx, selNodes}] for back navigation
 
   let cols      = [KINGDOMS, ...Array.from({length: NUM_COLS-1}, () => [])];
@@ -297,33 +298,39 @@
   // Fast taxonomy API only; no NZ filtering. Results cached in taxoCache.
   // onFirstPage(partial) is called after the first page if more pages remain — lets
   // the caller render immediately without waiting for all pages to complete.
-  async function fetchTaxoChildren(parentKey, onFirstPage) {
-    if (taxoCache[parentKey] !== undefined) return taxoCache[parentKey];
-    taxoCache[parentKey] = [];  // sentinel — prevents concurrent duplicate requests
-    try {
-      const all = [];
-      let offset = 0;
-      while (true) {
-        const res = await fetch('https://api.gbif.org/v1/species/' + parentKey + '/children?limit=200&offset=' + offset);
-        if (!res.ok) throw new Error('HTTP ' + res.status);
-        const j = await res.json();
-        (j.results || []).forEach(x => {
-          if (x.rank && VALID_RANKS.has(x.rank) &&
-              (!x.taxonomicStatus || x.taxonomicStatus === 'ACCEPTED' || x.taxonomicStatus === 'DOUBTFUL'))
-            all.push(x);
-        });
-        // After first page, if more pages remain, surface partial results immediately
-        if (offset === 0 && !j.endOfRecords && onFirstPage && all.length > 0) {
-          const partial = [...all].sort((a, b) => (a.canonicalName || '').localeCompare(b.canonicalName || ''));
-          onFirstPage(partial);
+  function fetchTaxoChildren(parentKey, onFirstPage) {
+    if (taxoCache[parentKey] !== undefined) return Promise.resolve(taxoCache[parentKey]);
+    // Re-use an in-flight promise to avoid duplicate fetches (no [] sentinel needed)
+    if (taxoInFlight[parentKey]) return taxoInFlight[parentKey];
+    const promise = (async () => {
+      try {
+        const all = [];
+        let offset = 0;
+        while (true) {
+          const res = await fetch('https://api.gbif.org/v1/species/' + parentKey + '/children?limit=200&offset=' + offset);
+          if (!res.ok) throw new Error('HTTP ' + res.status);
+          const j = await res.json();
+          (j.results || []).forEach(x => {
+            if (x.rank && VALID_RANKS.has(x.rank) &&
+                (!x.taxonomicStatus || x.taxonomicStatus === 'ACCEPTED' || x.taxonomicStatus === 'DOUBTFUL'))
+              all.push(x);
+          });
+          // After first page, if more pages remain, surface partial results immediately
+          if (offset === 0 && !j.endOfRecords && onFirstPage && all.length > 0) {
+            const partial = [...all].sort((a, b) => (a.canonicalName || '').localeCompare(b.canonicalName || ''));
+            onFirstPage(partial);
+          }
+          if (j.endOfRecords) break;
+          offset += 200;
         }
-        if (j.endOfRecords) break;
-        offset += 200;
-      }
-      all.sort((a, b) => (a.canonicalName || '').localeCompare(b.canonicalName || ''));
-      taxoCache[parentKey] = all;
-    } catch(e) { delete taxoCache[parentKey]; } // don't cache failures — allow retry
-    return taxoCache[parentKey];
+        all.sort((a, b) => (a.canonicalName || '').localeCompare(b.canonicalName || ''));
+        taxoCache[parentKey] = all;
+      } catch(e) { /* don't cache failures — allow retry */ }
+      delete taxoInFlight[parentKey];
+      return taxoCache[parentKey];
+    })();
+    taxoInFlight[parentKey] = promise;
+    return promise;
   }
 
   // Apply NZ occurrence filter and attach counts. Falls back to full list if filtering
