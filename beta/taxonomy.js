@@ -295,7 +295,9 @@
 
   // Fetch taxonomy children for parentKey — rank-filtered, ACCEPTED, sorted by name.
   // Fast taxonomy API only; no NZ filtering. Results cached in taxoCache.
-  async function fetchTaxoChildren(parentKey) {
+  // onFirstPage(partial) is called after the first page if more pages remain — lets
+  // the caller render immediately without waiting for all pages to complete.
+  async function fetchTaxoChildren(parentKey, onFirstPage) {
     if (taxoCache[parentKey] !== undefined) return taxoCache[parentKey];
     taxoCache[parentKey] = [];  // sentinel — prevents concurrent duplicate requests
     try {
@@ -310,6 +312,11 @@
               (!x.taxonomicStatus || x.taxonomicStatus === 'ACCEPTED' || x.taxonomicStatus === 'DOUBTFUL'))
             all.push(x);
         });
+        // After first page, if more pages remain, surface partial results immediately
+        if (offset === 0 && !j.endOfRecords && onFirstPage && all.length > 0) {
+          const partial = [...all].sort((a, b) => (a.canonicalName || '').localeCompare(b.canonicalName || ''));
+          onFirstPage(partial);
+        }
         if (j.endOfRecords) break;
         offset += 200;
       }
@@ -358,12 +365,19 @@
         msg.textContent = 'Loading…';
         colEl.appendChild(msg);
       }
-      children = await fetchTaxoChildren(key);
+      // Pass onFirstPage callback — renders partial names after page 1 if more pages follow
+      children = await fetchTaxoChildren(key, (partial) => {
+        if (_jumpSeq !== mySeq) return;
+        cols[ci] = partial;
+        renderCol(ci);
+        updateHint();
+        updateAddBtn();
+      });
       if (_jumpSeq !== mySeq) return;
       if (!children) { cols[ci] = []; renderCol(ci); return; }  // fetch failed — show empty col
     }
 
-    // Show immediately: use cached NZ data if available, otherwise show full taxonomy
+    // Final render with complete results + NZ filter if cached
     const cachedNZ = nzCache[key];
     cols[ci] = (cachedNZ !== undefined) ? nzFilterAndCount(children, cachedNZ) : children;
     renderCol(ci);
