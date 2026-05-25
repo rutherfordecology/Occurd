@@ -45,7 +45,7 @@
       <img src="../occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v3.91b</span> <span style="font-size:10px;font-weight:700;color:#fbbf24;letter-spacing:0.06em;background:rgba(251,191,36,0.15);padding:1px 6px;border-radius:8px;">BETA</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v3.92b</span> <span style="font-size:10px;font-weight:700;color:#fbbf24;letter-spacing:0.06em;background:rgba(251,191,36,0.15);padding:1px 6px;border-radius:8px;">BETA</span></h1>
   </div>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
     <!-- Projects dropdown -->
@@ -2110,7 +2110,7 @@ function pickVernacularName(results, countryCode, prefLang) {
 
   // GBIF often stores vernacular names with no language tag — require ASCII to
   // avoid returning foreign-language names that happen to have no language metadata
-  const isAscii = v => !/[^\x00-\x7F]/.test(v.vernacularName);
+  const isAscii = v => !/[^\x00-\x7FāēīōūĀĒĪŌŪ]/.test(v.vernacularName);
   const rNullPref = pick(v => !v.language && v.preferred && properCaps(v) && isAscii(v));
   if (rNullPref) return rNullPref.vernacularName;
   const rNull = pick(v => !v.language && properCaps(v) && isAscii(v));
@@ -2167,7 +2167,7 @@ async function lookupCommonNames(records) {
     if (dominantCountry && r.countryCode !== dominantCountry) return;
     const n = r.vernacularName.trim();
     if (!n || isBandingCode(n)) return;
-    if (asciiOnly && /[^\x00-\x7F]/.test(n)) return;
+    if (asciiOnly && /[^\x00-\x7FāēīōūĀĒĪŌŪ]/.test(n)) return;
     if (!voteCounts[r.taxonKey]) voteCounts[r.taxonKey] = {};
     voteCounts[r.taxonKey][n] = (voteCounts[r.taxonKey][n] || 0) + 1;
   });
@@ -2176,7 +2176,7 @@ async function lookupCommonNames(records) {
   records.forEach(r => {
     const cached = r.taxonKey ? commonNameCache[r.taxonKey] : undefined;
     let apiName = Array.isArray(cached) ? pickVernacularName(cached, dominantCountry, prefLang) : '';
-    if (apiName && asciiOnly && /[^\x00-\x7F]/.test(apiName)) apiName = '';
+    if (apiName && asciiOnly && /[^\x00-\x7FāēīōūĀĒĪŌŪ]/.test(apiName)) apiName = '';
     if (apiName && isBandingCode(apiName)) apiName = '';
     if (apiName) { r.vernacularName = apiName; return; }
     // Fallback: most-common name from same-country occurrence records.
@@ -2938,7 +2938,7 @@ function buildChecklist(records) {
     if (!byGroup[g]) byGroup[g] = {};
     if (!byGroup[g][name]) byGroup[g][name] = { count: 0, taxonKey: key, common: '', record: r };
     byGroup[g][name].count++;
-    if (!byGroup[g][name].common && r.vernacularName && !isBandingCode(r.vernacularName) && !/[^\x00-\x7F]/.test(r.vernacularName)) byGroup[g][name].common = r.vernacularName;
+    if (!byGroup[g][name].common && r.vernacularName && !isBandingCode(r.vernacularName) && !/[^\x00-\x7FāēīōūĀĒĪŌŪ]/.test(r.vernacularName)) byGroup[g][name].common = r.vernacularName;
     if (!byGroup[g][name].common && r.taxonKey) byGroup[g][name].common = cachedName(r.taxonKey);
   });
 
@@ -3694,6 +3694,13 @@ document.getElementById('dlChecklistBtn').addEventListener('click', () => {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v3.92b</span>
+      <span class="changelog-date">May 2026</span>
+      <ul>
+        <li>Vernacular name filters — allow Māori macron vowels (ā ē ī ō ū) through the non-ASCII filter; é in "Ciervo Ibérico" is a different Unicode character so it is still blocked</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v3.91b</span>
       <span class="changelog-date">May 2026</span>
