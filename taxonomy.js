@@ -21,6 +21,12 @@
   };
   const VALID_RANKS = new Set(Object.keys(RANK_LABELS));
 
+  // Rank sort order — lower number = higher in hierarchy = shown first
+  const RANK_ORDER = {
+    KINGDOM:0, PHYLUM:1, SUBPHYLUM:2, CLASS:3, SUBCLASS:4, ORDER:5,
+    SUBORDER:6, FAMILY:7, SUBFAMILY:8, TRIBE:9, GENUS:10, SUBGENUS:11, SPECIES:12
+  };
+
   // Maps a parent rank → the GBIF occurrence facet field for its children
   // e.g. children of a CLASS are ORDERs → facet by orderKey
   const RANK_TO_CHILD_FACET = {
@@ -33,8 +39,38 @@
   // ── State ─────────────────────────────────────────────────────────────────
   const NUM_COLS = 7;    // number of Miller columns
 
-  const taxoCache = {};   // parentKey → rank-filtered ACCEPTED children, sorted (no NZ filter)
-  const nzCache   = {};   // 'root' | taxonKey → Map<key,count> or null
+  const taxoCache    = {};   // parentKey → rank-filtered ACCEPTED children, sorted (no NZ filter)
+  const taxoInFlight = {};   // parentKey → Promise — prevents duplicate fetches without a [] sentinel
+  const nzCache      = {};   // 'root' | taxonKey → Map<key,count> or null
+
+  // ── NZ cache persistence (localStorage, 30-day TTL) ──────────────────────
+  const LS_KEY    = 'occurd_nzCache_v1';
+  const LS_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
+
+  function loadNZCacheFromStorage() {
+    try {
+      const raw = localStorage.getItem(LS_KEY);
+      if (!raw) return;
+      const { ts, data } = JSON.parse(raw);
+      if (!ts || Date.now() - ts > LS_TTL_MS) { localStorage.removeItem(LS_KEY); return; }
+      // Deserialise: each value is either null or an array of [key, count] pairs
+      Object.entries(data).forEach(([k, v]) => {
+        nzCache[k] = v === null ? null : new Map(v);
+      });
+    } catch(e) { /* corrupt entry — ignore */ }
+  }
+
+  function saveNZCacheToStorage() {
+    try {
+      const data = {};
+      Object.entries(nzCache).forEach(([k, v]) => {
+        data[k] = v === null ? null : [...v.entries()];
+      });
+      localStorage.setItem(LS_KEY, JSON.stringify({ ts: Date.now(), data }));
+    } catch(e) { /* storage full or unavailable — ignore */ }
+  }
+
+  loadNZCacheFromStorage(); // populate nzCache from previous session if fresh
   const navStack = [];   // [{cols, selIdx, selNodes}] for back navigation
 
   let cols      = [KINGDOMS, ...Array.from({length: NUM_COLS-1}, () => [])];
@@ -268,7 +304,7 @@
   // Fetch child taxon keys that have NZ occurrence records, with their record counts.
   // parentKey=null → root level (uses kingdomKey facet with no taxon filter).
   // Returns a Map<string, number> (key → NZ occurrence count), or null on failure.
-  async function getNZKeys(parentKey, parentRank) {
+  async function getGeoKeys(parentKey, parentRank) {
     const cacheKey = parentKey || 'root';
     if (nzCache[cacheKey] !== undefined) return nzCache[cacheKey];
     let facetField, baseUrl;
@@ -286,6 +322,7 @@
       const j = await res.json();
       const counts = new Map((j.facets?.[0]?.counts || []).map(c => [String(c.name), c.count]));
       nzCache[cacheKey] = counts;
+      saveNZCacheToStorage();
       return counts;
     } catch(e) {
       nzCache[cacheKey] = null; // fallback: no filter
@@ -295,27 +332,52 @@
 
   // Fetch taxonomy children for parentKey — rank-filtered, ACCEPTED, sorted by name.
   // Fast taxonomy API only; no NZ filtering. Results cached in taxoCache.
-  async function fetchTaxoChildren(parentKey) {
-    if (taxoCache[parentKey] !== undefined) return taxoCache[parentKey];
-    taxoCache[parentKey] = [];  // sentinel — prevents concurrent duplicate requests
-    try {
-      const res = await fetch('https://api.gbif.org/v1/species/' + parentKey + '/children?limit=200');
-      if (!res.ok) throw new Error('HTTP ' + res.status);
-      const j = await res.json();
-      const children = (j.results || []).filter(x =>
-        x.rank && VALID_RANKS.has(x.rank) &&
-        (!x.taxonomicStatus || x.taxonomicStatus === 'ACCEPTED' || x.taxonomicStatus === 'DOUBTFUL')
-      );
-      children.sort((a, b) => (a.canonicalName || '').localeCompare(b.canonicalName || ''));
-      taxoCache[parentKey] = children;
-    } catch(e) { delete taxoCache[parentKey]; } // don't cache failures — allow retry
-    return taxoCache[parentKey];
+  // onFirstPage(partial) is called after the first page if more pages remain — lets
+  // the caller render immediately without waiting for all pages to complete.
+  function fetchTaxoChildren(parentKey, onFirstPage) {
+    if (taxoCache[parentKey] !== undefined) return Promise.resolve(taxoCache[parentKey]);
+    // Re-use an in-flight promise to avoid duplicate fetches (no [] sentinel needed)
+    if (taxoInFlight[parentKey]) return taxoInFlight[parentKey];
+    const promise = (async () => {
+      try {
+        const all = [];
+        let offset = 0;
+        while (true) {
+          const res = await fetch('https://api.gbif.org/v1/species/' + parentKey + '/children?limit=200&offset=' + offset);
+          if (!res.ok) throw new Error('HTTP ' + res.status);
+          const j = await res.json();
+          (j.results || []).forEach(x => {
+            if (x.rank && VALID_RANKS.has(x.rank) &&
+                (!x.taxonomicStatus || x.taxonomicStatus === 'ACCEPTED' || x.taxonomicStatus === 'DOUBTFUL'))
+              all.push(x);
+          });
+          // After first page, if more pages remain, surface partial results immediately
+          if (offset === 0 && !j.endOfRecords && onFirstPage && all.length > 0) {
+            const partial = [...all].sort((a, b) => (RANK_ORDER[a.rank] ?? 99) - (RANK_ORDER[b.rank] ?? 99) || (a.canonicalName || '').localeCompare(b.canonicalName || ''));
+            onFirstPage(partial);
+          }
+          if (j.endOfRecords) break;
+          offset += 200;
+        }
+        // Sort by rank hierarchy first so higher ranks (Phylum) appear before lower (Family/Genus)
+        // even when GBIF mixes ranks as direct children (e.g. incertae sedis placements)
+        all.sort((a, b) =>
+          (RANK_ORDER[a.rank] ?? 99) - (RANK_ORDER[b.rank] ?? 99) ||
+          (a.canonicalName || '').localeCompare(b.canonicalName || '')
+        );
+        taxoCache[parentKey] = all;
+      } catch(e) { /* don't cache failures — allow retry */ }
+      delete taxoInFlight[parentKey];
+      return taxoCache[parentKey];
+    })();
+    taxoInFlight[parentKey] = promise;
+    return promise;
   }
 
   // Apply NZ occurrence filter and attach counts. Falls back to full list if filtering
   // would wipe everything (intermediate ranks like Subfamily don't appear in facets).
   function nzFilterAndCount(children, nzKeys) {
-    if (!children) return [];
+    if (!children) return [];   // guard: fetch may have failed and returned undefined
     if (!nzKeys || !nzKeys.size) {
       children.forEach(c => { c._nzCount = null; });
       return children;
@@ -351,12 +413,19 @@
         msg.textContent = 'Loading…';
         colEl.appendChild(msg);
       }
-      children = await fetchTaxoChildren(key);
+      // Pass onFirstPage callback — renders partial names after page 1 if more pages follow
+      children = await fetchTaxoChildren(key, (partial) => {
+        if (_jumpSeq !== mySeq) return;
+        cols[ci] = partial;
+        renderCol(ci);
+        updateHint();
+        updateAddBtn();
+      });
       if (_jumpSeq !== mySeq) return;
-      if (!children) { cols[ci] = []; renderCol(ci); return; }
+      if (!children) { cols[ci] = []; renderCol(ci); return; }  // fetch failed — show empty col
     }
 
-    // Show immediately: use cached NZ data if available, otherwise show full taxonomy
+    // Final render with complete results + NZ filter if cached
     const cachedNZ = nzCache[key];
     cols[ci] = (cachedNZ !== undefined) ? nzFilterAndCount(children, cachedNZ) : children;
     renderCol(ci);
@@ -365,7 +434,7 @@
 
     // Phase 2 — NZ counts in background (skipped if already cached)
     if (cachedNZ === undefined) {
-      getNZKeys(key, parentNode.rank).then(nzKeys => {
+      getGeoKeys(key, parentNode.rank).then(nzKeys => {
         if (_jumpSeq !== mySeq) return;
         cols[ci] = nzFilterAndCount(children, nzKeys);
         renderCol(ci);
@@ -375,22 +444,19 @@
     }
   }
 
-  // Load the kingdoms column filtered to those with NZ occurrences
+  // Load the kingdoms column — Phase 1 renders all kingdoms instantly (static list),
+  // Phase 2 fetches NZ counts in background and filters to NZ-present kingdoms.
   async function loadKingdoms() {
-    const colEl = document.getElementById('millerCol0');
-    if (colEl) {
-      colEl.innerHTML = '';
-      const hdr = document.createElement('div');
-      hdr.className = 'miller-col-hdr';
-      hdr.textContent = 'Kingdom';
-      colEl.appendChild(hdr);
-      const msg = document.createElement('div');
-      msg.className = 'miller-msg';
-      msg.textContent = 'Loading…';
-      colEl.appendChild(msg);
-    }
-    const nzKeys = await getNZKeys(null, null);
-    let kingdoms = (nzKeys && nzKeys.size > 0)
+    const mySeq = _jumpSeq;
+    // Phase 1 — render all kingdoms immediately, no counts yet
+    cols[0] = KINGDOMS.map(k => ({ ...k, _nzCount: null }));
+    renderCol(0);
+    updateHint();
+    updateBackBtn();
+    // Phase 2 — NZ counts in background
+    const nzKeys = await getGeoKeys(null, null);
+    if (_jumpSeq !== mySeq) return;
+    const kingdoms = (nzKeys && nzKeys.size > 0)
       ? KINGDOMS.filter(k => nzKeys.has(String(k.key)))
       : [...KINGDOMS];
     kingdoms.forEach(k => { k._nzCount = nzKeys ? (nzKeys.get(String(k.key)) || null) : null; });
@@ -603,6 +669,7 @@
       type:     'scientific',
       display:  h.sci,
       subLabel: 'NVS ' + h.nvscode.toUpperCase(),
+      // NVS entries are almost always binomials; only label 2-word names as Species
       rank:     (h.sci && h.sci.trim().split(/\s+/).length === 2) ? 'Species' : '',
       gbifKey:  null,
       nzorData: null,
@@ -617,7 +684,7 @@
       type:     (h.cls === 'v' || h.cls === 'g') ? 'vernacular' : 'scientific',
       display:  h.n,
       subLabel: h.sci || '',
-      rank:     '',
+      rank:     '',   // NZOR covers all ranks — don't guess from word count
       gbifKey:  null,
       nzorData: h,
     }));
@@ -732,7 +799,7 @@
   // since the result is needed immediately for state update).
   async function loadSiblings(parentNode, mustIncludeKey) {
     if (!parentNode) {
-      const nzKeys = await getNZKeys(null, null);
+      const nzKeys = await getGeoKeys(null, null);
       const kds = (nzKeys && nzKeys.size > 0)
         ? KINGDOMS.filter(k => nzKeys.has(String(k.key)))
         : [...KINGDOMS];
@@ -742,7 +809,7 @@
     const parentKey = parentNode.key;
     const [children, nzKeys] = await Promise.all([
       fetchTaxoChildren(parentKey),
-      getNZKeys(parentKey, parentNode.rank),
+      getGeoKeys(parentKey, parentNode.rank),
     ]);
     let result = nzFilterAndCount(children, nzKeys);
     // Always keep must-include key even if NZ filter would remove it
@@ -795,7 +862,7 @@
         } else {
           taxoLoaders.push(
             fetchTaxoChildren(srcNode.key).then(nodes => {
-              if (!nodes) return null;
+              if (!nodes) return null;  // fetch failed — skip this column
               // Ensure the highlighted ancestor is present even if not in the child list
               let result = nodes;
               if (mustKey && !nodes.some(n => n.key === mustKey)) {
@@ -869,7 +936,7 @@
         if (!res || !res.srcNode) continue;  // skip kingdom cols (srcNode===null)
         const { nodes, hiIdx, mustKey, srcNode } = res;
         ;(async (ci, srcNode, nodes, mustKey) => {
-          const nzKeys = await getNZKeys(srcNode.key, srcNode.rank);
+          const nzKeys = await getGeoKeys(srcNode.key, srcNode.rank);
           if (_jumpSeq !== mySeq) return;
           let displayed = nzFilterAndCount(nodes, nzKeys);
           // Keep the selected ancestor visible even if NZ-filtered-out
@@ -888,7 +955,7 @@
       // NZ for rightmost column
       if (cachedLastNZ === undefined) {
         ;(async () => {
-          const nzKeys = await getNZKeys(lastSrc.key, lastSrc.rank);
+          const nzKeys = await getGeoKeys(lastSrc.key, lastSrc.rank);
           if (_jumpSeq !== mySeq) return;
           const displayed = nzFilterAndCount(lastChildren, nzKeys);
           cols[NUM_COLS - 1] = displayed;

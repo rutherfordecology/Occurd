@@ -45,7 +45,7 @@
       <img src="occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v3.76</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v3.77</span></h1>
   </div>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
     <!-- Projects dropdown -->
@@ -173,6 +173,10 @@
       <div class="field sp-wrap" id="spField" style="display:none;">
         <label style="display:flex;align-items:center;justify-content:space-between;">
           <span>NZ species search</span>
+          <button class="taxo-browse-link" id="taxoBrowseBtn" title="Browse the full GBIF taxonomy tree and select any rank">
+            <svg width="11" height="11" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="1.5" r="1.5" fill="currentColor"/><circle cx="2" cy="9.5" r="1.5" fill="currentColor"/><circle cx="10" cy="9.5" r="1.5" fill="currentColor"/><line x1="6" y1="3" x2="6" y2="6.5" stroke="currentColor" stroke-width="1.2"/><line x1="6" y1="6.5" x2="2" y2="8" stroke="currentColor" stroke-width="1.2"/><line x1="6" y1="6.5" x2="10" y2="8" stroke="currentColor" stroke-width="1.2"/></svg>
+            Tree of life
+          </button>
         </label>
         <div style="position:relative;">
           <input class="sp-input" id="spInput" type="text" placeholder="e.g. kea, kererū, Nothofagus…" autocomplete="off" spellcheck="false">
@@ -3688,6 +3692,105 @@ document.getElementById('dlChecklistBtn').addEventListener('click', () => {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v3.77</span>
+      <span class="changelog-date">May 2026</span>
+      <ul>
+        <li>Tree of Life — launched to production; browse NZ taxonomy from Kingdom to Species with live occurrence counts; NZ filter cached locally for 30 days</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v3.89b</span>
+      <span class="changelog-date">May 2026</span>
+      <ul>
+        <li>Tree of Life — sort children by rank hierarchy first (Phylum before Family before Genus) so incertae sedis placements in GBIF no longer cause wrong column headers on Plantae, Fungi etc.</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v3.88b</span>
+      <span class="changelog-date">May 2026</span>
+      <ul>
+        <li>Tree of Life — NZ occurrence filter cached to localStorage with 30-day TTL; repeat visits skip the GBIF facet queries entirely for any taxa already browsed</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v3.87b</span>
+      <span class="changelog-date">May 2026</span>
+      <ul>
+        <li>Tree of Life — fix "No sub-taxa found" after leaving and re-entering; replaced empty-array sentinel with in-flight promise tracking so a mid-fetch exit no longer poisons the cache</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v3.86b</span>
+      <span class="changelog-date">May 2026</span>
+      <ul>
+        <li>Tree of Life — taxa names appear after first page of GBIF results; remaining pages load silently in background so large families (e.g. Animalia phyla) no longer block the column</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v3.85b</span>
+      <span class="changelog-date">May 2026</span>
+      <ul>
+        <li>Tree of Life — kingdoms now render instantly on open; NZ counts and filtering load in background so Animalia is clickable immediately</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v3.84b</span>
+      <span class="changelog-date">May 2026</span>
+      <ul>
+        <li>Tree of Life — reverted global polygon mode; Tree of Life remains NZ-only where NZOR data makes it genuinely useful</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v3.83b</span>
+      <span class="changelog-date">May 2026</span>
+      <ul>
+        <li>Tree of Life — now works globally; when a polygon is drawn outside NZ a "Tree of life" button appears and occurrence counts use the polygon geometry instead of country=NZ; NZ behaviour unchanged</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v3.82b</span>
+      <span class="changelog-date">May 2026</span>
+      <ul>
+        <li>Tree of Life — paginate GBIF children fetches; large families (e.g. Muridae) now load all genera instead of stopping at 200</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v3.81b</span>
+      <span class="changelog-date">May 2026</span>
+      <ul>
+        <li>NZ species search / Tree of Life gate — added zoomend listener and a 2.5s fallback check; fixes features not appearing when map starts off-centre due to VPN geolocation</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v3.80b</span>
+      <span class="changelog-date">May 2026</span>
+      <ul>
+        <li>Favicon — fixed O as a punched hole in the pin so curves match; deployed to production</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v3.78b</span>
+      <span class="changelog-date">May 2026</span>
+      <ul>
+        <li>Tree of Life — fix crash when a GBIF fetch fails mid-session; undefined children no longer cause a TypeError in nzFilterAndCount or jumpToTaxon, breaking subsequent navigation</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v3.77b</span>
+      <span class="changelog-date">May 2026</span>
+      <ul>
+        <li>Tree of Life search — removed incorrect rank guessing for NZOR results; single-word names (families, orders, classes etc.) no longer wrongly labelled as "Genus"</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v3.76b</span>
+      <span class="changelog-date">May 2026</span>
+      <ul>
+        <li>Tree of Life — reverted to standard ranks only (Kingdom → Phylum → Class → Order → Family → Genus → Species); intermediate sub-ranks removed for now</li>
+        <li>Renamed kakapo.js → projects.js (file was still named after the deleted Kākāpō project)</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v3.75b</span>
       <span class="changelog-date">May 2026</span>
