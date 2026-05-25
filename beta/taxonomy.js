@@ -299,15 +299,22 @@
     if (taxoCache[parentKey] !== undefined) return taxoCache[parentKey];
     taxoCache[parentKey] = [];  // sentinel — prevents concurrent duplicate requests
     try {
-      const res = await fetch('https://api.gbif.org/v1/species/' + parentKey + '/children?limit=200');
-      if (!res.ok) throw new Error('HTTP ' + res.status);
-      const j = await res.json();
-      const children = (j.results || []).filter(x =>
-        x.rank && VALID_RANKS.has(x.rank) &&
-        (!x.taxonomicStatus || x.taxonomicStatus === 'ACCEPTED' || x.taxonomicStatus === 'DOUBTFUL')
-      );
-      children.sort((a, b) => (a.canonicalName || '').localeCompare(b.canonicalName || ''));
-      taxoCache[parentKey] = children;
+      const all = [];
+      let offset = 0;
+      while (true) {
+        const res = await fetch('https://api.gbif.org/v1/species/' + parentKey + '/children?limit=200&offset=' + offset);
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const j = await res.json();
+        (j.results || []).forEach(x => {
+          if (x.rank && VALID_RANKS.has(x.rank) &&
+              (!x.taxonomicStatus || x.taxonomicStatus === 'ACCEPTED' || x.taxonomicStatus === 'DOUBTFUL'))
+            all.push(x);
+        });
+        if (j.endOfRecords) break;
+        offset += 200;
+      }
+      all.sort((a, b) => (a.canonicalName || '').localeCompare(b.canonicalName || ''));
+      taxoCache[parentKey] = all;
     } catch(e) { delete taxoCache[parentKey]; } // don't cache failures — allow retry
     return taxoCache[parentKey];
   }
