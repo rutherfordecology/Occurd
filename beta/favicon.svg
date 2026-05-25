@@ -1,7 +1,44 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 130">
-  <!-- Pin filled solid green, O-shaped hole punched through so curves match -->
-  <path fill-rule="evenodd" fill="#1a5c34"
-    d="M50,4 C25,4 5,24 5,50 C5,77 50,126 50,126 C50,126 95,77 95,50 C95,24 75,4 50,4 Z
-       M50,27 C37,27 27,37 27,50 C27,63 37,73 50,73 C63,73 73,63 73,50 C73,37 63,27 50,27 Z"
-  />
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 152 203">
+  <defs>
+    <style>
+      .green { fill: #0b5d1e; }
+      .white { fill: #ffffff; }
+    </style>
+  </defs>
+
+  <!-- Outer pin -->
+  <path class="green" d="
+    M76 6
+    C39 6 10 35 10 72
+    C10 118 52 160 76 199
+    C100 160 142 118 142 72
+    C142 35 113 6 76 6
+    Z"/>
+
+  <!-- Inner white pin -->
+  <path class="white" d="
+    M76 18
+    C47 18 24 41 24 70
+    C24 108 57 143 76 175
+    C95 143 128 108 128 70
+    C128 41 105 18 76 18
+    Z"/>
+
+  <!-- Outer O moved slightly upward -->
+  <path class="green" d="
+    M76 38
+    C53 38 37 52 37 75
+    C37 98 53 112 76 112
+    C99 112 115 98 115 75
+    C115 52 99 38 76 38
+    Z"/>
+
+  <!-- Inner O -->
+  <path class="white" d="
+    M76 52
+    C66 52 58 60 58 75
+    C58 90 66 98 76 98
+    C86 98 94 90 94 75
+    C94 60 86 52 76 52
+    Z"/>
 </svg>
