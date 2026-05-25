@@ -382,22 +382,19 @@
     }
   }
 
-  // Load the kingdoms column filtered to those with NZ occurrences
+  // Load the kingdoms column — Phase 1 renders all kingdoms instantly (static list),
+  // Phase 2 fetches NZ counts in background and filters to NZ-present kingdoms.
   async function loadKingdoms() {
-    const colEl = document.getElementById('millerCol0');
-    if (colEl) {
-      colEl.innerHTML = '';
-      const hdr = document.createElement('div');
-      hdr.className = 'miller-col-hdr';
-      hdr.textContent = 'Kingdom';
-      colEl.appendChild(hdr);
-      const msg = document.createElement('div');
-      msg.className = 'miller-msg';
-      msg.textContent = 'Loading…';
-      colEl.appendChild(msg);
-    }
+    const mySeq = _jumpSeq;
+    // Phase 1 — render all kingdoms immediately, no counts yet
+    cols[0] = KINGDOMS.map(k => ({ ...k, _nzCount: null }));
+    renderCol(0);
+    updateHint();
+    updateBackBtn();
+    // Phase 2 — NZ counts in background
     const nzKeys = await getGeoKeys(null, null);
-    let kingdoms = (nzKeys && nzKeys.size > 0)
+    if (_jumpSeq !== mySeq) return;
+    const kingdoms = (nzKeys && nzKeys.size > 0)
       ? KINGDOMS.filter(k => nzKeys.has(String(k.key)))
       : [...KINGDOMS];
     kingdoms.forEach(k => { k._nzCount = nzKeys ? (nzKeys.get(String(k.key)) || null) : null; });
