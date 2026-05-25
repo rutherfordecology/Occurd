@@ -33,8 +33,9 @@
   // ── State ─────────────────────────────────────────────────────────────────
   const NUM_COLS = 7;    // number of Miller columns
 
-  const taxoCache = {};   // parentKey → rank-filtered ACCEPTED children, sorted (no NZ filter)
-  const nzCache   = {};   // 'root' | taxonKey → Map<key,count> or null
+  const taxoCache = {};   // parentKey → rank-filtered ACCEPTED children, sorted (no geo filter)
+  const geoCache  = {};   // 'root' | taxonKey → Map<key,count> or null; keyed to currentFilter
+  let   currentFilter = null;  // { type:'nz' } or { type:'polygon', wkt:'...' } — set on open()
   const navStack = [];   // [{cols, selIdx, selNodes}] for back navigation
 
   let cols      = [KINGDOMS, ...Array.from({length: NUM_COLS-1}, () => [])];
@@ -265,30 +266,37 @@
     }
   }
 
-  // Fetch child taxon keys that have NZ occurrence records, with their record counts.
+  // Fetch child taxon keys that have occurrence records within the current filter area.
   // parentKey=null → root level (uses kingdomKey facet with no taxon filter).
-  // Returns a Map<string, number> (key → NZ occurrence count), or null on failure.
-  async function getNZKeys(parentKey, parentRank) {
+  // Returns a Map<string, number> (key → count), or null on failure.
+  async function getGeoKeys(parentKey, parentRank) {
+    if (!currentFilter) return null;
     const cacheKey = parentKey || 'root';
-    if (nzCache[cacheKey] !== undefined) return nzCache[cacheKey];
-    let facetField, baseUrl;
+    if (geoCache[cacheKey] !== undefined) return geoCache[cacheKey];
+    let facetField, geoParam;
+    if (currentFilter.type === 'nz') {
+      geoParam = 'country=NZ';
+    } else {
+      geoParam = 'geometry=' + encodeURIComponent(currentFilter.wkt);
+    }
     if (!parentKey) {
       facetField = 'kingdomKey';
-      baseUrl    = 'https://api.gbif.org/v1/occurrence/search?country=NZ&limit=0';
     } else {
       facetField = RANK_TO_CHILD_FACET[parentRank];
-      if (!facetField) { nzCache[cacheKey] = null; return null; }
-      baseUrl = 'https://api.gbif.org/v1/occurrence/search?country=NZ&taxonKey='+parentKey+'&limit=0';
+      if (!facetField) { geoCache[cacheKey] = null; return null; }
     }
+    const taxonParam = parentKey ? '&taxonKey=' + parentKey : '';
+    const url = 'https://api.gbif.org/v1/occurrence/search?' + geoParam + taxonParam
+              + '&limit=0&facet=' + facetField + '&facetLimit=1000&facetMincount=1';
     try {
-      const res = await fetch(baseUrl + '&facet=' + facetField + '&facetLimit=1000&facetMincount=1');
+      const res = await fetch(url);
       if (!res.ok) throw new Error('HTTP '+res.status);
       const j = await res.json();
       const counts = new Map((j.facets?.[0]?.counts || []).map(c => [String(c.name), c.count]));
-      nzCache[cacheKey] = counts;
+      geoCache[cacheKey] = counts;
       return counts;
     } catch(e) {
-      nzCache[cacheKey] = null; // fallback: no filter
+      geoCache[cacheKey] = null; // fallback: no filter
       return null;
     }
   }
@@ -364,7 +372,7 @@
     }
 
     // Show immediately: use cached NZ data if available, otherwise show full taxonomy
-    const cachedNZ = nzCache[key];
+    const cachedNZ = geoCache[key];
     cols[ci] = (cachedNZ !== undefined) ? nzFilterAndCount(children, cachedNZ) : children;
     renderCol(ci);
     updateHint();
@@ -372,7 +380,7 @@
 
     // Phase 2 — NZ counts in background (skipped if already cached)
     if (cachedNZ === undefined) {
-      getNZKeys(key, parentNode.rank).then(nzKeys => {
+      getGeoKeys(key, parentNode.rank).then(nzKeys => {
         if (_jumpSeq !== mySeq) return;
         cols[ci] = nzFilterAndCount(children, nzKeys);
         renderCol(ci);
@@ -396,7 +404,7 @@
       msg.textContent = 'Loading…';
       colEl.appendChild(msg);
     }
-    const nzKeys = await getNZKeys(null, null);
+    const nzKeys = await getGeoKeys(null, null);
     let kingdoms = (nzKeys && nzKeys.size > 0)
       ? KINGDOMS.filter(k => nzKeys.has(String(k.key)))
       : [...KINGDOMS];
@@ -740,7 +748,7 @@
   // since the result is needed immediately for state update).
   async function loadSiblings(parentNode, mustIncludeKey) {
     if (!parentNode) {
-      const nzKeys = await getNZKeys(null, null);
+      const nzKeys = await getGeoKeys(null, null);
       const kds = (nzKeys && nzKeys.size > 0)
         ? KINGDOMS.filter(k => nzKeys.has(String(k.key)))
         : [...KINGDOMS];
@@ -750,7 +758,7 @@
     const parentKey = parentNode.key;
     const [children, nzKeys] = await Promise.all([
       fetchTaxoChildren(parentKey),
-      getNZKeys(parentKey, parentNode.rank),
+      getGeoKeys(parentKey, parentNode.rank),
     ]);
     let result = nzFilterAndCount(children, nzKeys);
     // Always keep must-include key even if NZ filter would remove it
@@ -851,7 +859,7 @@
       if (_jumpSeq !== mySeq) return;
 
       // Apply cached NZ if already available (from a prior search of the same taxa)
-      const cachedLastNZ = nzCache[lastSrc.key];
+      const cachedLastNZ = geoCache[lastSrc.key];
       cols[NUM_COLS - 1] = (cachedLastNZ !== undefined)
         ? nzFilterAndCount(lastChildren, cachedLastNZ)
         : lastChildren;
@@ -877,7 +885,7 @@
         if (!res || !res.srcNode) continue;  // skip kingdom cols (srcNode===null)
         const { nodes, hiIdx, mustKey, srcNode } = res;
         ;(async (ci, srcNode, nodes, mustKey) => {
-          const nzKeys = await getNZKeys(srcNode.key, srcNode.rank);
+          const nzKeys = await getGeoKeys(srcNode.key, srcNode.rank);
           if (_jumpSeq !== mySeq) return;
           let displayed = nzFilterAndCount(nodes, nzKeys);
           // Keep the selected ancestor visible even if NZ-filtered-out
@@ -896,7 +904,7 @@
       // NZ for rightmost column
       if (cachedLastNZ === undefined) {
         ;(async () => {
-          const nzKeys = await getNZKeys(lastSrc.key, lastSrc.rank);
+          const nzKeys = await getGeoKeys(lastSrc.key, lastSrc.rank);
           if (_jumpSeq !== mySeq) return;
           const displayed = nzFilterAndCount(lastChildren, nzKeys);
           cols[NUM_COLS - 1] = displayed;
@@ -935,6 +943,11 @@
 
   async function open() {
     if (window.innerWidth < 700) return; // not available on small screens
+    // Determine area filter for this session; bail if none available
+    currentFilter = window.getAreaFilter ? window.getAreaFilter() : { type: 'nz' };
+    if (!currentFilter) return;
+    // Clear geo cache — filter may have changed since last open
+    Object.keys(geoCache).forEach(k => delete geoCache[k]);
     reset();
     const modal = document.getElementById('taxoBrowser');
     if (!modal) return;
@@ -942,7 +955,7 @@
     renderAll();
     updateCrumb();
     updateAddBtn();
-    await loadKingdoms();  // fetches NZ-filtered kingdoms then renders col 0
+    await loadKingdoms();  // fetches geo-filtered kingdoms then renders col 0
   }
 
   function close() {
@@ -953,7 +966,8 @@
   window.openTaxoBrowser = open;
 
   document.addEventListener('DOMContentLoaded', () => {
-    document.getElementById('taxoBrowseBtn')    ?.addEventListener('click', open);
+    document.getElementById('taxoBrowseBtn')        ?.addEventListener('click', open);
+    document.getElementById('taxoBrowseBtnGlobal') ?.addEventListener('click', open);
     document.getElementById('taxoBrowserClose') ?.addEventListener('click', close);
     document.getElementById('taxoBackBtn')      ?.addEventListener('click', goBack);
     document.getElementById('taxoBrowser')      ?.addEventListener('click', e => {
