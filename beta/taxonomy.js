@@ -488,7 +488,6 @@
         colEl.appendChild(msg);
       }
       // Pass onFirstPage callback — renders partial names after page 1 if more pages follow
-      showLoadingPhrase();
       children = await fetchTaxoChildren(key, (partial) => {
         if (_jumpSeq !== mySeq) return;
         cols[ci] = partial;
@@ -496,7 +495,6 @@
         updateHint();
         updateAddBtn();
       });
-      hideLoadingPhrase();
       if (_jumpSeq !== mySeq) return;
       if (!children) { cols[ci] = []; renderCol(ci); return; }  // fetch failed — show empty col
     }
@@ -510,15 +508,13 @@
 
     // Phase 2 — NZ counts in background (skipped if already cached)
     if (cachedNZ === undefined) {
-      showLoadingPhrase();
       getGeoKeys(key, parentNode.rank).then(nzKeys => {
-        hideLoadingPhrase();
         if (_jumpSeq !== mySeq) return;
         cols[ci] = nzFilterAndCount(children, nzKeys);
         renderCol(ci);
         updateHint();
         updateAddBtn();
-      }).catch(() => hideLoadingPhrase());
+      });
     }
   }
 
@@ -532,9 +528,7 @@
     updateHint();
     updateBackBtn();
     // Phase 2 — NZ counts in background
-    showLoadingPhrase();
     const nzKeys = await getGeoKeys(null, null);
-    hideLoadingPhrase();
     if (_jumpSeq !== mySeq) return;
     const kingdoms = (nzKeys && nzKeys.size > 0)
       ? KINGDOMS.filter(k => nzKeys.has(String(k.key)))
