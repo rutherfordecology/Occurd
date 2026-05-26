@@ -902,6 +902,7 @@
 
   async function jumpToTaxon(gbifKey) {
     const mySeq = ++_jumpSeq;
+    showLoadingPhrase();
     try {
       const [taxonRes, parentsRes] = await Promise.all([
         fetch('https://api.gbif.org/v1/species/' + gbifKey),
@@ -1051,6 +1052,8 @@
 
     } catch(e) {
       console.warn('jumpToTaxon error:', e);
+    } finally {
+      hideLoadingPhrase();
     }
   }
 
