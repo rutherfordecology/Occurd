@@ -85,27 +85,50 @@
     'It\'s not messy — it\'s taxonomically complex…',
   ];
 
-  let _loadingCount  = 0;
-  let _phraseShownAt = 0;
-  const PHRASE_MIN_MS = 2000;
+  let _loadingCount   = 0;
+  let _phraseInterval = null;
+  let _lastPhraseAt   = 0;
+  const PHRASE_CYCLE_MS = 2000;
+
+  function _pickPhrase() {
+    _lastPhraseAt = Date.now();
+    const el = document.getElementById('taxoLoadingMsg');
+    if (!el) return;
+    const next = LOADING_PHRASES[Math.floor(Math.random() * LOADING_PHRASES.length)];
+    if (el.style.display === 'none' || !el.textContent) {
+      // First show — appear directly
+      el.textContent = next;
+      el.style.opacity = '0.8';
+      el.style.display = '';
+    } else {
+      // Cycling — fade out, swap text, fade back in
+      el.style.opacity = '0';
+      setTimeout(() => { el.textContent = next; el.style.opacity = '0.8'; }, 400);
+    }
+  }
 
   function showLoadingPhrase() {
     _loadingCount++;
-    _phraseShownAt = Date.now();
-    const el = document.getElementById('taxoLoadingMsg');
-    if (!el) return;
-    el.textContent = LOADING_PHRASES[Math.floor(Math.random() * LOADING_PHRASES.length)];
-    el.style.display = '';
+    if (_loadingCount === 1) {
+      _pickPhrase();
+      _phraseInterval = setInterval(_pickPhrase, PHRASE_CYCLE_MS);
+    }
   }
 
   function hideLoadingPhrase() {
     _loadingCount = Math.max(0, _loadingCount - 1);
     if (_loadingCount > 0) return;
-    const delay = Math.max(0, PHRASE_MIN_MS - (Date.now() - _phraseShownAt));
+    clearInterval(_phraseInterval);
+    _phraseInterval = null;
+    // Let the current phrase finish its 2-second slot before hiding
+    const delay = Math.max(0, PHRASE_CYCLE_MS - (Date.now() - _lastPhraseAt));
     setTimeout(() => {
       if (_loadingCount === 0) {
         const el = document.getElementById('taxoLoadingMsg');
-        if (el) el.style.display = 'none';
+        if (el) {
+          el.style.opacity = '0';
+          setTimeout(() => { if (_loadingCount === 0) el.style.display = 'none'; }, 400);
+        }
       }
     }, delay);
   }
