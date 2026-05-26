@@ -36,6 +36,80 @@
     SUBFAMILY:'genusKey', TRIBE:'genusKey',  SUBGENUS:'speciesKey',
   };
 
+  // ── Loading phrases ───────────────────────────────────────────────────────
+  const LOADING_PHRASES = [
+    'Speciating your patience…',
+    'Loading at a taxonomic rate…',
+    'Please remain clade seated…',
+    'Genus takes time…',
+    'Kingdom come, it\'s loading…',
+    'Taxonomizing the situation…',
+    'Awaiting peer re-viewing…',
+    'Binomially processing…',
+    'Cladistically speaking, almost there…',
+    'Evolving your results naturally…',
+    'This may take a few million years of divergence…',
+    'Running a quick phylo-check…',
+    'Organising life, one rank at a time…',
+    'Hold please — we\'re keying it out…',
+    'Currently suffering from classification lag…',
+    'Separating the species from the species-like…',
+    'One moment while we split some lumpers…',
+    'Reticulating phylogenies…',
+    'Awaiting spontaneous speciation…',
+    'Genetically confirming your request…',
+    'Trying to remember where we put the holotype…',
+    'This process has been peer reviewed twice…',
+    'Warning: taxonomic instability detected…',
+    'Reassigning things to a different genus… again…',
+    'Calibrating the molecular clock…',
+    'Probably not a subspecies anymore…',
+    'Resolving ancient arguments between botanists…',
+    'Running cladistics at full branch capacity…',
+    'One does not simply define a species…',
+    'Searching for distinguishing characteristics…',
+    'Applying unnecessary Latin…',
+    'Updating names you just learned yesterday…',
+    'Waiting for the next taxonomic revision…',
+    'Synonymising aggressively…',
+    'Loading… according to the latest revision…',
+    'This could have been a fern…',
+    'Asking three taxonomists for four opinions…',
+    'Identifying cryptic species the hard way…',
+    'Carefully counting stamens…',
+    'Busy arguing about whether it\'s really distinct…',
+    'Checking if it\'s already been named in 1847…',
+    'Please wait while we consult the monograph…',
+    'Clade in progress…',
+    'Currently evolving a better classification…',
+    'It\'s not messy — it\'s taxonomically complex…',
+  ];
+
+  let _loadingCount  = 0;
+  let _phraseShownAt = 0;
+  const PHRASE_MIN_MS = 2000;
+
+  function showLoadingPhrase() {
+    _loadingCount++;
+    _phraseShownAt = Date.now();
+    const el = document.getElementById('taxoLoadingMsg');
+    if (!el) return;
+    el.textContent = LOADING_PHRASES[Math.floor(Math.random() * LOADING_PHRASES.length)];
+    el.style.display = '';
+  }
+
+  function hideLoadingPhrase() {
+    _loadingCount = Math.max(0, _loadingCount - 1);
+    if (_loadingCount > 0) return;
+    const delay = Math.max(0, PHRASE_MIN_MS - (Date.now() - _phraseShownAt));
+    setTimeout(() => {
+      if (_loadingCount === 0) {
+        const el = document.getElementById('taxoLoadingMsg');
+        if (el) el.style.display = 'none';
+      }
+    }, delay);
+  }
+
   // ── State ─────────────────────────────────────────────────────────────────
   const NUM_COLS = 7;    // number of Miller columns
 
@@ -414,6 +488,7 @@
         colEl.appendChild(msg);
       }
       // Pass onFirstPage callback — renders partial names after page 1 if more pages follow
+      showLoadingPhrase();
       children = await fetchTaxoChildren(key, (partial) => {
         if (_jumpSeq !== mySeq) return;
         cols[ci] = partial;
@@ -421,6 +496,7 @@
         updateHint();
         updateAddBtn();
       });
+      hideLoadingPhrase();
       if (_jumpSeq !== mySeq) return;
       if (!children) { cols[ci] = []; renderCol(ci); return; }  // fetch failed — show empty col
     }
@@ -434,13 +510,15 @@
 
     // Phase 2 — NZ counts in background (skipped if already cached)
     if (cachedNZ === undefined) {
+      showLoadingPhrase();
       getGeoKeys(key, parentNode.rank).then(nzKeys => {
+        hideLoadingPhrase();
         if (_jumpSeq !== mySeq) return;
         cols[ci] = nzFilterAndCount(children, nzKeys);
         renderCol(ci);
         updateHint();
         updateAddBtn();
-      });
+      }).catch(() => hideLoadingPhrase());
     }
   }
 
@@ -454,7 +532,9 @@
     updateHint();
     updateBackBtn();
     // Phase 2 — NZ counts in background
+    showLoadingPhrase();
     const nzKeys = await getGeoKeys(null, null);
+    hideLoadingPhrase();
     if (_jumpSeq !== mySeq) return;
     const kingdoms = (nzKeys && nzKeys.size > 0)
       ? KINGDOMS.filter(k => nzKeys.has(String(k.key)))
