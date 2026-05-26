@@ -523,6 +523,8 @@
     const key = parentNode.key;
     const mySeq = _jumpSeq;
 
+    showLoadingPhrase(); // always show on every column click
+
     // Phase 1 — taxonomy
     let children = taxoCache[key];
     if (children === undefined) {
@@ -540,7 +542,6 @@
         colEl.appendChild(msg);
       }
       // Pass onFirstPage callback — renders partial names after page 1 if more pages follow
-      showLoadingPhrase();
       children = await fetchTaxoChildren(key, (partial) => {
         if (_jumpSeq !== mySeq) return;
         cols[ci] = partial;
@@ -548,9 +549,8 @@
         updateHint();
         updateAddBtn();
       });
-      hideLoadingPhrase();
-      if (_jumpSeq !== mySeq) return;
-      if (!children) { cols[ci] = []; renderCol(ci); return; }  // fetch failed — show empty col
+      if (_jumpSeq !== mySeq) { hideLoadingPhrase(); return; }
+      if (!children) { hideLoadingPhrase(); cols[ci] = []; renderCol(ci); return; }
     }
 
     // Final render with complete results + NZ filter if cached
@@ -562,15 +562,16 @@
 
     // Phase 2 — NZ counts in background (skipped if already cached)
     if (cachedNZ === undefined) {
-      showLoadingPhrase();
       getGeoKeys(key, parentNode.rank).then(nzKeys => {
-        hideLoadingPhrase();
+        hideLoadingPhrase(); // hide after Phase 2 completes
         if (_jumpSeq !== mySeq) return;
         cols[ci] = nzFilterAndCount(children, nzKeys);
         renderCol(ci);
         updateHint();
         updateAddBtn();
       }).catch(() => hideLoadingPhrase());
+    } else {
+      hideLoadingPhrase(); // everything was cached — hide now (2s minimum still applies)
     }
   }
 
