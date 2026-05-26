@@ -85,10 +85,13 @@
     'It\'s not messy — it\'s taxonomically complex…',
   ];
 
-  let _loadingCount = 0;
+  let _loadingCount  = 0;
+  let _phraseShownAt = 0;
+  const PHRASE_MIN_MS = 2000;
 
   function showLoadingPhrase() {
     _loadingCount++;
+    _phraseShownAt = Date.now();
     const el = document.getElementById('taxoLoadingMsg');
     if (!el) return;
     el.textContent = LOADING_PHRASES[Math.floor(Math.random() * LOADING_PHRASES.length)];
@@ -97,10 +100,14 @@
 
   function hideLoadingPhrase() {
     _loadingCount = Math.max(0, _loadingCount - 1);
-    if (_loadingCount === 0) {
-      const el = document.getElementById('taxoLoadingMsg');
-      if (el) el.style.display = 'none';
-    }
+    if (_loadingCount > 0) return;
+    const delay = Math.max(0, PHRASE_MIN_MS - (Date.now() - _phraseShownAt));
+    setTimeout(() => {
+      if (_loadingCount === 0) {
+        const el = document.getElementById('taxoLoadingMsg');
+        if (el) el.style.display = 'none';
+      }
+    }, delay);
   }
 
   // ── State ─────────────────────────────────────────────────────────────────
