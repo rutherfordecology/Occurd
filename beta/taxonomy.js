@@ -258,9 +258,12 @@
       nameSpan.textContent = name;
       textGroup.appendChild(nameSpan);
 
-      // Common name — species only, from NZOR if available
-      if (node.rank === 'SPECIES' && typeof window.getNzorVernacular === 'function') {
-        const common = window.getNzorVernacular(name);
+      // Common name — species only; NZOR first (NZ-specific), fall back to GBIF vernacularName
+      if (node.rank === 'SPECIES') {
+        let common = (typeof window.getNzorVernacular === 'function')
+          ? window.getNzorVernacular(name) : '';
+        // GBIF backbone includes vernacularName on some species — use as fallback
+        if (!common && node.vernacularName) common = node.vernacularName;
         if (common) {
           const commonSpan = document.createElement('span');
           commonSpan.className = 'miller-common';
