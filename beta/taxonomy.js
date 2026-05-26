@@ -263,7 +263,10 @@
         let common = (typeof window.getNzorVernacular === 'function')
           ? window.getNzorVernacular(name) : '';
         // GBIF backbone includes vernacularName on some species — use as fallback
-        if (!common && node.vernacularName) common = node.vernacularName;
+        // Apply ASCII+macron filter so non-English names (é, ñ, etc.) are excluded
+        if (!common && node.vernacularName &&
+            !/[^\x00-\x7FāēīōūĀĒĪŌŪ]/.test(node.vernacularName))
+          common = node.vernacularName;
         if (common) {
           const commonSpan = document.createElement('span');
           commonSpan.className = 'miller-common';
