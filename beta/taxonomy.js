@@ -249,10 +249,27 @@
       const item = document.createElement('div');
       item.className = 'miller-item' + (isSel ? ' miller-sel' : '');
 
+      // Wrap name (+ optional common name) so they stack vertically inside the flex row
+      const textGroup = document.createElement('div');
+      textGroup.className = 'miller-text';
+
       const nameSpan = document.createElement('span');
       nameSpan.className = 'miller-name';
       nameSpan.textContent = name;
-      item.appendChild(nameSpan);
+      textGroup.appendChild(nameSpan);
+
+      // Common name — species only, from NZOR if available
+      if (node.rank === 'SPECIES' && typeof window.getNzorVernacular === 'function') {
+        const common = window.getNzorVernacular(name);
+        if (common) {
+          const commonSpan = document.createElement('span');
+          commonSpan.className = 'miller-common';
+          commonSpan.textContent = common;
+          textGroup.appendChild(commonSpan);
+        }
+      }
+
+      item.appendChild(textGroup);
 
       if (node._nzCount != null) {
         const cntSpan = document.createElement('span');
