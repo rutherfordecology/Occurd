@@ -221,14 +221,17 @@
     if (!colEl) return;
     colEl.innerHTML = '';
 
-    // Column header derived from actual content rank
+    const nodes = cols[ci];
+    const hasContent = nodes && nodes.length > 0;
+
+    // Column header: blank for empty columns (e.g. unused left-hand columns when
+    // the selected taxon is shallower than the full 7-column depth)
     const hdr = document.createElement('div');
     hdr.className = 'miller-col-hdr';
-    hdr.textContent = colHeaderLabel(ci);
+    hdr.textContent = hasContent ? colHeaderLabel(ci) : '';
     colEl.appendChild(hdr);
 
-    const nodes = cols[ci];
-    if (!nodes || nodes.length === 0) {
+    if (!hasContent) {
       if (ci > 0 && selIdx[ci-1] >= 0) {
         const msg = document.createElement('div');
         msg.className = 'miller-msg';
