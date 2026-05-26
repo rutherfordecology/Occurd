@@ -85,27 +85,50 @@
     'It\'s not messy — it\'s taxonomically complex…',
   ];
 
-  let _loadingCount  = 0;
-  let _phraseShownAt = 0;
-  const PHRASE_MIN_MS = 2000;
+  let _loadingCount   = 0;
+  let _phraseInterval = null;
+  let _lastPhraseAt   = 0;
+  const PHRASE_CYCLE_MS = 2000;
+
+  function _pickPhrase() {
+    _lastPhraseAt = Date.now();
+    const el = document.getElementById('taxoLoadingMsg');
+    if (!el) return;
+    const next = LOADING_PHRASES[Math.floor(Math.random() * LOADING_PHRASES.length)];
+    if (el.style.display === 'none' || !el.textContent) {
+      // First show — appear directly
+      el.textContent = next;
+      el.style.opacity = '0.8';
+      el.style.display = '';
+    } else {
+      // Cycling — fade out, swap text, fade back in
+      el.style.opacity = '0';
+      setTimeout(() => { el.textContent = next; el.style.opacity = '0.8'; }, 400);
+    }
+  }
 
   function showLoadingPhrase() {
     _loadingCount++;
-    _phraseShownAt = Date.now();
-    const el = document.getElementById('taxoLoadingMsg');
-    if (!el) return;
-    el.textContent = LOADING_PHRASES[Math.floor(Math.random() * LOADING_PHRASES.length)];
-    el.style.display = '';
+    if (_loadingCount === 1) {
+      _pickPhrase();
+      _phraseInterval = setInterval(_pickPhrase, PHRASE_CYCLE_MS);
+    }
   }
 
   function hideLoadingPhrase() {
     _loadingCount = Math.max(0, _loadingCount - 1);
     if (_loadingCount > 0) return;
-    const delay = Math.max(0, PHRASE_MIN_MS - (Date.now() - _phraseShownAt));
+    clearInterval(_phraseInterval);
+    _phraseInterval = null;
+    // Let the current phrase finish its 2-second slot before hiding
+    const delay = Math.max(0, PHRASE_CYCLE_MS - (Date.now() - _lastPhraseAt));
     setTimeout(() => {
       if (_loadingCount === 0) {
         const el = document.getElementById('taxoLoadingMsg');
-        if (el) el.style.display = 'none';
+        if (el) {
+          el.style.opacity = '0';
+          setTimeout(() => { if (_loadingCount === 0) el.style.display = 'none'; }, 400);
+        }
       }
     }, delay);
   }
@@ -116,6 +139,30 @@
   const taxoCache    = {};   // parentKey → rank-filtered ACCEPTED children, sorted (no NZ filter)
   const taxoInFlight = {};   // parentKey → Promise — prevents duplicate fetches without a [] sentinel
   const nzCache      = {};   // 'root' | taxonKey → Map<key,count> or null
+
+  // ── Taxonomy cache persistence (localStorage, 7-day TTL) ────────────────
+  const LS_TAXO_KEY    = 'occurd_taxoCache_v1';
+  const LS_TAXO_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+  let _taxoSaveTimer   = null;
+
+  function loadTaxoCacheFromStorage() {
+    try {
+      const raw = localStorage.getItem(LS_TAXO_KEY);
+      if (!raw) return;
+      const { ts, data } = JSON.parse(raw);
+      if (!ts || Date.now() - ts > LS_TAXO_TTL_MS) { localStorage.removeItem(LS_TAXO_KEY); return; }
+      Object.entries(data).forEach(([k, v]) => { taxoCache[k] = v; });
+    } catch(e) { /* corrupt — ignore */ }
+  }
+
+  function saveTaxoCacheToStorage() {
+    clearTimeout(_taxoSaveTimer);
+    _taxoSaveTimer = setTimeout(() => {
+      try {
+        localStorage.setItem(LS_TAXO_KEY, JSON.stringify({ ts: Date.now(), data: taxoCache }));
+      } catch(e) { /* storage full — ignore */ }
+    }, 800); // batch concurrent saves into one write
+  }
 
   // ── NZ cache persistence (localStorage, 30-day TTL) ──────────────────────
   const LS_KEY    = 'occurd_nzCache_v1';
@@ -144,7 +191,8 @@
     } catch(e) { /* storage full or unavailable — ignore */ }
   }
 
-  loadNZCacheFromStorage(); // populate nzCache from previous session if fresh
+  loadTaxoCacheFromStorage(); // populate taxoCache from previous session if fresh
+  loadNZCacheFromStorage();  // populate nzCache from previous session if fresh
   const navStack = [];   // [{cols, selIdx, selNodes}] for back navigation
 
   let cols      = [KINGDOMS, ...Array.from({length: NUM_COLS-1}, () => [])];
@@ -173,14 +221,17 @@
     if (!colEl) return;
     colEl.innerHTML = '';
 
-    // Column header derived from actual content rank
+    const nodes = cols[ci];
+    const hasContent = nodes && nodes.length > 0;
+
+    // Column header: blank for empty columns (e.g. unused left-hand columns when
+    // the selected taxon is shallower than the full 7-column depth)
     const hdr = document.createElement('div');
     hdr.className = 'miller-col-hdr';
-    hdr.textContent = colHeaderLabel(ci);
+    hdr.textContent = hasContent ? colHeaderLabel(ci) : '';
     colEl.appendChild(hdr);
 
-    const nodes = cols[ci];
-    if (!nodes || nodes.length === 0) {
+    if (!hasContent) {
       if (ci > 0 && selIdx[ci-1] >= 0) {
         const msg = document.createElement('div');
         msg.className = 'miller-msg';
@@ -198,10 +249,33 @@
       const item = document.createElement('div');
       item.className = 'miller-item' + (isSel ? ' miller-sel' : '');
 
+      // Wrap name (+ optional common name) so they stack vertically inside the flex row
+      const textGroup = document.createElement('div');
+      textGroup.className = 'miller-text';
+
       const nameSpan = document.createElement('span');
       nameSpan.className = 'miller-name';
       nameSpan.textContent = name;
-      item.appendChild(nameSpan);
+      textGroup.appendChild(nameSpan);
+
+      // Common name — species only; NZOR first (NZ-specific), fall back to GBIF vernacularName
+      if (node.rank === 'SPECIES') {
+        let common = (typeof window.getNzorVernacular === 'function')
+          ? window.getNzorVernacular(name) : '';
+        // GBIF backbone includes vernacularName on some species — use as fallback
+        // Apply ASCII+macron filter so non-English names (é, ñ, etc.) are excluded
+        if (!common && node.vernacularName &&
+            !/[^\x00-\x7FāēīōūĀĒĪŌŪ]/.test(node.vernacularName))
+          common = node.vernacularName;
+        if (common) {
+          const commonSpan = document.createElement('span');
+          commonSpan.className = 'miller-common';
+          commonSpan.textContent = common;
+          textGroup.appendChild(commonSpan);
+        }
+      }
+
+      item.appendChild(textGroup);
 
       if (node._nzCount != null) {
         const cntSpan = document.createElement('span');
@@ -440,6 +514,7 @@
           (a.canonicalName || '').localeCompare(b.canonicalName || '')
         );
         taxoCache[parentKey] = all;
+        saveTaxoCacheToStorage(); // persist for next session
       } catch(e) { /* don't cache failures — allow retry */ }
       delete taxoInFlight[parentKey];
       return taxoCache[parentKey];
@@ -471,6 +546,8 @@
     const key = parentNode.key;
     const mySeq = _jumpSeq;
 
+    showLoadingPhrase(); // always show on every column click
+
     // Phase 1 — taxonomy
     let children = taxoCache[key];
     if (children === undefined) {
@@ -488,7 +565,6 @@
         colEl.appendChild(msg);
       }
       // Pass onFirstPage callback — renders partial names after page 1 if more pages follow
-      showLoadingPhrase();
       children = await fetchTaxoChildren(key, (partial) => {
         if (_jumpSeq !== mySeq) return;
         cols[ci] = partial;
@@ -496,9 +572,8 @@
         updateHint();
         updateAddBtn();
       });
-      hideLoadingPhrase();
-      if (_jumpSeq !== mySeq) return;
-      if (!children) { cols[ci] = []; renderCol(ci); return; }  // fetch failed — show empty col
+      if (_jumpSeq !== mySeq) { hideLoadingPhrase(); return; }
+      if (!children) { hideLoadingPhrase(); cols[ci] = []; renderCol(ci); return; }
     }
 
     // Final render with complete results + NZ filter if cached
@@ -510,15 +585,16 @@
 
     // Phase 2 — NZ counts in background (skipped if already cached)
     if (cachedNZ === undefined) {
-      showLoadingPhrase();
       getGeoKeys(key, parentNode.rank).then(nzKeys => {
-        hideLoadingPhrase();
+        hideLoadingPhrase(); // hide after Phase 2 completes
         if (_jumpSeq !== mySeq) return;
         cols[ci] = nzFilterAndCount(children, nzKeys);
         renderCol(ci);
         updateHint();
         updateAddBtn();
       }).catch(() => hideLoadingPhrase());
+    } else {
+      hideLoadingPhrase(); // everything was cached — hide now (2s minimum still applies)
     }
   }
 
@@ -532,9 +608,7 @@
     updateHint();
     updateBackBtn();
     // Phase 2 — NZ counts in background
-    showLoadingPhrase();
     const nzKeys = await getGeoKeys(null, null);
-    hideLoadingPhrase();
     if (_jumpSeq !== mySeq) return;
     const kingdoms = (nzKeys && nzKeys.size > 0)
       ? KINGDOMS.filter(k => nzKeys.has(String(k.key)))
@@ -902,6 +976,7 @@
 
   async function jumpToTaxon(gbifKey) {
     const mySeq = ++_jumpSeq;
+    showLoadingPhrase();
     try {
       const [taxonRes, parentsRes] = await Promise.all([
         fetch('https://api.gbif.org/v1/species/' + gbifKey),
@@ -1051,6 +1126,8 @@
 
     } catch(e) {
       console.warn('jumpToTaxon error:', e);
+    } finally {
+      hideLoadingPhrase();
     }
   }
 
