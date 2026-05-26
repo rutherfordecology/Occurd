@@ -117,6 +117,30 @@
   const taxoInFlight = {};   // parentKey → Promise — prevents duplicate fetches without a [] sentinel
   const nzCache      = {};   // 'root' | taxonKey → Map<key,count> or null
 
+  // ── Taxonomy cache persistence (localStorage, 7-day TTL) ────────────────
+  const LS_TAXO_KEY    = 'occurd_taxoCache_v1';
+  const LS_TAXO_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+  let _taxoSaveTimer   = null;
+
+  function loadTaxoCacheFromStorage() {
+    try {
+      const raw = localStorage.getItem(LS_TAXO_KEY);
+      if (!raw) return;
+      const { ts, data } = JSON.parse(raw);
+      if (!ts || Date.now() - ts > LS_TAXO_TTL_MS) { localStorage.removeItem(LS_TAXO_KEY); return; }
+      Object.entries(data).forEach(([k, v]) => { taxoCache[k] = v; });
+    } catch(e) { /* corrupt — ignore */ }
+  }
+
+  function saveTaxoCacheToStorage() {
+    clearTimeout(_taxoSaveTimer);
+    _taxoSaveTimer = setTimeout(() => {
+      try {
+        localStorage.setItem(LS_TAXO_KEY, JSON.stringify({ ts: Date.now(), data: taxoCache }));
+      } catch(e) { /* storage full — ignore */ }
+    }, 800); // batch concurrent saves into one write
+  }
+
   // ── NZ cache persistence (localStorage, 30-day TTL) ──────────────────────
   const LS_KEY    = 'occurd_nzCache_v1';
   const LS_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
@@ -144,7 +168,8 @@
     } catch(e) { /* storage full or unavailable — ignore */ }
   }
 
-  loadNZCacheFromStorage(); // populate nzCache from previous session if fresh
+  loadTaxoCacheFromStorage(); // populate taxoCache from previous session if fresh
+  loadNZCacheFromStorage();  // populate nzCache from previous session if fresh
   const navStack = [];   // [{cols, selIdx, selNodes}] for back navigation
 
   let cols      = [KINGDOMS, ...Array.from({length: NUM_COLS-1}, () => [])];
@@ -440,6 +465,7 @@
           (a.canonicalName || '').localeCompare(b.canonicalName || '')
         );
         taxoCache[parentKey] = all;
+        saveTaxoCacheToStorage(); // persist for next session
       } catch(e) { /* don't cache failures — allow retry */ }
       delete taxoInFlight[parentKey];
       return taxoCache[parentKey];
