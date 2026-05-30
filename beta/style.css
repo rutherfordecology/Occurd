@@ -446,30 +446,3 @@ html, body { max-width: 100vw; overflow-x: hidden; }
 .taxo-add:disabled { background:#cbc7c2;cursor:default; }
 .taxo-browse-link { display:inline-flex;align-items:center;gap:4px;background:none;border:none;cursor:pointer;font-size:11px;color:var(--text3);padding:2px 0;font-family:var(--font-sans);margin-top:3px; }
 .taxo-browse-link:hover { color:var(--green); }
-/* ── Responsive popup ─────────────────────────────────────────────────── */
-.leaflet-popup-content-wrapper {
-  max-width: min(380px, 85vw) !important;
-}
-
-.leaflet-popup-content {
-  width: auto !important;
-  max-width: 100% !important;
-  margin: 12px 14px !important;
-}
-
-.leaflet-popup-content img {
-  width: 100% !important;
-  height: auto !important;
-  max-height: min(260px, 40vw) !important;
-  object-fit: cover !important;
-  border-radius: 4px;
-}
-
-@media (max-width: 900px) {
-  .leaflet-popup-content-wrapper {
-    max-width: min(320px, 80vw) !important;
-  }
-  .leaflet-popup-content img {
-    max-height: min(200px, 35vw) !important;
-  }
-}
