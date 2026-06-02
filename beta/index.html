@@ -45,7 +45,7 @@
       <img src="../occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v4.06b</span> <span style="font-size:10px;font-weight:700;color:#fbbf24;letter-spacing:0.06em;background:rgba(251,191,36,0.15);padding:1px 6px;border-radius:8px;">BETA</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v4.07b</span> <span style="font-size:10px;font-weight:700;color:#fbbf24;letter-spacing:0.06em;background:rgba(251,191,36,0.15);padding:1px 6px;border-radius:8px;">BETA</span></h1>
   </div>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
     <!-- Projects dropdown -->
@@ -2213,10 +2213,15 @@ async function fetchSpeciesPhoto(taxonKey, sciName) {
   const binomial = sciName ? sciName.split(/\s+/).slice(0, 2).join(' ') : null;
   if (binomial) {
     try {
-      const res = await fetch('https://api.inaturalist.org/v1/taxa?q=' + encodeURIComponent(binomial) + '&rank=species&per_page=1&is_active=true');
+      const res = await fetch('https://api.inaturalist.org/v1/taxa?q=' + encodeURIComponent(binomial) + '&rank=species&per_page=5&is_active=true');
       if (res.ok) {
         const json = await res.json();
-        const taxon = (json.results || [])[0];
+        // Require an exact scientific name match — iNat taxon swaps can return the
+        // wrong species (e.g. querying "Carduelis carduelis" may return an American
+        // Goldfinch whose ancestor was once placed in Carduelis)
+        const taxon = (json.results || []).find(t =>
+          t.name && t.name.toLowerCase() === binomial.toLowerCase()
+        );
         // Try the featured default photo first; if it's All Rights Reserved,
         // fall through to the curated taxon_photos list for the next best option
         const candidates = [];
@@ -3695,9 +3700,10 @@ document.getElementById('dlChecklistBtn').addEventListener('click', () => {
   </div>
   <div class="changelog-scroll" id="changelogScroll">
     <div class="changelog-version">
-      <span class="changelog-version-tag">v4.06b</span>
+      <span class="changelog-version-tag">v4.07b</span>
       <span class="changelog-date">May 2026</span>
       <ul>
+        <li>Species photo — require exact iNaturalist scientific name match to prevent taxon-swap mismatches (e.g. Eurasian Goldfinch showing American Goldfinch photo)</li>
         <li>Tree of Life — species common names: NZOR first, falls back to GBIF vernacular name</li>
         <li>Tree of Life — loading phrase appears for minimum 2 seconds on every taxon click, even when cached</li>
         <li>Tree of Life — empty columns left of Kingdom now show blank header instead of positional label</li>
