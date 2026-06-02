@@ -178,6 +178,29 @@ header { background: var(--green-dark); color: white; padding: 0 1.5rem; display
 .nb-rc { background:#7AAE00; color:#fff; border:0.5px solid #8DC400; } /* Recovering — lime green */
 .nb-ex { background:#1F2937; color:#fff; border:0.5px solid #374151; } /* Extinct — near black */
 .nb-oi { background:#6B21A8; color:#fff; border:0.5px solid #7E22CE; } /* Introduced & Naturalised / Vagrant — purple */
+/* IUCN Red List badges */
+.iucn-badge { display:inline-block; font-size:9px; font-weight:700; letter-spacing:0.03em; padding:1px 4px; border-radius:3px; vertical-align:middle; margin-left:4px; flex-shrink:0; white-space:nowrap; }
+.ib-ex { background:#1F2937; color:#fff; border:0.5px solid #374151; }
+.ib-ew { background:#542344; color:#fff; border:0.5px solid #6b2a57; }
+.ib-cr { background:#C41200; color:#fff; border:0.5px solid #dc1400; }
+.ib-en { background:#C45A00; color:#fff; border:0.5px solid #d96500; }
+.ib-vu { background:#9A6700; color:#fff; border:0.5px solid #b07800; }
+.ib-nt { background:#5C7A00; color:#fff; border:0.5px solid #6b8d00; }
+.ib-lc { background:#2D7A26; color:#fff; border:0.5px solid #358c2d; }
+.ib-dd { background:#6B7280; color:#fff; border:0.5px solid #7d8694; }
+/* IUCN filter row */
+.cl-iucn-filters { display:flex; flex-wrap:wrap; gap:4px; padding:6px 10px; border-bottom:0.5px solid var(--border); background:var(--surface2); }
+.iucn-fc { font-size:10px; font-weight:700; font-family:var(--font-sans); padding:2px 7px; border-radius:3px; cursor:pointer; transition:all 0.1s; border:1px solid var(--border2); background:var(--surface); color:var(--text3); white-space:nowrap; }
+.iucn-fc:hover { color:var(--text); }
+.iucn-fc.active                  { background:var(--green-dark); color:white; border-color:var(--green-dark); }
+.iucn-fc[data-f="EX"].active     { background:#1F2937; color:white; border-color:#1F2937; }
+.iucn-fc[data-f="EW"].active     { background:#542344; color:white; border-color:#542344; }
+.iucn-fc[data-f="CR"].active     { background:#C41200; color:white; border-color:#C41200; }
+.iucn-fc[data-f="EN"].active     { background:#C45A00; color:white; border-color:#C45A00; }
+.iucn-fc[data-f="VU"].active     { background:#9A6700; color:white; border-color:#9A6700; }
+.iucn-fc[data-f="NT"].active     { background:#5C7A00; color:white; border-color:#5C7A00; }
+.iucn-fc[data-f="LC"].active     { background:#2D7A26; color:white; border-color:#2D7A26; }
+.iucn-fc[data-f="DD"].active     { background:#6B7280; color:white; border-color:#6B7280; }
 .cl-nztcs-btn { font-size:10px; font-weight:600; font-family:var(--font-sans); background:none; border:0.5px solid var(--border); border-radius:4px; padding:3px 7px; cursor:pointer; color:var(--text3); transition:all 0.12s; white-space:nowrap; }
 .cl-nztcs-btn:hover { border-color:var(--green); color:var(--green); }
 .cl-nztcs-btn.unlocked { color:var(--green-dark); border-color:var(--green-mid); background:var(--green-light); }

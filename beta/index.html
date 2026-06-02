@@ -45,7 +45,7 @@
       <img src="../occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v4.10b</span> <span style="font-size:10px;font-weight:700;color:#fbbf24;letter-spacing:0.06em;background:rgba(251,191,36,0.15);padding:1px 6px;border-radius:8px;">BETA</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v4.11b</span> <span style="font-size:10px;font-weight:700;color:#fbbf24;letter-spacing:0.06em;background:rgba(251,191,36,0.15);padding:1px 6px;border-radius:8px;">BETA</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -323,6 +323,17 @@
         <button class="nztcs-fc" data-f="ar">At Risk</button>
         <button class="nztcs-fc" data-f="rc">Recovering</button>
         <button class="nztcs-fc" data-f="ex">Extinct</button>
+      </div>
+      <div class="cl-iucn-filters" id="clIucnFilters" style="display:none;">
+        <button class="iucn-fc active" data-f="all">All</button>
+        <button class="iucn-fc" data-f="EX">EX</button>
+        <button class="iucn-fc" data-f="EW">EW</button>
+        <button class="iucn-fc" data-f="CR">CR</button>
+        <button class="iucn-fc" data-f="EN">EN</button>
+        <button class="iucn-fc" data-f="VU">VU</button>
+        <button class="iucn-fc" data-f="NT">NT</button>
+        <button class="iucn-fc" data-f="LC">LC</button>
+        <button class="iucn-fc" data-f="DD">DD</button>
       </div>
 <div class="cl-scroll" id="clScroll"></div>
       <div class="cl-footer" id="clFooter" style="display:none;">* NZTCS status based on partial name match — may not be correct. Verify against the <a href="https://www.doc.govt.nz/nature/conservation-status/" target="_blank" style="color:inherit;text-decoration:underline;">NZ Threat Classification System</a>.</div>
@@ -864,6 +875,9 @@ map.on(L.Draw.Event.CREATED, e => {
 let polygons = [], refLayers = [], clipTurfPolygons = null, allRecords = [], activeFilters = new Set();
 let viewMode = 'points', selectedSpecies = null, nextPolyId = 0, csvData = null, pendingLoad = null;
 let currentNztcsFilter = 'all';
+let currentIucnFilter  = 'all';
+let iucnCache = {};        // speciesKey → status string ('EN','LC',…) or null
+let _iucnFetchAbort = false;
 let allMarkers = [];
 let commonNameCache = {}; // taxonKey → Array of { vernacularName, language, country } from GBIF species API
 
@@ -1230,7 +1244,12 @@ function passesFilters(r) {
     const allowed = NZTCS_FILTER_GROUPS[currentNztcsFilter] || [];
     const match = lookupNztcs(r);
     const status = match ? (match.entry.status || '') : '';
-    return allowed.includes(status);
+    if (!allowed.includes(status)) return false;
+  }
+  if (currentIucnFilter !== 'all') {
+    const key = r.speciesKey || r.taxonKey;
+    const iucnStatus = key ? (iucnCache[key] || '') : '';
+    if (iucnStatus !== currentIucnFilter) return false;
   }
   return true;
 }
@@ -1238,12 +1257,16 @@ function passesFilters(r) {
 function clearResults() {
   allRecords = []; activeFilters.clear(); csvData = null; selectedSpecies = null; allMarkers = []; commonNameCache = {};
   currentNztcsFilter = 'all';
+  currentIucnFilter  = 'all';
+  _iucnFetchAbort    = true;
   nztcsUnlocked = false;
   const nztcsBtn = document.getElementById('clNztcsBtn');
   if (nztcsBtn) { nztcsBtn.textContent = '🔒 NZTCS'; nztcsBtn.classList.remove('unlocked'); nztcsBtn.title = 'Click to activate NZTCS conservation status'; nztcsBtn.style.display = 'none'; }
   document.getElementById('clNztcsFilters').style.display = 'none';
+  document.getElementById('clIucnFilters').style.display = 'none';
   document.getElementById('clFooter').style.display = 'none';
   document.querySelectorAll('.nztcs-fc').forEach(b => b.classList.toggle('active', b.dataset.f === 'all'));
+  document.querySelectorAll('.iucn-fc').forEach(b => b.classList.toggle('active', b.dataset.f === 'all'));
   metricsGrid.style.display = 'none'; filterSection.style.display = 'none';
   legend.style.display = 'none'; outputSection.style.display = 'none';
   if (qualityBoxEl)  qualityBoxEl.style.display  = 'none';
@@ -2091,6 +2114,122 @@ async function loadNztcsData() {
     console.warn('NZTCS load failed:', err);
   }
 }
+
+// ── IUCN Red List status ────────────────────────────────────────────────────
+const IUCN_STATUS_CFG = {
+  'EXTINCT':                  { cls:'ex', label:'EX', full:'Extinct' },
+  'EXTINCT_IN_THE_WILD':      { cls:'ew', label:'EW', full:'Extinct in the Wild' },
+  'CRITICALLY_ENDANGERED':    { cls:'cr', label:'CR', full:'Critically Endangered' },
+  'ENDANGERED':               { cls:'en', label:'EN', full:'Endangered' },
+  'VULNERABLE':               { cls:'vu', label:'VU', full:'Vulnerable' },
+  'NEAR_THREATENED':          { cls:'nt', label:'NT', full:'Near Threatened' },
+  'LEAST_CONCERN':            { cls:'lc', label:'LC', full:'Least Concern' },
+  'DATA_DEFICIENT':           { cls:'dd', label:'DD', full:'Data Deficient' },
+  // Short-form aliases returned by some GBIF endpoints
+  'EX': { cls:'ex', label:'EX', full:'Extinct' },
+  'EW': { cls:'ew', label:'EW', full:'Extinct in the Wild' },
+  'CR': { cls:'cr', label:'CR', full:'Critically Endangered' },
+  'EN': { cls:'en', label:'EN', full:'Endangered' },
+  'VU': { cls:'vu', label:'VU', full:'Vulnerable' },
+  'NT': { cls:'nt', label:'NT', full:'Near Threatened' },
+  'LC': { cls:'lc', label:'LC', full:'Least Concern' },
+  'DD': { cls:'dd', label:'DD', full:'Data Deficient' },
+};
+
+// Normalise GBIF's various IUCN enum values to two-letter code
+function iucnShortCode(raw) {
+  if (!raw) return null;
+  const cfg = IUCN_STATUS_CFG[raw];
+  return cfg ? cfg.label : null;
+}
+
+function iucnBadgeHtml(status) {
+  if (!status) return '';
+  const cfg = IUCN_STATUS_CFG[status];
+  if (!cfg) return '';
+  return '<span class="iucn-badge ib-' + cfg.cls + '" title="IUCN Red List: ' + cfg.full + '">' + cfg.label + '</span>';
+}
+
+async function fetchIucnStatuses(records) {
+  _iucnFetchAbort = false;
+  const speciesKeys = [...new Set(records.map(r => r.speciesKey || r.taxonKey).filter(Boolean))];
+  const toFetch = speciesKeys.filter(k => iucnCache[k] === undefined);
+  const BATCH = 8;
+  for (let i = 0; i < toFetch.length; i += BATCH) {
+    if (_iucnFetchAbort) return;
+    const batch = toFetch.slice(i, i + BATCH);
+    await Promise.all(batch.map(async key => {
+      if (_iucnFetchAbort || iucnCache[key] !== undefined) return;
+      try {
+        const res = await fetch('https://api.gbif.org/v1/species/' + key);
+        if (!res.ok) { iucnCache[key] = null; return; }
+        const json = await res.json();
+        iucnCache[key] = iucnShortCode(json.iucnRedListCategory) || null;
+      } catch(e) { iucnCache[key] = null; }
+    }));
+    if (!_iucnFetchAbort) _updateIucnBadges(records);
+  }
+  if (!_iucnFetchAbort) {
+    _updateIucnBadges(records);
+    _showIucnFiltersIfData();
+  }
+}
+
+// Build a species→key map once per call for efficiency
+function _updateIucnBadges(records) {
+  const keyBySpecies = {};
+  records.forEach(r => {
+    const name = r.species || r.scientificName;
+    if (name && !keyBySpecies[name]) keyBySpecies[name] = r.speciesKey || r.taxonKey || null;
+  });
+  document.querySelectorAll('.cl-row[data-species]').forEach(row => {
+    const key = keyBySpecies[row.dataset.species];
+    const status = key ? iucnCache[key] : undefined;
+    if (status === undefined) return;
+    if (row.dataset.iucn === (status || '')) return; // no change
+    row.dataset.iucn = status || '';
+    const nameSpan = row.querySelector('.cl-name');
+    if (nameSpan) {
+      const existing = nameSpan.querySelector('.iucn-badge');
+      if (existing) existing.remove();
+      if (status) nameSpan.insertAdjacentHTML('beforeend', iucnBadgeHtml(status));
+    }
+  });
+}
+
+function _showIucnFiltersIfData() {
+  const hasIucn = !!document.querySelector('.cl-row[data-iucn]:not([data-iucn=""])');
+  const filtersEl = document.getElementById('clIucnFilters');
+  if (filtersEl) filtersEl.style.display = hasIucn ? '' : 'none';
+  if (hasIucn) updateIucnChipCounts();
+}
+
+function updateIucnChipCounts() {
+  const counts = {};
+  document.querySelectorAll('.cl-row').forEach(row => {
+    const s = row.dataset.iucn || '';
+    if (s) counts[s] = (counts[s] || 0) + 1;
+  });
+  document.querySelectorAll('.iucn-fc[data-f]').forEach(btn => {
+    const f = btn.dataset.f;
+    if (f === 'all') return;
+    if (!btn.dataset.baseLabel) btn.dataset.baseLabel = btn.textContent.replace(/\s*\(\d+\)$/, '');
+    const c = counts[f] || 0;
+    btn.textContent = c > 0 ? btn.dataset.baseLabel + ' (' + c + ')' : btn.dataset.baseLabel;
+  });
+}
+
+document.getElementById('clIucnFilters').addEventListener('click', e => {
+  const btn = e.target.closest('.iucn-fc');
+  if (!btn) return;
+  currentIucnFilter = btn.dataset.f;
+  document.querySelectorAll('.iucn-fc').forEach(b => b.classList.toggle('active', b === btn));
+  filterChecklistSearch();
+  if (viewMode === 'points') renderPoints(allRecords);
+  else if (viewMode === 'heat') renderHeatmap(allRecords);
+  csvData = buildCSV(allRecords.filter(passesFilters));
+});
+// ────────────────────────────────────────────────────────────────────────────
 
 // Called after each search completes. Shows NZTCS button only for NZ searches.
 function maybeActivateNztcs(dominantCountry) {
@@ -3021,7 +3160,11 @@ function filterChecklistSearch() {
       const allowed = NZTCS_FILTER_GROUPS[currentNztcsFilter] || [];
       matchNztcs = allowed.includes(row.dataset.nztcs || '');
     }
-    row.classList.toggle('hidden', !matchSearch || !matchNztcs);
+    let matchIucn = true;
+    if (currentIucnFilter !== 'all') {
+      matchIucn = (row.dataset.iucn || '') === currentIucnFilter;
+    }
+    row.classList.toggle('hidden', !matchSearch || !matchNztcs || !matchIucn);
   });
   document.querySelectorAll('.cl-group-header').forEach(header => {
     let hasVisible = false, el = header.nextElementSibling;
@@ -3141,10 +3284,15 @@ function buildChecklist(records) {
       const nztcsMatch = lookupNztcs(info.record);
       const nztcsEntry = nztcsMatch ? nztcsMatch.entry : null;
       if (nztcsMatch && !nztcsMatch.certain) hasUncertain = true;
-      const badge = nztcsBadgeHtml(nztcsEntry, nztcsMatch ? nztcsMatch.certain : true);
+      const nztcsBadge = nztcsBadgeHtml(nztcsEntry, nztcsMatch ? nztcsMatch.certain : true);
       row.dataset.nztcs = nztcsEntry ? (nztcsEntry.status || '') : '';
+      // IUCN — use cache if already fetched, otherwise blank (async fetch will update)
+      const iucnKey = info.record.speciesKey || info.record.taxonKey;
+      const iucnStatus = iucnKey && iucnCache[iucnKey] ? iucnCache[iucnKey] : null;
+      row.dataset.iucn = iucnStatus || '';
+      const iucnBadge = iucnBadgeHtml(iucnStatus);
       row.innerHTML =
-        '<div class="cl-row-top"><span class="cl-name">' + name + badge + '</span><span class="cl-count">' + info.count + '</span></div>' +
+        '<div class="cl-row-top"><span class="cl-name">' + name + nztcsBadge + iucnBadge + '</span><span class="cl-count">' + info.count + '</span></div>' +
         (info.common ? '<div class="cl-common">' + info.common + '</div>' : '');
       row.addEventListener('click', () => {
         if (selectedSpecies === name) clearSpeciesSelection();
@@ -3161,6 +3309,12 @@ function buildChecklist(records) {
       footer.style.display = hasUncertain ? '' : 'none';
     }
   }
+  // IUCN — kick off async fetch; updates badges + shows filter row progressively
+  _iucnFetchAbort = true; // cancel any previous in-flight fetch
+  setTimeout(() => { _iucnFetchAbort = false; fetchIucnStatuses(records); }, 0);
+  // If we already have cached data from a previous search, show filters now
+  _showIucnFiltersIfData();
+  if (currentIucnFilter !== 'all') filterChecklistSearch();
 }
 
 // Filter — group headers in checklist act as toggles (chips removed)
@@ -3659,6 +3813,14 @@ document.getElementById('dlCsvBtn').addEventListener('click', () => {
       });
     });
   }
+  const hasIucnData = Object.values(iucnCache).some(v => v);
+  if (hasIucnData) {
+    fields = [...fields, 'iucn_category'];
+    rows = rows.map(r => {
+      const key = r.speciesKey || r.taxonKey;
+      return Object.assign({}, r, { iucn_category: (key && iucnCache[key]) || '' });
+    });
+  }
   const csvHeader = '# Downloaded from Occurd (https://rutherfordecology.github.io/Occurd/) on ' + new Date().toISOString().split('T')[0] + '\n' +
     '# DISCLAIMER: ' + GEOPRIVACY_DISCLAIMER + '\n';
   downloadBlob(csvHeader + buildCSV(rows, fields), 'gbif_occurrences_' + new Date().toISOString().split('T')[0] + '.csv', 'text/csv;charset=utf-8;');
@@ -3818,6 +3980,15 @@ document.getElementById('dlChecklistBtn').addEventListener('click', () => {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v4.11b</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>IUCN Red List badges — fetched from GBIF per species, appearing progressively after results load; EX / EW / CR / EN / VU / NT / LC / DD badges shown alongside NZTCS badges in the checklist</li>
+        <li>IUCN filter row — second filter row under NZTCS filters; appears automatically once IUCN data has loaded; filters both checklist and map points</li>
+        <li>IUCN category added as a column to CSV export when data is available</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v4.10b</span>
       <span class="changelog-date">Jun 2026</span>
