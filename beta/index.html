@@ -2280,10 +2280,27 @@ document.getElementById('clIucnFilters').addEventListener('click', e => {
 });
 // ────────────────────────────────────────────────────────────────────────────
 
+// NZ bounding box — main islands + offshore territories (Kermadecs, Chathams, Subantarctic)
+const NZ_BBOX = { minLat: -52, maxLat: -29, minLng: 162, maxLng: 179 };
+
+function searchAreaOverlapsNZ() {
+  // Check if any drawn polygon's bounding box intersects NZ
+  const geomPolys = polygons.filter(p => p.latlngs && p.latlngs.length > 0 && p.type !== 'species');
+  if (geomPolys.length === 0) return false;
+  return geomPolys.some(poly => {
+    const lats = poly.latlngs.map(ll => ll.lat);
+    const lngs = poly.latlngs.map(ll => ll.lng);
+    const minLat = Math.min(...lats), maxLat = Math.max(...lats);
+    const minLng = Math.min(...lngs), maxLng = Math.max(...lngs);
+    return maxLat >= NZ_BBOX.minLat && minLat <= NZ_BBOX.maxLat &&
+           maxLng >= NZ_BBOX.minLng && minLng <= NZ_BBOX.maxLng;
+  });
+}
+
 // Called after each search completes. Shows NZTCS button only for NZ searches.
-function maybeActivateNztcs(dominantCountry) {
+function maybeActivateNztcs() {
   const btn = document.getElementById('clNztcsBtn');
-  if (dominantCountry !== 'NZ') {
+  if (!searchAreaOverlapsNZ()) {
     btn.style.display = 'none';
     nztcsUnlocked = false;
     document.getElementById('clNztcsFilters').style.display = 'none';
@@ -3824,11 +3841,7 @@ runBtn.addEventListener('click', async () => {
   document.getElementById('mSpecies').textContent = species.size.toLocaleString();
   metricsGrid.style.display = 'grid';
 
-  // Detect dominant country for NZTCS activation
-  const _cc = {};
-  displayRecords.forEach(r => { if (r.countryCode) _cc[r.countryCode] = (_cc[r.countryCode] || 0) + 1; });
-  const _dominant = Object.entries(_cc).sort((a,b) => b[1]-a[1])[0]?.[0] || '';
-  maybeActivateNztcs(_dominant);
+  maybeActivateNztcs(); // geographic NZ polygon check
   // Show IUCN button for any search (it's a global dataset)
   const _iucnBtn = document.getElementById('clIucnBtn');
   if (_iucnBtn) { _iucnBtn.style.display = ''; updateIucnBtn(); }
