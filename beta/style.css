@@ -236,6 +236,17 @@ header { background: var(--green-dark); color: white; padding: 0 1.5rem; display
 html, body { max-width: 100vw; overflow-x: hidden; }
 
 /* Mobile responsiveness */
+/* ── Tablet (701 – 1024 px) ─────────────────────────────────────────────── */
+@media (min-width: 701px) and (max-width: 1024px) {
+  .layout { grid-template-columns: 260px 1fr; }
+  .sidebar-section { padding: 0.65rem 0.9rem; }
+  .section-body { margin-top: 0.5rem; }
+  .field label { font-size: 10px; }
+  .field input, .field select { font-size: 12px; padding: 5px 8px; }
+  .checklist-panel { width: 250px; }
+  .metrics { gap: 5px; }
+}
+
 @media (max-width: 700px) {
   body { overflow-y: auto; }
   header { position: sticky; top: 0; z-index: 1100; }
