@@ -45,7 +45,7 @@
       <img src="../occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v4.11b</span> <span style="font-size:10px;font-weight:700;color:#fbbf24;letter-spacing:0.06em;background:rgba(251,191,36,0.15);padding:1px 6px;border-radius:8px;">BETA</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v4.12b</span> <span style="font-size:10px;font-weight:700;color:#fbbf24;letter-spacing:0.06em;background:rgba(251,191,36,0.15);padding:1px 6px;border-radius:8px;">BETA</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -304,8 +304,9 @@
       <button id="clToggleHandle" onclick="toggleChecklist()" title="Toggle checklist">&#x203A;</button>
       <div class="cl-header">
         <span class="cl-title">Species checklist</span>
-        <div style="display:flex;align-items:center;gap:6px;margin-right:42px;">
+        <div style="display:flex;align-items:center;gap:6px;">
           <button class="cl-nztcs-btn" id="clNztcsBtn" title="Click to activate NZTCS conservation status" style="display:none;">🔒 NZTCS</button>
+          <button class="cl-close-mobile" onclick="toggleChecklist()" title="Close checklist">✕ Close</button>
         </div>
       </div>
       <div class="cl-selected-info" id="clSelectedInfo">
@@ -3142,8 +3143,22 @@ function clearSpeciesSelection() {
 // Checklist
 function toggleChecklist() {
   const isOpen = checklistPanel.classList.toggle('open');
+  _updateChecklistHandle(isOpen);
+}
+function _updateChecklistHandle(isOpen) {
   const handle = document.getElementById('clToggleHandle');
-  handle.innerHTML = isOpen ? '&#x203A;' : '&#x2039;';  // › when open (click to close), ‹ when closed (click to open)
+  if (!handle) return;
+  if (window.innerWidth < 700) {
+    // Mobile: tab shows species count when closed, arrow when open
+    if (isOpen) {
+      handle.innerHTML = '&#x2304;'; // ⌄ down-pointing chevron — tap to collapse
+    } else {
+      const n = document.querySelectorAll('.cl-row').length;
+      handle.innerHTML = '&#x2303; ' + (n > 0 ? n + ' species' : 'Species list');
+    }
+  } else {
+    handle.innerHTML = isOpen ? '&#x203A;' : '&#x2039;';
+  }
 }
 function _showChecklistHandle(show) {
   const handle = document.getElementById('clToggleHandle');
@@ -3743,9 +3758,13 @@ runBtn.addEventListener('click', async () => {
 
   buildFilterChips(displayRecords);
   buildChecklist(displayRecords);
-  checklistPanel.classList.add('open');
+  const _isMobile = window.innerWidth < 700;
+  if (!_isMobile) checklistPanel.classList.add('open');
   const _h = document.getElementById('clToggleHandle');
-  if (_h) { _h.style.display = 'flex'; _h.innerHTML = '&#x203A;'; }
+  if (_h) {
+    _h.style.display = 'flex';
+    _updateChecklistHandle(!_isMobile);
+  }
   renderPoints(displayRecords);
   setTimeout(() => { map.invalidateSize(); }, 100);
   csvData = buildCSV(displayRecords);
@@ -3989,6 +4008,15 @@ document.getElementById('dlChecklistBtn').addEventListener('click', () => {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v4.12b</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>Mobile — species checklist stays hidden after a search; tab handle shows species count (e.g. "⌃ 42 species"); tap to open</li>
+        <li>Mobile — "✕ Close" button added to checklist header; easy to dismiss without hunting for the tab</li>
+        <li>IUCN — fix: read iucnRedListCategory from occurrence records (not species API which doesn't expose this field)</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v4.11b</span>
       <span class="changelog-date">Jun 2026</span>
