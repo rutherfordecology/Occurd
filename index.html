@@ -45,7 +45,7 @@
       <img src="occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v4.10</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v4.14</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -304,8 +304,10 @@
       <button id="clToggleHandle" onclick="toggleChecklist()" title="Toggle checklist">&#x203A;</button>
       <div class="cl-header">
         <span class="cl-title">Species checklist</span>
-        <div style="display:flex;align-items:center;gap:6px;margin-right:42px;">
+        <div style="display:flex;align-items:center;gap:6px;">
           <button class="cl-nztcs-btn" id="clNztcsBtn" title="Click to activate NZTCS conservation status" style="display:none;">🔒 NZTCS</button>
+          <button class="cl-nztcs-btn" id="clIucnBtn" title="Click to activate IUCN Red List status" style="display:none;">🌍 IUCN</button>
+          <button class="cl-close-mobile" onclick="toggleChecklist()" title="Close checklist">✕ Close</button>
         </div>
       </div>
       <div class="cl-selected-info" id="clSelectedInfo">
@@ -316,6 +318,7 @@
         <input type="text" id="clSearchInput" placeholder="Search species...">
       </div>
       <div class="cl-nztcs-filters" id="clNztcsFilters" style="display:none;">
+        <span class="filter-row-label">NZTCS</span>
         <button class="nztcs-fc active" data-f="all">All</button>
         <button class="nztcs-fc" data-f="nc">NC</button>
         <button class="nztcs-fc" data-f="ne">NE</button>
@@ -323,6 +326,18 @@
         <button class="nztcs-fc" data-f="ar">At Risk</button>
         <button class="nztcs-fc" data-f="rc">Recovering</button>
         <button class="nztcs-fc" data-f="ex">Extinct</button>
+      </div>
+      <div class="cl-iucn-filters" id="clIucnFilters" style="display:none;">
+        <span class="filter-row-label">IUCN Red List</span>
+        <button class="iucn-fc active" data-f="all">All</button>
+        <button class="iucn-fc" data-f="EX">EX</button>
+        <button class="iucn-fc" data-f="EW">EW</button>
+        <button class="iucn-fc" data-f="CR">CR</button>
+        <button class="iucn-fc" data-f="EN">EN</button>
+        <button class="iucn-fc" data-f="VU">VU</button>
+        <button class="iucn-fc" data-f="NT">NT</button>
+        <button class="iucn-fc" data-f="LC">LC</button>
+        <button class="iucn-fc" data-f="DD">DD</button>
       </div>
 <div class="cl-scroll" id="clScroll"></div>
       <div class="cl-footer" id="clFooter" style="display:none;">* NZTCS status based on partial name match — may not be correct. Verify against the <a href="https://www.doc.govt.nz/nature/conservation-status/" target="_blank" style="color:inherit;text-decoration:underline;">NZ Threat Classification System</a>.</div>
@@ -430,6 +445,21 @@
     <p style="margin-bottom:1rem;">Please check findings carefully and <a href="mailto:rutherfordecology@gmail.com" style="color:var(--green-dark);">let us know</a> if anything appears out of order.</p>
     <div class="modal-btns">
       <button class="modal-btn primary" id="nztcsBetaAcceptBtn">I understand — continue</button>
+    </div>
+  </div>
+</div>
+
+<!-- IUCN Red List disclaimer modal -->
+<div class="modal-overlay" id="iucnModal">
+  <div class="modal" style="max-width:420px;">
+    <h2 style="margin-bottom:0.5rem;">🌍 IUCN Red List status</h2>
+    <p style="margin-bottom:0.8rem;">This feature displays IUCN Red List conservation status badges in the species checklist, sourced from GBIF's species data.</p>
+    <p style="margin-bottom:0.4rem;"><strong>Coverage is partial</strong> — assessments exist for many vertebrates and plants, but large numbers of invertebrates, fungi, and less-studied groups have not been evaluated by IUCN.</p>
+    <p style="margin-bottom:0.4rem;">IUCN assessments reflect <strong>global</strong> population status. A species may be globally Least Concern while being locally threatened or absent from a region. Conversely, a species may be threatened in its native range while being invasive elsewhere.</p>
+    <p style="margin-bottom:1rem;">Data is retrieved from GBIF's species API. Please verify important findings against the <a href="https://www.iucnredlist.org" target="_blank" style="color:var(--green-dark);">IUCN Red List</a> directly.</p>
+    <div class="modal-btns" style="gap:8px;">
+      <button class="modal-btn primary" id="iucnAcceptBtn">I understand — continue</button>
+      <button class="modal-btn" id="iucnCancelBtn">Cancel</button>
     </div>
   </div>
 </div>
@@ -568,6 +598,7 @@ map.on(L.Draw.Event.DRAWSTART, e => {
      drawControl._toolbars.draw._modes && drawControl._toolbars.draw._modes.polygon &&
      drawControl._toolbars.draw._modes.polygon.handler) || null;
   drawActionBar.style.display = 'flex';
+  finishDrawBtn.disabled = true; // need ≥3 vertices before Finish is valid
   clearDrawDistLabels();
   isDrawingPoly = true;
 });
@@ -614,6 +645,8 @@ map.on('draw:drawvertex', function(e) {
     drawSegLabels.push(makeDistLabel(mid, fmtDist(a.distanceTo(b)), false));
   }
   drawLastVertex = verts.length > 0 ? verts[verts.length - 1] : null;
+  // Enable Finish only once there are enough vertices for a valid polygon
+  finishDrawBtn.disabled = verts.length < 3;
 });
 
 map.on('mousemove', function(e) {
@@ -637,7 +670,11 @@ let _lastFinish = 0, _lastUndo = 0, _lastCancel = 0;
 function onFinishDraw(e) {
   e.preventDefault(); e.stopPropagation();
   const now = Date.now(); if (now - _lastFinish < 400) return; _lastFinish = now;
-  if (activeDrawHandler && activeDrawHandler.completeShape) activeDrawHandler.completeShape();
+  if (!activeDrawHandler || !activeDrawHandler.completeShape) return;
+  // Guard: silently ignore if fewer than 3 vertices placed
+  const vCount = activeDrawHandler._markers ? activeDrawHandler._markers.length : 999;
+  if (vCount < 3) return;
+  activeDrawHandler.completeShape();
 }
 function onUndoPoint(e) {
   e.preventDefault(); e.stopPropagation();
@@ -864,6 +901,9 @@ map.on(L.Draw.Event.CREATED, e => {
 let polygons = [], refLayers = [], clipTurfPolygons = null, allRecords = [], activeFilters = new Set();
 let viewMode = 'points', selectedSpecies = null, nextPolyId = 0, csvData = null, pendingLoad = null;
 let currentNztcsFilter = 'all';
+let currentIucnFilter  = 'all';
+let iucnCache = {};        // speciesKey → status string ('EN','LC',…) or null
+let _iucnFetchAbort = false;
 let allMarkers = [];
 let commonNameCache = {}; // taxonKey → Array of { vernacularName, language, country } from GBIF species API
 
@@ -1230,7 +1270,12 @@ function passesFilters(r) {
     const allowed = NZTCS_FILTER_GROUPS[currentNztcsFilter] || [];
     const match = lookupNztcs(r);
     const status = match ? (match.entry.status || '') : '';
-    return allowed.includes(status);
+    if (!allowed.includes(status)) return false;
+  }
+  if (currentIucnFilter !== 'all') {
+    const key = r.speciesKey || r.taxonKey;
+    const iucnStatus = key ? (iucnCache[key] || '') : '';
+    if (iucnStatus !== currentIucnFilter) return false;
   }
   return true;
 }
@@ -1238,12 +1283,19 @@ function passesFilters(r) {
 function clearResults() {
   allRecords = []; activeFilters.clear(); csvData = null; selectedSpecies = null; allMarkers = []; commonNameCache = {};
   currentNztcsFilter = 'all';
+  currentIucnFilter  = 'all';
+  _iucnFetchAbort    = true;
   nztcsUnlocked = false;
+  iucnUnlocked  = false;
   const nztcsBtn = document.getElementById('clNztcsBtn');
   if (nztcsBtn) { nztcsBtn.textContent = '🔒 NZTCS'; nztcsBtn.classList.remove('unlocked'); nztcsBtn.title = 'Click to activate NZTCS conservation status'; nztcsBtn.style.display = 'none'; }
   document.getElementById('clNztcsFilters').style.display = 'none';
+  document.getElementById('clIucnFilters').style.display = 'none';
   document.getElementById('clFooter').style.display = 'none';
   document.querySelectorAll('.nztcs-fc').forEach(b => b.classList.toggle('active', b.dataset.f === 'all'));
+  document.querySelectorAll('.iucn-fc').forEach(b => b.classList.toggle('active', b.dataset.f === 'all'));
+  const _ib = document.getElementById('clIucnBtn');
+  if (_ib) { _ib.style.display = 'none'; _ib.classList.remove('unlocked'); _ib.textContent = '🌍 IUCN'; }
   metricsGrid.style.display = 'none'; filterSection.style.display = 'none';
   legend.style.display = 'none'; outputSection.style.display = 'none';
   if (qualityBoxEl)  qualityBoxEl.style.display  = 'none';
@@ -1952,6 +2004,7 @@ const NZTCS_BETA_KEY = 'nztcs_beta_agreed';
 let nztcsData        = null;
 let nztcsUnlocked    = false;
 let nztcsBetaAgreed  = !!sessionStorage.getItem(NZTCS_BETA_KEY);
+let iucnUnlocked     = false;
 
 const NZTCS_STATUS_CFG = {
   'Nationally Critical':        { cls:'nc', label:'NC'  },
@@ -2037,13 +2090,28 @@ function updateNztcsBtn() {
   if (nztcsUnlocked) {
     btn.textContent = '✅ NZTCS';
     btn.classList.add('unlocked');
-    btn.title = 'NZTCS conservation status active';
+    btn.title = 'NZTCS active — click to hide badges';
     document.getElementById('clNztcsFilters').style.display = 'flex';
   } else {
     btn.textContent = '🔒 NZTCS';
     btn.classList.remove('unlocked');
-    btn.title = 'Click to activate NZTCS conservation status';
+    btn.title = 'Click to show NZTCS conservation status';
     document.getElementById('clNztcsFilters').style.display = 'none';
+  }
+}
+
+function updateIucnBtn() {
+  const btn = document.getElementById('clIucnBtn');
+  if (!btn) return;
+  if (iucnUnlocked) {
+    btn.textContent = '✅ IUCN';
+    btn.classList.add('unlocked');
+    btn.title = 'IUCN Red List active — click to hide badges';
+  } else {
+    btn.textContent = '🌍 IUCN';
+    btn.classList.remove('unlocked');
+    btn.title = 'Click to show IUCN Red List status';
+    document.getElementById('clIucnFilters').style.display = 'none';
   }
 }
 
@@ -2092,10 +2160,147 @@ async function loadNztcsData() {
   }
 }
 
+// ── IUCN Red List status ────────────────────────────────────────────────────
+const IUCN_STATUS_CFG = {
+  'EXTINCT':                  { cls:'ex', label:'EX', full:'Extinct' },
+  'EXTINCT_IN_THE_WILD':      { cls:'ew', label:'EW', full:'Extinct in the Wild' },
+  'CRITICALLY_ENDANGERED':    { cls:'cr', label:'CR', full:'Critically Endangered' },
+  'ENDANGERED':               { cls:'en', label:'EN', full:'Endangered' },
+  'VULNERABLE':               { cls:'vu', label:'VU', full:'Vulnerable' },
+  'NEAR_THREATENED':          { cls:'nt', label:'NT', full:'Near Threatened' },
+  'LEAST_CONCERN':            { cls:'lc', label:'LC', full:'Least Concern' },
+  'DATA_DEFICIENT':           { cls:'dd', label:'DD', full:'Data Deficient' },
+  // Short-form aliases returned by some GBIF endpoints
+  'EX': { cls:'ex', label:'EX', full:'Extinct' },
+  'EW': { cls:'ew', label:'EW', full:'Extinct in the Wild' },
+  'CR': { cls:'cr', label:'CR', full:'Critically Endangered' },
+  'EN': { cls:'en', label:'EN', full:'Endangered' },
+  'VU': { cls:'vu', label:'VU', full:'Vulnerable' },
+  'NT': { cls:'nt', label:'NT', full:'Near Threatened' },
+  'LC': { cls:'lc', label:'LC', full:'Least Concern' },
+  'DD': { cls:'dd', label:'DD', full:'Data Deficient' },
+};
+
+// Normalise GBIF's various IUCN enum values to two-letter code
+function iucnShortCode(raw) {
+  if (!raw) return null;
+  const cfg = IUCN_STATUS_CFG[raw];
+  return cfg ? cfg.label : null;
+}
+
+function iucnBadgeHtml(status) {
+  if (!status) return '';
+  const cfg = IUCN_STATUS_CFG[status];
+  if (!cfg) return '';
+  return '<span class="iucn-badge ib-' + cfg.cls + '" title="IUCN Red List: ' + cfg.full + '">' + cfg.label + '</span>';
+}
+
+async function fetchIucnStatuses(records) {
+  // Uses /species/{key}/threatStatuses — the authoritative GBIF species-level source.
+  // Always runs (even if occurrence records already seeded the cache) to correct stale values.
+  _iucnFetchAbort = false;
+  const speciesKeys = [...new Set(records.map(r => r.speciesKey || r.taxonKey).filter(Boolean))];
+  const BATCH = 8;
+  for (let i = 0; i < speciesKeys.length; i += BATCH) {
+    if (_iucnFetchAbort) return;
+    const batch = speciesKeys.slice(i, i + BATCH);
+    await Promise.all(batch.map(async key => {
+      if (_iucnFetchAbort) return;
+      try {
+        const res = await fetch('https://api.gbif.org/v1/species/' + key + '/threatStatuses');
+        if (!res.ok) { if (iucnCache[key] === undefined) iucnCache[key] = null; return; }
+        const json = await res.json();
+        const results = json.results || [];
+        // Pick first IUCN Red List entry; prefer entries that mention IUCN explicitly
+        const iucnEntry = results.find(r => /iucn/i.test(r.source || '')) || results[0];
+        iucnCache[key] = iucnEntry ? (iucnShortCode(iucnEntry.threatStatus) || null) : null;
+      } catch(e) { if (iucnCache[key] === undefined) iucnCache[key] = null; }
+    }));
+    if (!_iucnFetchAbort) _updateIucnBadges(records);
+  }
+  if (!_iucnFetchAbort) {
+    _updateIucnBadges(records);
+    _showIucnFiltersIfData();
+  }
+}
+
+// Build a species→key map once per call for efficiency
+function _updateIucnBadges(records) {
+  const keyBySpecies = {};
+  records.forEach(r => {
+    const name = r.species || r.scientificName;
+    if (name && !keyBySpecies[name]) keyBySpecies[name] = r.speciesKey || r.taxonKey || null;
+  });
+  document.querySelectorAll('.cl-row[data-species]').forEach(row => {
+    const key = keyBySpecies[row.dataset.species];
+    const status = key ? iucnCache[key] : undefined;
+    if (status === undefined) return;
+    if (row.dataset.iucn === (status || '')) return; // no change
+    row.dataset.iucn = status || '';
+    const nameSpan = row.querySelector('.cl-name');
+    if (nameSpan) {
+      const existing = nameSpan.querySelector('.iucn-badge');
+      if (existing) existing.remove();
+      if (status) nameSpan.insertAdjacentHTML('beforeend', iucnBadgeHtml(status));
+    }
+  });
+}
+
+function _showIucnFiltersIfData() {
+  const hasIucn = !!document.querySelector('.cl-row[data-iucn]:not([data-iucn=""])');
+  const filtersEl = document.getElementById('clIucnFilters');
+  if (filtersEl) filtersEl.style.display = hasIucn ? '' : 'none';
+  if (hasIucn) updateIucnChipCounts();
+}
+
+function updateIucnChipCounts() {
+  const counts = {};
+  document.querySelectorAll('.cl-row').forEach(row => {
+    const s = row.dataset.iucn || '';
+    if (s) counts[s] = (counts[s] || 0) + 1;
+  });
+  document.querySelectorAll('.iucn-fc[data-f]').forEach(btn => {
+    const f = btn.dataset.f;
+    if (f === 'all') return;
+    if (!btn.dataset.baseLabel) btn.dataset.baseLabel = btn.textContent.replace(/\s*\(\d+\)$/, '');
+    const c = counts[f] || 0;
+    btn.textContent = c > 0 ? btn.dataset.baseLabel + ' (' + c + ')' : btn.dataset.baseLabel;
+  });
+}
+
+document.getElementById('clIucnFilters').addEventListener('click', e => {
+  const btn = e.target.closest('.iucn-fc');
+  if (!btn) return;
+  currentIucnFilter = btn.dataset.f;
+  document.querySelectorAll('.iucn-fc').forEach(b => b.classList.toggle('active', b === btn));
+  filterChecklistSearch();
+  if (viewMode === 'points') renderPoints(allRecords);
+  else if (viewMode === 'heat') renderHeatmap(allRecords);
+  csvData = buildCSV(allRecords.filter(passesFilters));
+});
+// ────────────────────────────────────────────────────────────────────────────
+
+// NZ bounding box — main islands + offshore territories (Kermadecs, Chathams, Subantarctic)
+const NZ_BBOX = { minLat: -52, maxLat: -29, minLng: 162, maxLng: 179 };
+
+function searchAreaOverlapsNZ() {
+  // Check if any drawn polygon's bounding box intersects NZ
+  const geomPolys = polygons.filter(p => p.latlngs && p.latlngs.length > 0 && p.type !== 'species');
+  if (geomPolys.length === 0) return false;
+  return geomPolys.some(poly => {
+    const lats = poly.latlngs.map(ll => ll.lat);
+    const lngs = poly.latlngs.map(ll => ll.lng);
+    const minLat = Math.min(...lats), maxLat = Math.max(...lats);
+    const minLng = Math.min(...lngs), maxLng = Math.max(...lngs);
+    return maxLat >= NZ_BBOX.minLat && minLat <= NZ_BBOX.maxLat &&
+           maxLng >= NZ_BBOX.minLng && minLng <= NZ_BBOX.maxLng;
+  });
+}
+
 // Called after each search completes. Shows NZTCS button only for NZ searches.
-function maybeActivateNztcs(dominantCountry) {
+function maybeActivateNztcs() {
   const btn = document.getElementById('clNztcsBtn');
-  if (dominantCountry !== 'NZ') {
+  if (!searchAreaOverlapsNZ()) {
     btn.style.display = 'none';
     nztcsUnlocked = false;
     document.getElementById('clNztcsFilters').style.display = 'none';
@@ -2107,8 +2312,41 @@ function maybeActivateNztcs(dominantCountry) {
 }
 
 document.getElementById('clNztcsBtn').addEventListener('click', async () => {
-  if (nztcsUnlocked) return; // already active, button is informational only
+  if (nztcsUnlocked) {
+    // Toggle off — remove badges and hide filter row
+    nztcsUnlocked = false;
+    currentNztcsFilter = 'all';
+    document.querySelectorAll('.nztcs-fc').forEach(b => b.classList.toggle('active', b.dataset.f === 'all'));
+    updateNztcsBtn();
+    if (allRecords.length > 0) buildChecklist(allRecords);
+    return;
+  }
   document.getElementById('nztcsBetaModal').classList.add('open');
+});
+
+document.getElementById('clIucnBtn').addEventListener('click', () => {
+  if (iucnUnlocked) {
+    // Toggle off — abort any fetch, remove badges and hide filter row
+    iucnUnlocked = false;
+    _iucnFetchAbort = true;
+    currentIucnFilter = 'all';
+    document.querySelectorAll('.iucn-fc').forEach(b => b.classList.toggle('active', b.dataset.f === 'all'));
+    updateIucnBtn();
+    if (allRecords.length > 0) buildChecklist(allRecords);
+    return;
+  }
+  document.getElementById('iucnModal').classList.add('open');
+});
+
+document.getElementById('iucnAcceptBtn').addEventListener('click', () => {
+  document.getElementById('iucnModal').classList.remove('open');
+  iucnUnlocked = true;
+  updateIucnBtn();
+  if (allRecords.length > 0) buildChecklist(allRecords);
+});
+
+document.getElementById('iucnCancelBtn').addEventListener('click', () => {
+  document.getElementById('iucnModal').classList.remove('open');
 });
 
 document.getElementById('nztcsBetaAcceptBtn').addEventListener('click', async () => {
@@ -3003,8 +3241,22 @@ function clearSpeciesSelection() {
 // Checklist
 function toggleChecklist() {
   const isOpen = checklistPanel.classList.toggle('open');
+  _updateChecklistHandle(isOpen);
+}
+function _updateChecklistHandle(isOpen) {
   const handle = document.getElementById('clToggleHandle');
-  handle.innerHTML = isOpen ? '&#x203A;' : '&#x2039;';  // › when open (click to close), ‹ when closed (click to open)
+  if (!handle) return;
+  if (window.innerWidth < 700) {
+    // Mobile: tab shows species count when closed, arrow when open
+    if (isOpen) {
+      handle.innerHTML = '&#x2304;'; // ⌄ down-pointing chevron — tap to collapse
+    } else {
+      const n = document.querySelectorAll('.cl-row').length;
+      handle.innerHTML = '&#x2303; ' + (n > 0 ? n + ' species' : 'Species list');
+    }
+  } else {
+    handle.innerHTML = isOpen ? '&#x203A;' : '&#x2039;';
+  }
 }
 function _showChecklistHandle(show) {
   const handle = document.getElementById('clToggleHandle');
@@ -3021,7 +3273,11 @@ function filterChecklistSearch() {
       const allowed = NZTCS_FILTER_GROUPS[currentNztcsFilter] || [];
       matchNztcs = allowed.includes(row.dataset.nztcs || '');
     }
-    row.classList.toggle('hidden', !matchSearch || !matchNztcs);
+    let matchIucn = true;
+    if (currentIucnFilter !== 'all') {
+      matchIucn = (row.dataset.iucn || '') === currentIucnFilter;
+    }
+    row.classList.toggle('hidden', !matchSearch || !matchNztcs || !matchIucn);
   });
   document.querySelectorAll('.cl-group-header').forEach(header => {
     let hasVisible = false, el = header.nextElementSibling;
@@ -3076,7 +3332,7 @@ function buildChecklist(records) {
     Object.values(byGroup).forEach(group => {
       Object.entries(group).forEach(([name, info]) => {
         // 1. nztcs.json — loaded if user has unlocked NZTCS status; has explicit maori + common fields
-        if (nztcsData) {
+        if (nztcsUnlocked && nztcsData) {
           const m = lookupNztcs(info.record);
           if (m && m.entry) {
             const parts = [m.entry.maori, m.entry.common]
@@ -3138,13 +3394,18 @@ function buildChecklist(records) {
       const row = document.createElement('div'); row.className = 'cl-row';
       row.dataset.species = name;
       row.dataset.common  = info.common;
-      const nztcsMatch = lookupNztcs(info.record);
+      const nztcsMatch = nztcsUnlocked ? lookupNztcs(info.record) : null;
       const nztcsEntry = nztcsMatch ? nztcsMatch.entry : null;
       if (nztcsMatch && !nztcsMatch.certain) hasUncertain = true;
-      const badge = nztcsBadgeHtml(nztcsEntry, nztcsMatch ? nztcsMatch.certain : true);
+      const nztcsBadge = nztcsBadgeHtml(nztcsEntry, nztcsMatch ? nztcsMatch.certain : true);
       row.dataset.nztcs = nztcsEntry ? (nztcsEntry.status || '') : '';
+      // IUCN — only show if user has unlocked
+      const iucnKey = iucnUnlocked ? (info.record.speciesKey || info.record.taxonKey) : null;
+      const iucnStatus = iucnKey && iucnCache[iucnKey] ? iucnCache[iucnKey] : null;
+      row.dataset.iucn = iucnUnlocked ? (iucnStatus || '') : '';
+      const iucnBadge = iucnUnlocked ? iucnBadgeHtml(iucnStatus) : '';
       row.innerHTML =
-        '<div class="cl-row-top"><span class="cl-name">' + name + badge + '</span><span class="cl-count">' + info.count + '</span></div>' +
+        '<div class="cl-row-top"><span class="cl-name">' + name + nztcsBadge + iucnBadge + '</span><span class="cl-count">' + info.count + '</span></div>' +
         (info.common ? '<div class="cl-common">' + info.common + '</div>' : '');
       row.addEventListener('click', () => {
         if (selectedSpecies === name) clearSpeciesSelection();
@@ -3160,6 +3421,13 @@ function buildChecklist(records) {
     if (footer) {
       footer.style.display = hasUncertain ? '' : 'none';
     }
+  }
+  // IUCN — only fetch and show filters if user has unlocked
+  if (iucnUnlocked) {
+    _showIucnFiltersIfData();
+    if (currentIucnFilter !== 'all') filterChecklistSearch();
+    _iucnFetchAbort = true;
+    setTimeout(() => { _iucnFetchAbort = false; fetchIucnStatuses(records); }, 0);
   }
 }
 
@@ -3479,6 +3747,7 @@ runBtn.addEventListener('click', async () => {
             recordedBy:                    Array.isArray(r.recordedBy) ? r.recordedBy.join('; ') : (r.recordedBy || null),
             establishmentMeans:            r.establishmentMeans || null,
             dynamicProperties:             r.dynamicProperties || null,
+            iucnRedListCategory:           r.iucnRedListCategory || null,
             recordPhoto: (() => {
               const img = (r.media || []).find(m => m.type === 'StillImage' && m.identifier);
               if (!img) return null;
@@ -3572,17 +3841,31 @@ runBtn.addEventListener('click', async () => {
   document.getElementById('mSpecies').textContent = species.size.toLocaleString();
   metricsGrid.style.display = 'grid';
 
-  // Detect dominant country for NZTCS activation
-  const _cc = {};
-  displayRecords.forEach(r => { if (r.countryCode) _cc[r.countryCode] = (_cc[r.countryCode] || 0) + 1; });
-  const _dominant = Object.entries(_cc).sort((a,b) => b[1]-a[1])[0]?.[0] || '';
-  maybeActivateNztcs(_dominant);
+  maybeActivateNztcs(); // geographic NZ polygon check
+  // Show IUCN button for any search (it's a global dataset)
+  const _iucnBtn = document.getElementById('clIucnBtn');
+  if (_iucnBtn) { _iucnBtn.style.display = ''; updateIucnBtn(); }
+
+  // Seed iucnCache from occurrence records for a quick initial display.
+  // NOTE: occurrence-level iucnRedListCategory can be stale — the async fetch in
+  // buildChecklist will override these with accurate values from the species API.
+  displayRecords.forEach(r => {
+    const key = r.speciesKey || r.taxonKey;
+    if (key && r.iucnRedListCategory && iucnCache[key] === undefined) {
+      iucnCache[key] = iucnShortCode(r.iucnRedListCategory) || null;
+    }
+    // Do NOT mark missing entries as null — let the async fetch fill and correct them.
+  });
 
   buildFilterChips(displayRecords);
   buildChecklist(displayRecords);
-  checklistPanel.classList.add('open');
+  const _isMobile = window.innerWidth < 700;
+  if (!_isMobile) checklistPanel.classList.add('open');
   const _h = document.getElementById('clToggleHandle');
-  if (_h) { _h.style.display = 'flex'; _h.innerHTML = '&#x203A;'; }
+  if (_h) {
+    _h.style.display = 'flex';
+    _updateChecklistHandle(!_isMobile);
+  }
   renderPoints(displayRecords);
   setTimeout(() => { map.invalidateSize(); }, 100);
   csvData = buildCSV(displayRecords);
@@ -3657,6 +3940,14 @@ document.getElementById('dlCsvBtn').addEventListener('click', () => {
         nztcs_category: m ? (m.entry.category || '') : '',
         nztcs_year:     m ? (m.entry.year     || '') : '',
       });
+    });
+  }
+  const hasIucnData = Object.values(iucnCache).some(v => v);
+  if (hasIucnData) {
+    fields = [...fields, 'iucn_category'];
+    rows = rows.map(r => {
+      const key = r.speciesKey || r.taxonKey;
+      return Object.assign({}, r, { iucn_category: (key && iucnCache[key]) || '' });
     });
   }
   const csvHeader = '# Downloaded from Occurd (https://rutherfordecology.github.io/Occurd/) on ' + new Date().toISOString().split('T')[0] + '\n' +
@@ -3819,7 +4110,44 @@ document.getElementById('dlChecklistBtn').addEventListener('click', () => {
   </div>
   <div class="changelog-scroll" id="changelogScroll">
     <div class="changelog-version">
-      <span class="changelog-version-tag">v4.10</span>
+      <span class="changelog-version-tag">v4.14</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>IUCN Red List — now behind a 🌍 IUCN lock button with a disclaimer modal; badges only appear after acknowledgement</li>
+        <li>IUCN button appears after every search (it is a global dataset, not NZ-only)</li>
+        <li>Both NZTCS and IUCN buttons toggle off when clicked while active — badges and filter rows disappear; click again to re-enable</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v4.13b</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>Mobile drawing — Finish button disabled until 3 vertices placed; tapping the first polygon point no longer triggers an error</li>
+        <li>IUCN — switched to species-level /threatStatuses endpoint for accurate current assessments; occurrence-level field was stale for some species (e.g. avocado showed LC instead of VU)</li>
+        <li>NZTCS / IUCN filter rows — labelled "NZTCS" and "IUCN Red List" for clarity</li>
+        <li>Mobile — species checklist hidden by default after search; tab shows species count; ✕ Close button in header</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v4.12b</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>Mobile — species checklist stays hidden after a search; tab handle shows species count (e.g. "⌃ 42 species"); tap to open</li>
+        <li>Mobile — "✕ Close" button added to checklist header; easy to dismiss without hunting for the tab</li>
+        <li>IUCN — fix: read iucnRedListCategory from occurrence records (not species API which doesn't expose this field)</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v4.11b</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>IUCN Red List badges — fetched from GBIF per species, appearing progressively after results load; EX / EW / CR / EN / VU / NT / LC / DD badges shown alongside NZTCS badges in the checklist</li>
+        <li>IUCN filter row — second filter row under NZTCS filters; appears automatically once IUCN data has loaded; filters both checklist and map points</li>
+        <li>IUCN category added as a column to CSV export when data is available</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v4.10b</span>
       <span class="changelog-date">Jun 2026</span>
       <ul>
         <li>Occurrence fetch — 50 cycling phrases appear centred in the header while GBIF records are loading, fading every 2 seconds</li>
