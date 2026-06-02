@@ -45,8 +45,9 @@
       <img src="occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v4.09</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v4.10</span></h1>
   </div>
+  <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
     <!-- Projects dropdown -->
     <div id="projectsDropWrap" style="position:relative;">
@@ -942,16 +943,126 @@ document.getElementById('clClearSel').addEventListener('click', () => clearSpeci
 // Helpers
 let fetchAbortFlag = false;
 let isFetching = false;
+
+// ── Occurrence loading phrases ──────────────────────────────────────────────
+const OCC_LOADING_PHRASES = [
+  '"Not all who wander are lost. Some are just GPS-tagged."',
+  '"The species does not care about your deadline."',
+  '"A map without a species is just a sad piece of paper."',
+  '"It was here yesterday. Probably."',
+  '"Occurrence data: the art of knowing where something was."',
+  '"If a species occurs in a forest and no one records it, does it count?"',
+  '"It prefers disturbed habitats. Relatable."',
+  '"The dot on the map is confident. The ecologist is not."',
+  '"Invasive in three countries, critically endangered in one. Complicated."',
+  '"We call it a \'data gap.\' The species calls it privacy."',
+  '"It shouldn\'t be here. And yet."',
+  '"This occurrence was verified by one person, at dusk, without glasses."',
+  '"Recorded once in 1987. Still counts."',
+  '"Five records. Four of them the same person."',
+  '"Photographed from a moving vehicle at 80km/h. Verified."',
+  '"It tolerates a wide range of conditions, which is more than we can say for the grant."',
+  '"Last seen during an El Niño year. Make of that what you will."',
+  '"The outlier record is either very exciting or very wrong."',
+  '"Known from a beak fragment. Confident at genus level."',
+  '"The species was not consulted on its range map."',
+  '"Extirpated locally. Doing great in Belgium."',
+  '"Range expanding northward. Nobody asked it to."',
+  'Georeferencing your patience…',
+  'Scrubbing coordinates aggressively…',
+  'Checking if this is actually in the ocean…',
+  'Removing duplicates. And duplicates. And duplicates…',
+  'Verifying that latitude comes before longitude…',
+  'Fetching records from places you\'ve never heard of…',
+  'This occurrence may have drifted slightly…',
+  'Applying a generous uncertainty radius…',
+  'Cross-referencing with someone\'s 1994 field notebook…',
+  'Reprojecting. Again.',
+  'These coordinates place it in a car park. Investigating.',
+  'Excluding records flagged as "probably a garden"…',
+  'Asking GBIF nicely…',
+  'Thinning records to reduce spatial bias and existential dread…',
+  'Currently outside known range. Loading anyway.',
+  'One moment while we question the outliers…',
+  'Checking if that record predates the drainage of the swamp…',
+  'This dot knows something we don\'t…',
+  'Downloading the world. Nearly there.',
+  'Presence confirmed. Confidence: moderate.',
+  'Habitat suitability: pending. Species: indifferent.',
+  'Searching for signal in the occurrence noise…',
+  'Buffering at biogeographic scale…',
+  'Running the model. The model is running.',
+  'Consulting the environmental layers…',
+  'Clipping to extent…',
+  'Spatially joining at full capacity…',
+  'Almost there. The species got here first.',
+];
+
+let _occLoadingCount   = 0;
+let _occPhraseInterval = null;
+let _occLastPhraseAt   = 0;
+const OCC_PHRASE_CYCLE_MS = 3000;
+
+function _pickOccPhrase() {
+  _occLastPhraseAt = Date.now();
+  const el = document.getElementById('occLoadingMsg');
+  if (!el) return;
+  const next = OCC_LOADING_PHRASES[Math.floor(Math.random() * OCC_LOADING_PHRASES.length)];
+  if (el.style.display !== 'none' && el.textContent) {
+    el.style.opacity = '0';
+    setTimeout(() => {
+      if (_occLoadingCount > 0) {
+        el.textContent = next;
+        el.style.opacity = '0.8';
+      }
+    }, 400);
+  } else {
+    el.textContent = next;
+    el.style.display = '';
+    el.style.opacity = '0.8';
+  }
+}
+
+function showOccLoadingPhrase() {
+  _occLoadingCount++;
+  if (_occLoadingCount === 1) {
+    _pickOccPhrase();
+    _occPhraseInterval = setInterval(_pickOccPhrase, OCC_PHRASE_CYCLE_MS);
+  }
+}
+
+function hideOccLoadingPhrase() {
+  if (_occLoadingCount > 0) _occLoadingCount--;
+  if (_occLoadingCount === 0) {
+    clearInterval(_occPhraseInterval);
+    _occPhraseInterval = null;
+    const elapsed = Date.now() - _occLastPhraseAt;
+    const remain  = Math.max(0, OCC_PHRASE_CYCLE_MS - elapsed);
+    setTimeout(() => {
+      if (_occLoadingCount === 0) {
+        const el = document.getElementById('occLoadingMsg');
+        if (el) {
+          el.style.opacity = '0';
+          setTimeout(() => { if (_occLoadingCount === 0) el.style.display = 'none'; }, 400);
+        }
+      }
+    }, remain);
+  }
+}
+// ────────────────────────────────────────────────────────────────────────────
+
 function setFetchMode(fetching) {
   isFetching = fetching;
   if (fetching) {
     runBtn.textContent = '✕  Cancel fetching';
     runBtn.classList.add('cancelling');
     runBtn.disabled = false;
+    showOccLoadingPhrase();
   } else {
     runBtn.textContent = 'Fetch occurrences from GBIF';
     runBtn.classList.remove('cancelling');
     runBtn.disabled = polygons.length === 0;
+    hideOccLoadingPhrase();
   }
 }
 function setStatus(msg, type, withCancel) {
@@ -3708,7 +3819,14 @@ document.getElementById('dlChecklistBtn').addEventListener('click', () => {
   </div>
   <div class="changelog-scroll" id="changelogScroll">
     <div class="changelog-version">
-      <span class="changelog-version-tag">v4.09</span>
+      <span class="changelog-version-tag">v4.10</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>Occurrence fetch — 50 cycling phrases appear centred in the header while GBIF records are loading, fading every 2 seconds</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v4.09b</span>
       <span class="changelog-date">Jun 2026</span>
       <ul>
         <li>NZTCS threat status badges updated to official NZ DOC colour scheme</li>
