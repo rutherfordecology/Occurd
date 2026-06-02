@@ -206,6 +206,7 @@ header { background: var(--green-dark); color: white; padding: 0 1.5rem; display
 .cl-nztcs-btn { font-size:10px; font-weight:600; font-family:var(--font-sans); background:none; border:0.5px solid var(--border); border-radius:4px; padding:3px 7px; cursor:pointer; color:var(--text3); transition:all 0.12s; white-space:nowrap; }
 .cl-nztcs-btn:hover { border-color:var(--green); color:var(--green); }
 .cl-nztcs-btn.unlocked { color:var(--green-dark); border-color:var(--green-mid); background:var(--green-light); }
+.filter-row-label { font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:0.07em; color:var(--text3); align-self:center; padding-right:2px; flex-shrink:0; }
 .cl-nztcs-filters { display:flex; flex-wrap:wrap; gap:4px; padding:6px 10px; border-bottom:0.5px solid var(--border); background:var(--surface2); }
 .nztcs-fc { font-size:10px; font-weight:700; font-family:var(--font-sans); padding:2px 7px; border-radius:3px; cursor:pointer; transition:all 0.1s; border:1px solid var(--border2); background:var(--surface); color:var(--text3); white-space:nowrap; }
 .nztcs-fc:hover { color:var(--text); }
