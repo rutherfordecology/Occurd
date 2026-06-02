@@ -45,7 +45,7 @@
       <img src="../occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v4.12b</span> <span style="font-size:10px;font-weight:700;color:#fbbf24;letter-spacing:0.06em;background:rgba(251,191,36,0.15);padding:1px 6px;border-radius:8px;">BETA</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v4.13b</span> <span style="font-size:10px;font-weight:700;color:#fbbf24;letter-spacing:0.06em;background:rgba(251,191,36,0.15);padding:1px 6px;border-radius:8px;">BETA</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -582,6 +582,7 @@ map.on(L.Draw.Event.DRAWSTART, e => {
      drawControl._toolbars.draw._modes && drawControl._toolbars.draw._modes.polygon &&
      drawControl._toolbars.draw._modes.polygon.handler) || null;
   drawActionBar.style.display = 'flex';
+  finishDrawBtn.disabled = true; // need ≥3 vertices before Finish is valid
   clearDrawDistLabels();
   isDrawingPoly = true;
 });
@@ -628,6 +629,8 @@ map.on('draw:drawvertex', function(e) {
     drawSegLabels.push(makeDistLabel(mid, fmtDist(a.distanceTo(b)), false));
   }
   drawLastVertex = verts.length > 0 ? verts[verts.length - 1] : null;
+  // Enable Finish only once there are enough vertices for a valid polygon
+  finishDrawBtn.disabled = verts.length < 3;
 });
 
 map.on('mousemove', function(e) {
@@ -651,7 +654,11 @@ let _lastFinish = 0, _lastUndo = 0, _lastCancel = 0;
 function onFinishDraw(e) {
   e.preventDefault(); e.stopPropagation();
   const now = Date.now(); if (now - _lastFinish < 400) return; _lastFinish = now;
-  if (activeDrawHandler && activeDrawHandler.completeShape) activeDrawHandler.completeShape();
+  if (!activeDrawHandler || !activeDrawHandler.completeShape) return;
+  // Guard: silently ignore if fewer than 3 vertices placed
+  const vCount = activeDrawHandler._markers ? activeDrawHandler._markers.length : 999;
+  if (vCount < 3) return;
+  activeDrawHandler.completeShape();
 }
 function onUndoPoint(e) {
   e.preventDefault(); e.stopPropagation();
@@ -4017,6 +4024,16 @@ document.getElementById('dlChecklistBtn').addEventListener('click', () => {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v4.13b</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>Mobile drawing — Finish button disabled until 3 vertices placed; tapping the first polygon point no longer triggers an error</li>
+        <li>IUCN — switched to species-level /threatStatuses endpoint for accurate current assessments; occurrence-level field was stale for some species (e.g. avocado showed LC instead of VU)</li>
+        <li>NZTCS / IUCN filter rows — labelled "NZTCS" and "IUCN Red List" for clarity</li>
+        <li>Mobile — species checklist hidden by default after search; tab shows species count; ✕ Close button in header</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v4.12b</span>
       <span class="changelog-date">Jun 2026</span>
