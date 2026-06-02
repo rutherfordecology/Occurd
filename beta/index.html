@@ -2154,21 +2154,25 @@ function iucnBadgeHtml(status) {
 }
 
 async function fetchIucnStatuses(records) {
+  // Uses /species/{key}/threatStatuses — the authoritative GBIF species-level source.
+  // Always runs (even if occurrence records already seeded the cache) to correct stale values.
   _iucnFetchAbort = false;
   const speciesKeys = [...new Set(records.map(r => r.speciesKey || r.taxonKey).filter(Boolean))];
-  const toFetch = speciesKeys.filter(k => iucnCache[k] === undefined);
   const BATCH = 8;
-  for (let i = 0; i < toFetch.length; i += BATCH) {
+  for (let i = 0; i < speciesKeys.length; i += BATCH) {
     if (_iucnFetchAbort) return;
-    const batch = toFetch.slice(i, i + BATCH);
+    const batch = speciesKeys.slice(i, i + BATCH);
     await Promise.all(batch.map(async key => {
-      if (_iucnFetchAbort || iucnCache[key] !== undefined) return;
+      if (_iucnFetchAbort) return;
       try {
-        const res = await fetch('https://api.gbif.org/v1/species/' + key);
-        if (!res.ok) { iucnCache[key] = null; return; }
+        const res = await fetch('https://api.gbif.org/v1/species/' + key + '/threatStatuses');
+        if (!res.ok) { if (iucnCache[key] === undefined) iucnCache[key] = null; return; }
         const json = await res.json();
-        iucnCache[key] = iucnShortCode(json.iucnRedListCategory) || null;
-      } catch(e) { iucnCache[key] = null; }
+        const results = json.results || [];
+        // Pick first IUCN Red List entry; prefer entries that mention IUCN explicitly
+        const iucnEntry = results.find(r => /iucn/i.test(r.source || '')) || results[0];
+        iucnCache[key] = iucnEntry ? (iucnShortCode(iucnEntry.threatStatus) || null) : null;
+      } catch(e) { if (iucnCache[key] === undefined) iucnCache[key] = null; }
     }));
     if (!_iucnFetchAbort) _updateIucnBadges(records);
   }
@@ -3326,10 +3330,12 @@ function buildChecklist(records) {
       footer.style.display = hasUncertain ? '' : 'none';
     }
   }
-  // IUCN — cache is pre-populated from occurrence records before buildChecklist is called;
-  // show filter row now if any data is present.
+  // IUCN — show filter row for any occurrence-seeded data immediately, then kick off
+  // the authoritative per-species fetch which corrects stale occurrence-level values.
   _showIucnFiltersIfData();
   if (currentIucnFilter !== 'all') filterChecklistSearch();
+  _iucnFetchAbort = true;
+  setTimeout(() => { _iucnFetchAbort = false; fetchIucnStatuses(records); }, 0);
 }
 
 // Filter — group headers in checklist act as toggles (chips removed)
@@ -3748,14 +3754,15 @@ runBtn.addEventListener('click', async () => {
   const _dominant = Object.entries(_cc).sort((a,b) => b[1]-a[1])[0]?.[0] || '';
   maybeActivateNztcs(_dominant);
 
-  // Seed iucnCache from occurrence records (iucnRedListCategory is returned by GBIF at occurrence level)
+  // Seed iucnCache from occurrence records for a quick initial display.
+  // NOTE: occurrence-level iucnRedListCategory can be stale — the async fetch in
+  // buildChecklist will override these with accurate values from the species API.
   displayRecords.forEach(r => {
     const key = r.speciesKey || r.taxonKey;
     if (key && r.iucnRedListCategory && iucnCache[key] === undefined) {
       iucnCache[key] = iucnShortCode(r.iucnRedListCategory) || null;
-    } else if (key && iucnCache[key] === undefined) {
-      iucnCache[key] = null; // mark as checked, no status in occurrence data
     }
+    // Do NOT mark missing entries as null — let the async fetch fill and correct them.
   });
 
   buildFilterChips(displayRecords);
