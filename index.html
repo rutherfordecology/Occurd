@@ -45,7 +45,7 @@
       <img src="occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v4.06</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v4.09</span></h1>
   </div>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
     <!-- Projects dropdown -->
@@ -2198,6 +2198,14 @@ async function lookupCommonNames(records) {
 const photoCache     = {};
 const photoListCache = {}; // taxonKey -> [{url,licence,photographer}, ...]
 const inatIdCache    = {}; // taxonKey -> iNaturalist taxon id (integer)
+
+// Responsive popup sizing — three tiers: mobile / tablet / desktop
+function _popupSize() {
+  const w = window.innerWidth;
+  if (w < 700)  return { mob: true,  tab: false, imgH: '130px', maxW: Math.min(w - 32, 255), minW: 187, maxWm: Math.min(w - 32, 255), minWm: 187, spListH: '85px',  recH: '90px'  };
+  if (w < 1024) return { mob: false, tab: true,  imgH: '195px', maxW: 300,  minW: 250,  maxWm: 340,  minWm: 280,  spListH: '95px',  recH: '100px' };
+  return         { mob: false, tab: false, imgH: '260px', maxW: 340,  minW: 280,  maxWm: 380,  minWm: 320,  spListH: '110px', recH: '115px' };
+}
 const _photoSlots    = {}; // slotId   -> {photos:[...], idx:0}
 
 // sciName → iNat taxon result cache (keyed by taxonKey)
@@ -2213,10 +2221,15 @@ async function fetchSpeciesPhoto(taxonKey, sciName) {
   const binomial = sciName ? sciName.split(/\s+/).slice(0, 2).join(' ') : null;
   if (binomial) {
     try {
-      const res = await fetch('https://api.inaturalist.org/v1/taxa?q=' + encodeURIComponent(binomial) + '&rank=species&per_page=1&is_active=true');
+      const res = await fetch('https://api.inaturalist.org/v1/taxa?q=' + encodeURIComponent(binomial) + '&rank=species&per_page=5&is_active=true');
       if (res.ok) {
         const json = await res.json();
-        const taxon = (json.results || [])[0];
+        // Require an exact scientific name match — iNat taxon swaps can return the
+        // wrong species (e.g. querying "Carduelis carduelis" may return an American
+        // Goldfinch whose ancestor was once placed in Carduelis)
+        const taxon = (json.results || []).find(t =>
+          t.name && t.name.toLowerCase() === binomial.toLowerCase()
+        );
         // Try the featured default photo first; if it's All Rights Reserved,
         // fall through to the curated taxon_photos list for the next best option
         const candidates = [];
@@ -2456,7 +2469,7 @@ function renderPhotoSlot(slotId, idx) {
   if (!slot || !data) return;
   const photo = data.photos[idx];
   const total = data.photos.length;
-  const imgH  = window.innerWidth < 768 ? '138px' : '260px';
+  const imgH  = _popupSize().imgH;
   const sciName = slot.dataset.sciName || '';
 
   const navHtml = total > 1
@@ -2512,7 +2525,7 @@ window._gbifRecordPhotos = {};
 window._gbifShowRecordPhoto = function(slotId, photoKey) {
   const slot = document.getElementById(slotId);
   if (!slot) return;
-  const imgH = window.innerWidth < 768 ? '130px' : '260px';
+  const imgH = _popupSize().imgH;
 
   // Toggle: if currently showing the record photo, revert to species photo
   if (slot.dataset.showingRecord === '1') {
@@ -2583,7 +2596,7 @@ window._gbifSelectSpecies = function(pid, spIdx) {
   }).join('');
   const countLabel = '<div style="font-size:11px;color:#9b9890;margin-bottom:2px;">' + sp.records.length + ' record' + (sp.records.length === 1 ? '' : 's') + (sp.records.length > 5 ? ' — scroll to see all' : '') + '</div>';
   const recordRows = countLabel + (sp.records.length > 5
-    ? '<div style="max-height:115px;overflow-y:scroll;padding-right:2px;">' + recordRowsInner + '</div>'
+    ? '<div style="max-height:' + _ps.recH + ';overflow-y:scroll;padding-right:2px;">' + recordRowsInner + '</div>'
     : recordRowsInner);
 
   const nameHtml = sp.common
@@ -2670,15 +2683,15 @@ function makeStackedPopup(stackedRecords) {
     return (
       '<div id="' + popupId + '-photo" style="margin-bottom:8px;"></div>' +
       '<div style="font-size:10.5px;color:#2a7a58;font-weight:600;margin-bottom:5px;">' + pin + ' ' + total + ' records \xb7 ' + speciesCount + ' species</div>' +
-      '<div id="' + popupId + '-splist" style="overflow-y:auto;max-height:110px;border-bottom:1px solid #eee;margin-bottom:6px;">' + spItems + '</div>' +
+      '<div id="' + popupId + '-splist" style="overflow-y:auto;max-height:' + _ps.spListH + ';border-bottom:1px solid #eee;margin-bottom:6px;">' + spItems + '</div>' +
       '<div id="' + popupId + '-detail"></div>'
     );
   }
 
-  const isMob = window.innerWidth < 768;
+  const _ps   = _popupSize();
   const popup = L.popup({
-    maxWidth:  isMob ? Math.min(window.innerWidth - 32, 255) : (isMulti ? 380 : 340),
-    minWidth:  isMob ? 187 : (isMulti ? 320 : 280),
+    maxWidth: isMulti ? _ps.maxWm : _ps.maxW,
+    minWidth: isMulti ? _ps.minWm : _ps.minW,
     autoPan: true, keepInView: true
   });
   window._gbifPopupState[popupId] = { idx: 0, sorted, popup, multiRecord: isMulti, speciesList };
@@ -3695,9 +3708,18 @@ document.getElementById('dlChecklistBtn').addEventListener('click', () => {
   </div>
   <div class="changelog-scroll" id="changelogScroll">
     <div class="changelog-version">
-      <span class="changelog-version-tag">v4.06</span>
+      <span class="changelog-version-tag">v4.09</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>NZTCS threat status badges updated to official NZ DOC colour scheme</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v4.08b</span>
       <span class="changelog-date">May 2026</span>
       <ul>
+        <li>Responsive layout — tablet breakpoint (701–1024px): narrower sidebar (260px), tighter padding, smaller popup photo, proportional popup widths</li>
+        <li>Species photo — require exact iNaturalist scientific name match to prevent taxon-swap mismatches (e.g. Eurasian Goldfinch showing American Goldfinch photo)</li>
         <li>Tree of Life — species common names: NZOR first, falls back to GBIF vernacular name</li>
         <li>Tree of Life — loading phrase appears for minimum 2 seconds on every taxon click, even when cached</li>
         <li>Tree of Life — empty columns left of Kingdom now show blank header instead of positional label</li>
@@ -4775,5 +4797,6 @@ document.getElementById('dlChecklistBtn').addEventListener('click', () => {
 </div>
 </body>
 </html>
+
 
 
