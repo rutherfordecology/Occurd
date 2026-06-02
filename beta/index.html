@@ -3315,7 +3315,7 @@ function buildChecklist(records) {
     Object.values(byGroup).forEach(group => {
       Object.entries(group).forEach(([name, info]) => {
         // 1. nztcs.json — loaded if user has unlocked NZTCS status; has explicit maori + common fields
-        if (nztcsData) {
+        if (nztcsUnlocked && nztcsData) {
           const m = lookupNztcs(info.record);
           if (m && m.entry) {
             const parts = [m.entry.maori, m.entry.common]
@@ -3377,7 +3377,7 @@ function buildChecklist(records) {
       const row = document.createElement('div'); row.className = 'cl-row';
       row.dataset.species = name;
       row.dataset.common  = info.common;
-      const nztcsMatch = lookupNztcs(info.record);
+      const nztcsMatch = nztcsUnlocked ? lookupNztcs(info.record) : null;
       const nztcsEntry = nztcsMatch ? nztcsMatch.entry : null;
       if (nztcsMatch && !nztcsMatch.certain) hasUncertain = true;
       const nztcsBadge = nztcsBadgeHtml(nztcsEntry, nztcsMatch ? nztcsMatch.certain : true);
