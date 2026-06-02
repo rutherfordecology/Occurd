@@ -3309,10 +3309,8 @@ function buildChecklist(records) {
       footer.style.display = hasUncertain ? '' : 'none';
     }
   }
-  // IUCN — kick off async fetch; updates badges + shows filter row progressively
-  _iucnFetchAbort = true; // cancel any previous in-flight fetch
-  setTimeout(() => { _iucnFetchAbort = false; fetchIucnStatuses(records); }, 0);
-  // If we already have cached data from a previous search, show filters now
+  // IUCN — cache is pre-populated from occurrence records before buildChecklist is called;
+  // show filter row now if any data is present.
   _showIucnFiltersIfData();
   if (currentIucnFilter !== 'all') filterChecklistSearch();
 }
@@ -3633,6 +3631,7 @@ runBtn.addEventListener('click', async () => {
             recordedBy:                    Array.isArray(r.recordedBy) ? r.recordedBy.join('; ') : (r.recordedBy || null),
             establishmentMeans:            r.establishmentMeans || null,
             dynamicProperties:             r.dynamicProperties || null,
+            iucnRedListCategory:           r.iucnRedListCategory || null,
             recordPhoto: (() => {
               const img = (r.media || []).find(m => m.type === 'StillImage' && m.identifier);
               if (!img) return null;
@@ -3731,6 +3730,16 @@ runBtn.addEventListener('click', async () => {
   displayRecords.forEach(r => { if (r.countryCode) _cc[r.countryCode] = (_cc[r.countryCode] || 0) + 1; });
   const _dominant = Object.entries(_cc).sort((a,b) => b[1]-a[1])[0]?.[0] || '';
   maybeActivateNztcs(_dominant);
+
+  // Seed iucnCache from occurrence records (iucnRedListCategory is returned by GBIF at occurrence level)
+  displayRecords.forEach(r => {
+    const key = r.speciesKey || r.taxonKey;
+    if (key && r.iucnRedListCategory && iucnCache[key] === undefined) {
+      iucnCache[key] = iucnShortCode(r.iucnRedListCategory) || null;
+    } else if (key && iucnCache[key] === undefined) {
+      iucnCache[key] = null; // mark as checked, no status in occurrence data
+    }
+  });
 
   buildFilterChips(displayRecords);
   buildChecklist(displayRecords);
