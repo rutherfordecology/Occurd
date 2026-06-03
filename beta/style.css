@@ -155,8 +155,8 @@ header { background: var(--green-dark); color: white; padding: 0 1.5rem; display
 .cl-close-mobile:hover { background: var(--border); }
 #clToggleHandle { position: absolute; left: -26px; top: 50%; transform: translateY(-50%); width: 26px; height: 64px; background: var(--surface); border: 1px solid var(--border); border-right: none; border-radius: 6px 0 0 6px; cursor: pointer; box-shadow: -3px 0 8px rgba(0,0,0,0.10); display: none; align-items: center; justify-content: center; padding: 0; font-size: 16px; color: var(--text2); z-index: 901; transition: background 0.12s, color 0.12s; }
 #clToggleHandle:hover { background: var(--green-light); color: var(--green-dark); }
-/* Desktop checklist toggle — left edge of map-wrap, away from Leaflet attribution */
-#clToggleHandleMap { position: absolute; left: 0; top: 50%; transform: translateY(-50%); width: 26px; height: 64px; background: var(--surface); border: 1px solid var(--border); border-left: none; border-radius: 0 6px 6px 0; cursor: pointer; box-shadow: 3px 0 8px rgba(0,0,0,0.10); display: none; align-items: center; justify-content: center; padding: 0; font-size: 16px; color: var(--text2); z-index: 901; transition: background 0.12s, color 0.12s; }
+/* Desktop checklist toggle — fixed to viewport, right side above Leaflet attribution */
+#clToggleHandleMap { position: fixed; right: 0; bottom: 48px; width: 28px; height: 56px; background: var(--surface); border: 1px solid var(--border); border-right: none; border-radius: 6px 0 0 6px; cursor: pointer; box-shadow: -3px 0 8px rgba(0,0,0,0.12); display: none; align-items: center; justify-content: center; padding: 0; font-size: 16px; color: var(--text2); z-index: 9999; transition: background 0.12s, color 0.12s; }
 #clToggleHandleMap:hover { background: var(--green-light); color: var(--green-dark); }
 /* Desktop close button inside panel header — hidden on mobile */
 .cl-close-desktop { display: flex; align-items: center; justify-content: center; background: none; border: 1px solid var(--border); border-radius: 5px; width: 26px; height: 26px; font-size: 16px; font-weight: 600; color: var(--text2); cursor: pointer; flex-shrink: 0; }
@@ -295,7 +295,7 @@ html, body { max-width: 100vw; overflow-x: hidden; }
   #map { position: absolute; inset: 0; }
   .checklist-panel { width: 100%; height: 370px; top: auto; bottom: 0; transform: translateY(100%); overflow: visible; }
   .checklist-panel.open { transform: translateY(0); }
-  #clToggleHandle { position:absolute; bottom:0; left:50%; transform:translateX(-50%); width:auto; min-width:100px; max-width:220px; height:34px; border-radius:8px 8px 0 0; border-bottom:none; border-right:1px solid var(--border); writing-mode:horizontal-tb; font-size:12px; font-weight:600; padding:0 14px; white-space:nowrap; z-index:1050; }
+  #clToggleHandle { position:fixed; bottom:0; left:50%; transform:translateX(-50%); width:auto; min-width:100px; max-width:220px; height:34px; border-radius:8px 8px 0 0; border-bottom:none; border-right:1px solid var(--border); writing-mode:horizontal-tb; font-size:12px; font-weight:600; padding:0 14px; white-space:nowrap; z-index:9999; }
   .cl-close-mobile { display: flex !important; }
   #clToggleHandleMap { display: none !important; }
   .cl-close-desktop { display: none !important; }
