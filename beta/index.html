@@ -45,7 +45,7 @@
       <img src="../occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v4.20b</span> <span style="font-size:10px;font-weight:700;color:#fbbf24;letter-spacing:0.06em;background:rgba(251,191,36,0.15);padding:1px 6px;border-radius:8px;">BETA</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v4.21b</span> <span style="font-size:10px;font-weight:700;color:#fbbf24;letter-spacing:0.06em;background:rgba(251,191,36,0.15);padding:1px 6px;border-radius:8px;">BETA</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -309,6 +309,7 @@
         <div style="display:flex;align-items:center;gap:6px;">
           <button class="cl-nztcs-btn" id="clNztcsBtn" title="Click to activate NZTCS conservation status" style="display:none;">NZTCS</button>
           <button class="cl-nztcs-btn" id="clIucnBtn" title="Click to activate IUCN Red List status" style="display:none;">IUCN</button>
+          <button class="cl-nztcs-btn" id="clTkBtn" title="Filter to records with Traditional Knowledge or Biocultural labels" style="display:none;">🏷️ TK</button>
           <button class="cl-close-desktop" onclick="toggleChecklist()" title="Close species list">&#x2039;</button>
           <button class="cl-close-mobile" onclick="toggleChecklist()" title="Close checklist">✕ Close</button>
         </div>
@@ -905,6 +906,8 @@ let polygons = [], refLayers = [], clipTurfPolygons = null, allRecords = [], act
 let viewMode = 'points', selectedSpecies = null, nextPolyId = 0, csvData = null, pendingLoad = null;
 let currentNztcsFilter = 'all';
 let currentIucnFilter  = 'all';
+let tkFilterActive     = false;
+let _tkSpeciesNames    = new Set(); // species names (display) where ≥1 record has a TK label
 let iucnCache = {};        // speciesKey → status string ('EN','LC',…) or null
 let _iucnFetchAbort = false;
 let allMarkers = [];
@@ -1280,6 +1283,10 @@ function passesFilters(r) {
     const iucnStatus = key ? (iucnCache[key] || '') : '';
     if (iucnStatus !== currentIucnFilter) return false;
   }
+  if (tkFilterActive) {
+    const name = r.species || r.scientificName;
+    if (!name || !_tkSpeciesNames.has(name)) return false;
+  }
   return true;
 }
 
@@ -1290,6 +1297,10 @@ function clearResults() {
   _iucnFetchAbort    = true;
   nztcsUnlocked = false;
   iucnUnlocked  = false;
+  tkFilterActive = false;
+  _tkSpeciesNames.clear();
+  const _tkBtnC = document.getElementById('clTkBtn');
+  if (_tkBtnC) { _tkBtnC.style.display = 'none'; _tkBtnC.classList.remove('unlocked'); }
   const nztcsBtn = document.getElementById('clNztcsBtn');
   if (nztcsBtn) { nztcsBtn.textContent = 'NZTCS'; nztcsBtn.classList.remove('unlocked'); nztcsBtn.title = 'Click to activate NZTCS conservation status'; nztcsBtn.style.display = 'none'; }
   document.getElementById('clNztcsFilters').style.display = 'none';
@@ -2352,6 +2363,17 @@ document.getElementById('iucnCancelBtn').addEventListener('click', () => {
   document.getElementById('iucnModal').classList.remove('open');
 });
 
+document.getElementById('clTkBtn').addEventListener('click', () => {
+  tkFilterActive = !tkFilterActive;
+  const btn = document.getElementById('clTkBtn');
+  btn.classList.toggle('unlocked', tkFilterActive);
+  btn.title = tkFilterActive ? 'Showing TK/BC labelled species only — click to clear' : 'Filter to records with Traditional Knowledge or Biocultural labels';
+  filterChecklistSearch();
+  if (viewMode === 'points') renderPoints(allRecords);
+  else renderHeatmap(allRecords);
+  csvData = buildCSV(allRecords.filter(passesFilters));
+});
+
 document.getElementById('nztcsBetaAcceptBtn').addEventListener('click', async () => {
   document.getElementById('nztcsBetaModal').classList.remove('open');
   nztcsBetaAgreed = true;
@@ -3293,7 +3315,8 @@ function filterChecklistSearch() {
     if (currentIucnFilter !== 'all') {
       matchIucn = (row.dataset.iucn || '') === currentIucnFilter;
     }
-    row.classList.toggle('hidden', !matchSearch || !matchNztcs || !matchIucn);
+    const matchTk = !tkFilterActive || _tkSpeciesNames.has(row.dataset.species || '');
+    row.classList.toggle('hidden', !matchSearch || !matchNztcs || !matchIucn || !matchTk);
   });
   document.querySelectorAll('.cl-group-header').forEach(header => {
     let hasVisible = false, el = header.nextElementSibling;
@@ -3424,8 +3447,10 @@ function buildChecklist(records) {
       const iucnStatus = iucnKey && iucnCache[iucnKey] ? iucnCache[iucnKey] : null;
       row.dataset.iucn = iucnUnlocked ? (iucnStatus || '') : '';
       const iucnBadge = iucnUnlocked ? iucnBadgeHtml(iucnStatus) : '';
+      const tkBadge = _tkSpeciesNames.has(name)
+        ? '<span class="tk-badge" title="Traditional Knowledge / Biocultural label — Local Contexts">🏷️</span>' : '';
       row.innerHTML =
-        '<div class="cl-row-top"><span class="cl-name">' + name + nztcsBadge + iucnBadge + '</span><span class="cl-count">' + info.count + '</span></div>' +
+        '<div class="cl-row-top"><span class="cl-name">' + name + nztcsBadge + iucnBadge + tkBadge + '</span><span class="cl-count">' + info.count + '</span></div>' +
         (info.common ? '<div class="cl-common">' + info.common + '</div>' : '');
       row.addEventListener('click', () => {
         if (selectedSpecies === name) clearSpeciesSelection();
@@ -3866,6 +3891,17 @@ runBtn.addEventListener('click', async () => {
   const _iucnBtn = document.getElementById('clIucnBtn');
   if (_iucnBtn) { _iucnBtn.style.display = ''; updateIucnBtn(); }
 
+  // Build TK species set — scan for local_contexts_project_id in dynamicProperties
+  _tkSpeciesNames.clear();
+  displayRecords.forEach(r => {
+    if (parseTKProjectId(r.dynamicProperties)) {
+      const name = r.species || r.scientificName;
+      if (name) _tkSpeciesNames.add(name);
+    }
+  });
+  const _tkBtn = document.getElementById('clTkBtn');
+  if (_tkBtn) _tkBtn.style.display = _tkSpeciesNames.size > 0 ? '' : 'none';
+
   // Seed iucnCache from occurrence records for a quick initial display.
   // NOTE: occurrence-level iucnRedListCategory can be stale — the async fetch in
   // buildChecklist will override these with accurate values from the species API.
@@ -3965,6 +4001,13 @@ document.getElementById('dlCsvBtn').addEventListener('click', () => {
     rows = rows.map(r => {
       const key = r.speciesKey || r.taxonKey;
       return Object.assign({}, r, { iucn_category: (key && iucnCache[key]) || '' });
+    });
+  }
+  if (_tkSpeciesNames.size > 0) {
+    fields = [...fields, 'tk_label'];
+    rows = rows.map(r => {
+      const tkId = parseTKProjectId(r.dynamicProperties);
+      return Object.assign({}, r, { tk_label: tkId ? tkProjectUrl(tkId) : '' });
     });
   }
   const csvHeader = '# Downloaded from Occurd (https://rutherfordecology.github.io/Occurd/) on ' + new Date().toISOString().split('T')[0] + '\n' +
@@ -4126,6 +4169,15 @@ document.getElementById('dlChecklistBtn').addEventListener('click', () => {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v4.21b</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>Traditional Knowledge / Biocultural labels — 🏷️ TK button appears in the checklist header when any records in the current search carry a Local Contexts project ID; click to filter checklist and map to TK/BC-labelled species only; click again to clear</li>
+        <li>🏷️ badge shown on species in the checklist where at least one record has a TK/BC label</li>
+        <li>CSV export — <code>tk_label</code> column added when TK/BC records are present, containing the Local Contexts Hub project URL</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v4.20b</span>
       <span class="changelog-date">Jun 2026</span>
