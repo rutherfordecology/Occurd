@@ -307,8 +307,8 @@
       <div class="cl-header">
         <span class="cl-title">Species checklist</span>
         <div style="display:flex;align-items:center;gap:6px;">
-          <button class="cl-nztcs-btn" id="clNztcsBtn" title="Click to activate NZTCS conservation status" style="display:none;">🇳🇿 NZTCS</button>
-          <button class="cl-nztcs-btn" id="clIucnBtn" title="Click to activate IUCN Red List status" style="display:none;">🌍 IUCN</button>
+          <button class="cl-nztcs-btn" id="clNztcsBtn" title="Click to activate NZTCS conservation status" style="display:none;">NZTCS</button>
+          <button class="cl-nztcs-btn" id="clIucnBtn" title="Click to activate IUCN Red List status" style="display:none;">IUCN</button>
           <button class="cl-close-desktop" onclick="toggleChecklist()" title="Close species list">&#x2039;</button>
           <button class="cl-close-mobile" onclick="toggleChecklist()" title="Close checklist">✕ Close</button>
         </div>
@@ -455,7 +455,7 @@
 <!-- IUCN Red List disclaimer modal -->
 <div class="modal-overlay" id="iucnModal">
   <div class="modal" style="max-width:420px;">
-    <h2 style="margin-bottom:0.5rem;">🌍 IUCN Red List status</h2>
+    <h2 style="margin-bottom:0.5rem;">IUCN Red List status</h2>
     <p style="margin-bottom:0.8rem;">This feature displays IUCN Red List conservation status badges in the species checklist, sourced from GBIF's species data.</p>
     <p style="margin-bottom:0.4rem;"><strong>Coverage is partial</strong> — assessments exist for many vertebrates and plants, but large numbers of invertebrates, fungi, and less-studied groups have not been evaluated by IUCN.</p>
     <p style="margin-bottom:0.4rem;">IUCN assessments reflect <strong>global</strong> population status. A species may be globally Least Concern while being locally threatened or absent from a region. Conversely, a species may be threatened in its native range while being invasive elsewhere.</p>
@@ -1291,14 +1291,14 @@ function clearResults() {
   nztcsUnlocked = false;
   iucnUnlocked  = false;
   const nztcsBtn = document.getElementById('clNztcsBtn');
-  if (nztcsBtn) { nztcsBtn.textContent = '🇳🇿 NZTCS'; nztcsBtn.classList.remove('unlocked'); nztcsBtn.title = 'Click to activate NZTCS conservation status'; nztcsBtn.style.display = 'none'; }
+  if (nztcsBtn) { nztcsBtn.textContent = 'NZTCS'; nztcsBtn.classList.remove('unlocked'); nztcsBtn.title = 'Click to activate NZTCS conservation status'; nztcsBtn.style.display = 'none'; }
   document.getElementById('clNztcsFilters').style.display = 'none';
   document.getElementById('clIucnFilters').style.display = 'none';
   document.getElementById('clFooter').style.display = 'none';
   document.querySelectorAll('.nztcs-fc').forEach(b => b.classList.toggle('active', b.dataset.f === 'all'));
   document.querySelectorAll('.iucn-fc').forEach(b => b.classList.toggle('active', b.dataset.f === 'all'));
   const _ib = document.getElementById('clIucnBtn');
-  if (_ib) { _ib.style.display = 'none'; _ib.classList.remove('unlocked'); _ib.textContent = '🌍 IUCN'; }
+  if (_ib) { _ib.style.display = 'none'; _ib.classList.remove('unlocked'); _ib.textContent = 'IUCN'; }
   metricsGrid.style.display = 'none'; filterSection.style.display = 'none';
   legend.style.display = 'none'; outputSection.style.display = 'none';
   if (qualityBoxEl)  qualityBoxEl.style.display  = 'none';
@@ -2091,12 +2091,12 @@ function updateNztcsBtn() {
   const btn = document.getElementById('clNztcsBtn');
   if (!btn) return;
   if (nztcsUnlocked) {
-    btn.textContent = '🇳🇿 NZTCS';
+    btn.textContent = 'NZTCS';
     btn.classList.add('unlocked');
     btn.title = 'NZTCS active — click to hide badges';
     document.getElementById('clNztcsFilters').style.display = 'flex';
   } else {
-    btn.textContent = '🇳🇿 NZTCS';
+    btn.textContent = 'NZTCS';
     btn.classList.remove('unlocked');
     btn.title = 'Click to show NZTCS conservation status';
     document.getElementById('clNztcsFilters').style.display = 'none';
@@ -2111,7 +2111,7 @@ function updateIucnBtn() {
     btn.classList.add('unlocked');
     btn.title = 'IUCN Red List active — click to hide badges';
   } else {
-    btn.textContent = '🌍 IUCN';
+    btn.textContent = 'IUCN';
     btn.classList.remove('unlocked');
     btn.title = 'Click to show IUCN Red List status';
     document.getElementById('clIucnFilters').style.display = 'none';
@@ -4135,7 +4135,7 @@ document.getElementById('dlChecklistBtn').addEventListener('click', () => {
       </ul>
     </div>
     <div class="changelog-version">
-      <span class="changelog-version-tag">v4.19</span>
+      <span class="changelog-version-tag">v4.19b</span>
       <span class="changelog-date">Jun 2026</span>
       <ul>
         <li>Mobile — collapsed sidebar sections (Define Area, Parameters, etc.) now use less vertical space when minimised</li>
@@ -4143,23 +4143,23 @@ document.getElementById('dlChecklistBtn').addEventListener('click', () => {
       </ul>
     </div>
     <div class="changelog-version">
-      <span class="changelog-version-tag">v4.18</span>
+      <span class="changelog-version-tag">v4.18b</span>
       <span class="changelog-date">Jun 2026</span>
       <ul>
         <li>Heatmap now updates correctly when taxon groups are toggled on/off in the species checklist</li>
       </ul>
     </div>
     <div class="changelog-version">
-      <span class="changelog-version-tag">v4.17</span>
+      <span class="changelog-version-tag">v4.17b</span>
       <span class="changelog-date">Jun 2026</span>
       <ul>
-        <li>NZTCS button updated to 🇳🇿 to match the 🌍 IUCN globe style</li>
+        <li>NZTCS button updated to 🇳🇿 to match the IUCN globe style</li>
         <li>NZTCS — fix: badges no longer appear on non-NZ searches when NZTCS data was loaded from a previous NZ session</li>
         <li>NZTCS — activation now based on whether the drawn polygon overlaps New Zealand geographically, not on which country codes appear in the occurrence results</li>
       </ul>
     </div>
     <div class="changelog-version">
-      <span class="changelog-version-tag">v4.16</span>
+      <span class="changelog-version-tag">v4.16b</span>
       <span class="changelog-date">Jun 2026</span>
       <ul>
         <li>Onboarding tour — now waits for the data disclaimer modal and mobile screen warning to be dismissed before starting</li>
@@ -4167,12 +4167,12 @@ document.getElementById('dlChecklistBtn').addEventListener('click', () => {
       </ul>
     </div>
     <div class="changelog-version">
-      <span class="changelog-version-tag">v4.15</span>
+      <span class="changelog-version-tag">v4.15b</span>
       <span class="changelog-date">Jun 2026</span>
       <ul>
-        <li>IUCN Red List — now behind a 🌍 IUCN lock button with a disclaimer modal; badges only appear after acknowledgement</li>
+        <li>IUCN Red List — now behind a IUCN lock button with a disclaimer modal; badges only appear after acknowledgement</li>
         <li>IUCN button appears after every search (global dataset, not NZ-only)</li>
-        <li>Both 🇳🇿 NZTCS and 🌍 IUCN buttons toggle off when clicked while active — badges and filter rows disappear; click again to re-enable</li>
+        <li>Both NZTCS and IUCN buttons toggle off when clicked while active — badges and filter rows disappear; click again to re-enable</li>
       </ul>
     </div>
     <div class="changelog-version">
@@ -5300,6 +5300,7 @@ document.getElementById('dlChecklistBtn').addEventListener('click', () => {
 </div>
 </body>
 </html>
+
 
 
 
