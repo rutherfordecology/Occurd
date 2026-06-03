@@ -307,7 +307,7 @@
       <div class="cl-header">
         <span class="cl-title">Species checklist</span>
         <div style="display:flex;align-items:center;gap:6px;">
-          <button class="cl-nztcs-btn" id="clNztcsBtn" title="Click to activate NZTCS conservation status" style="display:none;">🔒 NZTCS</button>
+          <button class="cl-nztcs-btn" id="clNztcsBtn" title="Click to activate NZTCS conservation status" style="display:none;">🇳🇿 NZTCS</button>
           <button class="cl-nztcs-btn" id="clIucnBtn" title="Click to activate IUCN Red List status" style="display:none;">🌍 IUCN</button>
           <button class="cl-close-desktop" onclick="toggleChecklist()" title="Close species list">&#x2039;</button>
           <button class="cl-close-mobile" onclick="toggleChecklist()" title="Close checklist">✕ Close</button>
@@ -1291,7 +1291,7 @@ function clearResults() {
   nztcsUnlocked = false;
   iucnUnlocked  = false;
   const nztcsBtn = document.getElementById('clNztcsBtn');
-  if (nztcsBtn) { nztcsBtn.textContent = '🔒 NZTCS'; nztcsBtn.classList.remove('unlocked'); nztcsBtn.title = 'Click to activate NZTCS conservation status'; nztcsBtn.style.display = 'none'; }
+  if (nztcsBtn) { nztcsBtn.textContent = '🇳🇿 NZTCS'; nztcsBtn.classList.remove('unlocked'); nztcsBtn.title = 'Click to activate NZTCS conservation status'; nztcsBtn.style.display = 'none'; }
   document.getElementById('clNztcsFilters').style.display = 'none';
   document.getElementById('clIucnFilters').style.display = 'none';
   document.getElementById('clFooter').style.display = 'none';
@@ -2091,12 +2091,12 @@ function updateNztcsBtn() {
   const btn = document.getElementById('clNztcsBtn');
   if (!btn) return;
   if (nztcsUnlocked) {
-    btn.textContent = '✅ NZTCS';
+    btn.textContent = '🇳🇿 NZTCS';
     btn.classList.add('unlocked');
     btn.title = 'NZTCS active — click to hide badges';
     document.getElementById('clNztcsFilters').style.display = 'flex';
   } else {
-    btn.textContent = '🔒 NZTCS';
+    btn.textContent = '🇳🇿 NZTCS';
     btn.classList.remove('unlocked');
     btn.title = 'Click to show NZTCS conservation status';
     document.getElementById('clNztcsFilters').style.display = 'none';
