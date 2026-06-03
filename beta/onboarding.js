@@ -57,8 +57,21 @@
   // ── Entry point ───────────────────────────────────────────────────────────
   function init() {
     if (localStorage.getItem(STORAGE_KEY)) return; // already seen
-    // Small delay so the map and sidebar finish rendering
-    setTimeout(start, 800);
+    // Poll until both the data disclaimer and mobile-screen banner are dismissed,
+    // then wait a short moment before starting so the UI settles.
+    function tryStart() {
+      const disclaimer = document.getElementById('disclaimerModal');
+      const banner     = document.getElementById('mobileBanner');
+      const disclaimerOpen  = disclaimer && disclaimer.classList.contains('open');
+      const bannerVisible   = banner     && banner.style.display === 'flex';
+      if (disclaimerOpen || bannerVisible) {
+        setTimeout(tryStart, 350);
+        return;
+      }
+      setTimeout(start, 500);
+    }
+    // Initial delay so map and sidebar finish rendering before first check
+    setTimeout(tryStart, 800);
   }
 
   function start() {
