@@ -45,7 +45,7 @@
       <img src="occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v4.28</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v4.32</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -61,8 +61,6 @@
     <span style="opacity:0.3">|</span>
     <button class="about-btn" id="aboutBtn">&#9432; About</button>
     <span style="opacity:0.3">|</span>
-    Powered by GBIF &amp; OpenStreetMap &nbsp;·&nbsp;
-    <a href="mailto:rutherfordecology@gmail.com" style="color:rgba(255,255,255,0.7);font-weight:400;">Feedback</a> &nbsp;·&nbsp;
     <a href="https://buymeacoffee.com/rutherfordecology" target="_blank" style="color:#d4a84b;font-weight:500;">&#9749; Buy me a coffee</a>
   </div>
 </header>
@@ -391,6 +389,12 @@
 
     <h3>Built by</h3>
     <p><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank" style="color:var(--green);">Rutherford Ecology</a> &mdash; <a href="mailto:rutherfordecology@gmail.com" style="color:var(--green);">rutherfordecology@gmail.com</a></p>
+
+    <h3>Powered by</h3>
+    <p><a href="https://www.gbif.org" target="_blank" style="color:var(--green);">GBIF</a> &amp; <a href="https://www.openstreetmap.org" target="_blank" style="color:var(--green);">OpenStreetMap</a>. All occurrence data is sourced live from GBIF at query time.</p>
+
+    <h3>Feedback</h3>
+    <p>Found a bug or have a suggestion? <a href="mailto:rutherfordecology@gmail.com" style="color:var(--green);">rutherfordecology@gmail.com</a></p>
 
     <div class="modal-btns" style="margin-top:1.2rem;">
       <button class="modal-btn primary" id="aboutClose">Close</button>
@@ -905,6 +909,8 @@ let currentNztcsFilter = 'all';
 let currentIucnFilter  = 'all';
 let tkFilterActive     = false;
 let _tkSpeciesNames    = new Set(); // species names (display) where ≥1 record has a TK label
+let _tkGbifIds         = new Set(); // gbifIDs of records confirmed to have TK labels
+let _tkProjectUrl      = null;      // Local Contexts Hub project URL, populated after secondary query
 let iucnCache = {};        // speciesKey → status string ('EN','LC',…) or null
 let _iucnFetchAbort = false;
 let allMarkers = [];
@@ -1296,6 +1302,8 @@ function clearResults() {
   iucnUnlocked  = false;
   tkFilterActive = false;
   _tkSpeciesNames.clear();
+  _tkGbifIds.clear();
+  _tkProjectUrl = null;
   const _tkBtnC = document.getElementById('clTkBtn');
   if (_tkBtnC) { _tkBtnC.style.display = 'none'; _tkBtnC.classList.remove('unlocked'); }
   const nztcsBtn = document.getElementById('clNztcsBtn');
@@ -2818,11 +2826,14 @@ function buildRecordPage(rec) {
   const link = (linkItems.length || camBtn || ednaBadge || basisBadge)
     ? '<div style="margin-top:4px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">' + linkItems.join('') + camBtn + (ednaBadge ? ' ' + ednaBadge : '') + (basisBadge ? ' ' + basisBadge : '') + '</div>'
     : '';
-  const tkId  = parseTKProjectId(rec.dynamicProperties);
-  const tkLine = tkId
+  const _tkSpeciesName = rec.species || rec.scientificName || '';
+  const _hasTk = _tkSpeciesNames.size > 0 && _tkSpeciesName && _tkSpeciesNames.has(_tkSpeciesName);
+  const tkLine = _hasTk
     ? '<div style="margin-top:6px;padding-top:5px;border-top:1px solid #eee;font-size:11px;color:#6b7280;display:flex;align-items:center;gap:5px;">' +
-      '<span title="Traditional Knowledge label">\ud83c\udff7\ufe0f</span>' +
-      '<a href="' + tkProjectUrl(tkId) + '" target="_blank" rel="noopener" style="color:#2a7a58;">Traditional Knowledge label \u2014 view community project \u2197</a>' +
+      '<span title="Traditional Knowledge / Biocultural label">\ud83c\udff7\ufe0f</span>' +
+      (_tkProjectUrl
+        ? '<a href="' + _tkProjectUrl + '" target="_blank" rel="noopener" style="color:#2a7a58;">Traditional Knowledge label \u2014 view community project and conditions \u2197</a>'
+        : '<span style="color:#2a7a58;">Some records of this species carry a Traditional Knowledge label</span>') +
       '</div>'
     : '';
   return {
@@ -3101,8 +3112,9 @@ function makeMarker(stackedRecords) {
   const uncertain = repUncert >= 1500;
   const baseFillOpacity = uncertain ? 0.65 : 0.85;
 
-  const strokeColor  = uncertain ? '#f87171' : '#fff';
-  const strokeWeight = uncertain ? 1.5 : (stackedRecords.length > 1 ? 2 : 1);
+  const hasTkRecord  = stackedRecords.some(r => _tkGbifIds.has(String(r.gbifID)));
+  const strokeColor  = hasTkRecord ? '#ec4899' : (uncertain ? '#f87171' : '#fff');
+  const strokeWeight = hasTkRecord ? 2.5 : (uncertain ? 1.5 : (stackedRecords.length > 1 ? 2 : 1));
   const marker = L.circleMarker([lat, lng], {
     radius, fillColor: fillColour, color: strokeColor,
     weight: strokeWeight, fillOpacity: baseFillOpacity
@@ -3881,16 +3893,43 @@ runBtn.addEventListener('click', async () => {
   const _iucnBtn = document.getElementById('clIucnBtn');
   if (_iucnBtn) { _iucnBtn.style.display = ''; updateIucnBtn(); }
 
-  // Build TK species set — scan for local_contexts_project_id in dynamicProperties
+  // TK detection — GBIF search API doesn't return dynamicProperties, so we run a
+  // secondary background query using q=local_contexts_project_id for each polygon.
   _tkSpeciesNames.clear();
-  displayRecords.forEach(r => {
-    if (parseTKProjectId(r.dynamicProperties)) {
-      const name = r.species || r.scientificName;
-      if (name) _tkSpeciesNames.add(name);
+  _tkGbifIds.clear();
+  setTimeout(async () => {
+    for (const gp of _geomPolys) {
+      try {
+        const qs = 'geometry=' + encodeURIComponent(getQueryWKT(gp)) +
+                   '&q=local_contexts_project_id&hasCoordinate=true&limit=300';
+        const res = await fetch('https://api.gbif.org/v1/occurrence/search?' + qs);
+        if (!res.ok) continue;
+        const json = await res.json();
+        (json.results || []).forEach(r => {
+          const name = r.species || r.scientificName;
+          if (name) _tkSpeciesNames.add(name);
+          if (r.gbifID) _tkGbifIds.add(String(r.gbifID));
+        });
+      } catch(e) { /* silent */ }
     }
-  });
-  const _tkBtn = document.getElementById('clTkBtn');
-  if (_tkBtn) _tkBtn.style.display = _tkSpeciesNames.size > 0 ? '' : 'none';
+    if (_tkSpeciesNames.size > 0 && allRecords.length > 0) {
+      // Fetch one individual TK record to get the project URL
+      const firstId = [..._tkGbifIds][0];
+      if (firstId && !_tkProjectUrl) {
+        try {
+          const r = await fetch('https://api.gbif.org/v1/occurrence/' + firstId);
+          if (r.ok) {
+            const j = await r.json();
+            const url = parseTKProjectId(j.dynamicProperties);
+            if (url) _tkProjectUrl = tkProjectUrl(url);
+          }
+        } catch(e) {}
+      }
+      buildChecklist(allRecords);
+      const btn = document.getElementById('clTkBtn');
+      if (btn) btn.style.display = '';
+    }
+  }, 0);
 
   // Seed iucnCache from occurrence records for a quick initial display.
   // NOTE: occurrence-level iucnRedListCategory can be stale — the async fetch in
@@ -3993,11 +4032,11 @@ document.getElementById('dlCsvBtn').addEventListener('click', () => {
       return Object.assign({}, r, { iucn_category: (key && iucnCache[key]) || '' });
     });
   }
-  if (_tkSpeciesNames.size > 0) {
+  if (_tkGbifIds.size > 0) {
     fields = [...fields, 'tk_label'];
     rows = rows.map(r => {
-      const tkId = parseTKProjectId(r.dynamicProperties);
-      return Object.assign({}, r, { tk_label: tkId ? tkProjectUrl(tkId) : '' });
+      const hasTk = _tkGbifIds.has(String(r.gbifID));
+      return Object.assign({}, r, { tk_label: hasTk ? 'https://localcontextshub.org/projects/71b32571-0176-4627-8e01-4d78818432a7/' : '' });
     });
   }
   const csvHeader = '# Downloaded from Occurd (https://rutherfordecology.github.io/Occurd/) on ' + new Date().toISOString().split('T')[0] + '\n' +
