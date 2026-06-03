@@ -575,7 +575,7 @@ L.drawLocal.draw.handlers.polygon.tooltip.end   = 'Double-click to close drawing
 const drawControl = new L.Control.Draw({
   edit: { featureGroup: polyLayer, edit: false, remove: false },
   draw: {
-    polygon: { shapeOptions: { color: '#C8611A', fillColor: '#C8611A', fillOpacity: 0.1, weight: 2 }, showArea: false },
+    polygon: { shapeOptions: { color: '#C8611A', fillColor: '#C8611A', fillOpacity: 0.1, weight: 2 }, showArea: false, allowIntersection: true },
     polyline: false, rectangle: false, circle: false, circlemarker: false, marker: false
   }
 }).addTo(map);
@@ -3401,7 +3401,11 @@ function buildChecklist(records) {
       _lastFire = now;
       if (activeFilters.has(g)) activeFilters.delete(g);
       else activeFilters.add(g);
-      if (typeof window._filterRefresh === 'function') window._filterRefresh();
+      // Update map directly — don't rely on _filterRefresh indirection
+      if (viewMode === 'points') renderPoints(allRecords);
+      else renderHeatmap(allRecords);
+      filterChecklistByTaxon();
+      csvData = buildCSV(allRecords.filter(passesFilters));
     }
     gh.addEventListener('click', handleGroupToggle);
     gh.addEventListener('touchstart', handleGroupToggle, { passive: false });
