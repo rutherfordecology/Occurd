@@ -45,7 +45,7 @@
       <img src="occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v4.14</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v4.20</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -4127,12 +4127,52 @@ document.getElementById('dlChecklistBtn').addEventListener('click', () => {
   </div>
   <div class="changelog-scroll" id="changelogScroll">
     <div class="changelog-version">
-      <span class="changelog-version-tag">v4.14</span>
+      <span class="changelog-version-tag">v4.20</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>IUCN modal — note added that a species may be threatened in its native range while invasive elsewhere</li>
+        <li>NZTCS and IUCN filter rows labelled for clarity</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v4.19</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>Mobile — collapsed sidebar sections (Define Area, Parameters, etc.) now use less vertical space when minimised</li>
+        <li>Mobile drawing — "shape edges cannot cross" error suppressed; self-intersecting preview lines during drawing no longer block input</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v4.18</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>Heatmap now updates correctly when taxon groups are toggled on/off in the species checklist</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v4.17</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>NZTCS button updated to 🇳🇿 to match the 🌍 IUCN globe style</li>
+        <li>NZTCS — fix: badges no longer appear on non-NZ searches when NZTCS data was loaded from a previous NZ session</li>
+        <li>NZTCS — activation now based on whether the drawn polygon overlaps New Zealand geographically, not on which country codes appear in the occurrence results</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v4.16</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>Onboarding tour — now waits for the data disclaimer modal and mobile screen warning to be dismissed before starting</li>
+        <li>Checklist toggle — moved to the left edge of the map on desktop, away from the Leaflet attribution link; desktop close button added inside panel header</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v4.15</span>
       <span class="changelog-date">Jun 2026</span>
       <ul>
         <li>IUCN Red List — now behind a 🌍 IUCN lock button with a disclaimer modal; badges only appear after acknowledgement</li>
-        <li>IUCN button appears after every search (it is a global dataset, not NZ-only)</li>
-        <li>Both NZTCS and IUCN buttons toggle off when clicked while active — badges and filter rows disappear; click again to re-enable</li>
+        <li>IUCN button appears after every search (global dataset, not NZ-only)</li>
+        <li>Both 🇳🇿 NZTCS and 🌍 IUCN buttons toggle off when clicked while active — badges and filter rows disappear; click again to re-enable</li>
       </ul>
     </div>
     <div class="changelog-version">
