@@ -45,7 +45,7 @@
       <img src="../occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v4.31b</span> <span style="font-size:10px;font-weight:700;color:#fbbf24;letter-spacing:0.06em;background:rgba(251,191,36,0.15);padding:1px 6px;border-radius:8px;">BETA</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v4.32b</span> <span style="font-size:10px;font-weight:700;color:#fbbf24;letter-spacing:0.06em;background:rgba(251,191,36,0.15);padding:1px 6px;border-radius:8px;">BETA</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -3112,8 +3112,9 @@ function makeMarker(stackedRecords) {
   const uncertain = repUncert >= 1500;
   const baseFillOpacity = uncertain ? 0.65 : 0.85;
 
-  const strokeColor  = uncertain ? '#f87171' : '#fff';
-  const strokeWeight = uncertain ? 1.5 : (stackedRecords.length > 1 ? 2 : 1);
+  const hasTkRecord  = stackedRecords.some(r => _tkGbifIds.has(String(r.gbifID)));
+  const strokeColor  = hasTkRecord ? '#ec4899' : (uncertain ? '#f87171' : '#fff');
+  const strokeWeight = hasTkRecord ? 2.5 : (uncertain ? 1.5 : (stackedRecords.length > 1 ? 2 : 1));
   const marker = L.circleMarker([lat, lng], {
     radius, fillColor: fillColour, color: strokeColor,
     weight: strokeWeight, fillOpacity: baseFillOpacity

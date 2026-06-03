@@ -79,10 +79,10 @@ window._qeiiState = { active: false, features: [] };
       qeiiLayer = L.geoJSON(data, {
         pane: 'qeiiPane',
         style: {
-          color:       '#0e6655',
+          color:       '#b45309',
           weight:      1.5,
-          fillColor:   '#1abc9c',
-          fillOpacity: 0.18,
+          fillColor:   '#fbbf24',
+          fillOpacity: 0.22,
           dashArray:   '4 3'
         },
         onEachFeature: function(feature, layer) {
