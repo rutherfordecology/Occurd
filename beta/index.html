@@ -3401,7 +3401,11 @@ function buildChecklist(records) {
       _lastFire = now;
       if (activeFilters.has(g)) activeFilters.delete(g);
       else activeFilters.add(g);
-      if (typeof window._filterRefresh === 'function') window._filterRefresh();
+      // Update map directly — don't rely on _filterRefresh indirection
+      if (viewMode === 'points') renderPoints(allRecords);
+      else renderHeatmap(allRecords);
+      filterChecklistByTaxon();
+      csvData = buildCSV(allRecords.filter(passesFilters));
     }
     gh.addEventListener('click', handleGroupToggle);
     gh.addEventListener('touchstart', handleGroupToggle, { passive: false });
