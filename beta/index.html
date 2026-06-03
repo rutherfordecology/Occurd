@@ -3893,36 +3893,27 @@ runBtn.addEventListener('click', async () => {
   const _iucnBtn = document.getElementById('clIucnBtn');
   if (_iucnBtn) { _iucnBtn.style.display = ''; updateIucnBtn(); }
 
-  // TK detection — secondary query finds TK dataset keys, then marks ALL records
-  // in allRecords from those datasets as TK (dataset key is reliable; gbifID overlap
-  // between main fetch and secondary query is too small at limit=300).
+  // TK detection — secondary query finds TK records by name. Moorea Biocode records
+  // (the only GBIF TK dataset) are separate from regular occurrence records and don't
+  // share gbifIDs or datasetKeys with main fetch results. Name matching is the only
+  // way to cross-reference (e.g. "Brachyura", "Polychaeta" appear in both).
   _tkSpeciesNames.clear();
   _tkGbifIds.clear();
-  const _tkDisplayRecords = displayRecords.slice(); // capture snapshot for closure
   setTimeout(async () => {
-    const tkDatasetKeys = new Set();
     for (const gp of _geomPolys) {
       try {
         const qs = 'geometry=' + encodeURIComponent(getQueryWKT(gp)) +
-                   '&q=local_contexts_project_id&hasCoordinate=true&limit=10';
+                   '&datasetKey=8b8c78fb-53d7-434c-b800-61f38b30d0c9' +
+                   '&hasCoordinate=true&limit=300';
         const res = await fetch('https://api.gbif.org/v1/occurrence/search?' + qs);
         if (!res.ok) continue;
         const json = await res.json();
         (json.results || []).forEach(r => {
-          if (r.datasetKey) tkDatasetKeys.add(r.datasetKey);
-          if (r.gbifID) _tkGbifIds.add(String(r.gbifID));
-        });
-      } catch(e) { /* silent */ }
-    }
-    // Mark all main-fetch records from TK datasets as TK-labelled
-    if (tkDatasetKeys.size > 0) {
-      _tkDisplayRecords.forEach(r => {
-        if (r.datasetKey && tkDatasetKeys.has(r.datasetKey)) {
           const name = r.species || r.scientificName;
           if (name) _tkSpeciesNames.add(name);
           if (r.gbifID) _tkGbifIds.add(String(r.gbifID));
-        }
-      });
+        });
+      } catch(e) { /* silent */ }
     }
     if (_tkSpeciesNames.size > 0 && allRecords.length > 0) {
       // Fetch one individual TK record to get the project URL
