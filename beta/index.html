@@ -267,6 +267,8 @@
 
   <div id="map-wrap">
     <div id="map"></div>
+    <!-- Desktop checklist toggle — anchored to left edge of map, away from Leaflet attribution -->
+    <button id="clToggleHandleMap" onclick="toggleChecklist()" title="Toggle species list" style="display:none;">&#x203A;</button>
     <!-- Draw hint — visible until user starts drawing, then hidden permanently -->
     <div id="drawHint" style="
       position:absolute; top:80px; left:48px; z-index:1000;
@@ -307,6 +309,7 @@
         <div style="display:flex;align-items:center;gap:6px;">
           <button class="cl-nztcs-btn" id="clNztcsBtn" title="Click to activate NZTCS conservation status" style="display:none;">🔒 NZTCS</button>
           <button class="cl-nztcs-btn" id="clIucnBtn" title="Click to activate IUCN Red List status" style="display:none;">🌍 IUCN</button>
+          <button class="cl-close-desktop" onclick="toggleChecklist()" title="Close species list">&#x2039;</button>
           <button class="cl-close-mobile" onclick="toggleChecklist()" title="Close checklist">✕ Close</button>
         </div>
       </div>
@@ -3242,25 +3245,38 @@ function clearSpeciesSelection() {
 function toggleChecklist() {
   const isOpen = checklistPanel.classList.toggle('open');
   _updateChecklistHandle(isOpen);
+  // On desktop, also hide/show map-edge button arrow direction
+  const mapBtn = document.getElementById('clToggleHandleMap');
+  if (mapBtn) mapBtn.innerHTML = isOpen ? '&#x2039;' : '&#x203A;';
 }
 function _updateChecklistHandle(isOpen) {
-  const handle = document.getElementById('clToggleHandle');
-  if (!handle) return;
   if (window.innerWidth < 700) {
-    // Mobile: tab shows species count when closed, arrow when open
+    // Mobile: bottom tab
+    const handle = document.getElementById('clToggleHandle');
+    if (!handle) return;
     if (isOpen) {
-      handle.innerHTML = '&#x2304;'; // ⌄ down-pointing chevron — tap to collapse
+      handle.innerHTML = '&#x2304;'; // ⌄ — tap to collapse
     } else {
       const n = document.querySelectorAll('.cl-row').length;
       handle.innerHTML = '&#x2303; ' + (n > 0 ? n + ' species' : 'Species list');
     }
   } else {
-    handle.innerHTML = isOpen ? '&#x203A;' : '&#x2039;';
+    // Desktop: left-edge map button — points right when closed, left when open
+    const mapBtn = document.getElementById('clToggleHandleMap');
+    if (mapBtn) mapBtn.innerHTML = isOpen ? '&#x2039;' : '&#x203A;';
   }
 }
 function _showChecklistHandle(show) {
-  const handle = document.getElementById('clToggleHandle');
-  if (handle) handle.style.display = show ? 'flex' : 'none';
+  if (window.innerWidth < 700) {
+    const handle = document.getElementById('clToggleHandle');
+    if (handle) handle.style.display = show ? 'flex' : 'none';
+  } else {
+    const mapBtn = document.getElementById('clToggleHandleMap');
+    if (mapBtn) mapBtn.style.display = show ? 'flex' : 'none';
+    // Hide the old panel-side handle on desktop
+    const handle = document.getElementById('clToggleHandle');
+    if (handle) handle.style.display = 'none';
+  }
 }
 
 function filterChecklistSearch() {
@@ -3861,11 +3877,8 @@ runBtn.addEventListener('click', async () => {
   buildChecklist(displayRecords);
   const _isMobile = window.innerWidth < 700;
   if (!_isMobile) checklistPanel.classList.add('open');
-  const _h = document.getElementById('clToggleHandle');
-  if (_h) {
-    _h.style.display = 'flex';
-    _updateChecklistHandle(!_isMobile);
-  }
+  _showChecklistHandle(true);
+  _updateChecklistHandle(!_isMobile);
   renderPoints(displayRecords);
   setTimeout(() => { map.invalidateSize(); }, 100);
   csvData = buildCSV(displayRecords);
