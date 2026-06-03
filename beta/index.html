@@ -3893,10 +3893,11 @@ runBtn.addEventListener('click', async () => {
   const _iucnBtn = document.getElementById('clIucnBtn');
   if (_iucnBtn) { _iucnBtn.style.display = ''; updateIucnBtn(); }
 
-  // TK detection — GBIF search API doesn't return dynamicProperties, so we run a
-  // secondary background query using q=local_contexts_project_id for each polygon.
+  // TK detection — secondary query finds TK gbifIDs, then cross-references with
+  // allRecords (proper taxonomy) to get accurate species names for checklist matching.
   _tkSpeciesNames.clear();
   _tkGbifIds.clear();
+  const _tkDisplayRecords = displayRecords.slice(); // capture snapshot for closure
   setTimeout(async () => {
     for (const gp of _geomPolys) {
       try {
@@ -3906,11 +3907,18 @@ runBtn.addEventListener('click', async () => {
         if (!res.ok) continue;
         const json = await res.json();
         (json.results || []).forEach(r => {
-          const name = r.species || r.scientificName;
-          if (name) _tkSpeciesNames.add(name);
           if (r.gbifID) _tkGbifIds.add(String(r.gbifID));
         });
       } catch(e) { /* silent */ }
+    }
+    // Cross-reference TK gbifIDs with fetched records to get proper species names
+    if (_tkGbifIds.size > 0) {
+      _tkDisplayRecords.forEach(r => {
+        if (_tkGbifIds.has(String(r.gbifID))) {
+          const name = r.species || r.scientificName;
+          if (name) _tkSpeciesNames.add(name);
+        }
+      });
     }
     if (_tkSpeciesNames.size > 0 && allRecords.length > 0) {
       // Fetch one individual TK record to get the project URL
