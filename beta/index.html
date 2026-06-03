@@ -45,7 +45,7 @@
       <img src="../occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v4.28b</span> <span style="font-size:10px;font-weight:700;color:#fbbf24;letter-spacing:0.06em;background:rgba(251,191,36,0.15);padding:1px 6px;border-radius:8px;">BETA</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v4.29b</span> <span style="font-size:10px;font-weight:700;color:#fbbf24;letter-spacing:0.06em;background:rgba(251,191,36,0.15);padding:1px 6px;border-radius:8px;">BETA</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -905,6 +905,7 @@ let currentNztcsFilter = 'all';
 let currentIucnFilter  = 'all';
 let tkFilterActive     = false;
 let _tkSpeciesNames    = new Set(); // species names (display) where ≥1 record has a TK label
+let _tkGbifIds         = new Set(); // gbifIDs of records confirmed to have TK labels
 let iucnCache = {};        // speciesKey → status string ('EN','LC',…) or null
 let _iucnFetchAbort = false;
 let allMarkers = [];
@@ -1296,6 +1297,7 @@ function clearResults() {
   iucnUnlocked  = false;
   tkFilterActive = false;
   _tkSpeciesNames.clear();
+  _tkGbifIds.clear();
   const _tkBtnC = document.getElementById('clTkBtn');
   if (_tkBtnC) { _tkBtnC.style.display = 'none'; _tkBtnC.classList.remove('unlocked'); }
   const nztcsBtn = document.getElementById('clNztcsBtn');
@@ -2818,13 +2820,25 @@ function buildRecordPage(rec) {
   const link = (linkItems.length || camBtn || ednaBadge || basisBadge)
     ? '<div style="margin-top:4px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">' + linkItems.join('') + camBtn + (ednaBadge ? ' ' + ednaBadge : '') + (basisBadge ? ' ' + basisBadge : '') + '</div>'
     : '';
-  const tkId  = parseTKProjectId(rec.dynamicProperties);
-  const tkLine = tkId
-    ? '<div style="margin-top:6px;padding-top:5px;border-top:1px solid #eee;font-size:11px;color:#6b7280;display:flex;align-items:center;gap:5px;">' +
+  const _hasTk = _tkGbifIds.has(String(rec.gbifID));
+  const tkLine = _hasTk
+    ? '<div id="tk-line-' + rec.gbifID + '" style="margin-top:6px;padding-top:5px;border-top:1px solid #eee;font-size:11px;color:#6b7280;display:flex;align-items:center;gap:5px;">' +
       '<span title="Traditional Knowledge label">\ud83c\udff7\ufe0f</span>' +
-      '<a href="' + tkProjectUrl(tkId) + '" target="_blank" rel="noopener" style="color:#2a7a58;">Traditional Knowledge label \u2014 view community project \u2197</a>' +
+      '<span id="tk-url-' + rec.gbifID + '" style="color:#2a7a58;">Traditional Knowledge label \u2014 <a href="#" onclick="return false;" style="color:#2a7a58;">loading\u2026</a></span>' +
       '</div>'
     : '';
+  if (_hasTk) {
+    setTimeout(async () => {
+      try {
+        const r = await fetch('https://api.gbif.org/v1/occurrence/' + rec.gbifID);
+        if (!r.ok) return;
+        const j = await r.json();
+        const url = parseTKProjectId(j.dynamicProperties);
+        const el = document.getElementById('tk-url-' + rec.gbifID);
+        if (el && url) el.innerHTML = '<a href="' + tkProjectUrl(url) + '" target="_blank" rel="noopener" style="color:#2a7a58;">Traditional Knowledge label \u2014 view community project \u2197</a>';
+      } catch(e) {}
+    }, 0);
+  }
   return {
     html: '<div id="' + photoId + '" data-taxon-key="' + (rec.taxonKey||'') + '" data-sci-name="' + (rec.scientificName||'').replace(/"/g,'&quot;') + '" style="margin-bottom:8px;"></div>' +
           primary + cls + date + source + uncert + link + tkLine,
@@ -3881,16 +3895,31 @@ runBtn.addEventListener('click', async () => {
   const _iucnBtn = document.getElementById('clIucnBtn');
   if (_iucnBtn) { _iucnBtn.style.display = ''; updateIucnBtn(); }
 
-  // Build TK species set — scan for local_contexts_project_id in dynamicProperties
+  // TK detection — GBIF search API doesn't return dynamicProperties, so we run a
+  // secondary background query using q=local_contexts_project_id for each polygon.
   _tkSpeciesNames.clear();
-  displayRecords.forEach(r => {
-    if (parseTKProjectId(r.dynamicProperties)) {
-      const name = r.species || r.scientificName;
-      if (name) _tkSpeciesNames.add(name);
+  _tkGbifIds.clear();
+  setTimeout(async () => {
+    for (const gp of _geomPolys) {
+      try {
+        const qs = 'geometry=' + encodeURIComponent(getQueryWKT(gp)) +
+                   '&q=local_contexts_project_id&hasCoordinate=true&limit=300';
+        const res = await fetch('https://api.gbif.org/v1/occurrence/search?' + qs);
+        if (!res.ok) continue;
+        const json = await res.json();
+        (json.results || []).forEach(r => {
+          const name = r.species || r.scientificName;
+          if (name) _tkSpeciesNames.add(name);
+          if (r.gbifID) _tkGbifIds.add(String(r.gbifID));
+        });
+      } catch(e) { /* silent */ }
     }
-  });
-  const _tkBtn = document.getElementById('clTkBtn');
-  if (_tkBtn) _tkBtn.style.display = _tkSpeciesNames.size > 0 ? '' : 'none';
+    if (_tkSpeciesNames.size > 0 && allRecords.length > 0) {
+      buildChecklist(allRecords);
+      const btn = document.getElementById('clTkBtn');
+      if (btn) btn.style.display = '';
+    }
+  }, 0);
 
   // Seed iucnCache from occurrence records for a quick initial display.
   // NOTE: occurrence-level iucnRedListCategory can be stale — the async fetch in
@@ -3993,11 +4022,11 @@ document.getElementById('dlCsvBtn').addEventListener('click', () => {
       return Object.assign({}, r, { iucn_category: (key && iucnCache[key]) || '' });
     });
   }
-  if (_tkSpeciesNames.size > 0) {
+  if (_tkGbifIds.size > 0) {
     fields = [...fields, 'tk_label'];
     rows = rows.map(r => {
-      const tkId = parseTKProjectId(r.dynamicProperties);
-      return Object.assign({}, r, { tk_label: tkId ? tkProjectUrl(tkId) : '' });
+      const hasTk = _tkGbifIds.has(String(r.gbifID));
+      return Object.assign({}, r, { tk_label: hasTk ? 'https://localcontextshub.org/projects/71b32571-0176-4627-8e01-4d78818432a7/' : '' });
     });
   }
   const csvHeader = '# Downloaded from Occurd (https://rutherfordecology.github.io/Occurd/) on ' + new Date().toISOString().split('T')[0] + '\n' +
