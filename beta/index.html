@@ -3692,7 +3692,7 @@ runBtn.addEventListener('click', async () => {
       while (true) {
         try {
           const _ctrl = new AbortController();
-          const _timer = setTimeout(() => _ctrl.abort(), 30000); // 30 s timeout per page
+          const _timer = setTimeout(() => _ctrl.abort(), 60000); // 60 s timeout per page
           try {
             res = await fetch('https://api.gbif.org/v1/occurrence/search?' + qs, { signal: _ctrl.signal });
           } finally {
@@ -3713,7 +3713,7 @@ runBtn.addEventListener('click', async () => {
             setFetchMode(false); return;
           }
           const delay = Math.min(1000 * Math.pow(2, pageAttempt - 1), 12000); // 1s 2s 4s 8s 12s
-          setStatus('Connection dropped — retrying (attempt ' + (pageAttempt + 1) + '/5)…', 'warning');
+          setStatus('GBIF taking a while — retrying (attempt ' + (pageAttempt + 1) + '/5)…', 'info');
           await new Promise(r => setTimeout(r, delay));
         }
       }
