@@ -45,7 +45,7 @@
       <img src="../occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v4.30b</span> <span style="font-size:10px;font-weight:700;color:#fbbf24;letter-spacing:0.06em;background:rgba(251,191,36,0.15);padding:1px 6px;border-radius:8px;">BETA</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v4.31b</span> <span style="font-size:10px;font-weight:700;color:#fbbf24;letter-spacing:0.06em;background:rgba(251,191,36,0.15);padding:1px 6px;border-radius:8px;">BETA</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -910,6 +910,7 @@ let currentIucnFilter  = 'all';
 let tkFilterActive     = false;
 let _tkSpeciesNames    = new Set(); // species names (display) where ≥1 record has a TK label
 let _tkGbifIds         = new Set(); // gbifIDs of records confirmed to have TK labels
+let _tkProjectUrl      = null;      // Local Contexts Hub project URL, populated after secondary query
 let iucnCache = {};        // speciesKey → status string ('EN','LC',…) or null
 let _iucnFetchAbort = false;
 let allMarkers = [];
@@ -1302,6 +1303,7 @@ function clearResults() {
   tkFilterActive = false;
   _tkSpeciesNames.clear();
   _tkGbifIds.clear();
+  _tkProjectUrl = null;
   const _tkBtnC = document.getElementById('clTkBtn');
   if (_tkBtnC) { _tkBtnC.style.display = 'none'; _tkBtnC.classList.remove('unlocked'); }
   const nztcsBtn = document.getElementById('clNztcsBtn');
@@ -2824,25 +2826,16 @@ function buildRecordPage(rec) {
   const link = (linkItems.length || camBtn || ednaBadge || basisBadge)
     ? '<div style="margin-top:4px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">' + linkItems.join('') + camBtn + (ednaBadge ? ' ' + ednaBadge : '') + (basisBadge ? ' ' + basisBadge : '') + '</div>'
     : '';
-  const _hasTk = _tkGbifIds.has(String(rec.gbifID));
+  const _tkSpeciesName = rec.species || rec.scientificName || '';
+  const _hasTk = _tkSpeciesNames.size > 0 && _tkSpeciesName && _tkSpeciesNames.has(_tkSpeciesName);
   const tkLine = _hasTk
-    ? '<div id="tk-line-' + rec.gbifID + '" style="margin-top:6px;padding-top:5px;border-top:1px solid #eee;font-size:11px;color:#6b7280;display:flex;align-items:center;gap:5px;">' +
-      '<span title="Traditional Knowledge label">\ud83c\udff7\ufe0f</span>' +
-      '<span id="tk-url-' + rec.gbifID + '" style="color:#2a7a58;">Traditional Knowledge label \u2014 <a href="#" onclick="return false;" style="color:#2a7a58;">loading\u2026</a></span>' +
+    ? '<div style="margin-top:6px;padding-top:5px;border-top:1px solid #eee;font-size:11px;color:#6b7280;display:flex;align-items:center;gap:5px;">' +
+      '<span title="Traditional Knowledge / Biocultural label">\ud83c\udff7\ufe0f</span>' +
+      (_tkProjectUrl
+        ? '<a href="' + _tkProjectUrl + '" target="_blank" rel="noopener" style="color:#2a7a58;">Traditional Knowledge label \u2014 view community project and conditions \u2197</a>'
+        : '<span style="color:#2a7a58;">Some records of this species carry a Traditional Knowledge label</span>') +
       '</div>'
     : '';
-  if (_hasTk) {
-    setTimeout(async () => {
-      try {
-        const r = await fetch('https://api.gbif.org/v1/occurrence/' + rec.gbifID);
-        if (!r.ok) return;
-        const j = await r.json();
-        const url = parseTKProjectId(j.dynamicProperties);
-        const el = document.getElementById('tk-url-' + rec.gbifID);
-        if (el && url) el.innerHTML = '<a href="' + tkProjectUrl(url) + '" target="_blank" rel="noopener" style="color:#2a7a58;">Traditional Knowledge label \u2014 view community project \u2197</a>';
-      } catch(e) {}
-    }, 0);
-  }
   return {
     html: '<div id="' + photoId + '" data-taxon-key="' + (rec.taxonKey||'') + '" data-sci-name="' + (rec.scientificName||'').replace(/"/g,'&quot;') + '" style="margin-bottom:8px;"></div>' +
           primary + cls + date + source + uncert + link + tkLine,
@@ -3919,6 +3912,18 @@ runBtn.addEventListener('click', async () => {
       } catch(e) { /* silent */ }
     }
     if (_tkSpeciesNames.size > 0 && allRecords.length > 0) {
+      // Fetch one individual TK record to get the project URL
+      const firstId = [..._tkGbifIds][0];
+      if (firstId && !_tkProjectUrl) {
+        try {
+          const r = await fetch('https://api.gbif.org/v1/occurrence/' + firstId);
+          if (r.ok) {
+            const j = await r.json();
+            const url = parseTKProjectId(j.dynamicProperties);
+            if (url) _tkProjectUrl = tkProjectUrl(url);
+          }
+        } catch(e) {}
+      }
       buildChecklist(allRecords);
       const btn = document.getElementById('clTkBtn');
       if (btn) btn.style.display = '';
