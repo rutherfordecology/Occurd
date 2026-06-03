@@ -103,8 +103,6 @@ Active development happens at [/beta/](https://rutherfordecology.github.io/Occur
 
 Built by [Malcolm Rutherford](https://sites.google.com/view/rutherford-ecology/), Rutherford Ecology, New Zealand.
 
-Submitted to the [2026 GBIF Ebbe Nielsen Challenge](https://www.gbif.org/article/1G82GL7jw08kIAt2IOIaEY/).
-
 ---
 
 ## Licence
