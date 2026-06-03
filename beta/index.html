@@ -45,7 +45,7 @@
       <img src="../occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v4.26b</span> <span style="font-size:10px;font-weight:700;color:#fbbf24;letter-spacing:0.06em;background:rgba(251,191,36,0.15);padding:1px 6px;border-radius:8px;">BETA</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v4.27b</span> <span style="font-size:10px;font-weight:700;color:#fbbf24;letter-spacing:0.06em;background:rgba(251,191,36,0.15);padding:1px 6px;border-radius:8px;">BETA</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -3667,6 +3667,7 @@ runBtn.addEventListener('click', async () => {
     setProgress(5, 'Contacting GBIF...');
 
     let offset = 0, totalCount = null, hullRetried = false, pageRetries = 0;
+    const _fetchStart = Date.now();
     while (true) {
       if (fetchAbortFlag) {
         setStatus('Fetch cancelled.', 'warning');
@@ -3698,7 +3699,9 @@ runBtn.addEventListener('click', async () => {
             setFetchMode(false); return;
           }
           const delay = Math.min(1000 * Math.pow(2, pageAttempt - 1), 12000); // 1s 2s 4s 8s 12s
-          setStatus('GBIF taking a while — retrying (attempt ' + (pageAttempt + 1) + '/5)…', 'info');
+          if (Date.now() - _fetchStart > 10000) {
+            setStatus('GBIF taking a while — retrying (attempt ' + (pageAttempt + 1) + '/5)…', 'info');
+          }
           await new Promise(r => setTimeout(r, delay));
         }
       }
@@ -3812,7 +3815,9 @@ runBtn.addEventListener('click', async () => {
         if (pageRetries < 4) {
           pageRetries++;
           const _delay = Math.min(1000 * Math.pow(2, pageRetries - 1), 12000);
-          setStatus('GBIF taking a while — retrying (attempt ' + (pageRetries + 1) + '/5)…', 'info');
+          if (Date.now() - _fetchStart > 10000) {
+            setStatus('GBIF taking a while — retrying (attempt ' + (pageRetries + 1) + '/5)…', 'info');
+          }
           await new Promise(r => setTimeout(r, _delay));
           continue;
         }
