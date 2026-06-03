@@ -45,7 +45,7 @@
       <img src="occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v4.22</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v4.24</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -269,6 +269,8 @@
     <div id="map"></div>
     <!-- Desktop checklist toggle — anchored to left edge of map, away from Leaflet attribution -->
     <button id="clToggleHandleMap" onclick="toggleChecklist()" title="Toggle species list" style="display:none;">&#x203A;</button>
+    <!-- Mobile checklist toggle — outside the panel so it stays visible when panel is closed -->
+    <button id="clToggleHandle" onclick="toggleChecklist()" title="Toggle checklist" style="display:none;">&#x2303; Species list</button>
     <!-- Draw hint — visible until user starts drawing, then hidden permanently -->
     <div id="drawHint" style="
       position:absolute; top:80px; left:48px; z-index:1000;
@@ -303,7 +305,6 @@
     </div>
 
     <div class="checklist-panel" id="checklistPanel">
-      <button id="clToggleHandle" onclick="toggleChecklist()" title="Toggle checklist">&#x203A;</button>
       <div class="cl-header">
         <span class="cl-title">Species checklist</span>
         <div style="display:flex;align-items:center;gap:6px;">
@@ -3267,9 +3268,14 @@ function clearSpeciesSelection() {
 function toggleChecklist() {
   const isOpen = checklistPanel.classList.toggle('open');
   _updateChecklistHandle(isOpen);
-  // On desktop, also hide/show map-edge button arrow direction
-  const mapBtn = document.getElementById('clToggleHandleMap');
-  if (mapBtn) mapBtn.innerHTML = isOpen ? '&#x2039;' : '&#x203A;';
+  // Ensure the correct handle stays visible after toggle
+  if (window.innerWidth < 700) {
+    const handle = document.getElementById('clToggleHandle');
+    if (handle) handle.style.display = 'flex';
+  } else {
+    const mapBtn = document.getElementById('clToggleHandleMap');
+    if (mapBtn) { mapBtn.style.display = 'flex'; mapBtn.innerHTML = isOpen ? '&#x2039;' : '&#x203A;'; }
+  }
 }
 function _updateChecklistHandle(isOpen) {
   if (window.innerWidth < 700) {
@@ -3827,7 +3833,7 @@ runBtn.addEventListener('click', async () => {
         if (pageRetries < 4) {
           pageRetries++;
           const _delay = Math.min(1000 * Math.pow(2, pageRetries - 1), 12000);
-          setStatus('Connection dropped — retrying (attempt ' + (pageRetries + 1) + '/5)…', 'warning');
+          setStatus('GBIF taking a while — retrying (attempt ' + (pageRetries + 1) + '/5)…', 'info');
           await new Promise(r => setTimeout(r, _delay));
           continue;
         }
@@ -4170,7 +4176,15 @@ document.getElementById('dlChecklistBtn').addEventListener('click', () => {
   </div>
   <div class="changelog-scroll" id="changelogScroll">
     <div class="changelog-version">
-      <span class="changelog-version-tag">v4.22</span>
+      <span class="changelog-version-tag">v4.23</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>Checklist toggle — mobile handle moved outside the panel so it stays visible at the bottom of the map when the checklist is closed; no longer disappears when panel slides off-screen</li>
+        <li>Checklist toggle — desktop and mobile handles now explicitly stay visible after closing so the panel can always be reopened</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v4.22b</span>
       <span class="changelog-date">Jun 2026</span>
       <ul>
         <li>Fetch timeout increased from 30s to 60s — prevents false "connection dropped" retries on slow GBIF responses</li>
@@ -4178,7 +4192,7 @@ document.getElementById('dlChecklistBtn').addEventListener('click', () => {
       </ul>
     </div>
     <div class="changelog-version">
-      <span class="changelog-version-tag">v4.21</span>
+      <span class="changelog-version-tag">v4.21b</span>
       <span class="changelog-date">Jun 2026</span>
       <ul>
         <li>Traditional Knowledge / Biocultural labels — 🏷️ TK button appears in the checklist header when any records in the current search carry a Local Contexts project ID; click to filter checklist and map to TK/BC-labelled species only; click again to clear</li>
