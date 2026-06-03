@@ -3934,6 +3934,9 @@ runBtn.addEventListener('click', async () => {
         } catch(e) {}
       }
       buildChecklist(allRecords);
+      // Re-render points so popups get TK links and rings use updated _tkSpeciesNames
+      if (viewMode === 'points') renderPoints(allRecords);
+      else renderHeatmap(allRecords);
       const btn = document.getElementById('clTkBtn');
       if (btn) btn.style.display = '';
     }
