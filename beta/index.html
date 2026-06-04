@@ -45,7 +45,7 @@
       <img src="../occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v4.41b</span> <span style="font-size:10px;font-weight:700;color:#fbbf24;letter-spacing:0.06em;background:rgba(251,191,36,0.15);padding:1px 6px;border-radius:8px;">BETA</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v4.42b</span> <span style="font-size:10px;font-weight:700;color:#fbbf24;letter-spacing:0.06em;background:rgba(251,191,36,0.15);padding:1px 6px;border-radius:8px;">BETA</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -3268,6 +3268,7 @@ function setViewMode(mode) {
   document.getElementById('btnTimeline').classList.toggle('active', mode === 'timeline');
   const tlPanel = document.getElementById('timelinePanel');
   if (tlPanel) tlPanel.classList.toggle('open', mode === 'timeline');
+  if (mode === 'timeline') _timelinePanelRight();
   if (allRecords.length === 0) return;
   if (mode === 'points') { tlFilterMin = null; tlFilterMax = null; renderPoints(allRecords); }
   else if (mode === 'heat') { tlFilterMin = null; tlFilterMax = null; renderHeatmap(allRecords); }
@@ -3457,9 +3458,20 @@ function clearSpeciesSelection() {
 }
 
 // Checklist
+function _timelinePanelRight() {
+  // Keep timeline clear of the checklist panel when it's open
+  const tlPanel = document.getElementById('timelinePanel');
+  if (!tlPanel) return;
+  const clOpen = checklistPanel.classList.contains('open');
+  const w = window.innerWidth;
+  const clWidth = w < 700 ? 0 : (w < 1025 ? 250 : 290);
+  tlPanel.style.right = (clOpen && w >= 700) ? clWidth + 'px' : '0';
+}
+
 function toggleChecklist() {
   const isOpen = checklistPanel.classList.toggle('open');
   _updateChecklistHandle(isOpen);
+  _timelinePanelRight();
 }
 function _updateChecklistHandle(isOpen) {
   const handle = document.getElementById('clToggleHandle');
@@ -5587,6 +5599,7 @@ document.getElementById('dlChecklistBtn').addEventListener('click', () => {
 </div>
 </body>
 </html>
+
 
 
 
