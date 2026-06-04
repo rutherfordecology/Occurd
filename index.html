@@ -45,7 +45,7 @@
       <img src="occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v4.52</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v4.53</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -3579,13 +3579,15 @@ function selectSpecies(name) {
   document.getElementById('clSelectedName').textContent = name;
   clSelectedInfo.style.display = 'block';
   document.querySelectorAll('.cl-row').forEach(row => row.classList.toggle('selected', row.dataset.species === name));
-  if (viewMode === 'points') { renderPoints(allRecords); applyTimelineFilter(); }
+  if (viewMode === 'heat') { renderHeatmap(allRecords); }
+  else { renderPoints(allRecords); applyTimelineFilter(); } // points + timeline
 }
 function clearSpeciesSelection() {
   selectedSpecies = null;
   clSelectedInfo.style.display = 'none';
   document.querySelectorAll('.cl-row').forEach(row => row.classList.remove('selected'));
-  if (viewMode === 'points') { renderPoints(allRecords); applyTimelineFilter(); }
+  if (viewMode === 'heat') { renderHeatmap(allRecords); }
+  else { renderPoints(allRecords); applyTimelineFilter(); }
 }
 
 // Checklist
@@ -3751,9 +3753,8 @@ function buildChecklist(records) {
       if (activeFilters.has(g)) activeFilters.delete(g);
       else activeFilters.add(g);
       // Update map directly — don't rely on _filterRefresh indirection
-      if (viewMode === 'points') renderPoints(allRecords);
-      else renderHeatmap(allRecords);
-      if (viewMode === 'points' || viewMode === 'timeline') applyTimelineFilter();
+      if (viewMode === 'heat') renderHeatmap(allRecords);
+      else { renderPoints(allRecords); applyTimelineFilter(); }
       filterChecklistByTaxon();
       csvData = buildCSV(allRecords.filter(passesFilters));
     }
@@ -5735,6 +5736,7 @@ document.getElementById('dlChecklistBtn').addEventListener('click', () => {
 </div>
 </body>
 </html>
+
 
 
 
