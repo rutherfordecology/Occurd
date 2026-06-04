@@ -45,7 +45,7 @@
       <img src="../occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v4.50b</span> <span style="font-size:10px;font-weight:700;color:#fbbf24;letter-spacing:0.06em;background:rgba(251,191,36,0.15);padding:1px 6px;border-radius:8px;">BETA</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v4.51b</span> <span style="font-size:10px;font-weight:700;color:#fbbf24;letter-spacing:0.06em;background:rgba(251,191,36,0.15);padding:1px 6px;border-radius:8px;">BETA</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -3079,7 +3079,17 @@ window._gbifPopupNav = function(pid, dir) {
 };
 
 function makeStackedPopup(stackedRecords) {
-  const sorted = stackedRecords.slice().sort((a, b) => ((b.eventDate||'').localeCompare(a.eventDate||'')));
+  // When timeline filter is active, only show records within the selected range
+  const hasTlFilter = tlFilterMin !== null || tlFilterMax !== null;
+  const visibleRecords = hasTlFilter
+    ? stackedRecords.filter(r => {
+        const yr = parseInt(r.year);
+        if (isNaN(yr)) return true; // undated records always visible
+        return (tlFilterMin === null || yr >= tlFilterMin) && (tlFilterMax === null || yr <= tlFilterMax);
+      })
+    : stackedRecords;
+  const records = visibleRecords.length > 0 ? visibleRecords : stackedRecords; // fallback to all if none in range
+  const sorted = records.slice().sort((a, b) => ((b.eventDate||'').localeCompare(a.eventDate||'')));
   const total = sorted.length;
   const isMulti = total > 1;
   const popupId = 'mp-' + Math.random().toString(36).slice(2);
@@ -5722,6 +5732,7 @@ document.getElementById('dlChecklistBtn').addEventListener('click', () => {
 </div>
 </body>
 </html>
+
 
 
 
