@@ -45,7 +45,7 @@
       <img src="occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v4.34</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v4.38</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -2941,6 +2941,7 @@ window._gbifSelectSpecies = function(pid, spIdx) {
   if (!state || !state.speciesList) return;
   state.selSp = spIdx;
   const sp = state.speciesList[spIdx];
+  const _ps = _popupSize(); // _ps is local to makeStackedPopup — must be re-created here
 
   // Update selection highlight in species list
   const listEl = document.getElementById(pid + '-splist');
@@ -2974,7 +2975,18 @@ window._gbifSelectSpecies = function(pid, spIdx) {
       : r.basisOfRecord === 'PRESERVED_SPECIMEN'
       ? ' <span title="Preserved specimen" style="display:inline-block;padding:1px 6px;border-radius:10px;background:#4b5563;color:#fff;font-size:11px;">📄</span>'
       : '';
-    return '<div style="padding:1px 0;">' + date + link + camBtn + ednaBadge + basisBadge + '</div>';
+    // TK/BC label line
+    const _tkSpName = r.species || r.scientificName || '';
+    const _recHasTk = _tkSpeciesNames.size > 0 && _tkSpName && _tkSpeciesNames.has(_tkSpName);
+    const _tkRecLine = _recHasTk
+      ? '<div style="margin-top:4px;font-size:11px;color:#6b7280;display:flex;align-items:center;gap:4px;">' +
+        '<span>🏷️</span>' +
+        (_tkProjectUrl
+          ? '<a href="' + _tkProjectUrl + '" target="_blank" rel="noopener" style="color:#2a7a58;">TK/BC conditions ↗</a>'
+          : '<span style="color:#2a7a58;">Traditional Knowledge / Biocultural label</span>') +
+        '</div>'
+      : '';
+    return '<div style="padding:1px 0;">' + date + link + camBtn + ednaBadge + basisBadge + _tkRecLine + '</div>';
   }).join('');
   const countLabel = '<div style="font-size:11px;color:#9b9890;margin-bottom:2px;">' + sp.records.length + ' record' + (sp.records.length === 1 ? '' : 's') + (sp.records.length > 5 ? ' — scroll to see all' : '') + '</div>';
   const recordRows = countLabel + (sp.records.length > 5
@@ -3893,15 +3905,18 @@ runBtn.addEventListener('click', async () => {
   const _iucnBtn = document.getElementById('clIucnBtn');
   if (_iucnBtn) { _iucnBtn.style.display = ''; updateIucnBtn(); }
 
-  // TK detection — GBIF search API doesn't return dynamicProperties, so we run a
-  // secondary background query using q=local_contexts_project_id for each polygon.
+  // TK detection — secondary query finds TK records by name. Moorea Biocode records
+  // (the only GBIF TK dataset) are separate from regular occurrence records and don't
+  // share gbifIDs or datasetKeys with main fetch results. Name matching is the only
+  // way to cross-reference (e.g. "Brachyura", "Polychaeta" appear in both).
   _tkSpeciesNames.clear();
   _tkGbifIds.clear();
   setTimeout(async () => {
     for (const gp of _geomPolys) {
       try {
         const qs = 'geometry=' + encodeURIComponent(getQueryWKT(gp)) +
-                   '&q=local_contexts_project_id&hasCoordinate=true&limit=300';
+                   '&datasetKey=8b8c78fb-53d7-434c-b800-61f38b30d0c9' +
+                   '&hasCoordinate=true&limit=300';
         const res = await fetch('https://api.gbif.org/v1/occurrence/search?' + qs);
         if (!res.ok) continue;
         const json = await res.json();
@@ -3926,6 +3941,9 @@ runBtn.addEventListener('click', async () => {
         } catch(e) {}
       }
       buildChecklist(allRecords);
+      // Re-render points so popups get TK links and rings use updated _tkSpeciesNames
+      if (viewMode === 'points') renderPoints(allRecords);
+      else renderHeatmap(allRecords);
       const btn = document.getElementById('clTkBtn');
       if (btn) btn.style.display = '';
     }
@@ -5397,6 +5415,11 @@ document.getElementById('dlChecklistBtn').addEventListener('click', () => {
 </div>
 </body>
 </html>
+
+
+
+
+
 
 
 
