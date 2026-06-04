@@ -45,7 +45,7 @@
       <img src="../occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v4.39b</span> <span style="font-size:10px;font-weight:700;color:#fbbf24;letter-spacing:0.06em;background:rgba(251,191,36,0.15);padding:1px 6px;border-radius:8px;">BETA</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v4.40b</span> <span style="font-size:10px;font-weight:700;color:#fbbf24;letter-spacing:0.06em;background:rgba(251,191,36,0.15);padding:1px 6px;border-radius:8px;">BETA</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -221,9 +221,8 @@
 
         <div class="tool-row" style="margin-top:0.6rem;">
           <button class="tool-btn active" id="btnPoints" onclick="setViewMode('points')">Points</button>
-        </div>
-        <div class="tool-row" style="margin-top:0.4rem;">
           <button class="tool-btn" id="btnHeat" onclick="setViewMode('heat')">Heatmap</button>
+          <button class="tool-btn" id="btnTimeline" onclick="setViewMode('timeline')">Timeline</button>
         </div>
         <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.07em;color:var(--text3);margin:0.5rem 0 3px;">Downloads</div>
         <div class="export-row">
@@ -265,6 +264,20 @@
 
   <div id="map-wrap">
     <div id="map"></div>
+    <!-- Timeline panel -->
+    <div id="timelinePanel">
+      <div id="timelineChartWrap">
+        <svg id="timelineChart" width="100%" height="170"></svg>
+      </div>
+      <div class="tl-slider-row">
+        <span id="tlLabelMin" class="tl-year-label"></span>
+        <div class="tl-slider-track">
+          <input type="range" id="tlSliderMin" class="tl-slider tl-slider-min">
+          <input type="range" id="tlSliderMax" class="tl-slider tl-slider-max">
+        </div>
+        <span id="tlLabelMax" class="tl-year-label"></span>
+      </div>
+    </div>
     <!-- Draw hint — visible until user starts drawing, then hidden permanently -->
     <div id="drawHint" style="
       position:absolute; top:80px; left:48px; z-index:1000;
@@ -905,9 +918,11 @@ map.on(L.Draw.Event.CREATED, e => {
 // State
 let polygons = [], refLayers = [], clipTurfPolygons = null, allRecords = [], activeFilters = new Set();
 let viewMode = 'points', selectedSpecies = null, nextPolyId = 0, csvData = null, pendingLoad = null;
+let tlFilterMin = null, tlFilterMax = null; // timeline year filter (null = no filter)
 let currentNztcsFilter = 'all';
 let currentIucnFilter  = 'all';
 let tkFilterActive     = false;
+// (tlFilterMin/tlFilterMax reset in clearResults)
 let _tkSpeciesNames    = new Set(); // species names (display) where ≥1 record has a TK label
 let _tkGbifIds         = new Set(); // gbifIDs of records confirmed to have TK labels
 let _tkProjectUrl      = null;      // Local Contexts Hub project URL, populated after secondary query
@@ -1290,6 +1305,13 @@ function passesFilters(r) {
     const name = r.species || r.scientificName;
     if (!name || !_tkSpeciesNames.has(name)) return false;
   }
+  if (tlFilterMin !== null || tlFilterMax !== null) {
+    const yr = parseInt(r.year);
+    if (!isNaN(yr)) {
+      if (tlFilterMin !== null && yr < tlFilterMin) return false;
+      if (tlFilterMax !== null && yr > tlFilterMax) return false;
+    }
+  }
   return true;
 }
 
@@ -1320,6 +1342,9 @@ function clearResults() {
   if (qualityBoxEl)  qualityBoxEl.style.display  = 'none';
   if (richnessBoxEl) richnessBoxEl.style.display = 'none';
   statusBar.style.display = 'none'; progressWrap.style.display = 'none';
+  tlFilterMin = null; tlFilterMax = null;
+  const tlPanel = document.getElementById('timelinePanel');
+  if (tlPanel) tlPanel.classList.remove('open');
   progressTrack.querySelectorAll('.progress-footprint').forEach(fp => fp.classList.remove('visible'));
   checklistPanel.classList.remove('open');
   _showChecklistHandle(false);
@@ -3246,10 +3271,145 @@ function setViewMode(mode) {
   viewMode = mode;
   document.getElementById('btnPoints').classList.toggle('active', mode === 'points');
   document.getElementById('btnHeat').classList.toggle('active', mode === 'heat');
+  document.getElementById('btnTimeline').classList.toggle('active', mode === 'timeline');
+  const tlPanel = document.getElementById('timelinePanel');
+  if (tlPanel) tlPanel.classList.toggle('open', mode === 'timeline');
   if (allRecords.length === 0) return;
   if (mode === 'points') renderPoints(allRecords);
-  else renderHeatmap(allRecords);
+  else if (mode === 'heat') renderHeatmap(allRecords);
+  else if (mode === 'timeline') { renderPoints(allRecords); renderTimeline(allRecords); }
 }
+
+function renderTimeline(records) {
+  const svgEl = document.getElementById('timelineChart');
+  if (!svgEl) return;
+
+  const filtered = records.filter(passesFilters);
+
+  // Group by year × taxon
+  const yearData = {};
+  filtered.forEach(r => {
+    const y = parseInt(r.year);
+    if (isNaN(y)) return;
+    if (!yearData[y]) yearData[y] = {};
+    const g = getTaxonGroup(r);
+    yearData[y][g] = (yearData[y][g] || 0) + 1;
+  });
+
+  const years = Object.keys(yearData).map(Number).sort((a, b) => a - b);
+  if (years.length === 0) {
+    svgEl.innerHTML = '<text x="50%" y="50%" text-anchor="middle" font-size="12" fill="#9b9890">No dated records</text>';
+    return;
+  }
+
+  const allGroups = [...new Set(filtered.map(getTaxonGroup))].filter(g => TAXON_COLOURS[g]);
+  const totals = years.map(y => Object.values(yearData[y]).reduce((a, b) => a + b, 0));
+  const maxCount = Math.max(...totals, 1);
+
+  const W = svgEl.getBoundingClientRect().width || svgEl.parentElement.clientWidth || 600;
+  const H = 170;
+  const padL = 38, padR = 8, padT = 8, padB = 28;
+  const chartW = W - padL - padR;
+  const chartH = H - padT - padB;
+  const gap = chartW / Math.max(years.length, 1);
+  const barW = Math.max(2, Math.min(gap * 0.8, 30));
+
+  let svg = '';
+
+  // Gridlines + Y labels
+  for (let i = 0; i <= 4; i++) {
+    const yVal = Math.round(maxCount * i / 4);
+    const y = padT + chartH - (chartH * i / 4);
+    svg += `<line x1="${padL}" y1="${y.toFixed(1)}" x2="${W - padR}" y2="${y.toFixed(1)}" stroke="#e5e7eb" stroke-width="0.5"/>`;
+    svg += `<text x="${padL - 3}" y="${(y + 3.5).toFixed(1)}" text-anchor="end" font-size="9" fill="#9b9890">${yVal}</text>`;
+  }
+
+  // Stacked bars
+  years.forEach((yr, xi) => {
+    const cx = padL + xi * gap + gap / 2;
+    let stackY = padT + chartH;
+    allGroups.forEach(g => {
+      const cnt = yearData[yr][g] || 0;
+      if (!cnt) return;
+      const bh = (cnt / maxCount) * chartH;
+      stackY -= bh;
+      svg += `<rect x="${(cx - barW / 2).toFixed(1)}" y="${stackY.toFixed(1)}" width="${barW.toFixed(1)}" height="${bh.toFixed(1)}" fill="${TAXON_COLOURS[g].colour}" opacity="0.85" rx="1"/>`;
+    });
+    // X-axis label
+    const every = Math.ceil(years.length / 10);
+    if (xi % every === 0 || xi === years.length - 1) {
+      svg += `<text x="${cx.toFixed(1)}" y="${H - 5}" text-anchor="middle" font-size="9" fill="#9b9890">${yr}</text>`;
+    }
+  });
+
+  // Axes
+  svg += `<line x1="${padL}" y1="${padT}" x2="${padL}" y2="${padT + chartH}" stroke="#d1d5db" stroke-width="1"/>`;
+  svg += `<line x1="${padL}" y1="${padT + chartH}" x2="${W - padR}" y2="${padT + chartH}" stroke="#d1d5db" stroke-width="1"/>`;
+
+  svgEl.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  svgEl.innerHTML = svg;
+
+  // Init sliders
+  _tlInitSliders(years[0], years[years.length - 1]);
+}
+
+function _tlInitSliders(minYr, maxYr) {
+  const slMin = document.getElementById('tlSliderMin');
+  const slMax = document.getElementById('tlSliderMax');
+  if (!slMin || !slMax) return;
+  slMin.min = slMax.min = minYr;
+  slMin.max = slMax.max = maxYr;
+  slMin.step = slMax.step = 1;
+  if (tlFilterMin === null || tlFilterMin < minYr || tlFilterMin > maxYr) { slMin.value = minYr; tlFilterMin = minYr; }
+  else slMin.value = tlFilterMin;
+  if (tlFilterMax === null || tlFilterMax < minYr || tlFilterMax > maxYr) { slMax.value = maxYr; tlFilterMax = maxYr; }
+  else slMax.value = tlFilterMax;
+  _tlUpdateTrack();
+}
+
+function _tlUpdateTrack() {
+  const slMin = document.getElementById('tlSliderMin');
+  const slMax = document.getElementById('tlSliderMax');
+  if (!slMin || !slMax) return;
+  const min = parseInt(slMin.min), max = parseInt(slMin.max);
+  const lo = Math.min(parseInt(slMin.value), parseInt(slMax.value));
+  const hi = Math.max(parseInt(slMin.value), parseInt(slMax.value));
+  const pLo = (lo - min) / (max - min) * 100;
+  const pHi = (hi - min) / (max - min) * 100;
+  document.getElementById('tlLabelMin').textContent = lo;
+  document.getElementById('tlLabelMax').textContent = hi;
+  let fill = document.getElementById('tlTrackFill');
+  if (!fill) {
+    const bg = document.createElement('div'); bg.className = 'tl-track-bg'; slMin.parentNode.insertBefore(bg, slMin);
+    fill = document.createElement('div'); fill.id = 'tlTrackFill'; fill.className = 'tl-track-fill'; slMin.parentNode.insertBefore(fill, slMin);
+  }
+  fill.style.left = pLo + '%';
+  fill.style.width = (pHi - pLo) + '%';
+  tlFilterMin = lo;
+  tlFilterMax = hi;
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  ['tlSliderMin', 'tlSliderMax'].forEach(id => {
+    document.getElementById(id)?.addEventListener('input', () => {
+      const slMin = document.getElementById('tlSliderMin');
+      const slMax = document.getElementById('tlSliderMax');
+      // Prevent crossing
+      if (parseInt(slMin.value) > parseInt(slMax.value)) {
+        if (id === 'tlSliderMin') slMin.value = slMax.value;
+        else slMax.value = slMin.value;
+      }
+      _tlUpdateTrack();
+      if (allRecords.length > 0) {
+        if (viewMode === 'points' || viewMode === 'timeline') renderPoints(allRecords);
+        else renderHeatmap(allRecords);
+        if (viewMode === 'timeline') renderTimeline(allRecords);
+        csvData = buildCSV(allRecords.filter(passesFilters));
+        document.getElementById('mShown').textContent = allRecords.filter(passesFilters).length.toLocaleString();
+      }
+    });
+  });
+});
 
 // Species highlighting
 function applySpeciesHighlight(name) {
@@ -5415,6 +5575,7 @@ document.getElementById('dlChecklistBtn').addEventListener('click', () => {
 </div>
 </body>
 </html>
+
 
 
 
