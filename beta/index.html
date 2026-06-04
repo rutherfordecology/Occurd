@@ -45,7 +45,7 @@
       <img src="../occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v4.46b</span> <span style="font-size:10px;font-weight:700;color:#fbbf24;letter-spacing:0.06em;background:rgba(251,191,36,0.15);padding:1px 6px;border-radius:8px;">BETA</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v4.47b</span> <span style="font-size:10px;font-weight:700;color:#fbbf24;letter-spacing:0.06em;background:rgba(251,191,36,0.15);padding:1px 6px;border-radius:8px;">BETA</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -3166,7 +3166,17 @@ function renderPoints(records) {
   allMarkers = [];
   if (clusterLayer) { map.removeLayer(clusterLayer); clusterLayer = null; }
   if (heatLayer)    { map.removeLayer(heatLayer); heatLayer = null; }
-  clusterLayer = L.markerClusterGroup({ maxClusterRadius: 40, disableClusteringAtZoom: 14 });
+  clusterLayer = L.markerClusterGroup({ maxClusterRadius: 40, disableClusteringAtZoom: 14,
+    iconCreateFunction: function(cluster) {
+      const ms = cluster.getAllChildMarkers();
+      const hasTlFilter = tlFilterMin !== null || tlFilterMax !== null;
+      const n = hasTlFilter
+        ? ms.reduce((s, m) => s + (m._tlActive !== false ? (m._stackSize || 1) : 0), 0)
+        : cluster.getChildCount();
+      const cls = n < 10 ? 'small' : n < 100 ? 'medium' : 'large';
+      return new L.DivIcon({ html: '<div><span>' + n + '</span></div>', className: 'marker-cluster marker-cluster-' + cls, iconSize: new L.Point(40, 40) });
+    }
+  });
 
   const filtered = records.filter(passesFilters);
 
@@ -3272,8 +3282,8 @@ function setViewMode(mode) {
   if (tlPanel) tlPanel.classList.toggle('open', mode === 'timeline');
   if (mode === 'timeline') _timelinePanelRight();
   if (allRecords.length === 0) return;
-  if (mode === 'points') { tlFilterMin = null; tlFilterMax = null; _clearGhostLayer(); renderPoints(allRecords); applyTimelineChecklist(); }
-  else if (mode === 'heat') { tlFilterMin = null; tlFilterMax = null; _clearGhostLayer(); renderHeatmap(allRecords); applyTimelineChecklist(); }
+  if (mode === 'points') { tlFilterMin = null; tlFilterMax = null; renderPoints(allRecords); applyTimelineChecklist(); }
+  else if (mode === 'heat') { tlFilterMin = null; tlFilterMax = null; renderHeatmap(allRecords); applyTimelineChecklist(); }
   else if (mode === 'timeline') { renderPoints(allRecords); applyTimelineFilter(); renderTimeline(allRecords); }
 }
 
@@ -3283,64 +3293,30 @@ function _clearGhostLayer() {
 
 function applyTimelineFilter() {
   _clearGhostLayer();
-
-  if (tlFilterMin === null && tlFilterMax === null) {
-    // No filter — normal render
-    renderPoints(allRecords);
-    applyTimelineChecklist();
-    return;
+  const hasTlFilter = tlFilterMin !== null || tlFilterMax !== null;
+  const seen = new Set();
+  let activeShown = 0;
+  allMarkers.forEach(({ marker }) => {
+    if (seen.has(marker)) return;
+    seen.add(marker);
+    const inRange = !hasTlFilter || (marker._years && [...marker._years].some(yr =>
+      (tlFilterMin === null || yr >= tlFilterMin) &&
+      (tlFilterMax === null || yr <= tlFilterMax)
+    ));
+    marker._tlActive = inRange;
+    if (!hasTlFilter) {
+      marker.setStyle({ fillOpacity: marker._baseFillOpacity, opacity: 1 });
+    } else {
+      marker.setStyle({ fillOpacity: inRange ? marker._baseFillOpacity : 0.08, opacity: inRange ? 1 : 0.2 });
+      if (inRange) activeShown += marker._stackSize || 1;
+    }
+  });
+  if (hasTlFilter && clusterLayer) {
+    clusterLayer.refreshClusters();
+    document.getElementById('mShown').textContent = activeShown.toLocaleString();
+  } else if (!hasTlFilter) {
+    document.getElementById('mShown').textContent = allRecords.filter(passesFilters).length.toLocaleString();
   }
-
-  // Partition records into in-range and out-of-range
-  const base = allRecords.filter(passesFilters);
-  const inRange = [], outRange = [];
-  base.forEach(r => {
-    const yr = parseInt(r.year);
-    const active = !isNaN(yr)
-      ? (tlFilterMin === null || yr >= tlFilterMin) && (tlFilterMax === null || yr <= tlFilterMax)
-      : true; // undated records stay active
-    (active ? inRange : outRange).push(r);
-  });
-
-  // Re-render only active records in the cluster layer (correct counts)
-  allMarkers = [];
-  if (clusterLayer) { map.removeLayer(clusterLayer); clusterLayer = null; }
-  if (heatLayer)    { map.removeLayer(heatLayer);    heatLayer    = null; }
-  clusterLayer = L.markerClusterGroup({ maxClusterRadius: 40, disableClusteringAtZoom: 14 });
-  const locMap = new Map();
-  inRange.forEach(r => {
-    if (r.decimalLatitude == null || r.decimalLongitude == null) return;
-    const key = r.decimalLatitude.toFixed(6) + ',' + r.decimalLongitude.toFixed(6);
-    if (!locMap.has(key)) locMap.set(key, []);
-    locMap.get(key).push(r);
-  });
-  locMap.forEach(stack => {
-    try {
-      const m = makeMarker(stack);
-      if (m) { clusterLayer.addLayer(m); stack.forEach(r => allMarkers.push({ marker: m, record: r })); }
-    } catch(e) {}
-  });
-  map.addLayer(clusterLayer);
-
-  // Ghost layer — greyed dots for out-of-range records (no clustering, no popups)
-  ghostLayer = L.layerGroup();
-  const ghostMap = new Map();
-  outRange.forEach(r => {
-    if (r.decimalLatitude == null || r.decimalLongitude == null) return;
-    const key = r.decimalLatitude.toFixed(6) + ',' + r.decimalLongitude.toFixed(6);
-    ghostMap.set(key, (ghostMap.get(key) || 0) + 1);
-  });
-  ghostMap.forEach((cnt, key) => {
-    const [lat, lng] = key.split(',').map(Number);
-    L.circleMarker([lat, lng], {
-      radius: cnt === 1 ? 4 : Math.min(8, 4 + Math.log2(cnt)),
-      fillColor: '#9ca3af', color: '#d1d5db', weight: 0.5,
-      fillOpacity: 0.22, opacity: 0.3, interactive: false
-    }).addTo(ghostLayer);
-  });
-  map.addLayer(ghostLayer);
-
-  document.getElementById('mShown').textContent = inRange.length.toLocaleString();
   applyTimelineChecklist();
 }
 
@@ -5688,6 +5664,8 @@ document.getElementById('dlChecklistBtn').addEventListener('click', () => {
 </div>
 </body>
 </html>
+
+
 
 
 
