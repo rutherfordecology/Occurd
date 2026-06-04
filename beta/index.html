@@ -45,7 +45,7 @@
       <img src="../occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v4.42b</span> <span style="font-size:10px;font-weight:700;color:#fbbf24;letter-spacing:0.06em;background:rgba(251,191,36,0.15);padding:1px 6px;border-radius:8px;">BETA</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v4.43b</span> <span style="font-size:10px;font-weight:700;color:#fbbf24;letter-spacing:0.06em;background:rgba(251,191,36,0.15);padding:1px 6px;border-radius:8px;">BETA</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -3362,6 +3362,22 @@ function renderTimeline(records) {
   svg += `<line x1="${padL}" y1="${padT}" x2="${padL}" y2="${padT + chartH}" stroke="#d1d5db" stroke-width="1"/>`;
   svg += `<line x1="${padL}" y1="${padT + chartH}" x2="${W - padR}" y2="${padT + chartH}" stroke="#d1d5db" stroke-width="1"/>`;
 
+  // Slider cutoff lines — vertical dashes at min/max year positions
+  const yearToX = yr => {
+    const exact = years.indexOf(yr);
+    if (exact >= 0) return padL + exact * gap + gap / 2;
+    const nearest = years.reduce((p, y) => Math.abs(y - yr) < Math.abs(p - yr) ? y : p);
+    return padL + years.indexOf(nearest) * gap + gap / 2;
+  };
+  if (tlFilterMin !== null && tlFilterMin > years[0]) {
+    const x = yearToX(tlFilterMin).toFixed(1);
+    svg += `<line x1="${x}" y1="${padT}" x2="${x}" y2="${padT + chartH}" stroke="#6b7280" stroke-width="1.5" stroke-dasharray="4 3" opacity="0.8"/>`;
+  }
+  if (tlFilterMax !== null && tlFilterMax < years[years.length - 1]) {
+    const x = yearToX(tlFilterMax).toFixed(1);
+    svg += `<line x1="${x}" y1="${padT}" x2="${x}" y2="${padT + chartH}" stroke="#6b7280" stroke-width="1.5" stroke-dasharray="4 3" opacity="0.8"/>`;
+  }
+
   svgEl.setAttribute('viewBox', `0 0 ${W} ${H}`);
   svgEl.innerHTML = svg;
 
@@ -5599,6 +5615,7 @@ document.getElementById('dlChecklistBtn').addEventListener('click', () => {
 </div>
 </body>
 </html>
+
 
 
 
