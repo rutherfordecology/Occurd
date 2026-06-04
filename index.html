@@ -45,7 +45,7 @@
       <img src="occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v4.49</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v4.50</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -3375,21 +3375,40 @@ function renderTimeline(records) {
   // Always use all passesFilters records (ignoring time — time is shown as greyed bars)
   const filtered = records.filter(passesFilters);
 
-  // Group by year × taxon
+  // Determine grouping: monthly if range ≤ 3 years, yearly otherwise
+  const allYears = [...new Set(filtered.map(r => parseInt(r.year)).filter(y => !isNaN(y)))];
+  if (allYears.length === 0) {
+    svgEl.innerHTML = '<text x="50%" y="50%" text-anchor="middle" font-size="12" fill="#9b9890">No dated records</text>';
+    return;
+  }
+  const minYr = Math.min(...allYears), maxYr = Math.max(...allYears);
+  const useMonths = (maxYr - minYr) <= 3;
+  const MON_ABBR = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+  // Group by (month or year) × taxon
   const yearData = {};
   filtered.forEach(r => {
     const y = parseInt(r.year);
     if (isNaN(y)) return;
-    if (!yearData[y]) yearData[y] = {};
+    const key = useMonths
+      ? (y * 100 + Math.max(1, parseInt(r.month) || 1)) // YYYYMM
+      : y;
+    if (!yearData[key]) yearData[key] = {};
     const g = getTaxonGroup(r);
-    yearData[y][g] = (yearData[y][g] || 0) + 1;
+    yearData[key][g] = (yearData[key][g] || 0) + 1;
   });
 
-  const years = Object.keys(yearData).map(Number).sort((a, b) => a - b);
-  if (years.length === 0) {
-    svgEl.innerHTML = '<text x="50%" y="50%" text-anchor="middle" font-size="12" fill="#9b9890">No dated records</text>';
-    return;
+  // Fill missing months in range so x-axis is continuous
+  if (useMonths) {
+    for (let y = minYr; y <= maxYr; y++) {
+      for (let m = 1; m <= 12; m++) {
+        const key = y * 100 + m;
+        if (!yearData[key]) yearData[key] = {};
+      }
+    }
   }
+
+  const years = Object.keys(yearData).map(Number).sort((a, b) => a - b);
 
   const allGroups = [...new Set(filtered.map(getTaxonGroup))].filter(g => TAXON_COLOURS[g]);
   const totals = years.map(y => Object.values(yearData[y]).reduce((a, b) => a + b, 0));
@@ -3415,7 +3434,8 @@ function renderTimeline(records) {
 
   // Stacked bars — full colour within range, greyed outside
   years.forEach((yr, xi) => {
-    const inRange = (tlFilterMin === null || yr >= tlFilterMin) && (tlFilterMax === null || yr <= tlFilterMax);
+    const yrForCmp = useMonths ? Math.floor(yr / 100) : yr;
+    const inRange = (tlFilterMin === null || yrForCmp >= tlFilterMin) && (tlFilterMax === null || yrForCmp <= tlFilterMax);
     const cx = padL + xi * gap + gap / 2;
     let stackY = padT + chartH;
     allGroups.forEach(g => {
@@ -3430,7 +3450,14 @@ function renderTimeline(records) {
     // X-axis label
     const every = Math.ceil(years.length / 10);
     if (xi % every === 0 || xi === years.length - 1) {
-      svg += `<text x="${cx.toFixed(1)}" y="${H - 5}" text-anchor="middle" font-size="9" fill="#9b9890">${yr}</text>`;
+      let lbl;
+      if (useMonths) {
+        const lyr = Math.floor(yr / 100), lmo = (yr % 100) - 1;
+        lbl = MON_ABBR[lmo] + (maxYr > minYr ? ' ' + String(lyr).slice(2) : '');
+      } else {
+        lbl = String(yr);
+      }
+      svg += `<text x="${cx.toFixed(1)}" y="${H - 5}" text-anchor="middle" font-size="9" fill="#9b9890">${lbl}</text>`;
     }
   });
 
@@ -3439,18 +3466,20 @@ function renderTimeline(records) {
   svg += `<line x1="${padL}" y1="${padT + chartH}" x2="${W - padR}" y2="${padT + chartH}" stroke="#d1d5db" stroke-width="1"/>`;
 
   // Slider cutoff lines — vertical dashes at min/max year positions
-  const yearToX = yr => {
-    const exact = years.indexOf(yr);
+  // Convert slider year to nearest chart key (YYYYMM or YYYY)
+  const sliderYearToKey = yr => useMonths ? yr * 100 + 1 : yr;
+  const yearToX = key => {
+    const exact = years.indexOf(key);
     if (exact >= 0) return padL + exact * gap + gap / 2;
-    const nearest = years.reduce((p, y) => Math.abs(y - yr) < Math.abs(p - yr) ? y : p);
+    const nearest = years.reduce((p, y) => Math.abs(y - key) < Math.abs(p - key) ? y : p);
     return padL + years.indexOf(nearest) * gap + gap / 2;
   };
-  if (tlFilterMin !== null && tlFilterMin > years[0]) {
-    const x = yearToX(tlFilterMin).toFixed(1);
+  if (tlFilterMin !== null && tlFilterMin > minYr) {
+    const x = yearToX(sliderYearToKey(tlFilterMin)).toFixed(1);
     svg += `<line x1="${x}" y1="${padT}" x2="${x}" y2="${padT + chartH}" stroke="#6b7280" stroke-width="1.5" stroke-dasharray="4 3" opacity="0.8"/>`;
   }
-  if (tlFilterMax !== null && tlFilterMax < years[years.length - 1]) {
-    const x = yearToX(tlFilterMax).toFixed(1);
+  if (tlFilterMax !== null && tlFilterMax < maxYr) {
+    const x = yearToX(sliderYearToKey(tlFilterMax)).toFixed(1);
     svg += `<line x1="${x}" y1="${padT}" x2="${x}" y2="${padT + chartH}" stroke="#6b7280" stroke-width="1.5" stroke-dasharray="4 3" opacity="0.8"/>`;
   }
 
@@ -5693,6 +5722,7 @@ document.getElementById('dlChecklistBtn').addEventListener('click', () => {
 </div>
 </body>
 </html>
+
 
 
 
