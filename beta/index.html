@@ -45,7 +45,7 @@
       <img src="../occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v4.44b</span> <span style="font-size:10px;font-weight:700;color:#fbbf24;letter-spacing:0.06em;background:rgba(251,191,36,0.15);padding:1px 6px;border-radius:8px;">BETA</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v4.45b</span> <span style="font-size:10px;font-weight:700;color:#fbbf24;letter-spacing:0.06em;background:rgba(251,191,36,0.15);padding:1px 6px;border-radius:8px;">BETA</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -2599,9 +2599,10 @@ const inatIdCache    = {}; // taxonKey -> iNaturalist taxon id (integer)
 // Responsive popup sizing — three tiers: mobile / tablet / desktop
 function _popupSize() {
   const w = window.innerWidth;
+  const tl = viewMode === 'timeline'; // timeline panel open — reduce heights
   if (w < 700)  return { mob: true,  tab: false, imgH: '130px', maxW: Math.min(w - 32, 255), minW: 187, maxWm: Math.min(w - 32, 255), minWm: 187, spListH: '85px',  recH: '90px'  };
-  if (w < 1024) return { mob: false, tab: true,  imgH: '195px', maxW: 300,  minW: 250,  maxWm: 340,  minWm: 280,  spListH: '95px',  recH: '100px' };
-  return         { mob: false, tab: false, imgH: '260px', maxW: 340,  minW: 280,  maxWm: 380,  minWm: 320,  spListH: '110px', recH: '115px' };
+  if (w < 1024) return { mob: false, tab: true,  imgH: tl ? '140px' : '195px', maxW: 300,  minW: 250,  maxWm: 340,  minWm: 280,  spListH: tl ? '65px' : '95px',  recH: tl ? '70px'  : '100px' };
+  return         { mob: false, tab: false, imgH: tl ? '185px' : '260px', maxW: 340,  minW: 280,  maxWm: 380,  minWm: 320,  spListH: tl ? '75px' : '110px', recH: tl ? '80px'  : '115px' };
 }
 const _photoSlots    = {}; // slotId   -> {photos:[...], idx:0}
 
@@ -5637,6 +5638,7 @@ document.getElementById('dlChecklistBtn').addEventListener('click', () => {
 </div>
 </body>
 </html>
+
 
 
 
