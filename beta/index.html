@@ -45,7 +45,7 @@
       <img src="../occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v4.47b</span> <span style="font-size:10px;font-weight:700;color:#fbbf24;letter-spacing:0.06em;background:rgba(251,191,36,0.15);padding:1px 6px;border-radius:8px;">BETA</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v4.48b</span> <span style="font-size:10px;font-weight:700;color:#fbbf24;letter-spacing:0.06em;background:rgba(251,191,36,0.15);padding:1px 6px;border-radius:8px;">BETA</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -1311,6 +1311,7 @@ function passesFilters(r) {
 function clearResults() {
   allRecords = []; activeFilters.clear(); csvData = null; selectedSpecies = null; allMarkers = []; commonNameCache = {};
   _clearGhostLayer();
+  _photoPrefetchAbort = true;
   currentNztcsFilter = 'all';
   currentIucnFilter  = 'all';
   _iucnFetchAbort    = true;
@@ -2596,6 +2597,31 @@ async function lookupCommonNames(records) {
 const photoCache     = {};
 const photoListCache = {}; // taxonKey -> [{url,licence,photographer}, ...]
 const inatIdCache    = {}; // taxonKey -> iNaturalist taxon id (integer)
+let _photoPrefetchAbort = false;
+
+async function prefetchPhotos(records) {
+  // Pre-warm photoCache in the background so popup photos load instantly.
+  // Runs at low priority: batches of 3, 250ms pause between batches.
+  _photoPrefetchAbort = false;
+  const seen = new Set();
+  const toFetch = [];
+  records.forEach(r => {
+    const key = r.taxonKey;
+    if (!key || seen.has(key) || photoCache[key] !== undefined) return;
+    seen.add(key);
+    toFetch.push({ taxonKey: key, sciName: r.scientificName || r.species || '' });
+  });
+  const BATCH = 3;
+  for (let i = 0; i < toFetch.length; i += BATCH) {
+    if (_photoPrefetchAbort) return;
+    await Promise.all(toFetch.slice(i, i + BATCH).map(({ taxonKey, sciName }) =>
+      fetchSpeciesPhoto(taxonKey, sciName).catch(() => {})
+    ));
+    if (!_photoPrefetchAbort && i + BATCH < toFetch.length) {
+      await new Promise(r => setTimeout(r, 250));
+    }
+  }
+}
 
 // Responsive popup sizing — three tiers: mobile / tablet / desktop
 function _popupSize() {
@@ -4211,6 +4237,8 @@ runBtn.addEventListener('click', async () => {
 
   buildFilterChips(displayRecords);
   buildChecklist(displayRecords);
+  // Pre-warm photo cache in background so popup photos load instantly
+  setTimeout(() => prefetchPhotos(displayRecords), 800);
   const _isMobile = window.innerWidth < 700;
   if (!_isMobile) checklistPanel.classList.add('open');
   _showChecklistHandle(true);
@@ -5664,6 +5692,7 @@ document.getElementById('dlChecklistBtn').addEventListener('click', () => {
 </div>
 </body>
 </html>
+
 
 
 
