@@ -45,7 +45,7 @@
       <img src="../occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v4.43b</span> <span style="font-size:10px;font-weight:700;color:#fbbf24;letter-spacing:0.06em;background:rgba(251,191,36,0.15);padding:1px 6px;border-radius:8px;">BETA</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v4.44b</span> <span style="font-size:10px;font-weight:700;color:#fbbf24;letter-spacing:0.06em;background:rgba(251,191,36,0.15);padding:1px 6px;border-radius:8px;">BETA</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -3270,8 +3270,8 @@ function setViewMode(mode) {
   if (tlPanel) tlPanel.classList.toggle('open', mode === 'timeline');
   if (mode === 'timeline') _timelinePanelRight();
   if (allRecords.length === 0) return;
-  if (mode === 'points') { tlFilterMin = null; tlFilterMax = null; renderPoints(allRecords); }
-  else if (mode === 'heat') { tlFilterMin = null; tlFilterMax = null; renderHeatmap(allRecords); }
+  if (mode === 'points') { tlFilterMin = null; tlFilterMax = null; renderPoints(allRecords); applyTimelineChecklist(); }
+  else if (mode === 'heat') { tlFilterMin = null; tlFilterMax = null; renderHeatmap(allRecords); applyTimelineChecklist(); }
   else if (mode === 'timeline') { renderPoints(allRecords); applyTimelineFilter(); renderTimeline(allRecords); }
 }
 
@@ -3289,6 +3289,28 @@ function applyTimelineFilter() {
       (tlFilterMax === null || yr <= tlFilterMax)
     );
     marker.setStyle({ fillOpacity: inRange ? marker._baseFillOpacity : 0.08, opacity: inRange ? 1 : 0.2 });
+  });
+  applyTimelineChecklist();
+}
+
+function applyTimelineChecklist() {
+  if (tlFilterMin === null && tlFilterMax === null) {
+    document.querySelectorAll('.cl-row').forEach(row => { row.style.opacity = ''; row.style.pointerEvents = ''; });
+    return;
+  }
+  // Build set of species names that have at least one record within the range
+  const inRange = new Set();
+  allRecords.forEach(r => {
+    const yr = parseInt(r.year);
+    if (isNaN(yr)) return;
+    if ((tlFilterMin === null || yr >= tlFilterMin) && (tlFilterMax === null || yr <= tlFilterMax)) {
+      const name = r.species || r.scientificName;
+      if (name) inRange.add(name);
+    }
+  });
+  document.querySelectorAll('.cl-row').forEach(row => {
+    const has = inRange.has(row.dataset.species || '');
+    row.style.opacity = has ? '' : '0.25';
   });
 }
 
@@ -5615,6 +5637,7 @@ document.getElementById('dlChecklistBtn').addEventListener('click', () => {
 </div>
 </body>
 </html>
+
 
 
 
