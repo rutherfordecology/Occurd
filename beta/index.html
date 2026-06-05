@@ -45,7 +45,7 @@
       <img src="../occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v4.54b</span> <span style="font-size:10px;font-weight:700;color:#fbbf24;letter-spacing:0.06em;background:rgba(251,191,36,0.15);padding:1px 6px;border-radius:8px;">BETA</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v4.55b</span> <span style="font-size:10px;font-weight:700;color:#fbbf24;letter-spacing:0.06em;background:rgba(251,191,36,0.15);padding:1px 6px;border-radius:8px;">BETA</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -3079,44 +3079,53 @@ window._gbifPopupNav = function(pid, dir) {
 };
 
 function makeStackedPopup(stackedRecords) {
-  // When timeline filter is active, only show records within the selected range
-  const hasTlFilter = tlFilterMin !== null || tlFilterMax !== null;
-  const visibleRecords = hasTlFilter
-    ? stackedRecords.filter(r => {
-        const yr = parseInt(r.year);
-        if (isNaN(yr)) return true; // undated records always visible
-        return (tlFilterMin === null || yr >= tlFilterMin) && (tlFilterMax === null || yr <= tlFilterMax);
-      })
-    : stackedRecords;
-  const records = visibleRecords.length > 0 ? visibleRecords : stackedRecords; // fallback to all if none in range
-  const sorted = records.slice().sort((a, b) => ((b.eventDate||'').localeCompare(a.eventDate||'')));
-  const total = sorted.length;
-  const isMulti = total > 1;
   const popupId = 'mp-' + Math.random().toString(36).slice(2);
 
-  // Build species map: sci -> { common, sci, taxonKey, records[] }
-  const speciesMap = new Map();
-  sorted.forEach(r => {
-    const sci = r.scientificName || r.species || '';
-    if (!speciesMap.has(sci)) {
-      speciesMap.set(sci, {
-        common: (r.vernacularName && !isBandingCode(r.vernacularName)) ? r.vernacularName : cachedName(r.taxonKey),
-        sci,
-        taxonKey: r.taxonKey,
-        records: []
-      });
-    }
-    speciesMap.get(sci).records.push(r);
-  });
-  const speciesList = [...speciesMap.values()];
-  const speciesCount = speciesList.length;
+  // Filter records based on CURRENT timeline values — called fresh each popup open
+  function getFiltered() {
+    const hasTl = tlFilterMin !== null || tlFilterMax !== null;
+    const vis = hasTl
+      ? stackedRecords.filter(r => {
+          const yr = parseInt(r.year);
+          if (isNaN(yr)) return true;
+          return (tlFilterMin === null || yr >= tlFilterMin) && (tlFilterMax === null || yr <= tlFilterMax);
+        })
+      : stackedRecords;
+    return vis.length > 0 ? vis : stackedRecords;
+  }
 
   function buildShell() {
+    const records = getFiltered();
+    const sorted  = records.slice().sort((a, b) => ((b.eventDate||'').localeCompare(a.eventDate||'')));
+    const total    = sorted.length;
+    const isMulti  = total > 1;
+
+    // Build species map
+    const speciesMap = new Map();
+    sorted.forEach(r => {
+      const sci = r.scientificName || r.species || '';
+      if (!speciesMap.has(sci)) {
+        speciesMap.set(sci, {
+          common: (r.vernacularName && !isBandingCode(r.vernacularName)) ? r.vernacularName : cachedName(r.taxonKey),
+          sci, taxonKey: r.taxonKey, records: []
+        });
+      }
+      speciesMap.get(sci).records.push(r);
+    });
+    const speciesList  = [...speciesMap.values()];
+    const speciesCount = speciesList.length;
+
+    // Update popup state with fresh data
+    window._gbifPopupState[popupId] = { idx: 0, sorted, popup, multiRecord: isMulti, speciesList };
+
+    const _ps = _popupSize();
     if (!isMulti) {
       const page0 = buildRecordPage(sorted[0]);
+      setTimeout(() => loadPopupPhoto(page0.photoId, sorted[0].taxonKey, sorted[0].scientificName), 50);
       return '<div id="' + popupId + '-body">' + page0.html + '</div>';
     }
 
+    setTimeout(() => window._gbifSelectSpecies(popupId, 0), 50);
     const spItems = speciesList.map((sp, i) =>
       '<div data-sp="' + i + '" ' +
       'onclick="event.stopPropagation();window._gbifSelectSpecies(\'' + popupId + '\',' + i + ')"' +
@@ -3129,32 +3138,26 @@ function makeStackedPopup(stackedRecords) {
       '</div>'
     ).join('');
 
-    const pin = '📍';
     return (
       '<div id="' + popupId + '-photo" style="margin-bottom:8px;"></div>' +
-      '<div style="font-size:10.5px;color:#2a7a58;font-weight:600;margin-bottom:5px;">' + pin + ' ' + total + ' records \xb7 ' + speciesCount + ' species</div>' +
+      '<div style="font-size:10.5px;color:#2a7a58;font-weight:600;margin-bottom:5px;">📍 ' + total + ' records · ' + speciesCount + ' species</div>' +
       '<div id="' + popupId + '-splist" style="overflow-y:auto;max-height:' + _ps.spListH + ';border-bottom:1px solid #eee;margin-bottom:6px;">' + spItems + '</div>' +
-      '<div id="' + popupId + '-detail"></div>'
+      '<div id="' + popupId + "-detail\"></div>"
     );
   }
 
   const _ps   = _popupSize();
+  // Use isMulti from unfiltered stack for sizing (conservative — multi-record popup is always larger)
+  const _isMultiEst = stackedRecords.length > 1;
   const popup = L.popup({
-    maxWidth: isMulti ? _ps.maxWm : _ps.maxW,
-    minWidth: isMulti ? _ps.minWm : _ps.minW,
+    maxWidth: _isMultiEst ? _ps.maxWm : _ps.maxW,
+    minWidth: _isMultiEst ? _ps.minWm : _ps.minW,
     autoPan: true, keepInView: true
   });
-  window._gbifPopupState[popupId] = { idx: 0, sorted, popup, multiRecord: isMulti, speciesList };
+  window._gbifPopupState[popupId] = { idx: 0, sorted: stackedRecords, popup, multiRecord: _isMultiEst, speciesList: [] };
 
-  popup.setContent(buildShell());
-  popup.on('add', () => {
-    if (isMulti) {
-      setTimeout(() => window._gbifSelectSpecies(popupId, 0), 50);
-    } else {
-      const page0 = buildRecordPage(sorted[0]);
-      setTimeout(() => loadPopupPhoto(page0.photoId, sorted[0].taxonKey, sorted[0].scientificName), 50);
-    }
-  });
+  // Pass buildShell as a function — Leaflet calls it fresh on every popup open
+  popup.setContent(buildShell);
   return popup;
 }
 
@@ -5736,6 +5739,7 @@ document.getElementById('dlChecklistBtn').addEventListener('click', () => {
 </div>
 </body>
 </html>
+
 
 
 
