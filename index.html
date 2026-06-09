@@ -45,7 +45,7 @@
       <img src="occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v4.67</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v4.68</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -3537,15 +3537,18 @@ function renderTimeline(records) {
   const chartH = H - padT - padB;
   const gap = chartW / Math.max(years.length, 1);
 
-  // Gradient bounds: read directly from slider positions, keep as YYYYMM in month mode
+  // Update globals immediately so gradient uses current render's keys (not stale previous render)
+  _tlYears = years;
+  _tlUseMonths = useMonths;
+
+  // Gradient bounds: read slider positions into current years array
   const _slMinEl = document.getElementById('tlSliderMin');
   const _slMaxEl = document.getElementById('tlSliderMax');
-  const _prevYears = _tlYears; // keys from previous render (YYYYMM or YYYY)
-  const gradMinKey = (_prevYears.length > 0 && _slMinEl)
-    ? _prevYears[Math.min(parseInt(_slMinEl.value) || 0, _prevYears.length - 1)]
+  const gradMinKey = (_tlYears.length > 0 && _slMinEl)
+    ? _tlYears[Math.min(parseInt(_slMinEl.value) || 0, _tlYears.length - 1)]
     : (useMonths ? minYr * 100 + 1 : minYr);
-  const gradMaxKey = (_prevYears.length > 0 && _slMaxEl)
-    ? _prevYears[Math.min(parseInt(_slMaxEl.value) || _prevYears.length - 1, _prevYears.length - 1)]
+  const gradMaxKey = (_tlYears.length > 0 && _slMaxEl)
+    ? _tlYears[Math.min(parseInt(_slMaxEl.value) || _tlYears.length - 1, _tlYears.length - 1)]
     : (useMonths ? maxYr * 100 + 12 : maxYr);
   const barW = Math.max(2, Math.min(gap * 0.8, 30));
 
@@ -3618,9 +3621,7 @@ function renderTimeline(records) {
   svgEl.setAttribute('viewBox', `0 0 ${W} ${H}`);
   svgEl.innerHTML = svg;
 
-  // Store year keys globally for index-based slider conversion
-  _tlYears = years;
-  _tlUseMonths = useMonths;
+
 
   // Position slider overlay: spans from first bar centre to last bar centre
   const overlay = document.getElementById('tlSliderOverlay');
@@ -4693,9 +4694,10 @@ document.getElementById('dlChecklistBtn').addEventListener('click', () => {
   </div>
   <div class="changelog-scroll" id="changelogScroll">
     <div class="changelog-version">
-      <span class="changelog-version-tag">v4.67</span>
+      <span class="changelog-version-tag">v4.68</span>
       <span class="changelog-date">Jun 2026</span>
       <ul>
+        <li>Timeline — fixed rainbow gradient running through colours twice when switching between year and month view modes</li>
         <li>Timeline — "Colour by year" no longer auto-disables when slider is dragged back to the earliest year; rainbow stays on until manually toggled off</li>
         <li>Timeline — Rainbow mode button colours points by year using a red→violet gradient, making temporal spread visible at a glance; gradient rescales dynamically with the slider; toggle off to restore taxon colours</li>
         <li>Cluster toggle — uncheck "Cluster points" to show all points individually without merging nearby records into numbered bubbles</li>
