@@ -45,7 +45,7 @@
       <img src="occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v4.61</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v4.62</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -3624,25 +3624,30 @@ function _tlInitSliders() {
   if (tlFilterMax !== null) {
     for (let i = 0; i < N; i++) { if (toYr(_tlYears[i]) <= tlFilterMax) hiIdx = i; }
   }
-  slMin.value = loIdx === -1 ? 0 : loIdx;
+  const lo = loIdx === -1 ? 0 : loIdx;
+  slMin.value = lo;
   slMax.value = hiIdx;
-  _tlUpdateTrack();
+  // Update fill visuals only — do NOT touch tlFilterMin/Max here.
+  // tlFilterMin/Max are owned by the slider input handler (_tlUpdateTrack).
+  _tlUpdateFill(lo, hiIdx, N);
+}
+
+function _tlUpdateFill(lo, hi, N) {
+  const pLo = N > 1 ? lo / (N - 1) * 100 : 0;
+  const pHi = N > 1 ? hi / (N - 1) * 100 : 100;
+  const fill = document.getElementById('tlTrackFill');
+  if (fill) { fill.style.left = pLo + '%'; fill.style.width = (pHi - pLo) + '%'; }
 }
 
 function _tlUpdateTrack() {
+  // Sole place that writes tlFilterMin/tlFilterMax — called only from slider input events.
   const slMin = document.getElementById('tlSliderMin');
   const slMax = document.getElementById('tlSliderMax');
   if (!slMin || !slMax || _tlYears.length === 0) return;
   const N = _tlYears.length;
   const lo = Math.min(parseInt(slMin.value), parseInt(slMax.value));
   const hi = Math.max(parseInt(slMin.value), parseInt(slMax.value));
-  const pLo = N > 1 ? lo / (N - 1) * 100 : 0;
-  const pHi = N > 1 ? hi / (N - 1) * 100 : 100;
-
-  const fill = document.getElementById('tlTrackFill');
-  if (fill) { fill.style.left = pLo + '%'; fill.style.width = (pHi - pLo) + '%'; }
-
-  // Convert indices to year values for the filter
+  _tlUpdateFill(lo, hi, N);
   const toYr = key => _tlUseMonths ? Math.floor(key / 100) : key;
   tlFilterMin = toYr(_tlYears[lo]);
   tlFilterMax = toYr(_tlYears[hi]);
@@ -4659,7 +4664,7 @@ document.getElementById('dlChecklistBtn').addEventListener('click', () => {
   </div>
   <div class="changelog-scroll" id="changelogScroll">
     <div class="changelog-version">
-      <span class="changelog-version-tag">v4.61</span>
+      <span class="changelog-version-tag">v4.62</span>
       <span class="changelog-date">Jun 2026</span>
       <ul>
         <li>Timeline — Rainbow mode button colours points by year using a red→violet gradient, making temporal spread visible at a glance; gradient rescales dynamically with the slider; toggle off to restore taxon colours</li>
