@@ -3331,10 +3331,9 @@ function yearRainbowColour(year, minYr, maxYr) {
 
 function applyRainbowToMarkers() {
   if (!tlRainbow) return;
-  const years = [];
-  allMarkers.forEach(({ marker }) => { if (marker._years) marker._years.forEach(y => years.push(y)); });
-  if (years.length === 0) return;
-  const minYr = Math.min(...years), maxYr = Math.max(...years);
+  const minYr = tlFilterMin !== null ? tlFilterMin : (() => { const ys = []; allMarkers.forEach(({ marker }) => { if (marker._years) marker._years.forEach(y => ys.push(y)); }); return Math.min(...ys); })();
+  const maxYr = tlFilterMax !== null ? tlFilterMax : (() => { const ys = []; allMarkers.forEach(({ marker }) => { if (marker._years) marker._years.forEach(y => ys.push(y)); }); return Math.max(...ys); })();
+  if (!isFinite(minYr) || !isFinite(maxYr)) return;
   const seen = new Set();
   allMarkers.forEach(({ marker }) => {
     if (seen.has(marker)) return;
@@ -3611,6 +3610,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (allRecords.length > 0) {
         applyTimelineFilter(); // grey out markers outside range — no re-render needed
         if (viewMode === 'timeline') renderTimeline(allRecords); // redraw chart with greyed bars
+        applyRainbowToMarkers();
       }
     });
   });
