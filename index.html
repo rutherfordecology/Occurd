@@ -272,24 +272,23 @@
     <div id="map"></div>
     <!-- Timeline panel -->
     <div id="timelinePanel">
-      <div id="timelineChartWrap">
+      <div id="timelineChartWrap" style="position:relative;">
         <svg id="timelineChart" width="100%" height="170"></svg>
-      </div>
-      <div class="tl-slider-row">
-        <span id="tlLabelMin" class="tl-year-label"></span>
-        <div class="tl-slider-track">
+        <!-- Sliders overlaid on chart — position set by JS after each render -->
+        <div id="tlSliderOverlay" style="position:absolute;height:20px;pointer-events:none;">
+          <div id="tlTrackBg"   class="tl-track-bg"></div>
+          <div id="tlTrackFill" class="tl-track-fill"></div>
           <input type="range" id="tlSliderMin" class="tl-slider tl-slider-min">
           <input type="range" id="tlSliderMax" class="tl-slider tl-slider-max">
         </div>
-        <span id="tlLabelMax" class="tl-year-label"></span>
       </div>
       <div style="display:flex;justify-content:flex-end;padding:4px 10px 6px;">
         <button id="btnTlRainbow" onclick="toggleTlRainbow()"
-          title="Colour points by year (rainbow gradient)"
+          title="Colour points by year gradient"
           style="background:none;border:1px solid var(--border);border-radius:12px;cursor:pointer;
                  font-size:11px;font-weight:600;font-family:var(--font-sans);padding:2px 9px;
                  color:var(--text3);transition:all 0.15s;">
-          🌈 Rainbow
+          Colour by year
         </button>
       </div>
     </div>
@@ -936,6 +935,8 @@ let viewMode = 'points', selectedSpecies = null, nextPolyId = 0, csvData = null,
 let tlFilterMin = null, tlFilterMax = null; // timeline year filter (null = no filter)
 let tlRainbow = false; // colour points by year gradient when in timeline mode
 let doCluster = true;  // group nearby points into numbered clusters
+let _tlYears = [];     // sorted year keys from last renderTimeline (YYYY or YYYYMM)
+let _tlUseMonths = false;
 let currentNztcsFilter = 'all';
 let currentIucnFilter  = 'all';
 let tkFilterActive     = false;
@@ -3566,53 +3567,75 @@ function renderTimeline(records) {
   if (tlFilterMin !== null && tlFilterMin > minYr) {
     const x = yearToX(sliderYearToKey(tlFilterMin)).toFixed(1);
     svg += `<line x1="${x}" y1="${padT}" x2="${x}" y2="${padT + chartH}" stroke="#6b7280" stroke-width="1.5" stroke-dasharray="4 3" opacity="0.8"/>`;
+    svg += `<text x="${x}" y="${(padT + chartH + 18).toFixed(1)}" text-anchor="middle" font-size="9" font-weight="700" fill="#374151">${tlFilterMin}</text>`;
   }
   if (tlFilterMax !== null && tlFilterMax < maxYr) {
     const x = yearToX(sliderYearToKey(tlFilterMax)).toFixed(1);
     svg += `<line x1="${x}" y1="${padT}" x2="${x}" y2="${padT + chartH}" stroke="#6b7280" stroke-width="1.5" stroke-dasharray="4 3" opacity="0.8"/>`;
+    svg += `<text x="${x}" y="${(padT + chartH + 18).toFixed(1)}" text-anchor="middle" font-size="9" font-weight="700" fill="#374151">${tlFilterMax}</text>`;
   }
 
   svgEl.setAttribute('viewBox', `0 0 ${W} ${H}`);
   svgEl.innerHTML = svg;
 
+  // Store year keys globally for index-based slider conversion
+  _tlYears = years;
+  _tlUseMonths = useMonths;
+
+  // Position slider overlay: spans from first bar centre to last bar centre
+  const overlay = document.getElementById('tlSliderOverlay');
+  if (overlay) {
+    const wrapPadL = 10; // matches CSS padding on timelineChartWrap
+    const firstCx = padL + gap / 2;
+    const lastCx  = padL + (years.length - 1) * gap + gap / 2;
+    overlay.style.left   = (wrapPadL + firstCx) + 'px';
+    overlay.style.width  = (lastCx - firstCx) + 'px';
+    overlay.style.top    = (8 + padT + chartH + 2) + 'px'; // 8px = chartWrap padding-top
+  }
+
   // Init sliders
-  _tlInitSliders(years[0], years[years.length - 1]);
+  _tlInitSliders();
 }
 
-function _tlInitSliders(minYr, maxYr) {
+function _tlInitSliders() {
   const slMin = document.getElementById('tlSliderMin');
   const slMax = document.getElementById('tlSliderMax');
-  if (!slMin || !slMax) return;
-  slMin.min = slMax.min = minYr;
-  slMin.max = slMax.max = maxYr;
+  if (!slMin || !slMax || _tlYears.length === 0) return;
+  const N = _tlYears.length;
+  slMin.min = slMax.min = 0;
+  slMin.max = slMax.max = N - 1;
   slMin.step = slMax.step = 1;
-  if (tlFilterMin === null || tlFilterMin < minYr || tlFilterMin > maxYr) { slMin.value = minYr; tlFilterMin = minYr; }
-  else slMin.value = tlFilterMin;
-  if (tlFilterMax === null || tlFilterMax < minYr || tlFilterMax > maxYr) { slMax.value = maxYr; tlFilterMax = maxYr; }
-  else slMax.value = tlFilterMax;
+
+  // Convert current tlFilterMin/Max year values back to indices
+  const toYr = key => _tlUseMonths ? Math.floor(key / 100) : key;
+  const loIdx = tlFilterMin === null ? 0
+    : Math.max(0, _tlYears.findIndex(k => toYr(k) >= tlFilterMin));
+  let hiIdx = N - 1;
+  if (tlFilterMax !== null) {
+    for (let i = 0; i < N; i++) { if (toYr(_tlYears[i]) <= tlFilterMax) hiIdx = i; }
+  }
+  slMin.value = loIdx === -1 ? 0 : loIdx;
+  slMax.value = hiIdx;
   _tlUpdateTrack();
 }
 
 function _tlUpdateTrack() {
   const slMin = document.getElementById('tlSliderMin');
   const slMax = document.getElementById('tlSliderMax');
-  if (!slMin || !slMax) return;
-  const min = parseInt(slMin.min), max = parseInt(slMin.max);
+  if (!slMin || !slMax || _tlYears.length === 0) return;
+  const N = _tlYears.length;
   const lo = Math.min(parseInt(slMin.value), parseInt(slMax.value));
   const hi = Math.max(parseInt(slMin.value), parseInt(slMax.value));
-  const pLo = (lo - min) / (max - min) * 100;
-  const pHi = (hi - min) / (max - min) * 100;
-  document.getElementById('tlLabelMin').textContent = lo;
-  document.getElementById('tlLabelMax').textContent = hi;
-  let fill = document.getElementById('tlTrackFill');
-  if (!fill) {
-    const bg = document.createElement('div'); bg.className = 'tl-track-bg'; slMin.parentNode.insertBefore(bg, slMin);
-    fill = document.createElement('div'); fill.id = 'tlTrackFill'; fill.className = 'tl-track-fill'; slMin.parentNode.insertBefore(fill, slMin);
-  }
-  fill.style.left = pLo + '%';
-  fill.style.width = (pHi - pLo) + '%';
-  tlFilterMin = lo;
-  tlFilterMax = hi;
+  const pLo = N > 1 ? lo / (N - 1) * 100 : 0;
+  const pHi = N > 1 ? hi / (N - 1) * 100 : 100;
+
+  const fill = document.getElementById('tlTrackFill');
+  if (fill) { fill.style.left = pLo + '%'; fill.style.width = (pHi - pLo) + '%'; }
+
+  // Convert indices to year values for the filter
+  const toYr = key => _tlUseMonths ? Math.floor(key / 100) : key;
+  tlFilterMin = toYr(_tlYears[lo]);
+  tlFilterMax = toYr(_tlYears[hi]);
 }
 
 document.addEventListener('DOMContentLoaded', () => {
