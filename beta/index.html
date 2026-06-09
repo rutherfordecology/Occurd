@@ -45,7 +45,7 @@
       <img src="occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v4.60</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v4.61</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -3364,25 +3364,32 @@ function toggleClustering(checked) {
   }
 }
 
+function _syncRainbowBtn() {
+  const btn = document.getElementById('btnTlRainbow');
+  if (!btn) return;
+  btn.style.background = tlRainbow ? 'linear-gradient(90deg,hsl(0,85%,48%),hsl(60,85%,48%),hsl(120,85%,48%),hsl(180,85%,48%),hsl(240,85%,48%),hsl(270,85%,48%))' : '';
+  btn.style.color      = tlRainbow ? '#fff' : '';
+  btn.style.border     = tlRainbow ? '1px solid transparent' : '';
+}
+
+function _restoreTaxonColours() {
+  const seen = new Set();
+  allMarkers.forEach(({ marker, record }) => {
+    if (seen.has(marker)) return;
+    seen.add(marker);
+    marker.setStyle({ fillColor: getTaxonColour(record) });
+  });
+}
+
 function toggleTlRainbow() {
   tlRainbow = !tlRainbow;
-  const btn = document.getElementById('btnTlRainbow');
-  if (btn) {
-    btn.style.background = tlRainbow ? 'linear-gradient(90deg,hsl(0,85%,48%),hsl(60,85%,48%),hsl(120,85%,48%),hsl(180,85%,48%),hsl(240,85%,48%),hsl(270,85%,48%))' : '';
-    btn.style.color      = tlRainbow ? '#fff' : '';
-    btn.style.border     = tlRainbow ? '1px solid transparent' : '';
-  }
+  _syncRainbowBtn();
   if (tlRainbow) {
     applyRainbowToMarkers();
   } else {
-    // Restore taxon colours
-    const seen = new Set();
-    allMarkers.forEach(({ marker, record }) => {
-      if (seen.has(marker)) return;
-      seen.add(marker);
-      marker.setStyle({ fillColor: getTaxonColour(record) });
-    });
+    _restoreTaxonColours();
   }
+  if (viewMode === 'timeline') renderTimeline(allRecords);
 }
 
 function setViewMode(mode) {
@@ -3653,8 +3660,16 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       _tlUpdateTrack();
       if (allRecords.length > 0) {
-        applyTimelineFilter(); // grey out markers outside range — no re-render needed
-        if (viewMode === 'timeline') renderTimeline(allRecords); // redraw chart with greyed bars
+        // Auto-enable rainbow when slider is narrowed; auto-disable at full range
+        if (viewMode === 'timeline') {
+          const slMin2 = document.getElementById('tlSliderMin');
+          const slMax2 = document.getElementById('tlSliderMax');
+          const isFullRange = parseInt(slMin2.value) === 0 && parseInt(slMax2.value) === _tlYears.length - 1;
+          if (!isFullRange && !tlRainbow) { tlRainbow = true; _syncRainbowBtn(); }
+          if (isFullRange && tlRainbow)   { tlRainbow = false; _syncRainbowBtn(); _restoreTaxonColours(); }
+        }
+        applyTimelineFilter();
+        if (viewMode === 'timeline') renderTimeline(allRecords);
         applyRainbowToMarkers();
       }
     });
@@ -4644,7 +4659,7 @@ document.getElementById('dlChecklistBtn').addEventListener('click', () => {
   </div>
   <div class="changelog-scroll" id="changelogScroll">
     <div class="changelog-version">
-      <span class="changelog-version-tag">v4.60</span>
+      <span class="changelog-version-tag">v4.61</span>
       <span class="changelog-date">Jun 2026</span>
       <ul>
         <li>Timeline — Rainbow mode button colours points by year using a red→violet gradient, making temporal spread visible at a glance; gradient rescales dynamically with the slider; toggle off to restore taxon colours</li>
