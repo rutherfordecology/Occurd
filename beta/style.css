@@ -313,7 +313,7 @@ html, body { max-width: 100vw; overflow-x: hidden; }
 /* Draw action bar (shown over map while drawing) */
 /* ── Timeline panel ─────────────────────────────────────────────────────── */
 #timelinePanel { position:absolute; bottom:0; left:0; right:0; height:0; background:var(--surface); border-top:1px solid var(--border); z-index:800; overflow:hidden; transition:height 0.25s ease; box-shadow:0 -3px 12px rgba(0,0,0,0.08); }
-#timelinePanel.open { height:230px; }
+#timelinePanel.open { height:258px; }
 #timelineChartWrap { padding:8px 10px 0; }
 .tl-slider-row { display:flex; align-items:center; gap:10px; padding:4px 12px 8px; }
 .tl-year-label { font-size:11px; font-weight:600; color:var(--text2); white-space:nowrap; min-width:36px; text-align:center; }
