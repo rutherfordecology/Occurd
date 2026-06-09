@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>occurd. beta · Rutherford Ecology</title>
+<title>occurd. · Rutherford Ecology</title>
 <meta name="description" content="Draw a polygon, fetch biodiversity occurrence records from GBIF, filter by taxon group, and export as CSV, GeoJSON or KML. Free, no login required.">
 <meta property="og:title" content="occurd. · Rutherford Ecology">
 <meta property="og:description" content="Draw a polygon, fetch biodiversity occurrence records from GBIF, filter by taxon group, and export as CSV, GeoJSON or KML. Free, no login required.">
@@ -42,10 +42,10 @@
 <header>
   <div class="header-brand">
     <div style="overflow:hidden;width:100px;height:44px;flex-shrink:0;margin-top:4px;">
-      <img src="../occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
+      <img src="occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v4.55b</span> <span style="font-size:10px;font-weight:700;color:#fbbf24;letter-spacing:0.06em;background:rgba(251,191,36,0.15);padding:1px 6px;border-radius:8px;">BETA</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v4.56</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -277,6 +277,15 @@
         </div>
         <span id="tlLabelMax" class="tl-year-label"></span>
       </div>
+      <div style="display:flex;justify-content:flex-end;padding:4px 10px 6px;">
+        <button id="btnTlRainbow" onclick="toggleTlRainbow()"
+          title="Colour points by year (rainbow gradient)"
+          style="background:none;border:1px solid var(--border);border-radius:12px;cursor:pointer;
+                 font-size:11px;font-weight:600;font-family:var(--font-sans);padding:2px 9px;
+                 color:var(--text3);transition:all 0.15s;">
+          🌈 Rainbow
+        </button>
+      </div>
     </div>
     <!-- Draw hint — visible until user starts drawing, then hidden permanently -->
     <div id="drawHint" style="
@@ -488,8 +497,8 @@
 
     <!-- Welcome header -->
     <div style="background:var(--green-dark);padding:2rem 2rem 1.5rem;text-align:center;">
-      <img src="../occurd-logo.png" alt="occurd." style="width:100%;max-width:260px;height:auto;filter:brightness(0) invert(1);opacity:0.95;margin-bottom:12px;display:block;margin-left:auto;margin-right:auto;transform:translateX(25px);">
-      <img src="../logo.png" alt="Rutherford Ecology" style="width:100%;max-width:200px;height:auto;filter:brightness(0) invert(1);opacity:0.7;margin-bottom:10px;display:block;margin-left:auto;margin-right:auto;">
+      <img src="occurd-logo.png" alt="occurd." style="width:100%;max-width:260px;height:auto;filter:brightness(0) invert(1);opacity:0.95;margin-bottom:12px;display:block;margin-left:auto;margin-right:auto;transform:translateX(25px);">
+      <img src="logo.png" alt="Rutherford Ecology" style="width:100%;max-width:200px;height:auto;filter:brightness(0) invert(1);opacity:0.7;margin-bottom:10px;display:block;margin-left:auto;margin-right:auto;">
       <div style="font-size:13px;font-weight:400;color:rgba(255,255,255,0.6);font-family:var(--font-sans);letter-spacing:0.01em;">by <strong style="font-weight:700;color:rgba(255,255,255,0.85);">Rutherford</strong> <em style="font-style:normal;font-weight:300;">ecology</em></div>
     </div>
 
@@ -919,6 +928,7 @@ map.on(L.Draw.Event.CREATED, e => {
 let polygons = [], refLayers = [], clipTurfPolygons = null, allRecords = [], activeFilters = new Set();
 let viewMode = 'points', selectedSpecies = null, nextPolyId = 0, csvData = null, pendingLoad = null;
 let tlFilterMin = null, tlFilterMax = null; // timeline year filter (null = no filter)
+let tlRainbow = false; // colour points by year gradient when in timeline mode
 let currentNztcsFilter = 'all';
 let currentIucnFilter  = 'all';
 let tkFilterActive     = false;
@@ -2188,7 +2198,7 @@ document.getElementById('clNztcsFilters').addEventListener('click', e => {
 async function loadNztcsData() {
   if (nztcsData) { nztcsUnlocked = true; updateNztcsBtn(); if (allRecords.length > 0) buildChecklist(allRecords); return; }
   try {
-    const resp = await fetch('../nztcs.json');
+    const resp = await fetch('nztcs.json');
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
     nztcsData     = await resp.json();
     nztcsUnlocked = true;
@@ -3313,6 +3323,49 @@ map.on('zoomend', function() {
   if (viewMode === 'heat' && _occurrenceHeatPts) _occurrenceApplyLayer();
 });
 
+function yearRainbowColour(year, minYr, maxYr) {
+  const t = maxYr === minYr ? 0 : (year - minYr) / (maxYr - minYr);
+  const hue = Math.round(t * 270); // red(0) → violet(270)
+  return 'hsl(' + hue + ',85%,48%)';
+}
+
+function applyRainbowToMarkers() {
+  if (!tlRainbow) return;
+  const years = [];
+  allMarkers.forEach(({ marker }) => { if (marker._years) marker._years.forEach(y => years.push(y)); });
+  if (years.length === 0) return;
+  const minYr = Math.min(...years), maxYr = Math.max(...years);
+  const seen = new Set();
+  allMarkers.forEach(({ marker }) => {
+    if (seen.has(marker)) return;
+    seen.add(marker);
+    if (!marker._years || marker._years.size === 0) return;
+    const yr = Math.min(...marker._years);
+    marker.setStyle({ fillColor: yearRainbowColour(yr, minYr, maxYr) });
+  });
+}
+
+function toggleTlRainbow() {
+  tlRainbow = !tlRainbow;
+  const btn = document.getElementById('btnTlRainbow');
+  if (btn) {
+    btn.style.background = tlRainbow ? 'linear-gradient(90deg,hsl(0,85%,48%),hsl(60,85%,48%),hsl(120,85%,48%),hsl(180,85%,48%),hsl(240,85%,48%),hsl(270,85%,48%))' : '';
+    btn.style.color      = tlRainbow ? '#fff' : '';
+    btn.style.border     = tlRainbow ? '1px solid transparent' : '';
+  }
+  if (tlRainbow) {
+    applyRainbowToMarkers();
+  } else {
+    // Restore taxon colours
+    const seen = new Set();
+    allMarkers.forEach(({ marker, record }) => {
+      if (seen.has(marker)) return;
+      seen.add(marker);
+      marker.setStyle({ fillColor: getTaxonColour(record) });
+    });
+  }
+}
+
 function setViewMode(mode) {
   viewMode = mode;
   document.getElementById('btnPoints').classList.toggle('active', mode === 'points');
@@ -3321,10 +3374,15 @@ function setViewMode(mode) {
   const tlPanel = document.getElementById('timelinePanel');
   if (tlPanel) tlPanel.classList.toggle('open', mode === 'timeline');
   if (mode === 'timeline') _timelinePanelRight();
+  if (mode !== 'timeline' && tlRainbow) {
+    tlRainbow = false;
+    const btn = document.getElementById('btnTlRainbow');
+    if (btn) { btn.style.background = ''; btn.style.color = ''; btn.style.border = ''; }
+  }
   if (allRecords.length === 0) return;
   if (mode === 'points') { tlFilterMin = null; tlFilterMax = null; renderPoints(allRecords); applyTimelineChecklist(); }
   else if (mode === 'heat') { tlFilterMin = null; tlFilterMax = null; renderHeatmap(allRecords); applyTimelineChecklist(); }
-  else if (mode === 'timeline') { renderPoints(allRecords); applyTimelineFilter(); renderTimeline(allRecords); }
+  else if (mode === 'timeline') { renderPoints(allRecords); applyTimelineFilter(); renderTimeline(allRecords); if (tlRainbow) applyRainbowToMarkers(); }
 }
 
 function _clearGhostLayer() {
@@ -4540,6 +4598,13 @@ document.getElementById('dlChecklistBtn').addEventListener('click', () => {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v4.56</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>Timeline — Rainbow mode button colours points by year using a red→violet gradient, making temporal spread visible at a glance; toggle off to restore taxon colours</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v4.23b</span>
       <span class="changelog-date">Jun 2026</span>
