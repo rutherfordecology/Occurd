@@ -45,7 +45,7 @@
       <img src="occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v4.66</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v4.67</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -3695,13 +3695,12 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       _tlUpdateTrack();
       if (allRecords.length > 0) {
-        // Auto-enable rainbow when slider is narrowed; auto-disable at full range
-        if (viewMode === 'timeline') {
+        // Auto-enable rainbow when slider is narrowed
+        if (viewMode === 'timeline' && !tlRainbow) {
           const slMin2 = document.getElementById('tlSliderMin');
           const slMax2 = document.getElementById('tlSliderMax');
           const isFullRange = parseInt(slMin2.value) === 0 && parseInt(slMax2.value) === _tlYears.length - 1;
-          if (!isFullRange && !tlRainbow) { tlRainbow = true; _syncRainbowBtn(); }
-          if (isFullRange && tlRainbow)   { tlRainbow = false; _syncRainbowBtn(); _restoreTaxonColours(); }
+          if (!isFullRange) { tlRainbow = true; _syncRainbowBtn(); }
         }
         applyTimelineFilter();
         if (viewMode === 'timeline') renderTimeline(allRecords);
@@ -4694,9 +4693,10 @@ document.getElementById('dlChecklistBtn').addEventListener('click', () => {
   </div>
   <div class="changelog-scroll" id="changelogScroll">
     <div class="changelog-version">
-      <span class="changelog-version-tag">v4.66</span>
+      <span class="changelog-version-tag">v4.67</span>
       <span class="changelog-date">Jun 2026</span>
       <ul>
+        <li>Timeline — "Colour by year" no longer auto-disables when slider is dragged back to the earliest year; rainbow stays on until manually toggled off</li>
         <li>Timeline — Rainbow mode button colours points by year using a red→violet gradient, making temporal spread visible at a glance; gradient rescales dynamically with the slider; toggle off to restore taxon colours</li>
         <li>Cluster toggle — uncheck "Cluster points" to show all points individually without merging nearby records into numbered bubbles</li>
       </ul>
