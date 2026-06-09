@@ -45,7 +45,7 @@
       <img src="occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v4.57</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v4.58</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -223,6 +223,12 @@
           <button class="tool-btn active" id="btnPoints" onclick="setViewMode('points')">Points</button>
           <button class="tool-btn" id="btnHeat" onclick="setViewMode('heat')">Heatmap</button>
           <button class="tool-btn" id="btnTimeline" onclick="setViewMode('timeline')">Timeline</button>
+        </div>
+        <div style="margin-top:0.4rem;">
+          <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;color:var(--text2);">
+            <input type="checkbox" id="clusterToggle" checked style="accent-color:var(--green);flex-shrink:0;" onchange="toggleClustering(this.checked)">
+            Cluster points
+          </label>
         </div>
         <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.07em;color:var(--text3);margin:0.5rem 0 3px;">Downloads</div>
         <div class="export-row">
@@ -929,6 +935,7 @@ let polygons = [], refLayers = [], clipTurfPolygons = null, allRecords = [], act
 let viewMode = 'points', selectedSpecies = null, nextPolyId = 0, csvData = null, pendingLoad = null;
 let tlFilterMin = null, tlFilterMax = null; // timeline year filter (null = no filter)
 let tlRainbow = false; // colour points by year gradient when in timeline mode
+let doCluster = true;  // group nearby points into numbered clusters
 let currentNztcsFilter = 'all';
 let currentIucnFilter  = 'all';
 let tkFilterActive     = false;
@@ -3215,18 +3222,22 @@ function renderPoints(records) {
   allMarkers = [];
   if (clusterLayer) { map.removeLayer(clusterLayer); clusterLayer = null; }
   if (heatLayer)    { map.removeLayer(heatLayer); heatLayer = null; }
-  clusterLayer = L.markerClusterGroup({ maxClusterRadius: 40, disableClusteringAtZoom: 14,
-    iconCreateFunction: function(cluster) {
-      const ms = cluster.getAllChildMarkers();
-      const hasTlFilter = tlFilterMin !== null || tlFilterMax !== null;
-      const n = hasTlFilter
-        ? ms.reduce((s, m) => s + (m._tlActive !== false ? (m._stackSize || 1) : 0), 0)
-        : cluster.getChildCount();
-      if (n === 0) return new L.DivIcon({ html: '<div style="background:#d1d5db;opacity:0.25;border-radius:50%;width:20px;height:20px;"></div>', className: '', iconSize: new L.Point(20, 20), iconAnchor: new L.Point(10, 10) });
-      const cls = n < 10 ? 'small' : n < 100 ? 'medium' : 'large';
-      return new L.DivIcon({ html: '<div><span>' + n + '</span></div>', className: 'marker-cluster marker-cluster-' + cls, iconSize: new L.Point(40, 40) });
-    }
-  });
+  if (doCluster) {
+    clusterLayer = L.markerClusterGroup({ maxClusterRadius: 40, disableClusteringAtZoom: 14,
+      iconCreateFunction: function(cluster) {
+        const ms = cluster.getAllChildMarkers();
+        const hasTlFilter = tlFilterMin !== null || tlFilterMax !== null;
+        const n = hasTlFilter
+          ? ms.reduce((s, m) => s + (m._tlActive !== false ? (m._stackSize || 1) : 0), 0)
+          : cluster.getChildCount();
+        if (n === 0) return new L.DivIcon({ html: '<div style="background:#d1d5db;opacity:0.25;border-radius:50%;width:20px;height:20px;"></div>', className: '', iconSize: new L.Point(20, 20), iconAnchor: new L.Point(10, 10) });
+        const cls = n < 10 ? 'small' : n < 100 ? 'medium' : 'large';
+        return new L.DivIcon({ html: '<div><span>' + n + '</span></div>', className: 'marker-cluster marker-cluster-' + cls, iconSize: new L.Point(40, 40) });
+      }
+    });
+  } else {
+    clusterLayer = L.layerGroup();
+  }
 
   const filtered = records.filter(passesFilters);
 
@@ -3342,6 +3353,14 @@ function applyRainbowToMarkers() {
     const yr = Math.min(...marker._years);
     marker.setStyle({ fillColor: yearRainbowColour(yr, minYr, maxYr) });
   });
+}
+
+function toggleClustering(checked) {
+  doCluster = checked;
+  if (allRecords.length > 0 && viewMode !== 'heat') {
+    renderPoints(allRecords);
+    if (viewMode === 'timeline') { applyTimelineFilter(); renderTimeline(allRecords); if (tlRainbow) applyRainbowToMarkers(); }
+  }
 }
 
 function toggleTlRainbow() {
@@ -4599,10 +4618,11 @@ document.getElementById('dlChecklistBtn').addEventListener('click', () => {
   </div>
   <div class="changelog-scroll" id="changelogScroll">
     <div class="changelog-version">
-      <span class="changelog-version-tag">v4.57</span>
+      <span class="changelog-version-tag">v4.58</span>
       <span class="changelog-date">Jun 2026</span>
       <ul>
-        <li>Timeline — Rainbow mode button colours points by year using a red→violet gradient, making temporal spread visible at a glance; toggle off to restore taxon colours</li>
+        <li>Timeline — Rainbow mode button colours points by year using a red→violet gradient, making temporal spread visible at a glance; gradient rescales dynamically with the slider; toggle off to restore taxon colours</li>
+        <li>Cluster toggle — uncheck "Cluster points" to show all points individually without merging nearby records into numbered bubbles</li>
       </ul>
     </div>
     <div class="changelog-version">
