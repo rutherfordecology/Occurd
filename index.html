@@ -45,7 +45,7 @@
       <img src="occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v4.69</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v4.70</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -272,6 +272,13 @@
                      color:var(--text3);transition:all 0.15s;">
               Normalise by effort
             </button>
+            <button id="btnTlSpreadSb" onclick="toggleSpread()"
+              title="Show cumulative mean distance from centroid per year — tracks how far records have spread over time"
+              style="background:none;border:1px solid var(--border);border-radius:12px;cursor:pointer;
+                     font-size:11px;font-weight:600;font-family:var(--font-sans);padding:3px 10px;
+                     color:var(--text3);transition:all 0.15s;">
+              Spread (km)
+            </button>
           </div>
           <p class="note" style="margin-top:6px;">Effort normalisation fetches total GBIF records (all taxa) in your polygon per year and divides your species' counts — so the chart shows % of all records, not raw counts. Requires yearly view.</p>
         </div>
@@ -310,6 +317,10 @@
           <input type="range" id="tlSliderMin" class="tl-slider tl-slider-min">
           <input type="range" id="tlSliderMax" class="tl-slider tl-slider-max">
         </div>
+      </div>
+      <div id="spreadChartWrap" style="display:none;padding:0 0 4px;">
+        <div style="font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--text3);padding:2px 10px 0;">Cumulative spread (km from centroid)</div>
+        <svg id="spreadChart" width="100%" height="90"></svg>
       </div>
       <div style="display:none">
       </div>
@@ -1355,6 +1366,7 @@ function passesFilters(r) {
 function clearResults() {
   allRecords = []; activeFilters.clear(); csvData = null; selectedSpecies = null; allMarkers = []; commonNameCache = {};
   effortByYear = null; tlEffortMode = false; _effortFetchParams = []; _syncEffortBtn();
+  tlSpreadMode = false; _syncSpreadBtn(); const _sw = document.getElementById('spreadChartWrap'); if (_sw) _sw.style.display = 'none';
   _clearGhostLayer();
   _photoPrefetchAbort = true;
   currentNztcsFilter = 'all';
@@ -3708,7 +3720,7 @@ function renderTimeline(records) {
   svgEl.setAttribute('viewBox', `0 0 ${W} ${H}`);
   svgEl.innerHTML = svg;
 
-
+  renderSpreadChart(records);
 
   // Position slider overlay: spans from first bar centre to last bar centre
   const overlay = document.getElementById('tlSliderOverlay');
@@ -3831,6 +3843,124 @@ function clearSpeciesSelection() {
   document.querySelectorAll('.cl-row').forEach(row => row.classList.remove('selected'));
   if (viewMode === 'heat') { renderHeatmap(allRecords); }
   else { renderPoints(allRecords); applyTimelineFilter(); }
+}
+
+// Haversine distance in km between two lat/lng points
+function _haversineKm(lat1, lng1, lat2, lng2) {
+  const R = 6371, rad = Math.PI / 180;
+  const dLat = (lat2 - lat1) * rad, dLng = (lng2 - lng1) * rad;
+  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*rad)*Math.cos(lat2*rad)*Math.sin(dLng/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+let tlSpreadMode = false;
+
+function _syncSpreadBtn() {
+  const btn = document.getElementById('btnTlSpreadSb');
+  if (!btn) return;
+  btn.style.background = tlSpreadMode ? 'var(--green-dark)' : '';
+  btn.style.color      = tlSpreadMode ? '#fff' : '';
+  btn.style.border     = tlSpreadMode ? '1px solid transparent' : '';
+}
+
+function toggleSpread() {
+  tlSpreadMode = !tlSpreadMode;
+  _syncSpreadBtn();
+  const wrap = document.getElementById('spreadChartWrap');
+  if (!wrap) return;
+  if (tlSpreadMode) {
+    wrap.style.display = 'block';
+    renderSpreadChart(allRecords);
+  } else {
+    wrap.style.display = 'none';
+  }
+}
+
+function renderSpreadChart(records) {
+  const svgEl = document.getElementById('spreadChart');
+  if (!svgEl || !tlSpreadMode) return;
+
+  const pts = records.filter(r => passesFilters(r) && r.decimalLatitude != null && r.decimalLongitude != null && r.year);
+  if (pts.length < 2) {
+    svgEl.innerHTML = '<text x="50%" y="50%" text-anchor="middle" font-size="11" fill="#9b9890">Not enough georeferenced records</text>';
+    return;
+  }
+
+  // Sort by year, build cumulative centroid + mean distance per year
+  const byYear = {};
+  pts.forEach(r => {
+    const y = parseInt(r.year);
+    if (isNaN(y)) return;
+    if (!byYear[y]) byYear[y] = [];
+    byYear[y].push([parseFloat(r.decimalLatitude), parseFloat(r.decimalLongitude)]);
+  });
+
+  const years = Object.keys(byYear).map(Number).sort((a,b) => a-b);
+  let cumPts = [];
+  const spreadByYear = {};
+  years.forEach(yr => {
+    cumPts = cumPts.concat(byYear[yr]);
+    const cLat = cumPts.reduce((s,p) => s+p[0], 0) / cumPts.length;
+    const cLng = cumPts.reduce((s,p) => s+p[1], 0) / cumPts.length;
+    const meanDist = cumPts.reduce((s,p) => s + _haversineKm(cLat, cLng, p[0], p[1]), 0) / cumPts.length;
+    spreadByYear[yr] = meanDist;
+  });
+
+  const vals = years.map(y => spreadByYear[y]);
+  const maxVal = Math.max(...vals, 1);
+
+  const W = svgEl.getBoundingClientRect().width || svgEl.parentElement.clientWidth || 600;
+  const H = 90;
+  const padL = 42, padR = 8, padT = 8, padB = 22;
+  const chartW = W - padL - padR;
+  const chartH = H - padT - padB;
+  const gap = chartW / Math.max(years.length - 1, 1);
+
+  let svg = '';
+
+  // Gridlines + Y labels
+  for (let i = 0; i <= 3; i++) {
+    const val = maxVal * i / 3;
+    const y = padT + chartH - (chartH * i / 3);
+    svg += `<line x1="${padL}" y1="${y.toFixed(1)}" x2="${W-padR}" y2="${y.toFixed(1)}" stroke="#e5e7eb" stroke-width="0.5"/>`;
+    svg += `<text x="${padL-3}" y="${(y+3.5).toFixed(1)}" text-anchor="end" font-size="9" fill="#9b9890">${Math.round(val)}</text>`;
+  }
+
+  // Line + dots
+  const pts2 = years.map((yr, i) => {
+    const x = padL + i * gap;
+    const y = padT + chartH - (spreadByYear[yr] / maxVal) * chartH;
+    return [x, y, yr, spreadByYear[yr]];
+  });
+
+  // Area fill
+  let area = `M ${pts2[0][0].toFixed(1)} ${(padT+chartH).toFixed(1)} `;
+  pts2.forEach(([x,y]) => { area += `L ${x.toFixed(1)} ${y.toFixed(1)} `; });
+  area += `L ${pts2[pts2.length-1][0].toFixed(1)} ${(padT+chartH).toFixed(1)} Z`;
+  svg += `<path d="${area}" fill="var(--green)" opacity="0.12"/>`;
+
+  // Line
+  let line = `M ${pts2[0][0].toFixed(1)} ${pts2[0][1].toFixed(1)}`;
+  pts2.slice(1).forEach(([x,y]) => { line += ` L ${x.toFixed(1)} ${y.toFixed(1)}`; });
+  svg += `<path d="${line}" fill="none" stroke="var(--green-dark)" stroke-width="1.5"/>`;
+
+  // Dots + tooltips
+  pts2.forEach(([x, y, yr, km]) => {
+    svg += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="3" fill="var(--green-dark)"><title>${yr}: ${km.toFixed(1)} km</title></circle>`;
+  });
+
+  // X labels
+  const every = Math.ceil(years.length / 8);
+  pts2.forEach(([x,,yr], i) => {
+    if (i % every === 0 || i === pts2.length - 1)
+      svg += `<text x="${x.toFixed(1)}" y="${H-4}" text-anchor="middle" font-size="9" fill="#9b9890">${yr}</text>`;
+  });
+
+  // Axes
+  svg += `<line x1="${padL}" y1="${padT}" x2="${padL}" y2="${padT+chartH}" stroke="#d1d5db" stroke-width="1"/>`;
+  svg += `<line x1="${padL}" y1="${padT+chartH}" x2="${W-padR}" y2="${padT+chartH}" stroke="#d1d5db" stroke-width="1"/>`;
+
+  svgEl.innerHTML = svg;
 }
 
 // Checklist
@@ -4791,6 +4921,13 @@ document.getElementById('dlChecklistBtn').addEventListener('click', () => {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v4.70</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>Spread (km) — new Nerd tools option showing cumulative mean distance from centroid per year as a line chart below the timeline; tracks how far records have spread geographically over time</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v4.69</span>
       <span class="changelog-date">Jun 2026</span>
