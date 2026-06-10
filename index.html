@@ -45,7 +45,7 @@
       <img src="occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v4.89</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v4.90</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -1493,12 +1493,20 @@ function restoreFromShare(state) {
   // Taxon selection
   if (state.taxa && state.taxa.length > 0) {
     document.getElementById('taxonAllLabel').classList.remove('selected');
+    document.getElementById('taxonAll').checked = false;
     taxonCbs().forEach(cb => {
       const lbl = cb.closest('label');
-      if (state.taxa.includes(cb.value)) lbl.classList.add('selected');
+      const sel = state.taxa.includes(cb.value);
+      cb.checked = sel;
+      if (sel) lbl.classList.add('selected');
       else lbl.classList.remove('selected');
     });
+  } else {
+    // All taxa — ensure the All label is selected
+    document.getElementById('taxonAllLabel').classList.add('selected');
+    document.getElementById('taxonAll').checked = true;
   }
+  updateTaxonLabel();
   // Basis of record
   const basisIds = ['inclObservations','inclPreserved','inclFossils','inclEdna'];
   if (state.basis && state.basis.length === basisIds.length) {
