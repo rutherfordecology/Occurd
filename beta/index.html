@@ -45,7 +45,7 @@
       <img src="occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v4.68</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v4.71</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -222,7 +222,6 @@
         <div class="tool-row" style="margin-top:0.6rem;">
           <button class="tool-btn active" id="btnPoints" onclick="setViewMode('points')">Points</button>
           <button class="tool-btn" id="btnHeat" onclick="setViewMode('heat')">Heatmap</button>
-          <button class="tool-btn" id="btnTimeline" onclick="setViewMode('timeline')">Timeline</button>
         </div>
         <div style="margin-top:0.4rem;">
           <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;color:var(--text2);">
@@ -247,6 +246,43 @@
         <button id="selectAllChipsBtn" style="background:none;border:none;cursor:pointer;font-size:11px;color:var(--green);font-family:var(--font-sans);padding:2px 4px;border-radius:3px;font-weight:500;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">Deselect all</button>
       </div>
       <div class="filter-chips" id="filterChips"></div>
+    </div>
+
+    <div class="sidebar-section" id="nerdToolsSection" style="display:none;">
+      <div class="section-label collapsible" data-section="sNerd" style="margin-bottom:0;">🔬 Nerd tools <span class="section-chevron">▾</span></div>
+      <div class="section-body" id="sNerd">
+        <div style="margin-bottom:0.5rem;">
+          <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.07em;color:var(--text3);margin-bottom:4px;">Timeline view</div>
+          <button class="tool-btn" id="btnTimeline" onclick="setViewMode('timeline')" style="width:100%;justify-content:center;">Timeline</button>
+        </div>
+        <div>
+          <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.07em;color:var(--text3);margin-bottom:4px;">Timeline options</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;">
+            <button id="btnTlRainbowSb" onclick="toggleTlRainbow()"
+              title="Colour points by year gradient"
+              style="background:none;border:1px solid var(--border);border-radius:12px;cursor:pointer;
+                     font-size:11px;font-weight:600;font-family:var(--font-sans);padding:3px 10px;
+                     color:var(--text3);transition:all 0.15s;">
+              Colour by year
+            </button>
+            <button id="btnTlEffortSb" onclick="toggleTlEffort()"
+              title="Normalise bars by total observer effort (all taxa, same area &amp; years) — shows % of all records rather than raw counts"
+              style="background:none;border:1px solid var(--border);border-radius:12px;cursor:pointer;
+                     font-size:11px;font-weight:600;font-family:var(--font-sans);padding:3px 10px;
+                     color:var(--text3);transition:all 0.15s;">
+              Normalise by effort
+            </button>
+            <button id="btnTlSpreadSb" onclick="toggleSpread()"
+              title="Show cumulative mean distance from centroid per year — tracks how far records have spread over time"
+              style="background:none;border:1px solid var(--border);border-radius:12px;cursor:pointer;
+                     font-size:11px;font-weight:600;font-family:var(--font-sans);padding:3px 10px;
+                     color:var(--text3);transition:all 0.15s;">
+              Spread (km)
+            </button>
+          </div>
+          <p class="note" style="margin-top:6px;">Effort normalisation fetches total GBIF records (all taxa) in your polygon per year and divides your species' counts — so the chart shows % of all records, not raw counts. Requires yearly view.</p>
+        </div>
+      </div>
     </div>
 
     <div class="sidebar-section" id="nerdsSection" style="border-bottom:none;">
@@ -282,14 +318,11 @@
           <input type="range" id="tlSliderMax" class="tl-slider tl-slider-max">
         </div>
       </div>
-      <div style="display:flex;justify-content:flex-start;padding:4px 10px 6px;">
-        <button id="btnTlRainbow" onclick="toggleTlRainbow()"
-          title="Colour points by year gradient"
-          style="background:none;border:1px solid var(--border);border-radius:12px;cursor:pointer;
-                 font-size:11px;font-weight:600;font-family:var(--font-sans);padding:2px 9px;
-                 color:var(--text3);transition:all 0.15s;">
-          Colour by year
-        </button>
+      <div id="spreadChartWrap" style="display:none;padding:0 0 4px;">
+        <div style="font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--text3);padding:2px 10px 0;">Cumulative spread (km from centroid)</div>
+        <svg id="spreadChart" width="100%" height="120"></svg>
+      </div>
+      <div style="display:none">
       </div>
     </div>
     <!-- Draw hint — visible until user starts drawing, then hidden permanently -->
@@ -934,6 +967,9 @@ let polygons = [], refLayers = [], clipTurfPolygons = null, allRecords = [], act
 let viewMode = 'points', selectedSpecies = null, nextPolyId = 0, csvData = null, pendingLoad = null;
 let tlFilterMin = null, tlFilterMax = null; // timeline year filter (null = no filter)
 let tlRainbow = false; // colour points by year gradient when in timeline mode
+let tlEffortMode = false;    // normalise timeline bars by all-taxa observer effort
+let effortByYear = null;     // { year → total all-taxa record count } populated on demand
+let _effortFetchParams = []; // geometry+date+basis params saved per geomPoly for effort query
 let doCluster = true;  // group nearby points into numbered clusters
 let _tlYears = [];     // sorted year keys from last renderTimeline (YYYY or YYYYMM)
 let _tlUseMonths = false;
@@ -976,8 +1012,9 @@ const _footPositions = [3, 9, 15, 21, 27, 33, 39, 45, 51, 57, 63, 69, 75, 81, 87
     progressTrack.appendChild(fp);
   });
 })();
-const metricsGrid    = document.getElementById('metricsGrid');
-const filterSection  = document.getElementById('filterSection');
+const metricsGrid      = document.getElementById('metricsGrid');
+const filterSection    = document.getElementById('filterSection');
+const nerdToolsSection = document.getElementById('nerdToolsSection');
 const filterChips    = document.getElementById('filterChips');
 const legend         = document.getElementById('legend');
 const legendItems    = document.getElementById('legendItems');
@@ -1328,6 +1365,8 @@ function passesFilters(r) {
 
 function clearResults() {
   allRecords = []; activeFilters.clear(); csvData = null; selectedSpecies = null; allMarkers = []; commonNameCache = {};
+  effortByYear = null; tlEffortMode = false; _effortFetchParams = []; _syncEffortBtn();
+  tlSpreadMode = false; _syncSpreadBtn(); const _sw = document.getElementById('spreadChartWrap'); if (_sw) _sw.style.display = 'none';
   _clearGhostLayer();
   _photoPrefetchAbort = true;
   currentNztcsFilter = 'all';
@@ -1351,7 +1390,7 @@ function clearResults() {
   const _ib = document.getElementById('clIucnBtn');
   if (_ib) { _ib.style.display = 'none'; _ib.classList.remove('unlocked'); _ib.textContent = 'IUCN'; }
   metricsGrid.style.display = 'none'; filterSection.style.display = 'none';
-  legend.style.display = 'none'; outputSection.style.display = 'none';
+  legend.style.display = 'none'; outputSection.style.display = 'none'; nerdToolsSection.style.display = 'none';
   if (qualityBoxEl)  qualityBoxEl.style.display  = 'none';
   if (richnessBoxEl) richnessBoxEl.style.display = 'none';
   statusBar.style.display = 'none'; progressWrap.style.display = 'none';
@@ -3384,11 +3423,14 @@ function toggleClustering(checked) {
 }
 
 function _syncRainbowBtn() {
-  const btn = document.getElementById('btnTlRainbow');
-  if (!btn) return;
-  btn.style.background = tlRainbow ? 'linear-gradient(90deg,hsl(0,85%,48%),hsl(60,85%,48%),hsl(120,85%,48%),hsl(180,85%,48%),hsl(240,85%,48%),hsl(270,85%,48%))' : '';
-  btn.style.color      = tlRainbow ? '#fff' : '';
-  btn.style.border     = tlRainbow ? '1px solid transparent' : '';
+  const grad = tlRainbow ? 'linear-gradient(90deg,hsl(0,85%,48%),hsl(60,85%,48%),hsl(120,85%,48%),hsl(180,85%,48%),hsl(240,85%,48%),hsl(270,85%,48%))' : '';
+  ['btnTlRainbow', 'btnTlRainbowSb'].forEach(id => {
+    const btn = document.getElementById(id);
+    if (!btn) return;
+    btn.style.background = grad;
+    btn.style.color      = tlRainbow ? '#fff' : '';
+    btn.style.border     = tlRainbow ? '1px solid transparent' : '';
+  });
 }
 
 function _restoreTaxonColours() {
@@ -3411,6 +3453,54 @@ function toggleTlRainbow() {
   if (viewMode === 'timeline') renderTimeline(allRecords);
 }
 
+function _syncEffortBtn() {
+  ['btnTlEffort', 'btnTlEffortSb'].forEach(id => {
+    const btn = document.getElementById(id);
+    if (!btn) return;
+    btn.style.background = tlEffortMode ? 'var(--green-dark)' : '';
+    btn.style.color      = tlEffortMode ? '#fff' : '';
+    btn.style.border     = tlEffortMode ? '1px solid transparent' : '';
+  });
+}
+
+async function fetchEffortData() {
+  const btn = document.getElementById('btnTlEffortSb');
+  if (btn) { btn.textContent = 'Loading…'; btn.disabled = true; }
+  effortByYear = {};
+  for (const params of _effortFetchParams) {
+    const qs = [...params, ['facet', 'YEAR'], ['facetLimit', '200'], ['limit', '0']]
+      .map(([k, v]) => encodeURIComponent(k) + '=' + encodeURIComponent(v)).join('&');
+    try {
+      const res = await fetch('https://api.gbif.org/v1/occurrence/search?' + qs);
+      if (!res.ok) continue;
+      const data = await res.json();
+      const facet = (data.facets || []).find(f => f.field === 'YEAR');
+      if (facet) {
+        facet.counts.forEach(({ name, count }) => {
+          const yr = parseInt(name);
+          if (!isNaN(yr)) effortByYear[yr] = (effortByYear[yr] || 0) + count;
+        });
+      }
+    } catch(e) {}
+  }
+  if (btn) { btn.textContent = 'Normalise by effort'; btn.disabled = false; }
+  _syncEffortBtn();
+  renderTimeline(allRecords);
+}
+
+function toggleTlEffort() {
+  tlEffortMode = !tlEffortMode;
+  _syncEffortBtn();
+  if (!tlEffortMode) { renderTimeline(allRecords); return; }
+  if (effortByYear) { renderTimeline(allRecords); return; }
+  if (_effortFetchParams.length === 0) {
+    tlEffortMode = false;
+    _syncEffortBtn();
+    return;
+  }
+  fetchEffortData();
+}
+
 function setViewMode(mode) {
   viewMode = mode;
   document.getElementById('btnPoints').classList.toggle('active', mode === 'points');
@@ -3421,8 +3511,7 @@ function setViewMode(mode) {
   if (mode === 'timeline') _timelinePanelRight();
   if (mode !== 'timeline' && tlRainbow) {
     tlRainbow = false;
-    const btn = document.getElementById('btnTlRainbow');
-    if (btn) { btn.style.background = ''; btn.style.color = ''; btn.style.border = ''; }
+    _syncRainbowBtn();
   }
   if (allRecords.length === 0) return;
   if (mode === 'points') { tlFilterMin = null; tlFilterMax = null; renderPoints(allRecords); applyTimelineChecklist(); }
@@ -3528,7 +3617,13 @@ function renderTimeline(records) {
 
   const allGroups = [...new Set(filtered.map(getTaxonGroup))].filter(g => TAXON_COLOURS[g]);
   const totals = years.map(y => Object.values(yearData[y]).reduce((a, b) => a + b, 0));
-  const maxCount = Math.max(...totals, 1);
+
+  // Effort normalisation: divide focal count by all-taxa count per year → express as %
+  const effortActive = tlEffortMode && effortByYear && !useMonths;
+  const normTotals = effortActive
+    ? years.map((yr, i) => { const e = effortByYear[yr] || 0; return e > 0 ? (totals[i] / e) * 100 : 0; })
+    : totals;
+  const maxCount = Math.max(...normTotals, effortActive ? 0.0001 : 1);
 
   const W = svgEl.getBoundingClientRect().width || svgEl.parentElement.clientWidth || 600;
   const H = 170;
@@ -3556,7 +3651,8 @@ function renderTimeline(records) {
 
   // Gridlines + Y labels
   for (let i = 0; i <= 4; i++) {
-    const yVal = Math.round(maxCount * i / 4);
+    const rawVal = maxCount * i / 4;
+    const yVal = effortActive ? rawVal.toFixed(rawVal < 1 ? 2 : 1) + '%' : Math.round(rawVal);
     const y = padT + chartH - (chartH * i / 4);
     svg += `<line x1="${padL}" y1="${y.toFixed(1)}" x2="${W - padR}" y2="${y.toFixed(1)}" stroke="#e5e7eb" stroke-width="0.5"/>`;
     svg += `<text x="${padL - 3}" y="${(y + 3.5).toFixed(1)}" text-anchor="end" font-size="9" fill="#9b9890">${yVal}</text>`;
@@ -3571,7 +3667,10 @@ function renderTimeline(records) {
     allGroups.forEach(g => {
       const cnt = yearData[yr][g] || 0;
       if (!cnt) return;
-      const bh = (cnt / maxCount) * chartH;
+      const normCnt = effortActive
+        ? (effortByYear[yr] > 0 ? (cnt / effortByYear[yr]) * 100 : 0)
+        : cnt;
+      const bh = (normCnt / maxCount) * chartH;
       stackY -= bh;
       const col = inRange
         ? (tlRainbow ? yearRainbowColour(yr, gradMinKey, gradMaxKey) : TAXON_COLOURS[g].colour)
@@ -3621,7 +3720,7 @@ function renderTimeline(records) {
   svgEl.setAttribute('viewBox', `0 0 ${W} ${H}`);
   svgEl.innerHTML = svg;
 
-
+  renderSpreadChart(records);
 
   // Position slider overlay: spans from first bar centre to last bar centre
   const overlay = document.getElementById('tlSliderOverlay');
@@ -3744,6 +3843,127 @@ function clearSpeciesSelection() {
   document.querySelectorAll('.cl-row').forEach(row => row.classList.remove('selected'));
   if (viewMode === 'heat') { renderHeatmap(allRecords); }
   else { renderPoints(allRecords); applyTimelineFilter(); }
+}
+
+// Haversine distance in km between two lat/lng points
+function _haversineKm(lat1, lng1, lat2, lng2) {
+  const R = 6371, rad = Math.PI / 180;
+  const dLat = (lat2 - lat1) * rad, dLng = (lng2 - lng1) * rad;
+  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*rad)*Math.cos(lat2*rad)*Math.sin(dLng/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+let tlSpreadMode = false;
+
+function _syncSpreadBtn() {
+  const btn = document.getElementById('btnTlSpreadSb');
+  if (!btn) return;
+  btn.style.background = tlSpreadMode ? 'var(--green-dark)' : '';
+  btn.style.color      = tlSpreadMode ? '#fff' : '';
+  btn.style.border     = tlSpreadMode ? '1px solid transparent' : '';
+}
+
+function toggleSpread() {
+  tlSpreadMode = !tlSpreadMode;
+  _syncSpreadBtn();
+  const wrap = document.getElementById('spreadChartWrap');
+  if (!wrap) return;
+  if (tlSpreadMode) {
+    wrap.style.display = 'block';
+    renderSpreadChart(allRecords);
+  } else {
+    wrap.style.display = 'none';
+  }
+}
+
+function renderSpreadChart(records) {
+  const svgEl = document.getElementById('spreadChart');
+  if (!svgEl || !tlSpreadMode) return;
+
+  const pts = records.filter(r => passesFilters(r) && r.decimalLatitude != null && r.decimalLongitude != null && r.year);
+  if (pts.length < 2) {
+    svgEl.innerHTML = '<text x="50%" y="50%" text-anchor="middle" font-size="11" fill="#9b9890">Not enough georeferenced records</text>';
+    return;
+  }
+
+  // Sort by year, build cumulative centroid + mean distance per year
+  const byYear = {};
+  pts.forEach(r => {
+    const y = parseInt(r.year);
+    if (isNaN(y)) return;
+    if (!byYear[y]) byYear[y] = [];
+    byYear[y].push([parseFloat(r.decimalLatitude), parseFloat(r.decimalLongitude)]);
+  });
+
+  const years = Object.keys(byYear).map(Number).sort((a,b) => a-b);
+  let cumPts = [];
+  const spreadByYear = {};
+  years.forEach(yr => {
+    cumPts = cumPts.concat(byYear[yr]);
+    const cLat = cumPts.reduce((s,p) => s+p[0], 0) / cumPts.length;
+    const cLng = cumPts.reduce((s,p) => s+p[1], 0) / cumPts.length;
+    const meanDist = cumPts.reduce((s,p) => s + _haversineKm(cLat, cLng, p[0], p[1]), 0) / cumPts.length;
+    spreadByYear[yr] = meanDist;
+  });
+
+  const vals = years.map(y => spreadByYear[y]);
+  const maxVal = Math.max(...vals, 1);
+  const minVal = Math.max(0, Math.min(...vals) * 0.85); // non-zero baseline so small changes are visible
+  const range = maxVal - minVal || 1;
+
+  const W = svgEl.getBoundingClientRect().width || svgEl.parentElement.clientWidth || 600;
+  const H = 120;
+  const padL = 42, padR = 8, padT = 8, padB = 22;
+  const chartW = W - padL - padR;
+  const chartH = H - padT - padB;
+  const gap = chartW / Math.max(years.length - 1, 1);
+
+  let svg = '';
+
+  // Gridlines + Y labels
+  for (let i = 0; i <= 3; i++) {
+    const val = minVal + range * i / 3;
+    const y = padT + chartH - (chartH * i / 3);
+    svg += `<line x1="${padL}" y1="${y.toFixed(1)}" x2="${W-padR}" y2="${y.toFixed(1)}" stroke="#e5e7eb" stroke-width="0.5"/>`;
+    svg += `<text x="${padL-3}" y="${(y+3.5).toFixed(1)}" text-anchor="end" font-size="9" fill="#9b9890">${Math.round(val)}</text>`;
+  }
+
+  // Line + dots
+  const pts2 = years.map((yr, i) => {
+    const x = padL + i * gap;
+    const y = padT + chartH - ((spreadByYear[yr] - minVal) / range) * chartH;
+    return [x, y, yr, spreadByYear[yr]];
+  });
+
+  // Area fill — close to the chart bottom (minVal baseline)
+  const baseY = (padT + chartH).toFixed(1);
+  let area = `M ${pts2[0][0].toFixed(1)} ${baseY} `;
+  pts2.forEach(([x,y]) => { area += `L ${x.toFixed(1)} ${y.toFixed(1)} `; });
+  area += `L ${pts2[pts2.length-1][0].toFixed(1)} ${baseY} Z`;
+  svg += `<path d="${area}" fill="var(--green)" opacity="0.12"/>`;
+
+  // Line
+  let line = `M ${pts2[0][0].toFixed(1)} ${pts2[0][1].toFixed(1)}`;
+  pts2.slice(1).forEach(([x,y]) => { line += ` L ${x.toFixed(1)} ${y.toFixed(1)}`; });
+  svg += `<path d="${line}" fill="none" stroke="var(--green-dark)" stroke-width="1.5"/>`;
+
+  // Dots + tooltips
+  pts2.forEach(([x, y, yr, km]) => {
+    svg += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="3" fill="var(--green-dark)"><title>${yr}: ${km.toFixed(1)} km</title></circle>`;
+  });
+
+  // X labels
+  const every = Math.ceil(years.length / 8);
+  pts2.forEach(([x,,yr], i) => {
+    if (i % every === 0 || i === pts2.length - 1)
+      svg += `<text x="${x.toFixed(1)}" y="${H-4}" text-anchor="middle" font-size="9" fill="#9b9890">${yr}</text>`;
+  });
+
+  // Axes
+  svg += `<line x1="${padL}" y1="${padT}" x2="${padL}" y2="${padT+chartH}" stroke="#d1d5db" stroke-width="1"/>`;
+  svg += `<line x1="${padL}" y1="${padT+chartH}" x2="${W-padR}" y2="${padT+chartH}" stroke="#d1d5db" stroke-width="1"/>`;
+
+  svgEl.innerHTML = svg;
 }
 
 // Checklist
@@ -4110,6 +4330,7 @@ runBtn.addEventListener('click', async () => {
 
   setFetchMode(true); fetchAbortFlag = false; clearResults();
   taxonMenu.style.display = 'none';
+  _effortFetchParams = []; effortByYear = null; tlEffortMode = false; _syncEffortBtn();
 
   const dateFrom  = document.getElementById('dateFrom').value;
   const dateTo    = document.getElementById('dateTo').value || _todayStr;
@@ -4152,6 +4373,16 @@ runBtn.addEventListener('click', async () => {
     if (_checkedBasis.length > 0 && _checkedBasis.length < _basisIds.length) {
       _checkedBasis.flatMap(id => _basisMap[id])
         .forEach(v => baseParams.push(['basisOfRecord', v]));
+    }
+    // Save effort params once per unique geometry polygon (geometry + date + basis, no taxon)
+    {
+      const _effortP = [['geometry', getQueryWKT(geomPoly)], ['hasCoordinate', 'true']];
+      if (dateFrom && dateTo) _effortP.push(['eventDate', dateFrom + ',' + dateTo]);
+      if (_checkedBasis.length > 0 && _checkedBasis.length < _basisIds.length) {
+        _checkedBasis.flatMap(id => _basisMap[id]).forEach(v => _effortP.push(['basisOfRecord', v]));
+      }
+      const _effortWKT = getQueryWKT(geomPoly);
+      if (!_effortFetchParams.some(ep => ep[0][1] === _effortWKT)) _effortFetchParams.push(_effortP);
     }
     if (poly.type === 'species') {
       // Species entry: fetch only this taxon
@@ -4446,7 +4677,7 @@ runBtn.addEventListener('click', async () => {
   renderPoints(displayRecords);
   setTimeout(() => { map.invalidateSize(); }, 100);
   csvData = buildCSV(displayRecords);
-  outputSection.style.display = 'block';
+  outputSection.style.display = 'block'; nerdToolsSection.style.display = 'block';
 
   // Show quality flags and richness summary
   showQualityFlags(allFetched);
@@ -4693,6 +4924,28 @@ document.getElementById('dlChecklistBtn').addEventListener('click', () => {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v4.71</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>Spread chart — taller (120px), non-zero baseline so small year-on-year changes are visible rather than a flat line at the bottom</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v4.70</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>Spread (km) — new Nerd tools option showing cumulative mean distance from centroid per year as a line chart below the timeline; tracks how far records have spread geographically over time</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v4.69</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>Nerd tools — new sidebar section grouping the Timeline view button with its analysis controls (Colour by year, Normalise by effort)</li>
+        <li>Normalise by effort — fetches total GBIF record counts per year (all taxa, same polygon) via a single facet query and divides focal species counts; timeline bars show % of all records, correcting for observer effort inflation</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v4.68</span>
       <span class="changelog-date">Jun 2026</span>
