@@ -45,7 +45,7 @@
       <img src="occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v4.90</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v4.91</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -1515,7 +1515,7 @@ function restoreFromShare(state) {
   // Banner
   const banner = document.createElement('div');
   banner.style.cssText = 'position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:9999;background:var(--green-dark);color:#fff;font-size:12px;font-weight:600;font-family:var(--font-sans);padding:7px 16px;border-radius:20px;box-shadow:0 2px 10px rgba(0,0,0,0.2);pointer-events:none;';
-  banner.textContent = 'Shared search loaded — hit Fetch to reproduce the results';
+  banner.textContent = 'Shared search loaded — fetching results…';
   document.body.appendChild(banner);
   setTimeout(() => banner.remove(), 5000);
 }
@@ -5041,6 +5041,7 @@ document.getElementById('dlChecklistBtn').addEventListener('click', () => {
 if (window._pendingShare) {
   restoreFromShare(window._pendingShare);
   window._pendingShare = null;
+  setTimeout(() => document.getElementById('runBtn').click(), 300);
 }
 
 </script>
