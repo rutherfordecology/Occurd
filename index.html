@@ -45,7 +45,7 @@
       <img src="occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v4.88</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v4.89</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -1426,7 +1426,7 @@ function generateShareState() {
   const selectedTaxa = taxonAllSel ? [] : taxonCbs().filter(cb => cb.closest('label').classList.contains('selected')).map(cb => cb.value);
   return {
     v: 1,
-    polys: geomPolys.map(p => ({ latlngs: p.latlngs.map(ll => [+ll[0].toFixed(5), +ll[1].toFixed(5)]), label: p.label, holes: (p.holes||[]).map(h => h.map(ll => [+ll[0].toFixed(5), +ll[1].toFixed(5)])) })),
+    polys: geomPolys.map(p => ({ latlngs: p.latlngs.map(ll => { const la = ll.lat ?? ll[0]; const ln = ll.lng ?? ll[1]; return [+la.toFixed(5), +ln.toFixed(5)]; }), label: p.label, holes: (p.holes||[]).map(h => h.map(ll => { const la = ll.lat ?? ll[0]; const ln = ll.lng ?? ll[1]; return [+la.toFixed(5), +ln.toFixed(5)]; })) })),
     dateFrom: document.getElementById('dateFrom').value,
     dateTo:   document.getElementById('dateTo').value,
     taxa:     selectedTaxa,
