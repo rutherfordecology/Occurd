@@ -45,7 +45,7 @@
       <img src="occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v4.92</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v4.93</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -1419,18 +1419,38 @@ function passesFilters(r) {
 
 // ── Share link ────────────────────────────────────────────────────────────────
 
+function _llToArr(ll) { const la = ll.lat ?? ll[0]; const ln = ll.lng ?? ll[1]; return [+la.toFixed(5), +ln.toFixed(5)]; }
+
 function generateShareState() {
-  const geomPolys = polygons.filter(p => p.type !== 'species');
+  const geomPolys    = polygons.filter(p => p.type !== 'species');
+  const speciesPolys = polygons.filter(p => p.type === 'species');
   if (!geomPolys.length) return null;
   const taxonAllSel = document.getElementById('taxonAllLabel').classList.contains('selected');
   const selectedTaxa = taxonAllSel ? [] : taxonCbs().filter(cb => cb.closest('label').classList.contains('selected')).map(cb => cb.value);
+  const mapC = map.getCenter(), mapZ = map.getZoom();
   return {
-    v: 1,
-    polys: geomPolys.map(p => ({ latlngs: p.latlngs.map(ll => { const la = ll.lat ?? ll[0]; const ln = ll.lng ?? ll[1]; return [+la.toFixed(5), +ln.toFixed(5)]; }), label: p.label, holes: (p.holes||[]).map(h => h.map(ll => { const la = ll.lat ?? ll[0]; const ln = ll.lng ?? ll[1]; return [+la.toFixed(5), +ln.toFixed(5)]; })) })),
+    v: 2,
+    // Polygons
+    polys:   geomPolys.map(p => ({ latlngs: p.latlngs.map(_llToArr), label: p.label, holes: (p.holes||[]).map(h => h.map(_llToArr)) })),
+    species: speciesPolys.map(p => ({ name: p.name, taxonKey: p.taxonKey, sciName: p.sciName })),
+    // Filters
     dateFrom: document.getElementById('dateFrom').value,
     dateTo:   document.getElementById('dateTo').value,
     taxa:     selectedTaxa,
     basis:    ['inclObservations','inclPreserved','inclFossils','inclEdna'].map(id => document.getElementById(id).checked),
+    // Display state
+    viewMode:   viewMode,
+    cluster:    doCluster,
+    rainbow:    tlRainbow,
+    effort:     tlEffortMode,
+    tlMin:      tlFilterMin,
+    tlMax:      tlFilterMax,
+    nztcs:      currentNztcsFilter,
+    iucn:       currentIucnFilter,
+    // Active group filters (taxon chips on map)
+    activeFilters: [...activeFilters],
+    // Map view
+    mapLat: +mapC.lat.toFixed(4), mapLng: +mapC.lng.toFixed(4), mapZ,
   };
 }
 
@@ -1483,11 +1503,15 @@ function copyShareUrlFromModal() {
   }
 }
 
+let _pendingSharePostFetch = null; // display state applied after fetch completes
+
 function restoreFromShare(state) {
-  if (!state || state.v !== 1 || !state.polys?.length) return;
-  // Draw polygons
+  if (!state || !state.polys?.length) return;
+  // ── Pre-fetch: polygons, species, dates, taxa, basis, cluster, map view ──
   state.polys.forEach(p => addPolygon(p.latlngs, p.label, p.holes || []));
-  // Dates
+  if (state.species && state.species.length) {
+    state.species.forEach(s => addSpeciesEntry(s.name, s.taxonKey || null, s.sciName || ''));
+  }
   if (state.dateFrom) document.getElementById('dateFrom').value = state.dateFrom;
   if (state.dateTo)   document.getElementById('dateTo').value   = state.dateTo;
   // Taxon selection
@@ -1502,7 +1526,6 @@ function restoreFromShare(state) {
       else lbl.classList.remove('selected');
     });
   } else {
-    // All taxa — ensure the All label is selected
     document.getElementById('taxonAllLabel').classList.add('selected');
     document.getElementById('taxonAll').checked = true;
   }
@@ -1512,12 +1535,67 @@ function restoreFromShare(state) {
   if (state.basis && state.basis.length === basisIds.length) {
     basisIds.forEach((id, i) => { document.getElementById(id).checked = state.basis[i]; });
   }
+  // Clustering
+  if (typeof state.cluster === 'boolean' && state.cluster !== doCluster) {
+    const clCb = document.getElementById('clusterToggle');
+    if (clCb) { clCb.checked = state.cluster; doCluster = state.cluster; }
+  }
+  // Map view
+  if (state.mapLat != null && state.mapZ != null) map.setView([state.mapLat, state.mapLng], state.mapZ);
+
+  // ── Post-fetch: viewMode, rainbow, effort, timeline filter, group filters ──
+  _pendingSharePostFetch = {
+    viewMode: state.viewMode,
+    rainbow:  state.rainbow,
+    effort:   state.effort,
+    tlMin:    state.tlMin,
+    tlMax:    state.tlMax,
+    nztcs:    state.nztcs,
+    iucn:     state.iucn,
+    activeFilters: state.activeFilters,
+  };
+
   // Banner
   const banner = document.createElement('div');
   banner.style.cssText = 'position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:9999;background:var(--green-dark);color:#fff;font-size:12px;font-weight:600;font-family:var(--font-sans);padding:7px 16px;border-radius:20px;box-shadow:0 2px 10px rgba(0,0,0,0.2);pointer-events:none;';
   banner.textContent = 'Shared search loaded — fetching results…';
   document.body.appendChild(banner);
-  setTimeout(() => banner.remove(), 5000);
+  setTimeout(() => banner.remove(), 4000);
+}
+
+function applyPostFetchShareState(s) {
+  if (!s) return;
+  // Active group filters (taxon chips)
+  if (s.activeFilters && s.activeFilters.length) {
+    activeFilters.clear();
+    s.activeFilters.forEach(f => activeFilters.add(f));
+    document.querySelectorAll('.filter-chip').forEach(chip => {
+      chip.classList.toggle('active', activeFilters.has(chip.dataset.group));
+    });
+  }
+  // NZTCS filter
+  if (s.nztcs && s.nztcs !== 'all') {
+    currentNztcsFilter = s.nztcs;
+    document.querySelectorAll('.nztcs-fc').forEach(b => b.classList.toggle('active', b.dataset.f === s.nztcs));
+  }
+  // IUCN filter
+  if (s.iucn && s.iucn !== 'all') {
+    currentIucnFilter = s.iucn;
+    document.querySelectorAll('.iucn-fc').forEach(b => b.classList.toggle('active', b.dataset.f === s.iucn));
+  }
+  // View mode
+  const vm = s.viewMode || 'points';
+  setViewMode(vm);
+  // Rainbow
+  if (s.rainbow && !tlRainbow) { tlRainbow = true; _syncRainbowBtn(); if (vm === 'timeline') applyRainbowToMarkers(); }
+  // Timeline filter
+  if (s.tlMin != null || s.tlMax != null) {
+    tlFilterMin = s.tlMin; tlFilterMax = s.tlMax;
+    applyTimelineFilter();
+    if (vm === 'timeline') renderTimeline(allRecords);
+  }
+  // Effort normalisation (triggers its own fetch)
+  if (s.effort && !tlEffortMode) { tlEffortMode = true; _syncEffortBtn(); fetchEffortData(); }
 }
 
 // Restore on load if hash present
@@ -4827,6 +4905,13 @@ runBtn.addEventListener('click', async () => {
 
   setStatus(allFetched.length.toLocaleString() + ' records loaded — complete dataset from GBIF.', 'success');
   setFetchMode(false);
+
+  // Apply any pending share display state (viewMode, rainbow, effort, filters)
+  if (_pendingSharePostFetch) {
+    const _s = _pendingSharePostFetch;
+    _pendingSharePostFetch = null;
+    setTimeout(() => applyPostFetchShareState(_s), 100);
+  }
 });
 
 
