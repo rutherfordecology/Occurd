@@ -45,7 +45,7 @@
       <img src="occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v4.80</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v4.81</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -276,7 +276,7 @@
               Normalise by effort
             </button>
           </div>
-          <p class="note" style="margin-top:6px;">Effort normalisation fetches total GBIF records (all taxa) in your polygon per year and divides your species' counts — so the chart shows % of all records, not raw counts. Requires yearly view.</p>
+          <p class="note" style="margin-top:6px;">Effort normalisation fetches total GBIF records in your polygon per year (same class as your species, e.g. Aves for birds) and divides your species' counts — so the chart shows % of all records, not raw counts. Requires yearly view.</p>
         </div>
       </div>
     </div>
@@ -991,6 +991,7 @@ let tlRainbow = false; // colour points by year gradient when in timeline mode
 let tlEffortMode = false;    // normalise timeline bars by all-taxa observer effort
 let effortByYear = null;     // { year → total all-taxa record count } populated on demand
 let _effortFetchParams = []; // geometry+date+basis params saved per geomPoly for effort query
+let _effortTaxonKeys  = []; // taxon keys being searched — used to resolve classKey for effort query
 let doCluster = true;  // group nearby points into numbered clusters
 let _tlYears = [];     // sorted year keys from last renderTimeline (YYYY or YYYYMM)
 let _tlUseMonths = false;
@@ -1464,7 +1465,7 @@ function restoreFromShare(state) {
 
 function clearResults() {
   allRecords = []; activeFilters.clear(); csvData = null; selectedSpecies = null; allMarkers = []; commonNameCache = {};
-  effortByYear = null; tlEffortMode = false; _effortFetchParams = []; _syncEffortBtn();
+  effortByYear = null; tlEffortMode = false; _effortFetchParams = []; _effortTaxonKeys = []; _syncEffortBtn();
   _clearGhostLayer();
   _photoPrefetchAbort = true;
   currentNztcsFilter = 'all';
@@ -3565,8 +3566,25 @@ async function fetchEffortData() {
   const btn = document.getElementById('btnTlEffortSb');
   if (btn) { btn.textContent = 'Loading…'; btn.disabled = true; }
   effortByYear = {};
+
+  // Resolve classKey from taxon keys so effort query matches the same class (e.g. Aves for birds)
+  let effortClassKey = null;
+  if (_effortTaxonKeys.length > 0) {
+    try {
+      const classKeys = await Promise.all(_effortTaxonKeys.map(async k => {
+        const r = await fetch('https://api.gbif.org/v1/species/' + k);
+        if (!r.ok) return null;
+        const d = await r.json();
+        return d.classKey || null;
+      }));
+      const unique = [...new Set(classKeys.filter(Boolean))];
+      if (unique.length === 1) effortClassKey = unique[0]; // only inject if all species share same class
+    } catch(e) {}
+  }
+
   for (const params of _effortFetchParams) {
-    const qs = [...params, ['facet', 'YEAR'], ['facetLimit', '200'], ['limit', '0']]
+    const extraParams = effortClassKey ? [['classKey', String(effortClassKey)]] : [];
+    const qs = [...params, ...extraParams, ['facet', 'YEAR'], ['facetLimit', '200'], ['limit', '0']]
       .map(([k, v]) => encodeURIComponent(k) + '=' + encodeURIComponent(v)).join('&');
     try {
       const res = await fetch('https://api.gbif.org/v1/occurrence/search?' + qs);
@@ -4390,7 +4408,7 @@ runBtn.addEventListener('click', async () => {
 
   setFetchMode(true); fetchAbortFlag = false; clearResults();
   taxonMenu.style.display = 'none';
-  _effortFetchParams = []; effortByYear = null; tlEffortMode = false; _syncEffortBtn();
+  _effortFetchParams = []; _effortTaxonKeys = []; effortByYear = null; tlEffortMode = false; _syncEffortBtn();
 
   const dateFrom  = document.getElementById('dateFrom').value;
   const dateTo    = document.getElementById('dateTo').value || _todayStr;
@@ -4400,6 +4418,7 @@ runBtn.addEventListener('click', async () => {
   // Expand fetch tasks: species entries fetch once per geometry polygon
   const _speciesEntries = polygons.filter(p => p.type === 'species');
   const _geomPolys      = polygons.filter(p => p.type !== 'species');
+  _effortTaxonKeys = [...new Set(_speciesEntries.map(s => s.taxonKey).filter(Boolean))];
   const _fetchTasks     = [];
   if (_speciesEntries.length > 0) {
     // Species basket mode: each species × each geometry polygon = one task
