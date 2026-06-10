@@ -45,7 +45,7 @@
       <img src="occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v4.70</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v4.71</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -320,7 +320,7 @@
       </div>
       <div id="spreadChartWrap" style="display:none;padding:0 0 4px;">
         <div style="font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--text3);padding:2px 10px 0;">Cumulative spread (km from centroid)</div>
-        <svg id="spreadChart" width="100%" height="90"></svg>
+        <svg id="spreadChart" width="100%" height="120"></svg>
       </div>
       <div style="display:none">
       </div>
@@ -3908,9 +3908,11 @@ function renderSpreadChart(records) {
 
   const vals = years.map(y => spreadByYear[y]);
   const maxVal = Math.max(...vals, 1);
+  const minVal = Math.max(0, Math.min(...vals) * 0.85); // non-zero baseline so small changes are visible
+  const range = maxVal - minVal || 1;
 
   const W = svgEl.getBoundingClientRect().width || svgEl.parentElement.clientWidth || 600;
-  const H = 90;
+  const H = 120;
   const padL = 42, padR = 8, padT = 8, padB = 22;
   const chartW = W - padL - padR;
   const chartH = H - padT - padB;
@@ -3920,7 +3922,7 @@ function renderSpreadChart(records) {
 
   // Gridlines + Y labels
   for (let i = 0; i <= 3; i++) {
-    const val = maxVal * i / 3;
+    const val = minVal + range * i / 3;
     const y = padT + chartH - (chartH * i / 3);
     svg += `<line x1="${padL}" y1="${y.toFixed(1)}" x2="${W-padR}" y2="${y.toFixed(1)}" stroke="#e5e7eb" stroke-width="0.5"/>`;
     svg += `<text x="${padL-3}" y="${(y+3.5).toFixed(1)}" text-anchor="end" font-size="9" fill="#9b9890">${Math.round(val)}</text>`;
@@ -3929,14 +3931,15 @@ function renderSpreadChart(records) {
   // Line + dots
   const pts2 = years.map((yr, i) => {
     const x = padL + i * gap;
-    const y = padT + chartH - (spreadByYear[yr] / maxVal) * chartH;
+    const y = padT + chartH - ((spreadByYear[yr] - minVal) / range) * chartH;
     return [x, y, yr, spreadByYear[yr]];
   });
 
-  // Area fill
-  let area = `M ${pts2[0][0].toFixed(1)} ${(padT+chartH).toFixed(1)} `;
+  // Area fill — close to the chart bottom (minVal baseline)
+  const baseY = (padT + chartH).toFixed(1);
+  let area = `M ${pts2[0][0].toFixed(1)} ${baseY} `;
   pts2.forEach(([x,y]) => { area += `L ${x.toFixed(1)} ${y.toFixed(1)} `; });
-  area += `L ${pts2[pts2.length-1][0].toFixed(1)} ${(padT+chartH).toFixed(1)} Z`;
+  area += `L ${pts2[pts2.length-1][0].toFixed(1)} ${baseY} Z`;
   svg += `<path d="${area}" fill="var(--green)" opacity="0.12"/>`;
 
   // Line
@@ -4921,6 +4924,13 @@ document.getElementById('dlChecklistBtn').addEventListener('click', () => {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v4.71</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>Spread chart — taller (120px), non-zero baseline so small year-on-year changes are visible rather than a flat line at the bottom</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v4.70</span>
       <span class="changelog-date">Jun 2026</span>
