@@ -45,7 +45,7 @@
       <img src="occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v4.78</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v4.79</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -4003,15 +4003,19 @@ function renderSpreadChart(records) {
   const fixedCLat = pts.reduce((s,r) => s + parseFloat(r.decimalLatitude),  0) / pts.length;
   const fixedCLng = pts.reduce((s,r) => s + parseFloat(r.decimalLongitude), 0) / pts.length;
 
-  // For each year: 95th-percentile distance from fixed centroid across all cumulative records
+  // For each year: running max of 95th-percentile distance from fixed centroid.
+  // Running max ensures spread never decreases — if new records pile up near center
+  // the 95th-pct would otherwise drop even though the species has already reached further.
   const years = Object.keys(byYear).map(Number).sort((a,b) => a-b);
-  let cumPts = [];
+  let cumPts = [], maxSpreadSoFar = 0;
   const spreadByYear = {};
   years.forEach(yr => {
     cumPts = cumPts.concat(byYear[yr]);
     const dists = cumPts.map(p => _haversineKm(fixedCLat, fixedCLng, p[0], p[1])).sort((a,b) => a-b);
     const p95idx = Math.floor(dists.length * 0.95);
-    spreadByYear[yr] = dists[Math.min(p95idx, dists.length - 1)];
+    const p95 = dists[Math.min(p95idx, dists.length - 1)];
+    maxSpreadSoFar = Math.max(maxSpreadSoFar, p95);
+    spreadByYear[yr] = maxSpreadSoFar;
   });
 
   const vals = years.map(y => spreadByYear[y]);
