@@ -45,7 +45,7 @@
       <img src="occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v4.75</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v4.76</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -4584,13 +4584,17 @@ runBtn.addEventListener('click', async () => {
     page0: while (true) {
       if (fetchAbortFlag) { setStatus('Fetch cancelled.', 'warning'); setFetchMode(false); return; }
       const qs0 = [...baseParams, ['offset', '0']].map(([k,v]) => encodeURIComponent(k) + '=' + encodeURIComponent(v)).join('&');
-      let res0, p0attempt = 0;
+      let res0, json0, p0attempt = 0;
       while (true) {
         try {
           const _ctrl = new AbortController();
           const _timer = setTimeout(() => _ctrl.abort(), 60000);
-          try { res0 = await fetch('https://api.gbif.org/v1/occurrence/search?' + qs0, { signal: _ctrl.signal }); }
+          let _r;
+          try { _r = await fetch('https://api.gbif.org/v1/occurrence/search?' + qs0, { signal: _ctrl.signal }); }
           finally { clearTimeout(_timer); }
+          if (!_r.ok) { res0 = _r; json0 = null; break; } // pass HTTP errors through for handling below
+          json0 = await _r.json(); // body parse inside retry loop — retries on connection reset mid-body
+          res0 = _r;
           break;
         } catch(netErr) {
           p0attempt++;
@@ -4627,10 +4631,6 @@ runBtn.addEventListener('click', async () => {
         setStatus('Fetch failed: HTTP ' + res0.status + '. If it keeps failing: ① smaller polygon  ② specific taxa  ③ shorter year range.', 'error');
         statusBar.innerHTML += ' <button onclick="document.getElementById(\'runBtn\').click()" style="margin-left:8px;background:none;border:1px solid currentColor;border-radius:3px;padding:2px 8px;cursor:pointer;font-size:11px;font-family:var(--font-sans);color:inherit;font-weight:600;">Try again</button>';
         setFetchMode(false); return;
-      }
-      let json0;
-      try { json0 = await res0.json(); } catch(e) {
-        setStatus('Fetch failed — invalid response from GBIF.', 'error'); setFetchMode(false); return;
       }
       totalCount = json0.count;
       if (totalCount > MAX_RECORDS) {
