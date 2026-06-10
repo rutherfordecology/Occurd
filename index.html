@@ -45,7 +45,7 @@
       <img src="occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v4.94</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v4.95</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -162,13 +162,6 @@
           </div>
         </div>
       </div>
-      <div style="margin-top:0.25rem;margin-bottom:0.5rem;">
-        <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.3rem;">Record types</div>
-        <label class="check-row"><input type="checkbox" id="inclObservations" checked><span>Observations</span></label>
-        <label class="check-row"><input type="checkbox" id="inclPreserved" checked><span>Preserved specimens</span></label>
-        <label class="check-row"><input type="checkbox" id="inclFossils"><span>Fossils</span></label>
-        <label class="check-row"><input type="checkbox" id="inclEdna"><span>eDNA</span></label>
-      </div>
       <div class="field sp-wrap" id="spField" style="display:none;">
         <label style="display:flex;align-items:center;justify-content:space-between;">
           <span>NZ species search</span>
@@ -180,6 +173,15 @@
         <div style="position:relative;">
           <input class="sp-input" id="spInput" type="text" placeholder="e.g. kea, kererū, Nothofagus…" autocomplete="off" spellcheck="false">
           <button class="sp-clear" id="spClear" title="Clear">&#215;</button>
+        </div>
+      </div>
+      <div style="margin-top:0.5rem;margin-bottom:0.5rem;">
+        <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.3rem;">Record types</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:2px 0;">
+          <label class="check-row"><input type="checkbox" id="inclObservations" checked><span>Observations</span></label>
+          <label class="check-row"><input type="checkbox" id="inclPreserved" checked><span>Preserved specimens</span></label>
+          <label class="check-row"><input type="checkbox" id="inclFossils"><span>Fossils</span></label>
+          <label class="check-row"><input type="checkbox" id="inclEdna"><span>eDNA</span></label>
         </div>
       </div>
       </div><!-- /s2 -->
