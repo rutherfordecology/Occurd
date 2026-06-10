@@ -45,7 +45,7 @@
       <img src="occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v4.76</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v4.77</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -213,13 +213,7 @@
           <div style="font-size:11px;opacity:0.75;margin-top:2px;">(shown with a red ring on map)</div>
         </div>
 
-        <!-- Species richness per polygon -->
-        <div class="richness-box" id="richnessBox">
-          <strong>Species richness per polygon</strong>
-          <div id="richnessList"></div>
-        </div>
-
-        <div class="tool-row" style="margin-top:0.6rem;">
+<div class="tool-row" style="margin-top:0.6rem;">
           <button class="tool-btn active" id="btnPoints" onclick="setViewMode('points')">Points</button>
           <button class="tool-btn" id="btnHeat" onclick="setViewMode('heat')">Heatmap</button>
         </div>
@@ -1686,7 +1680,7 @@ function removePolygon(id) {
     else renderHeatmap(allRecords);
     csvData = buildCSV(allRecords.filter(passesFilters));
     showQualityFlags(allRecords);
-    showRichness(allRecords);
+
     setStatus(allRecords.length.toLocaleString() + ' records remaining across ' + polygons.length + ' polygon' + (polygons.length === 1 ? '' : 's') + '.', 'info');
   }
 }
@@ -4799,7 +4793,7 @@ runBtn.addEventListener('click', async () => {
 
   // Show quality flags and richness summary
   showQualityFlags(allFetched);
-  showRichness(allFetched);
+
 
   setStatus(allFetched.length.toLocaleString() + ' records loaded — complete dataset from GBIF.', 'success');
   setFetchMode(false);
@@ -4818,20 +4812,6 @@ function showQualityFlags(records) {
 }
 
 // Show per-polygon species richness
-function showRichness(records) {
-  if (polygons.length < 2) { document.getElementById('richnessBox').style.display = 'none'; return; }
-  const richnessList = document.getElementById('richnessList');
-  richnessList.innerHTML = '';
-  polygons.forEach(p => {
-    const polyRecs = records.filter(r => r._polyId === p.id);
-    const species = new Set(polyRecs.map(r => r.species || r.scientificName).filter(Boolean));
-    const row = document.createElement('div'); row.className = 'richness-row';
-    row.innerHTML = '<span class="richness-name" title="' + p.label + '">' + p.label + '</span>' +
-      '<span class="richness-val">' + species.size + ' spp &nbsp;/&nbsp; ' + polyRecs.length.toLocaleString() + ' rec</span>';
-    richnessList.appendChild(row);
-  });
-  document.getElementById('richnessBox').style.display = 'block';
-}
 
 const CSV_FIELDS_MOBILE = ['scientificName','vernacularName','eventDate','decimalLatitude','decimalLongitude'];
 
