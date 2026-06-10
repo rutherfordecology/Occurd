@@ -45,7 +45,7 @@
       <img src="occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v4.73</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v4.74</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -650,6 +650,35 @@ const drawControl = new L.Control.Draw({
     polyline: false, rectangle: false, circle: false, circlemarker: false, marker: false
   }
 }).addTo(map);
+
+// Suppress the "shape edges cannot cross" error tooltip — allowIntersection:true means
+// it fires spuriously on mobile (touch event timing) and is never meaningful here.
+(function() {
+  const style = document.createElement('style');
+  style.textContent = '.leaflet-error-draw-tooltip { display: none !important; }';
+  document.head.appendChild(style);
+})();
+
+// Mobile double-tap to close polygon — Leaflet.draw relies on dblclick which
+// Leaflet's touch simulation doesn't reliably produce on mobile.
+(function() {
+  let _lastTap = 0;
+  document.addEventListener('touchend', function(e) {
+    if (!isDrawingPoly || !activeDrawHandler) return;
+    const now = Date.now(), delta = now - _lastTap;
+    _lastTap = now;
+    if (delta < 350 && delta > 30 && e.changedTouches.length === 1) {
+      const vCount = activeDrawHandler._markers ? activeDrawHandler._markers.length : 0;
+      if (vCount >= 3) {
+        // Second tap already added a vertex — remove it then close
+        if (activeDrawHandler.deleteLastVertex) activeDrawHandler.deleteLastVertex();
+        setTimeout(() => {
+          if (activeDrawHandler && activeDrawHandler.completeShape) activeDrawHandler.completeShape();
+        }, 10);
+      }
+    }
+  }, { passive: true });
+})();
 
 const drawActionBar = document.getElementById('drawActionBar');
 const finishDrawBtn = document.getElementById('finishDrawBtn');
@@ -4385,6 +4414,76 @@ function getQueryWKT(poly) {
   return poly.wkt; // fallback — let GBIF handle it
 }
 
+// Fetch one GBIF occurrence page with up to 5 retries
+async function _gbifPageFetch(qs) {
+  let attempt = 0;
+  while (true) {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 60000);
+    try {
+      const res = await fetch('https://api.gbif.org/v1/occurrence/search?' + qs, { signal: ctrl.signal });
+      clearTimeout(timer);
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return await res.json();
+    } catch(e) {
+      clearTimeout(timer);
+      attempt++;
+      if (attempt >= 5) throw e;
+      await new Promise(r => setTimeout(r, Math.min(1000 * Math.pow(2, attempt - 1), 12000)));
+    }
+  }
+}
+
+// Map a raw GBIF occurrence result to the internal record format
+function _mapOccRecord(poly, r) {
+  return {
+    polygon_name:                  poly.label || null,
+    gbifID:                        r.gbifID || null,
+    eventDate:                     r.eventDate || null,
+    year:                          r.year  != null ? String(r.year)  : null,
+    month:                         r.month != null ? String(r.month) : null,
+    day:                           r.day   != null ? String(r.day)   : null,
+    scientificName:                r.scientificName || null,
+    vernacularName:                r.vernacularName || null,
+    kingdom:                       r.kingdom  || null,
+    phylum:                        r.phylum   || null,
+    class:                         r.class    || null,
+    order:                         r.order    || null,
+    family:                        r.family   || null,
+    genus:                         r.genus    || null,
+    species:                       r.species  || null,
+    decimalLatitude:               r.decimalLatitude  != null ? r.decimalLatitude  : null,
+    decimalLongitude:              r.decimalLongitude != null ? r.decimalLongitude : null,
+    coordinateUncertaintyInMeters: r.coordinateUncertaintyInMeters != null ? String(r.coordinateUncertaintyInMeters) : null,
+    hasGeospatialIssues:           r.hasGeospatialIssues != null ? String(r.hasGeospatialIssues) : null,
+    basisOfRecord:                 r.basisOfRecord || null,
+    occurrenceID:                  r.occurrenceID  || null,
+    references:                    r.references    || null,
+    taxonKey:                      r.taxonKey  || null,
+    speciesKey:                    r.speciesKey || null,
+    datasetName:                   r.datasetName   || null,
+    datasetKey:                    r.datasetKey    || null,
+    institutionCode:               r.institutionCode || null,
+    country:                       r.country       || null,
+    countryCode:                   r.countryCode   || null,
+    stateProvince:                 r.stateProvince || null,
+    locality:                      r.locality      || null,
+    recordedBy:                    Array.isArray(r.recordedBy) ? r.recordedBy.join('; ') : (r.recordedBy || null),
+    establishmentMeans:            r.establishmentMeans || null,
+    dynamicProperties:             r.dynamicProperties || null,
+    iucnRedListCategory:           r.iucnRedListCategory || null,
+    recordPhoto: (() => {
+      const img = (r.media || []).find(m => m.type === 'StillImage' && m.identifier);
+      if (!img) return null;
+      const isTiff = /image\/tiff/i.test(img.format || '') || /\.tiff?$/i.test(img.identifier);
+      const url = isTiff ? 'https://api.gbif.org/v1/image/unsafe/800x/' + img.identifier : img.identifier;
+      return { url, licence: img.license || '', photographer: img.rightsHolder || img.creator || '' };
+    })(),
+    _polyId:    poly.id,
+    _polyLabel: poly.label
+  };
+}
+
 // GBIF live occurrence search API — returns same records as the GBIF browser (no snapshot lag)
 runBtn.addEventListener('click', async () => {
   // Lock any polygon still in edit mode before fetching
@@ -4478,174 +4577,111 @@ runBtn.addEventListener('click', async () => {
     setStatus('Fetching records from GBIF' + polyLabel + '...', 'info');
     setProgress(5, 'Contacting GBIF...');
 
-    let offset = 0, totalCount = null, hullRetried = false, pageRetries = 0;
+    let totalCount = null, hullRetried = false;
     const _fetchStart = Date.now();
-    while (true) {
-      if (fetchAbortFlag) {
-        setStatus('Fetch cancelled.', 'warning');
-        setFetchMode(false); return;
-      }
-      const qs = [...baseParams, ['offset', String(offset)]].map(([k,v]) => encodeURIComponent(k) + '=' + encodeURIComponent(v)).join('&');
-      let res, pageAttempt = 0;
+
+    // ── Phase 1: page 0 — establishes totalCount, handles hull-retry ────────
+    page0: while (true) {
+      if (fetchAbortFlag) { setStatus('Fetch cancelled.', 'warning'); setFetchMode(false); return; }
+      const qs0 = [...baseParams, ['offset', '0']].map(([k,v]) => encodeURIComponent(k) + '=' + encodeURIComponent(v)).join('&');
+      let res0, p0attempt = 0;
       while (true) {
         try {
           const _ctrl = new AbortController();
-          const _timer = setTimeout(() => _ctrl.abort(), 60000); // 60 s timeout per page
-          try {
-            res = await fetch('https://api.gbif.org/v1/occurrence/search?' + qs, { signal: _ctrl.signal });
-          } finally {
-            clearTimeout(_timer);
-          }
-          break; // success — exit retry loop
+          const _timer = setTimeout(() => _ctrl.abort(), 60000);
+          try { res0 = await fetch('https://api.gbif.org/v1/occurrence/search?' + qs0, { signal: _ctrl.signal }); }
+          finally { clearTimeout(_timer); }
+          break;
         } catch(netErr) {
-          pageAttempt++;
-          if (pageAttempt >= 5) {
-            const fetched = allFetched.length;
-            setStatus(
-              (fetched > 0
-                ? 'Network error after fetching ' + fetched.toLocaleString() + ' of ' + (totalCount ? totalCount.toLocaleString() : '?') + ' records.'
-                : 'Network error — could not reach GBIF after 5 attempts.'),
-              'error'
-            );
+          p0attempt++;
+          if (p0attempt >= 5) {
+            setStatus('Network error — could not reach GBIF after 5 attempts.', 'error');
             statusBar.innerHTML += ' <button onclick="document.getElementById(\'runBtn\').click()" style="margin-left:8px;background:none;border:1px solid currentColor;border-radius:3px;padding:2px 8px;cursor:pointer;font-size:11px;font-family:var(--font-sans);color:inherit;font-weight:600;">Try again</button>';
             setFetchMode(false); return;
           }
-          const delay = Math.min(1000 * Math.pow(2, pageAttempt - 1), 12000); // 1s 2s 4s 8s 12s
-          if (Date.now() - _fetchStart > 10000) {
-            setStatus('GBIF taking a while — retrying (attempt ' + (pageAttempt + 1) + '/5)…', 'info');
-          }
-          await new Promise(r => setTimeout(r, delay));
+          if (Date.now() - _fetchStart > 10000) setStatus('GBIF taking a while — retrying (attempt ' + (p0attempt + 1) + '/5)…', 'info');
+          await new Promise(r => setTimeout(r, Math.min(1000 * Math.pow(2, p0attempt - 1), 12000)));
         }
       }
-      try {
-        if (!res.ok) {
-          const txt = await res.text();
-          if (res.status === 400) {
-            let reason = '';
-            try { const j = JSON.parse(txt); reason = j.message || j.error || txt.substring(0, 200); } catch(e) { reason = txt.substring(0, 200); }
-            // Invalid shape: try convex hull once, then skip this polygon
-            if (!hullRetried && reason.includes('Invalid shape') && geomPoly.latlngs) {
-              try {
-                const coords = closeRingCoords(geomPoly.latlngs.map(llToGeoJSON));
-                const hull = turf.convex(turf.polygon([coords]));
-                if (hull) {
-                  const hullLL = hull.geometry.coordinates[0].slice(0, -1).map(c => [c[1], c[0]]);
-                  baseParams[0] = ['geometry', latlngsToWKT(hullLL)];
-                  hullRetried = true; offset = 0; totalCount = null;
-                  setStatus('Invalid shape' + polyLabel + ' — retrying with convex hull...', 'warning');
-                  continue;
-                }
-              } catch(e) {}
-            }
-            // Still failing — skip and continue with remaining tasks
-            setStatus('Skipping' + polyLabel + ' — shape rejected by GBIF' + (hullRetried ? ' even after convex hull fallback' : '') + '.', 'warning');
-            break;
+      if (!res0.ok) {
+        const txt = await res0.text();
+        if (res0.status === 400) {
+          let reason = '';
+          try { const j = JSON.parse(txt); reason = j.message || j.error || txt.substring(0, 200); } catch(e) { reason = txt.substring(0, 200); }
+          if (!hullRetried && reason.includes('Invalid shape') && geomPoly.latlngs) {
+            try {
+              const coords = closeRingCoords(geomPoly.latlngs.map(llToGeoJSON));
+              const hull = turf.convex(turf.polygon([coords]));
+              if (hull) {
+                const hullLL = hull.geometry.coordinates[0].slice(0, -1).map(c => [c[1], c[0]]);
+                baseParams[0] = ['geometry', latlngsToWKT(hullLL)];
+                hullRetried = true;
+                setStatus('Invalid shape' + polyLabel + ' — retrying with convex hull...', 'warning');
+                continue page0;
+              }
+            } catch(e) {}
           }
-          throw new Error('HTTP ' + res.status + ': ' + txt.substring(0, 200));
+          setStatus('Skipping' + polyLabel + ' — shape rejected by GBIF' + (hullRetried ? ' even after convex hull fallback' : '') + '.', 'warning');
+          break page0;
         }
-        const json = await res.json();
-        if (totalCount === null) {
-          totalCount = json.count;
-          if (totalCount > MAX_RECORDS) {
-            setStatus(
-              '⚠️ ' + totalCount.toLocaleString() + ' records found — too large to load (limit is ' +
-              MAX_RECORDS.toLocaleString() + '). Try: ① smaller polygon  ② specific taxa  ③ shorter year range.',
-              'error'
-            );
+        setStatus('Fetch failed: HTTP ' + res0.status + '. If it keeps failing: ① smaller polygon  ② specific taxa  ③ shorter year range.', 'error');
+        statusBar.innerHTML += ' <button onclick="document.getElementById(\'runBtn\').click()" style="margin-left:8px;background:none;border:1px solid currentColor;border-radius:3px;padding:2px 8px;cursor:pointer;font-size:11px;font-family:var(--font-sans);color:inherit;font-weight:600;">Try again</button>';
+        setFetchMode(false); return;
+      }
+      let json0;
+      try { json0 = await res0.json(); } catch(e) {
+        setStatus('Fetch failed — invalid response from GBIF.', 'error'); setFetchMode(false); return;
+      }
+      totalCount = json0.count;
+      if (totalCount > MAX_RECORDS) {
+        setStatus(
+          '⚠️ ' + totalCount.toLocaleString() + ' records found — too large to load (limit is ' +
+          MAX_RECORDS.toLocaleString() + '). Try: ① smaller polygon  ② specific taxa  ③ shorter year range.',
+          'error'
+        );
+        setFetchMode(false); return;
+      }
+      json0.results.forEach(r => allFetched.push(_mapOccRecord(poly, r)));
+      setProgress(10 + Math.round((Math.min(300, totalCount) / Math.max(totalCount, 1)) * 82),
+        'Fetching records' + polyLabel + '... ' + Math.min(300, totalCount).toLocaleString() + ' / ' + totalCount.toLocaleString());
+
+      if (!json0.endOfRecords) {
+        // ── Phase 2: remaining pages in parallel batches of 5 ───────────────
+        const offsets = [];
+        for (let o = 300; o < Math.min(totalCount, 9700); o += 300) offsets.push(o);
+        const BATCH = 5;
+        for (let bi = 0; bi < offsets.length; bi += BATCH) {
+          if (fetchAbortFlag) { setStatus('Fetch cancelled.', 'warning'); setFetchMode(false); return; }
+          const batch = offsets.slice(bi, bi + BATCH);
+          let batchJsons;
+          try {
+            batchJsons = await Promise.all(batch.map(off => {
+              const bqs = [...baseParams, ['offset', String(off)]].map(([k,v]) => encodeURIComponent(k) + '=' + encodeURIComponent(v)).join('&');
+              return _gbifPageFetch(bqs);
+            }));
+          } catch(e) {
+            if (allFetched.length > 0) {
+              partialLoadWarning = '⚠️ Partial load: ' + allFetched.length.toLocaleString() + ' of ' +
+                totalCount.toLocaleString() + ' records fetched (network error). Results below may be incomplete — refetch to try again.';
+              break;
+            }
+            setStatus('Fetch failed after 5 attempts. If it keeps failing: ① smaller polygon  ② specific taxa  ③ shorter year range.', 'error');
+            statusBar.innerHTML += ' <button onclick="document.getElementById(\'runBtn\').click()" style="margin-left:8px;background:none;border:1px solid currentColor;border-radius:3px;padding:2px 8px;cursor:pointer;font-size:11px;font-family:var(--font-sans);color:inherit;font-weight:600;">Try again</button>';
             setFetchMode(false); return;
           }
+          batchJsons.forEach(json => json.results.forEach(r => allFetched.push(_mapOccRecord(poly, r))));
+          setProgress(10 + Math.round((allFetched.length / Math.max(totalCount, 1)) * 82),
+            'Fetching records' + polyLabel + '... ' + allFetched.length.toLocaleString() + ' / ' + totalCount.toLocaleString());
         }
-
-        json.results.forEach(r => {
-          allFetched.push({
-            polygon_name:                  poly.label || null,
-            gbifID:                        r.gbifID || null,
-            eventDate:                     r.eventDate || null,
-            year:                          r.year  != null ? String(r.year)  : null,
-            month:                         r.month != null ? String(r.month) : null,
-            day:                           r.day   != null ? String(r.day)   : null,
-            scientificName:                r.scientificName || null,
-            vernacularName:                r.vernacularName || null,
-            kingdom:                       r.kingdom  || null,
-            phylum:                        r.phylum   || null,
-            class:                         r.class    || null,
-            order:                         r.order    || null,
-            family:                        r.family   || null,
-            genus:                         r.genus    || null,
-            species:                       r.species  || null,
-            decimalLatitude:               r.decimalLatitude  != null ? r.decimalLatitude  : null,
-            decimalLongitude:              r.decimalLongitude != null ? r.decimalLongitude : null,
-            coordinateUncertaintyInMeters: r.coordinateUncertaintyInMeters != null ? String(r.coordinateUncertaintyInMeters) : null,
-            hasGeospatialIssues:           r.hasGeospatialIssues != null ? String(r.hasGeospatialIssues) : null,
-            basisOfRecord:                 r.basisOfRecord || null,
-            occurrenceID:                  r.occurrenceID  || null,
-            references:                    r.references    || null,
-            taxonKey:                      r.taxonKey  || null,
-            speciesKey:                    r.speciesKey || null,
-            datasetName:                   r.datasetName   || null,
-            datasetKey:                    r.datasetKey    || null,
-            institutionCode:               r.institutionCode || null,
-            country:                       r.country       || null,
-            countryCode:                   r.countryCode   || null,
-            stateProvince:                 r.stateProvince || null,
-            locality:                      r.locality      || null,
-            recordedBy:                    Array.isArray(r.recordedBy) ? r.recordedBy.join('; ') : (r.recordedBy || null),
-            establishmentMeans:            r.establishmentMeans || null,
-            dynamicProperties:             r.dynamicProperties || null,
-            iucnRedListCategory:           r.iucnRedListCategory || null,
-            recordPhoto: (() => {
-              const img = (r.media || []).find(m => m.type === 'StillImage' && m.identifier);
-              if (!img) return null;
-              // TIFF files aren't browser-renderable — proxy through GBIF's image converter
-              const isTiff = /image\/tiff/i.test(img.format || '') || /\.tiff?$/i.test(img.identifier);
-              const url = isTiff ? 'https://api.gbif.org/v1/image/unsafe/800x/' + img.identifier : img.identifier;
-              return { url, licence: img.license || '', photographer: img.rightsHolder || img.creator || '' };
-            })(),
-            _polyId:    poly.id,
-            _polyLabel: poly.label
-          });
-        });
-
-        const fetched = Math.min(offset + 300, totalCount || 0);
-        setProgress(10 + Math.round((fetched / Math.max(totalCount || 1, 1)) * 82),
-          'Fetching records' + polyLabel + '... ' + fetched.toLocaleString() + ' / ' + (totalCount || '?').toLocaleString());
-
-        if (json.endOfRecords) break;
-        if (offset + 300 >= 9700) {
+        if (totalCount > 9700 && !partialLoadWarning) {
           setStatus(
             '⚠️ Results capped at 10,000 records. ' +
             'Use a smaller polygon, specific taxa, or narrower date range to get all records.',
             'warning'
           );
-          break;
         }
-        offset += 300;
-        pageRetries = 0; // successful page — reset retry counter
-        await new Promise(r => setTimeout(r, 120)); // brief pause to avoid GBIF rate limiting
-      } catch(e) {
-        const fetched = allFetched.length;
-        if (pageRetries < 4) {
-          pageRetries++;
-          const _delay = Math.min(1000 * Math.pow(2, pageRetries - 1), 12000);
-          if (Date.now() - _fetchStart > 10000) {
-            setStatus('GBIF taking a while — retrying (attempt ' + (pageRetries + 1) + '/5)…', 'info');
-          }
-          await new Promise(r => setTimeout(r, _delay));
-          continue;
-        }
-        if (fetched > 0) {
-          partialLoadWarning = '⚠️ Partial load: ' + fetched.toLocaleString() + ' of ' +
-            (totalCount ? totalCount.toLocaleString() : '?') + ' records fetched (network error on page ' +
-            (Math.floor(offset / 300) + 2) + '). Results below may be incomplete — refetch to try again.';
-          break;
-        }
-        setStatus(
-          'Fetch failed after 5 attempts. If it keeps failing: ① smaller polygon  ② specific taxa  ③ shorter year range.',
-          'error'
-        );
-        statusBar.innerHTML += ' <button onclick="document.getElementById(\'runBtn\').click()" style="margin-left:8px;background:none;border:1px solid currentColor;border-radius:3px;padding:2px 8px;cursor:pointer;font-size:11px;font-family:var(--font-sans);color:inherit;font-weight:600;">Try again</button>';
-        setFetchMode(false); return;
       }
+      break page0;
     }
   }
 
