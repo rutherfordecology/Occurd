@@ -45,7 +45,7 @@
       <img src="occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v4.85</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v4.86</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -233,11 +233,11 @@
         <p class="note mobile-csv-note" style="display:none;margin-top:0.5rem;">CSVs on mobile show name &amp; count only. Open on desktop for full columns.</p>
         <div style="margin-top:0.6rem;">
           <button id="shareBtn" onclick="copyShareUrl()"
-            style="background:none;border:1px solid var(--border);border-radius:6px;cursor:pointer;
+            style="background:none;border:1px solid var(--green);border-radius:6px;cursor:pointer;
                    font-size:11px;font-weight:600;font-family:var(--font-sans);padding:4px 10px;
-                   color:var(--text2);transition:all 0.15s;width:100%;"
-            onmouseover="this.style.color='var(--green)';this.style.borderColor='var(--green)'"
-            onmouseout="this.style.color='var(--text2)';this.style.borderColor='var(--border)'"
+                   color:var(--green);transition:all 0.15s;width:100%;"
+            onmouseover="this.style.background='var(--green-light)'"
+            onmouseout="this.style.background='none'"
             title="Copy a link that recreates this polygon and filters — recipient clicks Fetch to reproduce the results">
             &#128279; Copy share link
           </button>
@@ -1415,7 +1415,7 @@ function generateShareState() {
 function copyShareUrl() {
   const state = generateShareState();
   if (!state) { setStatus('Draw a polygon first before sharing.', 'warning'); return; }
-  const hash = '#s=' + btoa(JSON.stringify(state));
+  const hash = '#s=' + btoa(unescape(encodeURIComponent(JSON.stringify(state))));
   const url = location.href.split('#')[0] + hash;
 
   function _onCopied() {
@@ -1480,7 +1480,7 @@ function restoreFromShare(state) {
 (function() {
   try {
     const m = location.hash.match(/^#s=(.+)/);
-    if (m) { const state = JSON.parse(atob(m[1])); window._pendingShare = state; }
+    if (m) { const state = JSON.parse(decodeURIComponent(escape(atob(m[1])))); window._pendingShare = state; }
   } catch(e) {}
 })();
 
@@ -3663,34 +3663,90 @@ function _clearGhostLayer() {
   if (ghostLayer) { map.removeLayer(ghostLayer); ghostLayer = null; }
 }
 
+function _getFadedGroup() {
+  // Returns (creating if needed) a shared SVG <g> for faded markers.
+  // Group-level opacity means overlapping faded markers don't compound — they
+  // are composited together first, then the group is blended at low opacity.
+  let g = document.getElementById('_tlFadedGroup');
+  if (!g) {
+    g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    g.id = '_tlFadedGroup';
+    g.setAttribute('opacity', '0.15');
+  }
+  // Ensure it's in the SVG, inserted before the active-marker root group
+  // so active markers always render on top.
+  const renderer = map._renderer;
+  if (renderer && renderer._rootGroup && g.parentNode !== renderer._rootGroup.parentNode) {
+    renderer._rootGroup.parentNode.insertBefore(g, renderer._rootGroup);
+  }
+  return g;
+}
+
+function _removeFadedGroup() {
+  const g = document.getElementById('_tlFadedGroup');
+  if (!g) return;
+  // Move all children back to Leaflet's root group before removing
+  const renderer = map._renderer;
+  const root = renderer && renderer._rootGroup;
+  while (g.firstChild) {
+    if (root) root.appendChild(g.firstChild);
+    else g.removeChild(g.firstChild);
+  }
+  if (g.parentNode) g.parentNode.removeChild(g);
+}
+
 function applyTimelineFilter() {
   _clearGhostLayer();
   const hasTlFilter = tlFilterMin !== null || tlFilterMax !== null;
+
+  if (!hasTlFilter) {
+    // Restore everything — move paths back out of faded group first
+    _removeFadedGroup();
+    const seen = new Set();
+    allMarkers.forEach(({ marker }) => {
+      if (seen.has(marker)) return; seen.add(marker);
+      marker._tlActive = true;
+      marker.setStyle({ fillOpacity: marker._baseFillOpacity, opacity: 1, weight: marker._baseWeight || 1 });
+    });
+    document.getElementById('mShown').textContent = allRecords.filter(passesFilters).length.toLocaleString();
+    applyTimelineChecklist();
+    return;
+  }
+
+  const fadedGroup = _getFadedGroup();
+  const renderer = map._renderer;
+  const rootGroup = renderer && renderer._rootGroup;
   const seen = new Set();
   let activeShown = 0;
+
   allMarkers.forEach(({ marker }) => {
-    if (seen.has(marker)) return;
-    seen.add(marker);
-    const inRange = !hasTlFilter || (marker._years && [...marker._years].some(yr =>
+    if (seen.has(marker)) return; seen.add(marker);
+    const inRange = marker._years && [...marker._years].some(yr =>
       (tlFilterMin === null || yr >= tlFilterMin) &&
       (tlFilterMax === null || yr <= tlFilterMax)
-    ));
-    marker._tlActive = inRange;
-    if (!hasTlFilter) {
+    );
+    marker._tlActive = !!inRange;
+    if (inRange) {
+      // Ensure path is in Leaflet's root group (not faded group)
+      if (marker._path && marker._path.parentNode === fadedGroup) {
+        fadedGroup.removeChild(marker._path);
+        if (rootGroup) rootGroup.appendChild(marker._path);
+      }
       marker.setStyle({ fillOpacity: marker._baseFillOpacity, opacity: 1, weight: marker._baseWeight || 1 });
-      if (marker._path) marker._path.style.mixBlendMode = '';
+      activeShown += marker._stackSize || 1;
     } else {
-      marker.setStyle({ fillOpacity: inRange ? marker._baseFillOpacity : 0.08, opacity: inRange ? 1 : 0.2, weight: inRange ? (marker._baseWeight || 1) : 0 });
-      if (marker._path) marker._path.style.mixBlendMode = inRange ? '' : 'screen';
-      if (inRange) activeShown += marker._stackSize || 1;
+      // Move path into faded group — opacity won't compound between markers
+      if (marker._path && marker._path.parentNode !== fadedGroup) {
+        if (marker._path.parentNode) marker._path.parentNode.removeChild(marker._path);
+        fadedGroup.appendChild(marker._path);
+      }
+      // Full opacity on the path itself — group handles the fade
+      marker.setStyle({ fillOpacity: marker._baseFillOpacity, opacity: 1, weight: 0 });
     }
   });
-  if (hasTlFilter && clusterLayer) {
-    clusterLayer.refreshClusters();
-    document.getElementById('mShown').textContent = activeShown.toLocaleString();
-  } else if (!hasTlFilter) {
-    document.getElementById('mShown').textContent = allRecords.filter(passesFilters).length.toLocaleString();
-  }
+
+  if (clusterLayer) clusterLayer.refreshClusters();
+  document.getElementById('mShown').textContent = activeShown.toLocaleString();
   applyTimelineChecklist();
 }
 
