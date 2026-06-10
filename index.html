@@ -45,7 +45,7 @@
       <img src="occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v4.77</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v4.78</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -276,7 +276,7 @@
               Normalise by effort
             </button>
             <button id="btnTlSpreadSb" onclick="toggleSpread()"
-              title="Show cumulative mean distance from centroid per year — tracks how far records have spread over time"
+              title="Show cumulative 95th-percentile distance from fixed centroid per year — tracks how far records have spread over time"
               style="background:none;border:1px solid var(--border);border-radius:12px;cursor:pointer;
                      font-size:11px;font-weight:600;font-family:var(--font-sans);padding:3px 10px;
                      color:var(--text3);transition:all 0.15s;">
@@ -322,7 +322,7 @@
         </div>
       </div>
       <div id="spreadChartWrap" style="display:none;padding:0 0 4px;">
-        <div style="font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--text3);padding:2px 10px 0;">Cumulative spread (km from centroid)</div>
+        <div style="font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--text3);padding:2px 10px 0;">Cumulative spread (km from centroid, 95th percentile)</div>
         <svg id="spreadChart" width="100%" height="120"></svg>
       </div>
       <div style="display:none">
@@ -3991,7 +3991,7 @@ function renderSpreadChart(records) {
     return;
   }
 
-  // Sort by year, build cumulative centroid + mean distance per year
+  // Fixed centroid from ALL points — doesn't shift as new records accumulate
   const byYear = {};
   pts.forEach(r => {
     const y = parseInt(r.year);
@@ -4000,15 +4000,18 @@ function renderSpreadChart(records) {
     byYear[y].push([parseFloat(r.decimalLatitude), parseFloat(r.decimalLongitude)]);
   });
 
+  const fixedCLat = pts.reduce((s,r) => s + parseFloat(r.decimalLatitude),  0) / pts.length;
+  const fixedCLng = pts.reduce((s,r) => s + parseFloat(r.decimalLongitude), 0) / pts.length;
+
+  // For each year: 95th-percentile distance from fixed centroid across all cumulative records
   const years = Object.keys(byYear).map(Number).sort((a,b) => a-b);
   let cumPts = [];
   const spreadByYear = {};
   years.forEach(yr => {
     cumPts = cumPts.concat(byYear[yr]);
-    const cLat = cumPts.reduce((s,p) => s+p[0], 0) / cumPts.length;
-    const cLng = cumPts.reduce((s,p) => s+p[1], 0) / cumPts.length;
-    const meanDist = cumPts.reduce((s,p) => s + _haversineKm(cLat, cLng, p[0], p[1]), 0) / cumPts.length;
-    spreadByYear[yr] = meanDist;
+    const dists = cumPts.map(p => _haversineKm(fixedCLat, fixedCLng, p[0], p[1])).sort((a,b) => a-b);
+    const p95idx = Math.floor(dists.length * 0.95);
+    spreadByYear[yr] = dists[Math.min(p95idx, dists.length - 1)];
   });
 
   const vals = years.map(y => spreadByYear[y]);
