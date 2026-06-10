@@ -45,7 +45,7 @@
       <img src="occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v4.79</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v4.80</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -275,13 +275,6 @@
                      color:var(--text3);transition:all 0.15s;">
               Normalise by effort
             </button>
-            <button id="btnTlSpreadSb" onclick="toggleSpread()"
-              title="Show cumulative 95th-percentile distance from fixed centroid per year — tracks how far records have spread over time"
-              style="background:none;border:1px solid var(--border);border-radius:12px;cursor:pointer;
-                     font-size:11px;font-weight:600;font-family:var(--font-sans);padding:3px 10px;
-                     color:var(--text3);transition:all 0.15s;">
-              Spread (km)
-            </button>
           </div>
           <p class="note" style="margin-top:6px;">Effort normalisation fetches total GBIF records (all taxa) in your polygon per year and divides your species' counts — so the chart shows % of all records, not raw counts. Requires yearly view.</p>
         </div>
@@ -320,10 +313,6 @@
           <input type="range" id="tlSliderMin" class="tl-slider tl-slider-min">
           <input type="range" id="tlSliderMax" class="tl-slider tl-slider-max">
         </div>
-      </div>
-      <div id="spreadChartWrap" style="display:none;padding:0 0 4px;">
-        <div style="font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--text3);padding:2px 10px 0;">Cumulative spread (km from centroid, 95th percentile)</div>
-        <svg id="spreadChart" width="100%" height="120"></svg>
       </div>
       <div style="display:none">
       </div>
@@ -1088,6 +1077,14 @@ function collapseSetupSections() {
   });
 }
 
+// Nerd tools collapsed by default
+(function() {
+  const body  = document.getElementById('sNerd');
+  const label = document.querySelector('[data-section="sNerd"]');
+  if (body)  body.classList.add('collapsed');
+  if (label) label.classList.add('collapsed');
+})();
+
 document.getElementById('clSearchInput').addEventListener('input', filterChecklistSearch);
 document.getElementById('clClearSel').addEventListener('click', () => clearSpeciesSelection());
 
@@ -1468,7 +1465,6 @@ function restoreFromShare(state) {
 function clearResults() {
   allRecords = []; activeFilters.clear(); csvData = null; selectedSpecies = null; allMarkers = []; commonNameCache = {};
   effortByYear = null; tlEffortMode = false; _effortFetchParams = []; _syncEffortBtn();
-  tlSpreadMode = false; _syncSpreadBtn(); const _sw = document.getElementById('spreadChartWrap'); if (_sw) _sw.style.display = 'none';
   _clearGhostLayer();
   _photoPrefetchAbort = true;
   currentNztcsFilter = 'all';
@@ -3705,13 +3701,19 @@ function renderTimeline(records) {
     yearData[key][g] = (yearData[key][g] || 0) + 1;
   });
 
-  // Fill missing months in range so x-axis is continuous
+  // Fill ALL years (or months) in range so x-axis is evenly spaced —
+  // years with no records get a zero-height bar but keep the spacing correct
+  // so rainbow colours distribute proportionally across the full time span.
   if (useMonths) {
     for (let y = minYr; y <= maxYr; y++) {
       for (let m = 1; m <= 12; m++) {
         const key = y * 100 + m;
         if (!yearData[key]) yearData[key] = {};
       }
+    }
+  } else {
+    for (let y = minYr; y <= maxYr; y++) {
+      if (!yearData[y]) yearData[y] = {};
     }
   }
 
@@ -3821,8 +3823,6 @@ function renderTimeline(records) {
 
   svgEl.setAttribute('viewBox', `0 0 ${W} ${H}`);
   svgEl.innerHTML = svg;
-
-  renderSpreadChart(records);
 
   // Position slider overlay: spans from first bar centre to last bar centre
   const overlay = document.getElementById('tlSliderOverlay');
@@ -3955,128 +3955,6 @@ function _haversineKm(lat1, lng1, lat2, lng2) {
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
 }
 
-let tlSpreadMode = false;
-
-function _syncSpreadBtn() {
-  const btn = document.getElementById('btnTlSpreadSb');
-  if (!btn) return;
-  btn.style.background = tlSpreadMode ? 'var(--green-dark)' : '';
-  btn.style.color      = tlSpreadMode ? '#fff' : '';
-  btn.style.border     = tlSpreadMode ? '1px solid transparent' : '';
-}
-
-function toggleSpread() {
-  tlSpreadMode = !tlSpreadMode;
-  _syncSpreadBtn();
-  const wrap = document.getElementById('spreadChartWrap');
-  const panel = document.getElementById('timelinePanel');
-  if (!wrap) return;
-  if (tlSpreadMode) {
-    wrap.style.display = 'block';
-    if (panel) panel.classList.add('spread-open');
-    renderSpreadChart(allRecords);
-  } else {
-    wrap.style.display = 'none';
-    if (panel) panel.classList.remove('spread-open');
-  }
-}
-
-function renderSpreadChart(records) {
-  const svgEl = document.getElementById('spreadChart');
-  if (!svgEl || !tlSpreadMode) return;
-
-  const pts = records.filter(r => passesFilters(r) && r.decimalLatitude != null && r.decimalLongitude != null && r.year);
-  if (pts.length < 2) {
-    svgEl.innerHTML = '<text x="50%" y="50%" text-anchor="middle" font-size="11" fill="#9b9890">Not enough georeferenced records</text>';
-    return;
-  }
-
-  // Fixed centroid from ALL points — doesn't shift as new records accumulate
-  const byYear = {};
-  pts.forEach(r => {
-    const y = parseInt(r.year);
-    if (isNaN(y)) return;
-    if (!byYear[y]) byYear[y] = [];
-    byYear[y].push([parseFloat(r.decimalLatitude), parseFloat(r.decimalLongitude)]);
-  });
-
-  const fixedCLat = pts.reduce((s,r) => s + parseFloat(r.decimalLatitude),  0) / pts.length;
-  const fixedCLng = pts.reduce((s,r) => s + parseFloat(r.decimalLongitude), 0) / pts.length;
-
-  // For each year: running max of 95th-percentile distance from fixed centroid.
-  // Running max ensures spread never decreases — if new records pile up near center
-  // the 95th-pct would otherwise drop even though the species has already reached further.
-  const years = Object.keys(byYear).map(Number).sort((a,b) => a-b);
-  let cumPts = [], maxSpreadSoFar = 0;
-  const spreadByYear = {};
-  years.forEach(yr => {
-    cumPts = cumPts.concat(byYear[yr]);
-    const dists = cumPts.map(p => _haversineKm(fixedCLat, fixedCLng, p[0], p[1])).sort((a,b) => a-b);
-    const p95idx = Math.floor(dists.length * 0.95);
-    const p95 = dists[Math.min(p95idx, dists.length - 1)];
-    maxSpreadSoFar = Math.max(maxSpreadSoFar, p95);
-    spreadByYear[yr] = maxSpreadSoFar;
-  });
-
-  const vals = years.map(y => spreadByYear[y]);
-  const maxVal = Math.max(...vals, 1);
-  const minVal = Math.max(0, Math.min(...vals) * 0.85); // non-zero baseline so small changes are visible
-  const range = maxVal - minVal || 1;
-
-  const W = svgEl.getBoundingClientRect().width || svgEl.parentElement.clientWidth || 600;
-  const H = 120;
-  const padL = 42, padR = 8, padT = 8, padB = 22;
-  const chartW = W - padL - padR;
-  const chartH = H - padT - padB;
-  const gap = chartW / Math.max(years.length - 1, 1);
-
-  let svg = '';
-
-  // Gridlines + Y labels
-  for (let i = 0; i <= 3; i++) {
-    const val = minVal + range * i / 3;
-    const y = padT + chartH - (chartH * i / 3);
-    svg += `<line x1="${padL}" y1="${y.toFixed(1)}" x2="${W-padR}" y2="${y.toFixed(1)}" stroke="#e5e7eb" stroke-width="0.5"/>`;
-    svg += `<text x="${padL-3}" y="${(y+3.5).toFixed(1)}" text-anchor="end" font-size="9" fill="#9b9890">${Math.round(val)}</text>`;
-  }
-
-  // Line + dots
-  const pts2 = years.map((yr, i) => {
-    const x = padL + i * gap;
-    const y = padT + chartH - ((spreadByYear[yr] - minVal) / range) * chartH;
-    return [x, y, yr, spreadByYear[yr]];
-  });
-
-  // Area fill — close to the chart bottom (minVal baseline)
-  const baseY = (padT + chartH).toFixed(1);
-  let area = `M ${pts2[0][0].toFixed(1)} ${baseY} `;
-  pts2.forEach(([x,y]) => { area += `L ${x.toFixed(1)} ${y.toFixed(1)} `; });
-  area += `L ${pts2[pts2.length-1][0].toFixed(1)} ${baseY} Z`;
-  svg += `<path d="${area}" fill="var(--green)" opacity="0.12"/>`;
-
-  // Line
-  let line = `M ${pts2[0][0].toFixed(1)} ${pts2[0][1].toFixed(1)}`;
-  pts2.slice(1).forEach(([x,y]) => { line += ` L ${x.toFixed(1)} ${y.toFixed(1)}`; });
-  svg += `<path d="${line}" fill="none" stroke="var(--green-dark)" stroke-width="1.5"/>`;
-
-  // Dots + tooltips
-  pts2.forEach(([x, y, yr, km]) => {
-    svg += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="3" fill="var(--green-dark)"><title>${yr}: ${km.toFixed(1)} km</title></circle>`;
-  });
-
-  // X labels
-  const every = Math.ceil(years.length / 8);
-  pts2.forEach(([x,,yr], i) => {
-    if (i % every === 0 || i === pts2.length - 1)
-      svg += `<text x="${x.toFixed(1)}" y="${H-4}" text-anchor="middle" font-size="9" fill="#9b9890">${yr}</text>`;
-  });
-
-  // Axes
-  svg += `<line x1="${padL}" y1="${padT}" x2="${padL}" y2="${padT+chartH}" stroke="#d1d5db" stroke-width="1"/>`;
-  svg += `<line x1="${padL}" y1="${padT+chartH}" x2="${W-padR}" y2="${padT+chartH}" stroke="#d1d5db" stroke-width="1"/>`;
-
-  svgEl.innerHTML = svg;
-}
 
 // Checklist
 function _timelinePanelRight() {
