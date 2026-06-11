@@ -591,8 +591,9 @@
       if (!children) { hideLoadingPhrase(); cols[ci] = []; renderCol(ci); return; }
     }
 
-    // Final render with complete results + NZ filter if cached
-    const cachedNZ = nzCache[key];
+    // Final render with complete results + geo filter if cached
+    const _cc = getActiveCountry();
+    const cachedNZ = _cc ? nzCache[_cc + ':' + (key || 'root')] : undefined;
     cols[ci] = (cachedNZ !== undefined) ? nzFilterAndCount(children, cachedNZ) : children;
     renderCol(ci);
     updateHint();
@@ -1079,8 +1080,9 @@
       const lastChildren = await fetchTaxoChildren(lastSrc.key);
       if (_jumpSeq !== mySeq) return;
 
-      // Apply cached NZ if already available (from a prior search of the same taxa)
-      const cachedLastNZ = nzCache[lastSrc.key];
+      // Apply cached geo filter if already available (from a prior search of the same taxa)
+      const _cc2 = getActiveCountry();
+      const cachedLastNZ = _cc2 ? nzCache[_cc2 + ':' + lastSrc.key] : undefined;
       cols[NUM_COLS - 1] = (cachedLastNZ !== undefined)
         ? nzFilterAndCount(lastChildren, cachedLastNZ)
         : lastChildren;
