@@ -1,266 +1,114 @@
 {
-  "anas superciliosa": {
-    "samoan": "Toloa",
-    "english": "Pacific Black Duck"
-  },
-  "gallinula pacifica": {
-    "samoan": "Puna'e",
-    "english": "Samoan Woodhen"
-  },
-  "ptilinopus porphyraceus": {
-    "samoan": "Manutagi",
-    "english": "Crimson-crowned Fruit-dove"
-  },
-  "lalage maculosa": {
-    "samoan": "Miti tai",
-    "english": "Polynesian Triller"
-  },
-  "aplonis tabuensis": {
-    "samoan": "Fuia Vao",
-    "english": "Polynesian Starling"
-  },
-  "myiagra albiventris": {
-    "samoan": "Tolaifatu",
-    "english": "Samoan Broadbill"
-  },
-  "ducula pacifica": {
-    "samoan": "Lupe",
-    "english": "Pacific Pigeon"
-  },
-  "rhipidura nebulosa": {
-    "samoan": "Se'u",
-    "english": "Samoan Fantail"
-  },
-  "poliolimnas cinereus": {
-    "samoan": "Vai",
-    "english": "White-browed Crake"
-  },
-  "aerodramus spodiopygius": {
-    "samoan": "Pe'ape'a",
-    "english": "White-rumped Swiftlet"
-  },
-  "foulehaio carunculata": {
-    "samoan": "Iao",
-    "english": "Wattled Honeyeater"
-  },
-  "columba livia": {
-    "samoan": "Lupe palagi",
-    "english": "Feral Pigeon"
-  },
-  "vini australis": {
-    "samoan": "Sega vao",
-    "english": "Blue-crowned Lory"
-  },
-  "lalage sharpei": {
-    "samoan": "Miti",
-    "english": "Samoan Triller"
-  },
-  "pachycephala flavifrons": {
-    "samoan": "Vasavasa",
-    "english": "Samoan Whistler"
-  },
-  "aplonis atrifusca": {
-    "samoan": "Fuia",
-    "english": "Samoan Starling"
-  },
-  "egretta sacra": {
-    "samoan": "Matu'u",
-    "english": "Reef Heron"
-  },
-  "didunculus strigirostris": {
-    "samoan": "Manumea",
-    "english": "Tooth-billed Pigeon"
-  },
-  "gymnomyza samoensis": {
-    "samoan": "Ma'oma'o",
-    "english": "Mao"
-  },
-  "clytorhynchus vitiensis": {
-    "samoan": "Segaolevao",
-    "english": "Fiji Shrikebill"
-  },
-  "todirhamphus recurvirostris": {
-    "samoan": "Ti'otala",
-    "english": "Flat-billed Kingfisher"
-  },
-  "eudynamys taitensis": {
-    "samoan": "Aleva",
-    "english": "Long-tailed Cuckoo"
-  },
-  "gallus gallus": {
-    "samoan": "Moa",
-    "english": "Jungle Fowl"
-  },
-  "columba vitiensis": {
-    "samoan": "Fiaui",
-    "english": "White-throated Pigeon"
-  },
-  "zosterops samoensis": {
-    "samoan": "Matapapae",
-    "english": "Samoan White-eye"
-  },
-  "acridotheres tristis": {
-    "samoan": "Maina Fanua",
-    "english": "Common Mynah"
-  },
-  "pycnonotus cafer": {
-    "samoan": "Manu Palagi",
-    "english": "Red-vented Bulbul"
-  },
-  "myzomela cardinalis": {
-    "samoan": "Segasegamau'u",
-    "english": "Cardinal Myzomela"
-  },
-  "erythrura cyaneovirens": {
-    "samoan": "Segaula",
-    "english": "Red-headed Parrotfinch"
-  },
-  "acridotheres fuscus": {
-    "samoan": "Maina Vao",
-    "english": "Jungle Mynah"
-  },
-  "gallirallus philippensis": {
-    "samoan": "Ve'a",
-    "english": "Banded Rail"
-  },
-  "porphyrio porphyrio": {
-    "samoan": "Manuali'i",
-    "english": "Purple Swamphen"
-  },
-  "gallicolumba stairi": {
-    "samoan": "Tui'aimeo",
-    "english": "Friendly Ground-dove"
-  },
-  "ptilinopus perousii": {
-    "samoan": "Manu'ulua",
-    "english": "Many-coloured Fruit-dove"
-  },
-  "tyto alba": {
-    "samoan": "Lulu",
-    "english": "Barn Owl"
-  },
-  "todirhamphus chloris": {
-    "samoan": "Ti'otala",
-    "english": "White-collared Kingfisher"
-  },
-  "turdus poliocephalus": {
-    "samoan": "Tupoulili",
-    "english": "Island Thrush"
-  },
-  "petroica multicolor": {
-    "samoan": "Toloa ula",
-    "english": "Scarlet Robin"
-  },
-  "phaethon lepturus": {
-    "samoan": "Tava'e",
-    "english": "White-tailed Tropicbird"
-  },
-  "phaethon rubricauda": {
-    "samoan": "Tava'e'ula",
-    "english": "Red-tailed Tropicbird"
-  },
-  "puffinus griseus": {
-    "samoan": "Ta'i'o",
-    "english": "Sooty Shearwater"
-  },
-  "puffinus tenuirostris": {
-    "samoan": "Ta'i'o",
-    "english": "Short-tailed Shearwater"
-  },
-  "ardenna pacifica": {
-    "samoan": "Ta'i'o",
-    "english": "Wedge-tailed Shearwater"
-  },
-  "puffinus lherminieri": {
-    "samoan": "Ta'i'o",
-    "english": "Audubon's Shearwater"
-  },
-  "pseudobulweria rostrata": {
-    "samoan": "Ta'i'o",
-    "english": "Tahiti Petrel"
-  },
-  "nesofregetta fuliginosa": {
-    "samoan": "Ta'i'o",
-    "english": "Polynesian Storm-petrel"
-  },
-  "sula dactylatra": {
-    "samoan": "Fua'o",
-    "english": "Masked Booby"
-  },
-  "sula leucogaster": {
-    "samoan": "Fua'o",
-    "english": "Brown Booby"
-  },
-  "sula sula": {
-    "samoan": "Fua'o",
-    "english": "Red-footed Booby"
-  },
-  "fregata minor": {
-    "samoan": "Atafa",
-    "english": "Great Frigatebird"
-  },
-  "fregata ariel": {
-    "samoan": "Atafa",
-    "english": "Lesser Frigatebird"
-  },
-  "thalasseus bergii": {
-    "samoan": "Gogo",
-    "english": "Crested Tern"
-  },
-  "sterna sumatrana": {
-    "samoan": "Gogo",
-    "english": "Black-naped Tern"
-  },
-  "onychoprion fuscatus": {
-    "samoan": "Gogo",
-    "english": "Sooty Tern"
-  },
-  "anous stolidus": {
-    "samoan": "Gogo",
-    "english": "Brown Noddy"
-  },
-  "anous minutus": {
-    "samoan": "Gogo",
-    "english": "Black Noddy"
-  },
-  "procelsterna cerulea": {
-    "samoan": "Laia",
-    "english": "Blue Noddy"
-  },
-  "gygis alba": {
-    "samoan": "Manusina",
-    "english": "White Tern"
-  },
-  "onychoprion anaethetus": {
-    "samoan": "Gogo Uli",
-    "english": "Bridled Tern"
-  },
-  "pluvialis fulva": {
-    "samoan": "Tuli",
-    "english": "Pacific Golden Plover"
-  },
-  "limosa lapponica": {
-    "samoan": "Tuli",
-    "english": "Bar-tailed Godwit"
-  },
-  "numenius phaeopus": {
-    "samoan": "Tuli",
-    "english": "Whimbrel"
-  },
-  "numenius tahitiensis": {
-    "samoan": "Tuli'olovalu",
-    "english": "Bristle-thighed Curlew"
-  },
-  "tringa incana": {
-    "samoan": "Tuli",
-    "english": "Wandering Tattler"
-  },
-  "arenaria interpres": {
-    "samoan": "Tuli'alomalala",
-    "english": "Ruddy Turnstone"
-  },
-  "numenius madagascariensis": {
-    "samoan": "Tuli",
-    "english": "Far Eastern Curlew"
-  }
+  "spatula clypeata": {"english": ["Northern Shoveler"]},
+  "anas superciliosa": {"english": ["Pacific Black Duck"], "samoan": "Toloa"},
+  "anas zonorhyncha": {"english": ["Chinese Spot-billed Duck"]},
+  "gallus gallus": {"english": ["Red Junglefowl", "Jungle Fowl"], "samoan": "Moa"},
+  "columba livia": {"english": ["Rock Dove", "Feral Pigeon"], "samoan": "Lupe palagi"},
+  "columba vitiensis": {"english": ["White-throated Pigeon"], "samoan": "Fiaui"},
+  "alopecoenas stairi": {"english": ["Friendly Ground Dove"], "samoan": "Tui'aimeo"},
+  "didunculus strigirostris": {"english": ["Tooth-billed Pigeon", "Manumea"], "samoan": "Manumea"},
+  "ducula pacifica": {"english": ["Pacific Imperial Pigeon", "Pacific Pigeon"], "samoan": "Lupe"},
+  "ptilinopus perousii": {"english": ["Many-coloured Fruit Dove"], "samoan": "Manu'ulua"},
+  "ptilinopus porphyraceus": {"english": ["Purple-capped Fruit Dove", "Crimson-crowned Fruit-dove"], "samoan": "Manutagi"},
+  "phaethon rubricauda": {"english": ["Red-tailed Tropicbird"], "samoan": "Tava'e'ula"},
+  "phaethon lepturus": {"english": ["White-tailed Tropicbird"], "samoan": "Tava'e"},
+  "aerodramus spodiopygius": {"english": ["White-rumped Swiftlet"], "samoan": "Pe'ape'a"},
+  "urodynamis taitensis": {"english": ["Long-tailed Koel", "Long-tailed Cuckoo"], "samoan": "Aleva"},
+  "hypotaenidia philippensis": {"english": ["Buff-banded Rail", "Banded Rail"], "samoan": "Ve'a"},
+  "zapornia tabuensis": {"english": ["Spotless Crake"]},
+  "amaurornis cinerea": {"english": ["White-browed Crake"], "samoan": "Vai"},
+  "porphyrio porphyrio": {"english": ["Purple Swamphen"], "samoan": "Manuali'i"},
+  "pareudiastes pacificus": {"english": ["Samoan Woodhen"], "samoan": "Puna'e"},
+  "pelagodroma marina": {"english": ["White-faced Storm-petrel"]},
+  "fregetta grallaria": {"english": ["White-bellied Storm-petrel"]},
+  "fregetta tropica": {"english": ["Black-bellied Storm-petrel"]},
+  "nesofregetta fuliginosa": {"english": ["Polynesian Storm-petrel"], "samoan": "Ta'i'o"},
+  "pterodroma leucoptera": {"english": ["Gould's Petrel"]},
+  "pterodroma brevipes": {"english": ["Collared Petrel"]},
+  "pterodroma longirostris": {"english": ["Stejneger's Petrel"]},
+  "pterodroma nigripennis": {"english": ["Black-winged Petrel"]},
+  "pterodroma arminjoniana": {"english": ["Herald Petrel"]},
+  "pterodroma alba": {"english": ["Phoenix Petrel"]},
+  "pterodroma inexpectata": {"english": ["Mottled Petrel"]},
+  "pterodroma cervicalis": {"english": ["White-necked Petrel"]},
+  "ardenna pacifica": {"english": ["Wedge-tailed Shearwater"], "samoan": "Ta'i'o"},
+  "ardenna bulleri": {"english": ["Buller's Shearwater"]},
+  "ardenna tenuirostris": {"english": ["Short-tailed Shearwater"], "samoan": "Ta'i'o"},
+  "ardenna grisea": {"english": ["Sooty Shearwater"], "samoan": "Ta'i'o"},
+  "ardenna carneipes": {"english": ["Flesh-footed Shearwater"]},
+  "puffinus nativitatis": {"english": ["Christmas Shearwater"]},
+  "puffinus auricularis": {"english": ["Townsend's Shearwater"]},
+  "puffinus bailloni": {"english": ["Tropical Shearwater"]},
+  "puffinus lherminieri": {"english": ["Audubon's Shearwater"], "samoan": "Ta'i'o"},
+  "pseudobulweria rostrata": {"english": ["Tahiti Petrel"], "samoan": "Ta'i'o"},
+  "egretta novaehollandiae": {"english": ["White-faced Heron"]},
+  "egretta sacra": {"english": ["Pacific Reef Egret", "Reef Heron"], "samoan": "Matu'u"},
+  "fregata ariel": {"english": ["Lesser Frigatebird"], "samoan": "Atafa"},
+  "fregata minor": {"english": ["Great Frigatebird"], "samoan": "Atafa"},
+  "sula sula": {"english": ["Red-footed Booby"], "samoan": "Fua'o"},
+  "sula leucogaster": {"english": ["Brown Booby"], "samoan": "Fua'o"},
+  "sula dactylatra": {"english": ["Masked Booby"], "samoan": "Fua'o"},
+  "pluvialis squatarola": {"english": ["Grey Plover"]},
+  "pluvialis fulva": {"english": ["Pacific Golden Plover"], "samoan": "Tuli"},
+  "charadrius semipalmatus": {"english": ["Semipalmated Plover"]},
+  "vanellus miles": {"english": ["Masked Lapwing"]},
+  "numenius tahitiensis": {"english": ["Bristle-thighed Curlew"], "samoan": "Tuli'olovalu"},
+  "numenius phaeopus": {"english": ["Whimbrel"], "samoan": "Tuli"},
+  "numenius madagascariensis": {"english": ["Far Eastern Curlew"], "samoan": "Tuli"},
+  "limosa lapponica": {"english": ["Bar-tailed Godwit"], "samoan": "Tuli"},
+  "arenaria interpres": {"english": ["Ruddy Turnstone"], "samoan": "Tuli'alomalala"},
+  "calidris canutus": {"english": ["Red Knot"]},
+  "calidris acuminata": {"english": ["Sharp-tailed Sandpiper"]},
+  "calidris ruficollis": {"english": ["Red-necked Stint"]},
+  "calidris alba": {"english": ["Sanderling"]},
+  "calidris melanotos": {"english": ["Pectoral Sandpiper"]},
+  "limnodromus scolopaceus": {"english": ["Long-billed Dowitcher"]},
+  "actitis hypoleucos": {"english": ["Common Sandpiper"]},
+  "tringa brevipes": {"english": ["Grey-tailed Tattler"]},
+  "tringa incana": {"english": ["Wandering Tattler"], "samoan": "Tuli"},
+  "tringa glareola": {"english": ["Wood Sandpiper"]},
+  "stercorarius pomarinus": {"english": ["Pomarine Skua"]},
+  "stercorarius maccormicki": {"english": ["South Polar Skua"]},
+  "stercorarius antarcticus": {"english": ["Brown Skua"]},
+  "anous stolidus": {"english": ["Brown Noddy"], "samoan": "Gogo"},
+  "anous minutus": {"english": ["Black Noddy"], "samoan": "Gogo"},
+  "procelsterna cerulea": {"english": ["Blue Noddy"], "samoan": "Laia"},
+  "gygis alba": {"english": ["White Tern", "Atoll Tern"], "samoan": "Manusina"},
+  "leucophaeus atricilla": {"english": ["Laughing Gull"]},
+  "onychoprion fuscatus": {"english": ["Sooty Tern"], "samoan": "Gogo"},
+  "onychoprion anaethetus": {"english": ["Bridled Tern"], "samoan": "Gogo Uli"},
+  "onychoprion lunatus": {"english": ["Grey-backed Tern"]},
+  "sternula albifrons": {"english": ["Little Tern"]},
+  "sterna dougallii": {"english": ["Roseate Tern"]},
+  "sterna sumatrana": {"english": ["Black-naped Tern"], "samoan": "Gogo"},
+  "sterna hirundo": {"english": ["Common Tern"]},
+  "thalasseus bergii": {"english": ["Greater Crested Tern", "Crested Tern"], "samoan": "Gogo"},
+  "tyto delicatula": {"english": ["Pearly Owl"]},
+  "tyto alba": {"english": ["Common Barn Owl", "Barn Owl"], "samoan": "Lulu"},
+  "todiramphus chloris": {"english": ["Collared Kingfisher", "White-collared Kingfisher"], "samoan": "Ti'otala"},
+  "todiramphus sanctus": {"english": ["Sacred Kingfisher"]},
+  "todiramphus recurvirostris": {"english": ["Flat-billed Kingfisher"], "samoan": "Ti'otala"},
+  "falco peregrinus": {"english": ["Peregrine Falcon"]},
+  "vini australis": {"english": ["Blue-crowned Lorikeet", "Blue-crowned Lory"], "samoan": "Sega vao"},
+  "myzomela cardinalis": {"english": ["Cardinal Myzomela"], "samoan": "Segasegamau'u"},
+  "foulehaio carunculatus": {"english": ["Wattled Honeyeater"], "samoan": "Iao"},
+  "gymnomyza samoensis": {"english": ["Mao"], "samoan": "Ma'oma'o"},
+  "lalage maculosa": {"english": ["Polynesian Triller"], "samoan": "Miti tai"},
+  "lalage sharpei": {"english": ["Samoan Triller"], "samoan": "Miti"},
+  "pachycephala flavifrons": {"english": ["Samoan Whistler"], "samoan": "Vasavasa"},
+  "rhipidura nebulosa": {"english": ["Samoan Fantail"], "samoan": "Se'u"},
+  "myiagra albiventris": {"english": ["Samoan Myiagra", "Samoan Broadbill"], "samoan": "Tolaifatu"},
+  "clytorhynchus vitiensis": {"english": ["Fiji Shrikebill"], "samoan": "Segaolevao"},
+  "petroica multicolor": {"english": ["Pacific Robin", "Scarlet Robin"], "samoan": "Toloa ula"},
+  "erythrura cyaneovirens": {"english": ["Red-headed Parrotfinch"], "samoan": "Segaula"},
+  "passer domesticus": {"english": ["House Sparrow"]},
+  "passer montanus": {"english": ["Eurasian Tree Sparrow"]},
+  "hirundo tahitica": {"english": ["Pacific Swallow"]},
+  "pycnonotus cafer": {"english": ["Red-vented Bulbul"], "samoan": "Manu Palagi"},
+  "zosterops samoensis": {"english": ["Samoan White-eye"], "samoan": "Matapapae"},
+  "acridotheres tristis": {"english": ["Common Myna", "Common Mynah"], "samoan": "Maina Fanua"},
+  "acridotheres fuscus": {"english": ["Jungle Myna", "Jungle Mynah"], "samoan": "Maina Vao"},
+  "aplonis tabuensis": {"english": ["Polynesian Starling"], "samoan": "Fuia Vao"},
+  "aplonis atrifusca": {"english": ["Samoan Starling"], "samoan": "Fuia"},
+  "turdus poliocephalus": {"english": ["Island Thrush"], "samoan": "Tupoulili"}
 }

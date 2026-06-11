@@ -135,19 +135,22 @@
     if (norm.length < 2) return [];
     const starts = [], contains = [];
     for (const [sci, entry] of Object.entries(samoaData)) {
-      const samoan  = (entry.samoan  || '').toLowerCase();
-      const english = (entry.english || '').toLowerCase();
-      const hit = samoan.startsWith(norm) || english.startsWith(norm) || sci.startsWith(norm)
-        ? 'start'
-        : (samoan.includes(norm) || english.includes(norm) || sci.includes(norm))
-        ? 'contains' : null;
-      if (hit === 'start')    starts.push({ sci, ...entry });
-      else if (hit === 'contains') contains.push({ sci, ...entry });
+      const samoan   = (entry.samoan || '').toLowerCase();
+      const englishArr = Array.isArray(entry.english) ? entry.english : [entry.english || ''];
+      const engMatch = name => name.toLowerCase();
+      const startHit = samoan.startsWith(norm) || sci.startsWith(norm) ||
+                       englishArr.some(e => engMatch(e).startsWith(norm));
+      const containHit = !startHit && (samoan.includes(norm) || sci.includes(norm) ||
+                          englishArr.some(e => engMatch(e).includes(norm)));
+      if (startHit)   starts.push({ sci, ...entry });
+      else if (containHit) contains.push({ sci, ...entry });
     }
     const top = starts.slice(0, 10);
     if (top.length < 10) top.push(...contains.slice(0, 10 - top.length));
-    // Return in same shape as NZOR items: cls='v', n=display, sci=scientific
-    return top.map(e => ({ cls: 'samoa', n: e.samoan || e.english, sci: e.sci, english: e.english, samoan: e.samoan }));
+    return top.map(e => {
+      const englishArr = Array.isArray(e.english) ? e.english : [e.english || ''];
+      return { cls: 'samoa', n: e.samoan || englishArr[0], sci: e.sci, english: englishArr.join(' / '), samoan: e.samoan || '' };
+    });
   }
 
   window.getSamoaVernacular = function(sciName) {
