@@ -164,6 +164,8 @@
     return ensureSamoa();
   };
 
+  window._samoaSearch = function(q) { return samoaData ? searchSamoa(q) : []; };
+
   // Show field only when centred over NZ or Samoa
   function checkNZGate() {
     const c = map.getCenter();

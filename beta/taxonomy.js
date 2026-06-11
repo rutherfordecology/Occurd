@@ -271,10 +271,14 @@
       nameSpan.textContent = name;
       textGroup.appendChild(nameSpan);
 
-      // Common name — species only; NZOR first (NZ-specific), fall back to GBIF vernacularName
+      // Common name — species only; local names first (NZOR for NZ, Samoa names for WS), fall back to GBIF
       if (node.rank === 'SPECIES') {
-        let common = (typeof window.getNzorVernacular === 'function')
-          ? window.getNzorVernacular(name) : '';
+        const cc = getActiveCountry();
+        let common = '';
+        if (cc === 'WS' && typeof window.getSamoaVernacular === 'function')
+          common = window.getSamoaVernacular(name);
+        if (!common && typeof window.getNzorVernacular === 'function')
+          common = window.getNzorVernacular(name);
         // GBIF backbone includes vernacularName on some species — use as fallback
         // Apply ASCII+macron filter so non-English names (é, ñ, etc.) are excluded
         if (!common && node.vernacularName &&
@@ -817,18 +821,18 @@
     drop.innerHTML = '<div class="miller-sug-msg">Searching…</div>';
     drop.style.display = '';
 
-    // Phase 1 — local search (NZOR + NVS are in-memory lookups, no network)
-    const [nzorResults, nvsResults] = await Promise.all([searchNzor(q), searchNvsForTaxo(q)]);
+    // Phase 1 — local search (NZOR + NVS + Samoa are in-memory lookups, no network)
+    const [nzorResults, nvsResults, samoaResults] = await Promise.all([searchNzor(q), searchNvsForTaxo(q), searchSamoaForTaxo(q)]);
     if (_searchSeq !== mySeq) return;
 
-    const initial = _mergeSearchResults([...nzorResults, ...nvsResults], q);
+    const initial = _mergeSearchResults([...samoaResults, ...nzorResults, ...nvsResults], q);
     if (initial.length > 0) showMillerDrop(initial);
 
     // Phase 2 — GBIF search (network, slower)
     const [gbifResults, gbifFullResults] = await Promise.all([searchGbif(q), searchGbifFull(q)]);
     if (_searchSeq !== mySeq) return;
 
-    const all = _mergeSearchResults([...nzorResults, ...nvsResults, ...gbifFullResults, ...gbifResults], q);
+    const all = _mergeSearchResults([...samoaResults, ...nzorResults, ...nvsResults, ...gbifFullResults, ...gbifResults], q);
     showMillerDrop(all);
   }
 
@@ -844,6 +848,19 @@
       gbifKey:  null,
       nzorData: null,
       nvsSci:   h.sci,
+    }));
+  }
+
+  async function searchSamoaForTaxo(q) {
+    if (typeof window._samoaSearch !== 'function') return [];
+    const hits = window._samoaSearch(q).slice(0, 20);
+    return hits.map(h => ({
+      type:     'vernacular',
+      display:  h.samoan || h.english,
+      subLabel: h.sci || '',
+      rank:     (h.sci && h.sci.trim().split(/\s+/).length === 2) ? 'Species' : '',
+      gbifKey:  null,
+      nzorData: { cls: 'samoa', n: h.samoan || h.english, sci: h.sci },
     }));
   }
 
