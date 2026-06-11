@@ -45,7 +45,7 @@
       <img src="occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v4.80</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v4.95</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -162,13 +162,6 @@
           </div>
         </div>
       </div>
-      <div style="margin-top:0.25rem;margin-bottom:0.5rem;">
-        <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.3rem;">Record types</div>
-        <label class="check-row"><input type="checkbox" id="inclObservations" checked><span>Observations</span></label>
-        <label class="check-row"><input type="checkbox" id="inclPreserved" checked><span>Preserved specimens</span></label>
-        <label class="check-row"><input type="checkbox" id="inclFossils"><span>Fossils</span></label>
-        <label class="check-row"><input type="checkbox" id="inclEdna"><span>eDNA</span></label>
-      </div>
       <div class="field sp-wrap" id="spField" style="display:none;">
         <label style="display:flex;align-items:center;justify-content:space-between;">
           <span>NZ species search</span>
@@ -180,6 +173,15 @@
         <div style="position:relative;">
           <input class="sp-input" id="spInput" type="text" placeholder="e.g. kea, kererū, Nothofagus…" autocomplete="off" spellcheck="false">
           <button class="sp-clear" id="spClear" title="Clear">&#215;</button>
+        </div>
+      </div>
+      <div style="margin-top:0.5rem;margin-bottom:0.5rem;">
+        <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.3rem;">Record types</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:2px 0;">
+          <label class="check-row"><input type="checkbox" id="inclObservations" checked><span>Observations</span></label>
+          <label class="check-row"><input type="checkbox" id="inclPreserved" checked><span>Preserved specimens</span></label>
+          <label class="check-row"><input type="checkbox" id="inclFossils"><span>Fossils</span></label>
+          <label class="check-row"><input type="checkbox" id="inclEdna"><span>eDNA</span></label>
         </div>
       </div>
       </div><!-- /s2 -->
@@ -233,11 +235,13 @@
         <p class="note mobile-csv-note" style="display:none;margin-top:0.5rem;">CSVs on mobile show name &amp; count only. Open on desktop for full columns.</p>
         <div style="margin-top:0.6rem;">
           <button id="shareBtn" onclick="copyShareUrl()"
-            style="background:none;border:1px solid var(--border);border-radius:6px;cursor:pointer;
+            style="background:none;border:1px solid var(--green);border-radius:6px;cursor:pointer;
                    font-size:11px;font-weight:600;font-family:var(--font-sans);padding:4px 10px;
-                   color:var(--text3);transition:all 0.15s;width:100%;"
+                   color:var(--green);transition:all 0.15s;width:100%;"
+            onmouseover="this.style.background='var(--green-light)'"
+            onmouseout="this.style.background='none'"
             title="Copy a link that recreates this polygon and filters — recipient clicks Fetch to reproduce the results">
-            &#128279; Copy share link
+            &#128279; Copy this search
           </button>
         </div>
       </div><!-- /s4 -->
@@ -252,7 +256,7 @@
     </div>
 
     <div class="sidebar-section" id="nerdToolsSection" style="display:none;">
-      <div class="section-label collapsible" data-section="sNerd" style="margin-bottom:0;">🔬 Nerd tools <span class="section-chevron">▾</span></div>
+      <div class="section-label collapsible" data-section="sNerd" style="margin-bottom:0;">🔬 Tech tools <span class="section-chevron">▾</span></div>
       <div class="section-body" id="sNerd">
         <div style="margin-bottom:0.5rem;">
           <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.07em;color:var(--text3);margin-bottom:4px;">Timeline view</div>
@@ -276,7 +280,7 @@
               Normalise by effort
             </button>
           </div>
-          <p class="note" style="margin-top:6px;">Effort normalisation fetches total GBIF records (all taxa) in your polygon per year and divides your species' counts — so the chart shows % of all records, not raw counts. Requires yearly view.</p>
+          <p class="note" style="margin-top:6px;">Effort normalisation fetches total GBIF records in your polygon per year (same class as your species, e.g. Aves for birds) and divides your species' counts — so the chart shows % of all records, not raw counts. Requires yearly view.</p>
         </div>
       </div>
     </div>
@@ -409,6 +413,28 @@
     <div class="modal-btns">
       <button class="modal-btn" id="modalCancel">Cancel</button>
       <button class="modal-btn primary" id="modalProceed">Proceed anyway</button>
+    </div>
+  </div>
+</div>
+
+<!-- Share modal -->
+<div class="modal-overlay" id="shareModal">
+  <div class="modal" style="max-width:480px;width:92%;padding:1.5rem;">
+    <h2 style="margin:0 0 0.75rem;font-size:16px;">&#128279; Share this search</h2>
+    <p style="font-size:12px;color:var(--text2);margin:0 0 0.75rem;">Anyone with this link can reproduce your polygon, filters and date range — they just click Fetch to load results.</p>
+    <div style="display:flex;gap:6px;align-items:stretch;">
+      <input id="shareUrlInput" type="text" readonly
+        style="flex:1;font-size:11px;padding:6px 8px;border:1px solid var(--border);border-radius:6px;
+               background:var(--bg2,#f5f5f3);color:var(--text);font-family:var(--font-sans);min-width:0;">
+      <button onclick="copyShareUrlFromModal()"
+        style="background:var(--green);color:#fff;border:none;border-radius:6px;padding:6px 14px;
+               cursor:pointer;font-size:12px;font-weight:600;font-family:var(--font-sans);white-space:nowrap;"
+        id="shareModalCopyBtn">Copy</button>
+    </div>
+    <div style="text-align:right;margin-top:1rem;">
+      <button onclick="document.getElementById('shareModal').classList.remove('open')"
+        style="background:none;border:1px solid var(--border);border-radius:6px;cursor:pointer;
+               font-size:12px;font-family:var(--font-sans);padding:4px 14px;color:var(--text2);">Close</button>
     </div>
   </div>
 </div>
@@ -991,6 +1017,7 @@ let tlRainbow = false; // colour points by year gradient when in timeline mode
 let tlEffortMode = false;    // normalise timeline bars by all-taxa observer effort
 let effortByYear = null;     // { year → total all-taxa record count } populated on demand
 let _effortFetchParams = []; // geometry+date+basis params saved per geomPoly for effort query
+let _effortTaxonKeys  = []; // taxon keys being searched — used to resolve classKey for effort query
 let doCluster = true;  // group nearby points into numbered clusters
 let _tlYears = [];     // sorted year keys from last renderTimeline (YYYY or YYYYMM)
 let _tlUseMonths = false;
@@ -1394,69 +1421,190 @@ function passesFilters(r) {
 
 // ── Share link ────────────────────────────────────────────────────────────────
 
+function _llToArr(ll) { const la = ll.lat ?? ll[0]; const ln = ll.lng ?? ll[1]; return [+la.toFixed(5), +ln.toFixed(5)]; }
+
 function generateShareState() {
-  const geomPolys = polygons.filter(p => p.type !== 'species');
+  const geomPolys    = polygons.filter(p => p.type !== 'species');
+  const speciesPolys = polygons.filter(p => p.type === 'species');
   if (!geomPolys.length) return null;
   const taxonAllSel = document.getElementById('taxonAllLabel').classList.contains('selected');
   const selectedTaxa = taxonAllSel ? [] : taxonCbs().filter(cb => cb.closest('label').classList.contains('selected')).map(cb => cb.value);
+  const mapC = map.getCenter(), mapZ = map.getZoom();
   return {
-    v: 1,
-    polys: geomPolys.map(p => ({ latlngs: p.latlngs.map(ll => [+ll[0].toFixed(5), +ll[1].toFixed(5)]), label: p.label, holes: (p.holes||[]).map(h => h.map(ll => [+ll[0].toFixed(5), +ll[1].toFixed(5)])) })),
+    v: 2,
+    // Polygons
+    polys:   geomPolys.map(p => ({ latlngs: p.latlngs.map(_llToArr), label: p.label, holes: (p.holes||[]).map(h => h.map(_llToArr)) })),
+    species: speciesPolys.map(p => ({ name: p.name, taxonKey: p.taxonKey, sciName: p.sciName })),
+    // Filters
     dateFrom: document.getElementById('dateFrom').value,
     dateTo:   document.getElementById('dateTo').value,
     taxa:     selectedTaxa,
     basis:    ['inclObservations','inclPreserved','inclFossils','inclEdna'].map(id => document.getElementById(id).checked),
+    // Display state
+    viewMode:   viewMode,
+    cluster:    doCluster,
+    rainbow:    tlRainbow,
+    effort:     tlEffortMode,
+    tlMin:      tlFilterMin,
+    tlMax:      tlFilterMax,
+    nztcs:      currentNztcsFilter,
+    iucn:       currentIucnFilter,
+    // Active group filters (taxon chips on map)
+    activeFilters: [...activeFilters],
+    // Map view
+    mapLat: +mapC.lat.toFixed(4), mapLng: +mapC.lng.toFixed(4), mapZ,
   };
 }
 
 function copyShareUrl() {
   const state = generateShareState();
   if (!state) { setStatus('Draw a polygon first before sharing.', 'warning'); return; }
-  const hash = '#s=' + btoa(JSON.stringify(state));
-  const url = location.href.split('#')[0] + hash;
-  navigator.clipboard.writeText(url).then(() => {
-    const btn = document.getElementById('shareBtn');
-    const orig = btn.innerHTML;
-    btn.innerHTML = '&#10003; Copied!';
-    btn.style.color = 'var(--green-dark)';
-    setTimeout(() => { btn.innerHTML = orig; btn.style.color = ''; }, 2000);
-  }).catch(() => prompt('Copy this share link:', url));
+
+  let url;
+  try {
+    const hash = '#s=' + btoa(unescape(encodeURIComponent(JSON.stringify(state))));
+    url = location.href.split('#')[0] + hash;
+  } catch(e) {
+    setStatus('Could not generate share link: ' + e.message, 'error'); return;
+  }
+
+  // Open modal and populate URL
+  const input = document.getElementById('shareUrlInput');
+  const copyBtn = document.getElementById('shareModalCopyBtn');
+  document.getElementById('shareModal').classList.add('open');
+  if (input) { input.value = url; setTimeout(() => input.select(), 50); }
+  if (copyBtn) { copyBtn.textContent = 'Copy'; copyBtn.style.background = 'var(--green)'; }
+
+  // Also attempt clipboard silently
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(url).then(() => {
+      if (copyBtn) { copyBtn.textContent = '✓ Copied!'; copyBtn.style.background = 'var(--green-dark)'; }
+    }).catch(() => {});
+  }
 }
 
+function copyShareUrlFromModal() {
+  const input = document.getElementById('shareUrlInput');
+  const copyBtn = document.getElementById('shareModalCopyBtn');
+  if (!input) return;
+  input.select();
+  let copied = false;
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(input.value).then(() => {
+      copyBtn.textContent = '✓ Copied!'; copyBtn.style.background = 'var(--green-dark)';
+      setTimeout(() => { copyBtn.textContent = 'Copy'; copyBtn.style.background = 'var(--green)'; }, 2000);
+    }).catch(() => {});
+    copied = true;
+  }
+  if (!copied) {
+    try { document.execCommand('copy'); copied = true; } catch(e) {}
+    if (copied) {
+      copyBtn.textContent = '✓ Copied!'; copyBtn.style.background = 'var(--green-dark)';
+      setTimeout(() => { copyBtn.textContent = 'Copy'; copyBtn.style.background = 'var(--green)'; }, 2000);
+    }
+  }
+}
+
+let _pendingSharePostFetch = null; // display state applied after fetch completes
+
 function restoreFromShare(state) {
-  if (!state || state.v !== 1 || !state.polys?.length) return;
-  // Draw polygons
+  if (!state || !state.polys?.length) return;
+  // ── Pre-fetch: polygons, species, dates, taxa, basis, cluster, map view ──
   state.polys.forEach(p => addPolygon(p.latlngs, p.label, p.holes || []));
-  // Dates
+  if (state.species && state.species.length) {
+    state.species.forEach(s => addSpeciesEntry(s.name, s.taxonKey || null, s.sciName || ''));
+  }
   if (state.dateFrom) document.getElementById('dateFrom').value = state.dateFrom;
   if (state.dateTo)   document.getElementById('dateTo').value   = state.dateTo;
   // Taxon selection
   if (state.taxa && state.taxa.length > 0) {
     document.getElementById('taxonAllLabel').classList.remove('selected');
+    document.getElementById('taxonAll').checked = false;
     taxonCbs().forEach(cb => {
       const lbl = cb.closest('label');
-      if (state.taxa.includes(cb.value)) lbl.classList.add('selected');
+      const sel = state.taxa.includes(cb.value);
+      cb.checked = sel;
+      if (sel) lbl.classList.add('selected');
       else lbl.classList.remove('selected');
     });
+  } else {
+    document.getElementById('taxonAllLabel').classList.add('selected');
+    document.getElementById('taxonAll').checked = true;
   }
+  updateTaxonLabel();
   // Basis of record
   const basisIds = ['inclObservations','inclPreserved','inclFossils','inclEdna'];
   if (state.basis && state.basis.length === basisIds.length) {
     basisIds.forEach((id, i) => { document.getElementById(id).checked = state.basis[i]; });
   }
+  // Clustering
+  if (typeof state.cluster === 'boolean' && state.cluster !== doCluster) {
+    const clCb = document.getElementById('clusterToggle');
+    if (clCb) { clCb.checked = state.cluster; doCluster = state.cluster; }
+  }
+  // Map view
+  if (state.mapLat != null && state.mapZ != null) map.setView([state.mapLat, state.mapLng], state.mapZ);
+
+  // ── Post-fetch: viewMode, rainbow, effort, timeline filter, group filters ──
+  _pendingSharePostFetch = {
+    viewMode: state.viewMode,
+    rainbow:  state.rainbow,
+    effort:   state.effort,
+    tlMin:    state.tlMin,
+    tlMax:    state.tlMax,
+    nztcs:    state.nztcs,
+    iucn:     state.iucn,
+    activeFilters: state.activeFilters,
+  };
+
   // Banner
   const banner = document.createElement('div');
   banner.style.cssText = 'position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:9999;background:var(--green-dark);color:#fff;font-size:12px;font-weight:600;font-family:var(--font-sans);padding:7px 16px;border-radius:20px;box-shadow:0 2px 10px rgba(0,0,0,0.2);pointer-events:none;';
-  banner.textContent = 'Shared search loaded — hit Fetch to reproduce the results';
+  banner.textContent = 'Shared search loaded — fetching results…';
   document.body.appendChild(banner);
-  setTimeout(() => banner.remove(), 5000);
+  setTimeout(() => banner.remove(), 4000);
+}
+
+function applyPostFetchShareState(s) {
+  if (!s) return;
+  // Active group filters (taxon chips)
+  if (s.activeFilters && s.activeFilters.length) {
+    activeFilters.clear();
+    s.activeFilters.forEach(f => activeFilters.add(f));
+    document.querySelectorAll('.filter-chip').forEach(chip => {
+      chip.classList.toggle('active', activeFilters.has(chip.dataset.group));
+    });
+  }
+  // NZTCS filter
+  if (s.nztcs && s.nztcs !== 'all') {
+    currentNztcsFilter = s.nztcs;
+    document.querySelectorAll('.nztcs-fc').forEach(b => b.classList.toggle('active', b.dataset.f === s.nztcs));
+  }
+  // IUCN filter
+  if (s.iucn && s.iucn !== 'all') {
+    currentIucnFilter = s.iucn;
+    document.querySelectorAll('.iucn-fc').forEach(b => b.classList.toggle('active', b.dataset.f === s.iucn));
+  }
+  // View mode
+  const vm = s.viewMode || 'points';
+  setViewMode(vm);
+  // Rainbow
+  if (s.rainbow && !tlRainbow) { tlRainbow = true; _syncRainbowBtn(); applyRainbowToMarkers(); }
+  // Timeline filter
+  if (s.tlMin != null || s.tlMax != null) {
+    tlFilterMin = s.tlMin; tlFilterMax = s.tlMax;
+    applyTimelineFilter();
+    if (vm === 'timeline') renderTimeline(allRecords);
+  }
+  // Effort normalisation (triggers its own fetch)
+  if (s.effort && !tlEffortMode) { tlEffortMode = true; _syncEffortBtn(); fetchEffortData(); }
 }
 
 // Restore on load if hash present
 (function() {
   try {
     const m = location.hash.match(/^#s=(.+)/);
-    if (m) { const state = JSON.parse(atob(m[1])); window._pendingShare = state; }
+    if (m) { const state = JSON.parse(decodeURIComponent(escape(atob(m[1])))); window._pendingShare = state; }
   } catch(e) {}
 })();
 
@@ -1464,7 +1612,7 @@ function restoreFromShare(state) {
 
 function clearResults() {
   allRecords = []; activeFilters.clear(); csvData = null; selectedSpecies = null; allMarkers = []; commonNameCache = {};
-  effortByYear = null; tlEffortMode = false; _effortFetchParams = []; _syncEffortBtn();
+  effortByYear = null; tlEffortMode = false; _effortFetchParams = []; _effortTaxonKeys = []; _syncEffortBtn();
   _clearGhostLayer();
   _photoPrefetchAbort = true;
   currentNztcsFilter = 'all';
@@ -3346,6 +3494,7 @@ function makeMarker(stackedRecords) {
     weight: strokeWeight, fillOpacity: baseFillOpacity
   });
   marker._baseFillOpacity = baseFillOpacity;
+  marker._baseWeight      = strokeWeight;
   marker._years        = new Set(stackedRecords.map(r => parseInt(r.year)).filter(y => !isNaN(y)));
   marker._yearMonths   = new Set(stackedRecords.map(r => {
     const y = parseInt(r.year), m = parseInt(r.month);
@@ -3565,8 +3714,25 @@ async function fetchEffortData() {
   const btn = document.getElementById('btnTlEffortSb');
   if (btn) { btn.textContent = 'Loading…'; btn.disabled = true; }
   effortByYear = {};
+
+  // Resolve classKey from taxon keys so effort query matches the same class (e.g. Aves for birds)
+  let effortClassKey = null;
+  if (_effortTaxonKeys.length > 0) {
+    try {
+      const classKeys = await Promise.all(_effortTaxonKeys.map(async k => {
+        const r = await fetch('https://api.gbif.org/v1/species/' + k);
+        if (!r.ok) return null;
+        const d = await r.json();
+        return d.classKey || null;
+      }));
+      const unique = [...new Set(classKeys.filter(Boolean))];
+      if (unique.length === 1) effortClassKey = unique[0]; // only inject if all species share same class
+    } catch(e) {}
+  }
+
   for (const params of _effortFetchParams) {
-    const qs = [...params, ['facet', 'YEAR'], ['facetLimit', '200'], ['limit', '0']]
+    const extraParams = effortClassKey ? [['classKey', String(effortClassKey)]] : [];
+    const qs = [...params, ...extraParams, ['facet', 'YEAR'], ['facetLimit', '200'], ['limit', '0']]
       .map(([k, v]) => encodeURIComponent(k) + '=' + encodeURIComponent(v)).join('&');
     try {
       const res = await fetch('https://api.gbif.org/v1/occurrence/search?' + qs);
@@ -3621,32 +3787,90 @@ function _clearGhostLayer() {
   if (ghostLayer) { map.removeLayer(ghostLayer); ghostLayer = null; }
 }
 
+function _getFadedGroup() {
+  // Returns (creating if needed) a shared SVG <g> for faded markers.
+  // Group-level opacity means overlapping faded markers don't compound — they
+  // are composited together first, then the group is blended at low opacity.
+  let g = document.getElementById('_tlFadedGroup');
+  if (!g) {
+    g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    g.id = '_tlFadedGroup';
+    g.setAttribute('opacity', '0.15');
+  }
+  // Ensure it's in the SVG, inserted before the active-marker root group
+  // so active markers always render on top.
+  const renderer = map._renderer;
+  if (renderer && renderer._rootGroup && g.parentNode !== renderer._rootGroup.parentNode) {
+    renderer._rootGroup.parentNode.insertBefore(g, renderer._rootGroup);
+  }
+  return g;
+}
+
+function _removeFadedGroup() {
+  const g = document.getElementById('_tlFadedGroup');
+  if (!g) return;
+  // Move all children back to Leaflet's root group before removing
+  const renderer = map._renderer;
+  const root = renderer && renderer._rootGroup;
+  while (g.firstChild) {
+    if (root) root.appendChild(g.firstChild);
+    else g.removeChild(g.firstChild);
+  }
+  if (g.parentNode) g.parentNode.removeChild(g);
+}
+
 function applyTimelineFilter() {
   _clearGhostLayer();
   const hasTlFilter = tlFilterMin !== null || tlFilterMax !== null;
+
+  if (!hasTlFilter) {
+    // Restore everything — move paths back out of faded group first
+    _removeFadedGroup();
+    const seen = new Set();
+    allMarkers.forEach(({ marker }) => {
+      if (seen.has(marker)) return; seen.add(marker);
+      marker._tlActive = true;
+      marker.setStyle({ fillOpacity: marker._baseFillOpacity, opacity: 1, weight: marker._baseWeight || 1 });
+    });
+    document.getElementById('mShown').textContent = allRecords.filter(passesFilters).length.toLocaleString();
+    applyTimelineChecklist();
+    return;
+  }
+
+  const fadedGroup = _getFadedGroup();
+  const renderer = map._renderer;
+  const rootGroup = renderer && renderer._rootGroup;
   const seen = new Set();
   let activeShown = 0;
+
   allMarkers.forEach(({ marker }) => {
-    if (seen.has(marker)) return;
-    seen.add(marker);
-    const inRange = !hasTlFilter || (marker._years && [...marker._years].some(yr =>
+    if (seen.has(marker)) return; seen.add(marker);
+    const inRange = marker._years && [...marker._years].some(yr =>
       (tlFilterMin === null || yr >= tlFilterMin) &&
       (tlFilterMax === null || yr <= tlFilterMax)
-    ));
-    marker._tlActive = inRange;
-    if (!hasTlFilter) {
-      marker.setStyle({ fillOpacity: marker._baseFillOpacity, opacity: 1 });
+    );
+    marker._tlActive = !!inRange;
+    if (inRange) {
+      // Ensure path is in Leaflet's root group (not faded group)
+      if (marker._path && marker._path.parentNode === fadedGroup) {
+        fadedGroup.removeChild(marker._path);
+        if (rootGroup) rootGroup.appendChild(marker._path);
+      }
+      marker.setStyle({ fillOpacity: marker._baseFillOpacity, opacity: 1, weight: marker._baseWeight || 1 });
+      activeShown += marker._stackSize || 1;
     } else {
-      marker.setStyle({ fillOpacity: inRange ? marker._baseFillOpacity : 0.08, opacity: inRange ? 1 : 0.2 });
-      if (inRange) activeShown += marker._stackSize || 1;
+      // Move path into faded group — opacity won't compound between markers
+      if (marker._path && marker._path.parentNode !== fadedGroup) {
+        if (marker._path.parentNode) marker._path.parentNode.removeChild(marker._path);
+        fadedGroup.appendChild(marker._path);
+      }
+      // Full opacity on the path itself — group handles the fade
+      marker.setStyle({ fillOpacity: marker._baseFillOpacity, opacity: 1, weight: 0 });
     }
   });
-  if (hasTlFilter && clusterLayer) {
-    clusterLayer.refreshClusters();
-    document.getElementById('mShown').textContent = activeShown.toLocaleString();
-  } else if (!hasTlFilter) {
-    document.getElementById('mShown').textContent = allRecords.filter(passesFilters).length.toLocaleString();
-  }
+
+  if (clusterLayer) clusterLayer.refreshClusters();
+  document.getElementById('mShown').textContent = activeShown.toLocaleString();
   applyTimelineChecklist();
 }
 
@@ -4390,7 +4614,7 @@ runBtn.addEventListener('click', async () => {
 
   setFetchMode(true); fetchAbortFlag = false; clearResults();
   taxonMenu.style.display = 'none';
-  _effortFetchParams = []; effortByYear = null; tlEffortMode = false; _syncEffortBtn();
+  _effortFetchParams = []; _effortTaxonKeys = []; effortByYear = null; tlEffortMode = false; _syncEffortBtn();
 
   const dateFrom  = document.getElementById('dateFrom').value;
   const dateTo    = document.getElementById('dateTo').value || _todayStr;
@@ -4400,6 +4624,7 @@ runBtn.addEventListener('click', async () => {
   // Expand fetch tasks: species entries fetch once per geometry polygon
   const _speciesEntries = polygons.filter(p => p.type === 'species');
   const _geomPolys      = polygons.filter(p => p.type !== 'species');
+  _effortTaxonKeys = [...new Set(_speciesEntries.map(s => s.taxonKey).filter(Boolean))];
   const _fetchTasks     = [];
   if (_speciesEntries.length > 0) {
     // Species basket mode: each species × each geometry polygon = one task
@@ -4682,6 +4907,13 @@ runBtn.addEventListener('click', async () => {
 
   setStatus(allFetched.length.toLocaleString() + ' records loaded — complete dataset from GBIF.', 'success');
   setFetchMode(false);
+
+  // Apply any pending share display state (viewMode, rainbow, effort, filters)
+  if (_pendingSharePostFetch) {
+    const _s = _pendingSharePostFetch;
+    _pendingSharePostFetch = null;
+    setTimeout(() => applyPostFetchShareState(_s), 100);
+  }
 });
 
 
@@ -4896,6 +5128,7 @@ document.getElementById('dlChecklistBtn').addEventListener('click', () => {
 if (window._pendingShare) {
   restoreFromShare(window._pendingShare);
   window._pendingShare = null;
+  setTimeout(() => document.getElementById('runBtn').click(), 300);
 }
 
 </script>
