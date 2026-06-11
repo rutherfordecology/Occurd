@@ -141,7 +141,7 @@
   const nzCache      = {};   // 'CC:root' | 'CC:taxonKey' → Map<key,count> or null (CC = country code)
 
   const NZ_BOUNDS_T    = { minLat: -52, maxLat: -29, minLng: 163, maxLng: 180 };
-  const SAMOA_BOUNDS_T = { minLat: -14.5, maxLat: -13.3, minLng: 171.3, maxLng: 172.8 };
+  const SAMOA_BOUNDS_T = { minLat: -14.5, maxLat: -13.3, minLng: -173.0, maxLng: -171.0 };
 
   function getActiveCountry() {
     const c = map.getCenter();
