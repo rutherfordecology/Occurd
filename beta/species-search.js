@@ -2,7 +2,8 @@
 // Handles the NZ species field (NZOR + NVS autocomplete), NZ gate,
 // and exposes window._nzorSearch / window._nvsSearch for the taxonomy browser.
 (function() {
-  const NZ_BOUNDS = { minLat: -52, maxLat: -29, minLng: 163, maxLng: 180 };
+  const NZ_BOUNDS    = { minLat: -52, maxLat: -29, minLng: 163, maxLng: 180 };
+  const SAMOA_BOUNDS = { minLat: -14.5, maxLat: -13.3, minLng: 171.3, maxLng: 172.8 };
   const NZOR_URL  = 'https://raw.githubusercontent.com/rutherfordecology/but-is-it-threatened/main/nzor_names.json';
   const NVS_URL   = 'https://raw.githubusercontent.com/rutherfordecology/but-is-it-threatened/main/nvs.json';
 
@@ -112,12 +113,14 @@
 
   window._nvsSearch = function(q) { return nvsData ? searchNvs(q) : []; };
 
-  // Field is always visible globally; still pre-load NZ data when in NZ bounds
-  field.style.display = 'block';
+  // Show field only when centred over NZ or Samoa
   function checkNZGate() {
     const c = map.getCenter();
-    const inNZ = c.lat >= NZ_BOUNDS.minLat && c.lat <= NZ_BOUNDS.maxLat &&
-                 c.lng >= NZ_BOUNDS.minLng && c.lng <= NZ_BOUNDS.maxLng;
+    const inNZ    = c.lat >= NZ_BOUNDS.minLat    && c.lat <= NZ_BOUNDS.maxLat    &&
+                    c.lng >= NZ_BOUNDS.minLng    && c.lng <= NZ_BOUNDS.maxLng;
+    const inSamoa = c.lat >= SAMOA_BOUNDS.minLat && c.lat <= SAMOA_BOUNDS.maxLat &&
+                    c.lng >= SAMOA_BOUNDS.minLng && c.lng <= SAMOA_BOUNDS.maxLng;
+    field.style.display = (inNZ || inSamoa) ? 'block' : 'none';
     if (inNZ && !nzorData && !nzorLoading) ensureData(true);
     if (inNZ && !nvsData && !nvsPromise) ensureNvs();
   }

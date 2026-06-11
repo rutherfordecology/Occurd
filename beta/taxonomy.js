@@ -136,9 +136,21 @@
   // ── State ─────────────────────────────────────────────────────────────────
   const NUM_COLS = 7;    // number of Miller columns
 
-  const taxoCache    = {};   // parentKey → rank-filtered ACCEPTED children, sorted (no NZ filter)
+  const taxoCache    = {};   // parentKey → rank-filtered ACCEPTED children, sorted (no geo filter)
   const taxoInFlight = {};   // parentKey → Promise — prevents duplicate fetches without a [] sentinel
-  const nzCache      = {};   // 'root' | taxonKey → Map<key,count> or null
+  const nzCache      = {};   // 'CC:root' | 'CC:taxonKey' → Map<key,count> or null (CC = country code)
+
+  const NZ_BOUNDS_T    = { minLat: -52, maxLat: -29, minLng: 163, maxLng: 180 };
+  const SAMOA_BOUNDS_T = { minLat: -14.5, maxLat: -13.3, minLng: 171.3, maxLng: 172.8 };
+
+  function getActiveCountry() {
+    const c = map.getCenter();
+    if (c.lat >= NZ_BOUNDS_T.minLat && c.lat <= NZ_BOUNDS_T.maxLat &&
+        c.lng >= NZ_BOUNDS_T.minLng && c.lng <= NZ_BOUNDS_T.maxLng) return 'NZ';
+    if (c.lat >= SAMOA_BOUNDS_T.minLat && c.lat <= SAMOA_BOUNDS_T.maxLat &&
+        c.lng >= SAMOA_BOUNDS_T.minLng && c.lng <= SAMOA_BOUNDS_T.maxLng) return 'WS';
+    return null;
+  }
 
   // ── Taxonomy cache persistence (localStorage, 7-day TTL) ────────────────
   const LS_TAXO_KEY    = 'occurd_taxoCache_v1';
@@ -449,20 +461,22 @@
     }
   }
 
-  // Fetch child taxon keys that have NZ occurrence records, with their record counts.
-  // parentKey=null → root level (uses kingdomKey facet with no taxon filter).
-  // Returns a Map<string, number> (key → NZ occurrence count), or null on failure.
+  // Fetch child taxon keys that have occurrence records in the active country (NZ or WS),
+  // with their record counts. parentKey=null → root level.
+  // Returns a Map<string, number> (key → count), or null on failure / no active country.
   async function getGeoKeys(parentKey, parentRank) {
-    const cacheKey = parentKey || 'root';
+    const cc = getActiveCountry();
+    if (!cc) return null;
+    const cacheKey = cc + ':' + (parentKey || 'root');
     if (nzCache[cacheKey] !== undefined) return nzCache[cacheKey];
     let facetField, baseUrl;
     if (!parentKey) {
       facetField = 'kingdomKey';
-      baseUrl    = 'https://api.gbif.org/v1/occurrence/search?country=NZ&limit=0';
+      baseUrl    = 'https://api.gbif.org/v1/occurrence/search?country=' + cc + '&limit=0';
     } else {
       facetField = RANK_TO_CHILD_FACET[parentRank];
       if (!facetField) { nzCache[cacheKey] = null; return null; }
-      baseUrl = 'https://api.gbif.org/v1/occurrence/search?country=NZ&taxonKey='+parentKey+'&limit=0';
+      baseUrl = 'https://api.gbif.org/v1/occurrence/search?country=' + cc + '&taxonKey=' + parentKey + '&limit=0';
     }
     try {
       const res = await fetch(baseUrl + '&facet=' + facetField + '&facetLimit=1000&facetMincount=1');
@@ -473,7 +487,7 @@
       saveNZCacheToStorage();
       return counts;
     } catch(e) {
-      nzCache[cacheKey] = null; // fallback: no filter
+      nzCache[cacheKey] = null;
       return null;
     }
   }
