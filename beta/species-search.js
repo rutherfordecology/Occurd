@@ -112,20 +112,19 @@
 
   window._nvsSearch = function(q) { return nvsData ? searchNvs(q) : []; };
 
-  // Show/hide field based on whether map is centred in NZ
-  // Also pre-loads NZOR data in background so checklist has names ready after a fetch
+  // Field is always visible globally; still pre-load NZ data when in NZ bounds
+  field.style.display = 'block';
   function checkNZGate() {
     const c = map.getCenter();
     const inNZ = c.lat >= NZ_BOUNDS.minLat && c.lat <= NZ_BOUNDS.maxLat &&
                  c.lng >= NZ_BOUNDS.minLng && c.lng <= NZ_BOUNDS.maxLng;
-    field.style.display = inNZ ? 'block' : 'none';
-    if (inNZ && !nzorData && !nzorLoading) ensureData(true); // silent background load
-    if (inNZ && !nvsData && !nvsPromise) ensureNvs();        // load NVS codes in parallel
+    if (inNZ && !nzorData && !nzorLoading) ensureData(true);
+    if (inNZ && !nvsData && !nvsPromise) ensureNvs();
   }
   map.on('moveend', checkNZGate);
   map.on('zoomend', checkNZGate);
-  setTimeout(checkNZGate, 600);   // initial check
-  setTimeout(checkNZGate, 2500);  // fallback — catches VPN/geolocation delay cases
+  setTimeout(checkNZGate, 600);
+  setTimeout(checkNZGate, 2500);
 
   // Load NZOR names — shared promise so concurrent callers all wait on the same fetch
   async function ensureData(silent) {
