@@ -45,7 +45,7 @@
       <img src="occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v5.01</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v5.02</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -5147,7 +5147,7 @@ if (window._pendingShare) {
   </div>
   <div class="changelog-scroll" id="changelogScroll">
     <div class="changelog-version">
-      <span class="changelog-version-tag">v5.01</span>
+      <span class="changelog-version-tag">v5.02</span>
       <span class="changelog-date">Jun 2026</span>
       <ul>
         <li>Single species search — now visible when centred over New Zealand or Samoa (not globally); renamed from "NZ species search"</li>
@@ -5155,6 +5155,7 @@ if (window._pendingShare) {
         <li>Fix Samoa bounds — longitude was positive (wrong hemisphere); corrected to −173°–−171°W; extended box to cover American Samoa atolls (−173.5°–−168°W, −15°–−13°S)</li>
         <li>Fix Samoa detection — normalise Leaflet longitude to [−180, 180] before bounds check; panning past the antimeridian gave ~189° instead of −171°, so Samoa was never detected</li>
         <li>Fix Tree of Life geo filter — direct nzCache reads were using bare taxon keys; now prefixed with country code so Samoa (WS) filter applies correctly alongside NZ</li>
+        <li>Samoa species names — samoa_names.json loaded when centred over Samoa; single species search autocompletes by Samoan name, English name, or scientific name; 63 bird species with Samoan vernacular names sourced from Conservation International pocket guide</li>
       </ul>
     </div>
     <div class="changelog-version">

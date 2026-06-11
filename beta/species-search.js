@@ -4,8 +4,9 @@
 (function() {
   const NZ_BOUNDS    = { minLat: -52, maxLat: -29, minLng: 163, maxLng: 180 };
   const SAMOA_BOUNDS = { minLat: -15.0, maxLat: -13.0, minLng: -173.5, maxLng: -168.0 };
-  const NZOR_URL  = 'https://raw.githubusercontent.com/rutherfordecology/but-is-it-threatened/main/nzor_names.json';
-  const NVS_URL   = 'https://raw.githubusercontent.com/rutherfordecology/but-is-it-threatened/main/nvs.json';
+  const NZOR_URL        = 'https://raw.githubusercontent.com/rutherfordecology/but-is-it-threatened/main/nzor_names.json';
+  const NVS_URL         = 'https://raw.githubusercontent.com/rutherfordecology/but-is-it-threatened/main/nvs.json';
+  const SAMOA_NAMES_URL = 'samoa_names.json';
 
   const field  = document.getElementById('spField');
   const input  = document.getElementById('spInput');
@@ -22,10 +23,13 @@
   let nvsData      = null;   // NVS codes: {code → {sci, pref?, prefSci?}}
   let nvsPromise   = null;
   let nzorSciIndex = null;   // built once: lowercase sci name → [vernacular display names]
+  let samoaData    = null;   // samoa_names.json: lowercase sci → {samoan, english}
+  let samoaPromise = null;
   let selectedKey  = null;   // GBIF taxon key once resolved
   let debounce     = null;
   let focusIdx     = -1;
   let curItems     = [];
+  let inSamoa      = false;  // tracks current map position
 
   window.getSpeciesTaxonKey = () => selectedKey;
   window._nzorReady = () => !!nzorData;
@@ -113,19 +117,65 @@
 
   window._nvsSearch = function(q) { return nvsData ? searchNvs(q) : []; };
 
+  // ── Samoa names ────────────────────────────────────────────────────────────
+  function ensureSamoa() {
+    if (samoaData) return Promise.resolve(true);
+    if (!samoaPromise) {
+      samoaPromise = fetch(SAMOA_NAMES_URL)
+        .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+        .then(data => { samoaData = data; samoaPromise = null; return true; })
+        .catch(e => { console.warn('Samoa names load failed:', e); samoaPromise = null; return false; });
+    }
+    return samoaPromise;
+  }
+
+  function searchSamoa(q) {
+    if (!samoaData) return [];
+    const norm = q.toLowerCase().trim();
+    if (norm.length < 2) return [];
+    const starts = [], contains = [];
+    for (const [sci, entry] of Object.entries(samoaData)) {
+      const samoan  = (entry.samoan  || '').toLowerCase();
+      const english = (entry.english || '').toLowerCase();
+      const hit = samoan.startsWith(norm) || english.startsWith(norm) || sci.startsWith(norm)
+        ? 'start'
+        : (samoan.includes(norm) || english.includes(norm) || sci.includes(norm))
+        ? 'contains' : null;
+      if (hit === 'start')    starts.push({ sci, ...entry });
+      else if (hit === 'contains') contains.push({ sci, ...entry });
+    }
+    const top = starts.slice(0, 10);
+    if (top.length < 10) top.push(...contains.slice(0, 10 - top.length));
+    // Return in same shape as NZOR items: cls='v', n=display, sci=scientific
+    return top.map(e => ({ cls: 'samoa', n: e.samoan || e.english, sci: e.sci, english: e.english, samoan: e.samoan }));
+  }
+
+  window.getSamoaVernacular = function(sciName) {
+    if (!samoaData || !sciName) return '';
+    const entry = samoaData[sciName.toLowerCase()];
+    return entry ? (entry.samoan || entry.english || '') : '';
+  };
+
+  window.ensureSamoaLoaded = function() {
+    if (samoaData) return Promise.resolve(true);
+    return ensureSamoa();
+  };
+
   // Show field only when centred over NZ or Samoa
   function checkNZGate() {
     const c = map.getCenter();
     // Normalise longitude to [-180, 180] — Leaflet uses a continuous axis so panning
     // past the antimeridian gives values like 189 instead of -171 for Samoa.
     let lng = ((c.lng + 180) % 360 + 360) % 360 - 180;
-    const inNZ    = c.lat >= NZ_BOUNDS.minLat    && c.lat <= NZ_BOUNDS.maxLat    &&
-                    lng    >= NZ_BOUNDS.minLng    && lng    <= NZ_BOUNDS.maxLng;
-    const inSamoa = c.lat >= SAMOA_BOUNDS.minLat && c.lat <= SAMOA_BOUNDS.maxLat &&
-                    lng    >= SAMOA_BOUNDS.minLng && lng    <= SAMOA_BOUNDS.maxLng;
-    field.style.display = (inNZ || inSamoa) ? 'block' : 'none';
-    if (inNZ && !nzorData && !nzorLoading) ensureData(true);
-    if (inNZ && !nvsData && !nvsPromise) ensureNvs();
+    const inNZ     = c.lat >= NZ_BOUNDS.minLat    && c.lat <= NZ_BOUNDS.maxLat    &&
+                     lng    >= NZ_BOUNDS.minLng    && lng    <= NZ_BOUNDS.maxLng;
+    const nowSamoa = c.lat >= SAMOA_BOUNDS.minLat && c.lat <= SAMOA_BOUNDS.maxLat &&
+                     lng    >= SAMOA_BOUNDS.minLng && lng    <= SAMOA_BOUNDS.maxLng;
+    inSamoa = nowSamoa;
+    field.style.display = (inNZ || nowSamoa) ? 'block' : 'none';
+    if (inNZ    && !nzorData  && !nzorLoading) ensureData(true);
+    if (inNZ    && !nvsData   && !nvsPromise)  ensureNvs();
+    if (nowSamoa && !samoaData && !samoaPromise) ensureSamoa();
   }
   map.on('moveend', checkNZGate);
   map.on('zoomend', checkNZGate);
@@ -209,6 +259,11 @@
         el.innerHTML =
           '<div class="sp-sci">' + item.sci + '</div>' +
           '<div class="sp-common"><span class="nvs-badge">NVS ' + item.nvscode.toUpperCase() + '</span></div>';
+      } else if (item.cls === 'samoa') {
+        el.innerHTML =
+          '<div class="sp-sci">' + item.sci + '</div>' +
+          '<div class="sp-common">' + item.samoan +
+          (item.english ? ' · ' + item.english : '') + '</div>';
       } else {
         // vernacular entry: show common name + scientific
         // scientific entry: show scientific name only
@@ -267,7 +322,7 @@
 
     // ── Species selection ─────────────────────────────────────────────────
     // Resolve scientific name
-    const sciName = (item.cls === 'v' || item.cls === 'nvs') ? (item.sci || item.n) : item.n;
+    const sciName = (item.cls === 'v' || item.cls === 'nvs' || item.cls === 'samoa') ? (item.sci || item.n) : item.n;
     const displayName = item.cls === 'nvs'
       ? item.sci + ' (NVS ' + item.nvscode.toUpperCase() + ')'
       : item.n + (item.cls === 'v' && item.sci ? ' (' + item.sci + ')' : '');
@@ -314,13 +369,18 @@
     if (q.length < 2) { hideDrop(); return; }
     clearTimeout(debounce);
     debounce = setTimeout(async () => {
-      const ok = await ensureData();
-      if (!ok) { hideDrop(); return; }
-      ensureNvs(); // kick off NVS load if not already loaded (non-blocking)
-      const nvsResults  = searchNvs(q);
-      const nzorResults = search(q);
-      // NVS exact/prefix matches first, then NZOR
-      showDrop([...nvsResults, ...nzorResults]);
+      if (inSamoa) {
+        const ok = await ensureSamoa();
+        if (!ok) { hideDrop(); return; }
+        showDrop(searchSamoa(q));
+      } else {
+        const ok = await ensureData();
+        if (!ok) { hideDrop(); return; }
+        ensureNvs();
+        const nvsResults  = searchNvs(q);
+        const nzorResults = search(q);
+        showDrop([...nvsResults, ...nzorResults]);
+      }
     }, 200);
   });
 
