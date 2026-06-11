@@ -1,114 +1,7429 @@
 {
-  "spatula clypeata": {"english": ["Northern Shoveler"]},
-  "anas superciliosa": {"english": ["Pacific Black Duck"], "samoan": "Toloa"},
-  "anas zonorhyncha": {"english": ["Chinese Spot-billed Duck"]},
-  "gallus gallus": {"english": ["Red Junglefowl", "Jungle Fowl"], "samoan": "Moa"},
-  "columba livia": {"english": ["Rock Dove", "Feral Pigeon"], "samoan": "Lupe palagi"},
-  "columba vitiensis": {"english": ["White-throated Pigeon"], "samoan": "Fiaui"},
-  "alopecoenas stairi": {"english": ["Friendly Ground Dove"], "samoan": "Tui'aimeo"},
-  "didunculus strigirostris": {"english": ["Tooth-billed Pigeon", "Manumea"], "samoan": "Manumea"},
-  "ducula pacifica": {"english": ["Pacific Imperial Pigeon", "Pacific Pigeon"], "samoan": "Lupe"},
-  "ptilinopus perousii": {"english": ["Many-coloured Fruit Dove"], "samoan": "Manu'ulua"},
-  "ptilinopus porphyraceus": {"english": ["Purple-capped Fruit Dove", "Crimson-crowned Fruit-dove"], "samoan": "Manutagi"},
-  "phaethon rubricauda": {"english": ["Red-tailed Tropicbird"], "samoan": "Tava'e'ula"},
-  "phaethon lepturus": {"english": ["White-tailed Tropicbird"], "samoan": "Tava'e"},
-  "aerodramus spodiopygius": {"english": ["White-rumped Swiftlet"], "samoan": "Pe'ape'a"},
-  "urodynamis taitensis": {"english": ["Long-tailed Koel", "Long-tailed Cuckoo"], "samoan": "Aleva"},
-  "hypotaenidia philippensis": {"english": ["Buff-banded Rail", "Banded Rail"], "samoan": "Ve'a"},
-  "zapornia tabuensis": {"english": ["Spotless Crake"]},
-  "amaurornis cinerea": {"english": ["White-browed Crake"], "samoan": "Vai"},
-  "porphyrio porphyrio": {"english": ["Purple Swamphen"], "samoan": "Manuali'i"},
-  "pareudiastes pacificus": {"english": ["Samoan Woodhen"], "samoan": "Puna'e"},
-  "pelagodroma marina": {"english": ["White-faced Storm-petrel"]},
-  "fregetta grallaria": {"english": ["White-bellied Storm-petrel"]},
-  "fregetta tropica": {"english": ["Black-bellied Storm-petrel"]},
-  "nesofregetta fuliginosa": {"english": ["Polynesian Storm-petrel"], "samoan": "Ta'i'o"},
-  "pterodroma leucoptera": {"english": ["Gould's Petrel"]},
-  "pterodroma brevipes": {"english": ["Collared Petrel"]},
-  "pterodroma longirostris": {"english": ["Stejneger's Petrel"]},
-  "pterodroma nigripennis": {"english": ["Black-winged Petrel"]},
-  "pterodroma arminjoniana": {"english": ["Herald Petrel"]},
-  "pterodroma alba": {"english": ["Phoenix Petrel"]},
-  "pterodroma inexpectata": {"english": ["Mottled Petrel"]},
-  "pterodroma cervicalis": {"english": ["White-necked Petrel"]},
-  "ardenna pacifica": {"english": ["Wedge-tailed Shearwater"], "samoan": "Ta'i'o"},
-  "ardenna bulleri": {"english": ["Buller's Shearwater"]},
-  "ardenna tenuirostris": {"english": ["Short-tailed Shearwater"], "samoan": "Ta'i'o"},
-  "ardenna grisea": {"english": ["Sooty Shearwater"], "samoan": "Ta'i'o"},
-  "ardenna carneipes": {"english": ["Flesh-footed Shearwater"]},
-  "puffinus nativitatis": {"english": ["Christmas Shearwater"]},
-  "puffinus auricularis": {"english": ["Townsend's Shearwater"]},
-  "puffinus bailloni": {"english": ["Tropical Shearwater"]},
-  "puffinus lherminieri": {"english": ["Audubon's Shearwater"], "samoan": "Ta'i'o"},
-  "pseudobulweria rostrata": {"english": ["Tahiti Petrel"], "samoan": "Ta'i'o"},
-  "egretta novaehollandiae": {"english": ["White-faced Heron"]},
-  "egretta sacra": {"english": ["Pacific Reef Egret", "Reef Heron"], "samoan": "Matu'u"},
-  "fregata ariel": {"english": ["Lesser Frigatebird"], "samoan": "Atafa"},
-  "fregata minor": {"english": ["Great Frigatebird"], "samoan": "Atafa"},
-  "sula sula": {"english": ["Red-footed Booby"], "samoan": "Fua'o"},
-  "sula leucogaster": {"english": ["Brown Booby"], "samoan": "Fua'o"},
-  "sula dactylatra": {"english": ["Masked Booby"], "samoan": "Fua'o"},
-  "pluvialis squatarola": {"english": ["Grey Plover"]},
-  "pluvialis fulva": {"english": ["Pacific Golden Plover"], "samoan": "Tuli"},
-  "charadrius semipalmatus": {"english": ["Semipalmated Plover"]},
-  "vanellus miles": {"english": ["Masked Lapwing"]},
-  "numenius tahitiensis": {"english": ["Bristle-thighed Curlew"], "samoan": "Tuli'olovalu"},
-  "numenius phaeopus": {"english": ["Whimbrel"], "samoan": "Tuli"},
-  "numenius madagascariensis": {"english": ["Far Eastern Curlew"], "samoan": "Tuli"},
-  "limosa lapponica": {"english": ["Bar-tailed Godwit"], "samoan": "Tuli"},
-  "arenaria interpres": {"english": ["Ruddy Turnstone"], "samoan": "Tuli'alomalala"},
-  "calidris canutus": {"english": ["Red Knot"]},
-  "calidris acuminata": {"english": ["Sharp-tailed Sandpiper"]},
-  "calidris ruficollis": {"english": ["Red-necked Stint"]},
-  "calidris alba": {"english": ["Sanderling"]},
-  "calidris melanotos": {"english": ["Pectoral Sandpiper"]},
-  "limnodromus scolopaceus": {"english": ["Long-billed Dowitcher"]},
-  "actitis hypoleucos": {"english": ["Common Sandpiper"]},
-  "tringa brevipes": {"english": ["Grey-tailed Tattler"]},
-  "tringa incana": {"english": ["Wandering Tattler"], "samoan": "Tuli"},
-  "tringa glareola": {"english": ["Wood Sandpiper"]},
-  "stercorarius pomarinus": {"english": ["Pomarine Skua"]},
-  "stercorarius maccormicki": {"english": ["South Polar Skua"]},
-  "stercorarius antarcticus": {"english": ["Brown Skua"]},
-  "anous stolidus": {"english": ["Brown Noddy"], "samoan": "Gogo"},
-  "anous minutus": {"english": ["Black Noddy"], "samoan": "Gogo"},
-  "procelsterna cerulea": {"english": ["Blue Noddy"], "samoan": "Laia"},
-  "gygis alba": {"english": ["White Tern", "Atoll Tern"], "samoan": "Manusina"},
-  "leucophaeus atricilla": {"english": ["Laughing Gull"]},
-  "onychoprion fuscatus": {"english": ["Sooty Tern"], "samoan": "Gogo"},
-  "onychoprion anaethetus": {"english": ["Bridled Tern"], "samoan": "Gogo Uli"},
-  "onychoprion lunatus": {"english": ["Grey-backed Tern"]},
-  "sternula albifrons": {"english": ["Little Tern"]},
-  "sterna dougallii": {"english": ["Roseate Tern"]},
-  "sterna sumatrana": {"english": ["Black-naped Tern"], "samoan": "Gogo"},
-  "sterna hirundo": {"english": ["Common Tern"]},
-  "thalasseus bergii": {"english": ["Greater Crested Tern", "Crested Tern"], "samoan": "Gogo"},
-  "tyto delicatula": {"english": ["Pearly Owl"]},
-  "tyto alba": {"english": ["Common Barn Owl", "Barn Owl"], "samoan": "Lulu"},
-  "todiramphus chloris": {"english": ["Collared Kingfisher", "White-collared Kingfisher"], "samoan": "Ti'otala"},
-  "todiramphus sanctus": {"english": ["Sacred Kingfisher"]},
-  "todiramphus recurvirostris": {"english": ["Flat-billed Kingfisher"], "samoan": "Ti'otala"},
-  "falco peregrinus": {"english": ["Peregrine Falcon"]},
-  "vini australis": {"english": ["Blue-crowned Lorikeet", "Blue-crowned Lory"], "samoan": "Sega vao"},
-  "myzomela cardinalis": {"english": ["Cardinal Myzomela"], "samoan": "Segasegamau'u"},
-  "foulehaio carunculatus": {"english": ["Wattled Honeyeater"], "samoan": "Iao"},
-  "gymnomyza samoensis": {"english": ["Mao"], "samoan": "Ma'oma'o"},
-  "lalage maculosa": {"english": ["Polynesian Triller"], "samoan": "Miti tai"},
-  "lalage sharpei": {"english": ["Samoan Triller"], "samoan": "Miti"},
-  "pachycephala flavifrons": {"english": ["Samoan Whistler"], "samoan": "Vasavasa"},
-  "rhipidura nebulosa": {"english": ["Samoan Fantail"], "samoan": "Se'u"},
-  "myiagra albiventris": {"english": ["Samoan Myiagra", "Samoan Broadbill"], "samoan": "Tolaifatu"},
-  "clytorhynchus vitiensis": {"english": ["Fiji Shrikebill"], "samoan": "Segaolevao"},
-  "petroica multicolor": {"english": ["Pacific Robin", "Scarlet Robin"], "samoan": "Toloa ula"},
-  "erythrura cyaneovirens": {"english": ["Red-headed Parrotfinch"], "samoan": "Segaula"},
-  "passer domesticus": {"english": ["House Sparrow"]},
-  "passer montanus": {"english": ["Eurasian Tree Sparrow"]},
-  "hirundo tahitica": {"english": ["Pacific Swallow"]},
-  "pycnonotus cafer": {"english": ["Red-vented Bulbul"], "samoan": "Manu Palagi"},
-  "zosterops samoensis": {"english": ["Samoan White-eye"], "samoan": "Matapapae"},
-  "acridotheres tristis": {"english": ["Common Myna", "Common Mynah"], "samoan": "Maina Fanua"},
-  "acridotheres fuscus": {"english": ["Jungle Myna", "Jungle Mynah"], "samoan": "Maina Vao"},
-  "aplonis tabuensis": {"english": ["Polynesian Starling"], "samoan": "Fuia Vao"},
-  "aplonis atrifusca": {"english": ["Samoan Starling"], "samoan": "Fuia"},
-  "turdus poliocephalus": {"english": ["Island Thrush"], "samoan": "Tupoulili"}
+  "spatula clypeata": {
+    "english": [
+      "Northern Shoveler"
+    ],
+    "group": "bird"
+  },
+  "anas superciliosa": {
+    "english": [
+      "Pacific Black Duck"
+    ],
+    "group": "bird",
+    "samoan": "Toloa"
+  },
+  "anas zonorhyncha": {
+    "english": [
+      "Chinese Spot-billed Duck"
+    ],
+    "group": "bird"
+  },
+  "gallus gallus": {
+    "english": [
+      "Red Junglefowl",
+      "Jungle Fowl"
+    ],
+    "group": "bird",
+    "samoan": "Moa"
+  },
+  "columba livia": {
+    "english": [
+      "Rock Dove",
+      "Feral Pigeon"
+    ],
+    "group": "bird",
+    "samoan": "Lupe palagi"
+  },
+  "columba vitiensis": {
+    "english": [
+      "White-throated Pigeon"
+    ],
+    "group": "bird",
+    "samoan": "Fiaui"
+  },
+  "alopecoenas stairi": {
+    "english": [
+      "Friendly Ground Dove"
+    ],
+    "group": "bird",
+    "samoan": "Tui'aimeo"
+  },
+  "didunculus strigirostris": {
+    "english": [
+      "Tooth-billed Pigeon",
+      "Manumea"
+    ],
+    "group": "bird",
+    "samoan": "Manumea"
+  },
+  "ducula pacifica": {
+    "english": [
+      "Pacific Imperial Pigeon",
+      "Pacific Pigeon"
+    ],
+    "group": "bird",
+    "samoan": "Lupe"
+  },
+  "ptilinopus perousii": {
+    "english": [
+      "Many-coloured Fruit Dove"
+    ],
+    "group": "bird",
+    "samoan": "Manu'ulua"
+  },
+  "ptilinopus porphyraceus": {
+    "english": [
+      "Purple-capped Fruit Dove",
+      "Crimson-crowned Fruit-dove"
+    ],
+    "group": "bird",
+    "samoan": "Manutagi"
+  },
+  "phaethon rubricauda": {
+    "english": [
+      "Red-tailed Tropicbird"
+    ],
+    "group": "bird",
+    "samoan": "Tava'e'ula"
+  },
+  "phaethon lepturus": {
+    "english": [
+      "White-tailed Tropicbird"
+    ],
+    "group": "bird",
+    "samoan": "Tava'e"
+  },
+  "aerodramus spodiopygius": {
+    "english": [
+      "White-rumped Swiftlet"
+    ],
+    "group": "bird",
+    "samoan": "Pe'ape'a"
+  },
+  "urodynamis taitensis": {
+    "english": [
+      "Long-tailed Koel",
+      "Long-tailed Cuckoo"
+    ],
+    "group": "bird",
+    "samoan": "Aleva"
+  },
+  "hypotaenidia philippensis": {
+    "english": [
+      "Buff-banded Rail",
+      "Banded Rail"
+    ],
+    "group": "bird",
+    "samoan": "Ve'a"
+  },
+  "zapornia tabuensis": {
+    "english": [
+      "Spotless Crake"
+    ],
+    "group": "bird"
+  },
+  "amaurornis cinerea": {
+    "english": [
+      "White-browed Crake"
+    ],
+    "group": "bird",
+    "samoan": "Vai"
+  },
+  "porphyrio porphyrio": {
+    "english": [
+      "Purple Swamphen"
+    ],
+    "group": "bird",
+    "samoan": "Manuali'i"
+  },
+  "pareudiastes pacificus": {
+    "english": [
+      "Samoan Woodhen"
+    ],
+    "group": "bird",
+    "samoan": "Puna'e"
+  },
+  "pelagodroma marina": {
+    "english": [
+      "White-faced Storm-petrel"
+    ],
+    "group": "bird"
+  },
+  "fregetta grallaria": {
+    "english": [
+      "White-bellied Storm-petrel"
+    ],
+    "group": "bird"
+  },
+  "fregetta tropica": {
+    "english": [
+      "Black-bellied Storm-petrel"
+    ],
+    "group": "bird"
+  },
+  "nesofregetta fuliginosa": {
+    "english": [
+      "Polynesian Storm-petrel"
+    ],
+    "group": "bird",
+    "samoan": "Ta'i'o"
+  },
+  "pterodroma leucoptera": {
+    "english": [
+      "Gould's Petrel"
+    ],
+    "group": "bird"
+  },
+  "pterodroma brevipes": {
+    "english": [
+      "Collared Petrel"
+    ],
+    "group": "bird"
+  },
+  "pterodroma longirostris": {
+    "english": [
+      "Stejneger's Petrel"
+    ],
+    "group": "bird"
+  },
+  "pterodroma nigripennis": {
+    "english": [
+      "Black-winged Petrel"
+    ],
+    "group": "bird"
+  },
+  "pterodroma arminjoniana": {
+    "english": [
+      "Herald Petrel"
+    ],
+    "group": "bird"
+  },
+  "pterodroma alba": {
+    "english": [
+      "Phoenix Petrel"
+    ],
+    "group": "bird"
+  },
+  "pterodroma inexpectata": {
+    "english": [
+      "Mottled Petrel"
+    ],
+    "group": "bird"
+  },
+  "pterodroma cervicalis": {
+    "english": [
+      "White-necked Petrel"
+    ],
+    "group": "bird"
+  },
+  "ardenna pacifica": {
+    "english": [
+      "Wedge-tailed Shearwater"
+    ],
+    "group": "bird",
+    "samoan": "Ta'i'o"
+  },
+  "ardenna bulleri": {
+    "english": [
+      "Buller's Shearwater"
+    ],
+    "group": "bird"
+  },
+  "ardenna tenuirostris": {
+    "english": [
+      "Short-tailed Shearwater"
+    ],
+    "group": "bird",
+    "samoan": "Ta'i'o"
+  },
+  "ardenna grisea": {
+    "english": [
+      "Sooty Shearwater"
+    ],
+    "group": "bird",
+    "samoan": "Ta'i'o"
+  },
+  "ardenna carneipes": {
+    "english": [
+      "Flesh-footed Shearwater"
+    ],
+    "group": "bird"
+  },
+  "puffinus nativitatis": {
+    "english": [
+      "Christmas Shearwater"
+    ],
+    "group": "bird"
+  },
+  "puffinus auricularis": {
+    "english": [
+      "Townsend's Shearwater"
+    ],
+    "group": "bird"
+  },
+  "puffinus bailloni": {
+    "english": [
+      "Tropical Shearwater"
+    ],
+    "group": "bird"
+  },
+  "puffinus lherminieri": {
+    "english": [
+      "Audubon's Shearwater"
+    ],
+    "group": "bird",
+    "samoan": "Ta'i'o"
+  },
+  "pseudobulweria rostrata": {
+    "english": [
+      "Tahiti Petrel"
+    ],
+    "group": "bird",
+    "samoan": "Ta'i'o"
+  },
+  "egretta novaehollandiae": {
+    "english": [
+      "White-faced Heron"
+    ],
+    "group": "bird"
+  },
+  "egretta sacra": {
+    "english": [
+      "Pacific Reef Egret",
+      "Reef Heron"
+    ],
+    "group": "bird",
+    "samoan": "Matu'u"
+  },
+  "fregata ariel": {
+    "english": [
+      "Lesser Frigatebird"
+    ],
+    "group": "bird",
+    "samoan": "Atafa"
+  },
+  "fregata minor": {
+    "english": [
+      "Great Frigatebird"
+    ],
+    "group": "bird",
+    "samoan": "Atafa"
+  },
+  "sula sula": {
+    "english": [
+      "Red-footed Booby"
+    ],
+    "group": "bird",
+    "samoan": "Fua'o"
+  },
+  "sula leucogaster": {
+    "english": [
+      "Brown Booby"
+    ],
+    "group": "bird",
+    "samoan": "Fua'o"
+  },
+  "sula dactylatra": {
+    "english": [
+      "Masked Booby"
+    ],
+    "group": "bird",
+    "samoan": "Fua'o"
+  },
+  "pluvialis squatarola": {
+    "english": [
+      "Grey Plover"
+    ],
+    "group": "bird"
+  },
+  "pluvialis fulva": {
+    "english": [
+      "Pacific Golden Plover"
+    ],
+    "group": "bird",
+    "samoan": "Tuli"
+  },
+  "charadrius semipalmatus": {
+    "english": [
+      "Semipalmated Plover"
+    ],
+    "group": "bird"
+  },
+  "vanellus miles": {
+    "english": [
+      "Masked Lapwing"
+    ],
+    "group": "bird"
+  },
+  "numenius tahitiensis": {
+    "english": [
+      "Bristle-thighed Curlew"
+    ],
+    "group": "bird",
+    "samoan": "Tuli'olovalu"
+  },
+  "numenius phaeopus": {
+    "english": [
+      "Whimbrel"
+    ],
+    "group": "bird",
+    "samoan": "Tuli"
+  },
+  "numenius madagascariensis": {
+    "english": [
+      "Far Eastern Curlew"
+    ],
+    "group": "bird",
+    "samoan": "Tuli"
+  },
+  "limosa lapponica": {
+    "english": [
+      "Bar-tailed Godwit"
+    ],
+    "group": "bird",
+    "samoan": "Tuli"
+  },
+  "arenaria interpres": {
+    "english": [
+      "Ruddy Turnstone"
+    ],
+    "group": "bird",
+    "samoan": "Tuli'alomalala"
+  },
+  "calidris canutus": {
+    "english": [
+      "Red Knot"
+    ],
+    "group": "bird"
+  },
+  "calidris acuminata": {
+    "english": [
+      "Sharp-tailed Sandpiper"
+    ],
+    "group": "bird"
+  },
+  "calidris ruficollis": {
+    "english": [
+      "Red-necked Stint"
+    ],
+    "group": "bird"
+  },
+  "calidris alba": {
+    "english": [
+      "Sanderling"
+    ],
+    "group": "bird"
+  },
+  "calidris melanotos": {
+    "english": [
+      "Pectoral Sandpiper"
+    ],
+    "group": "bird"
+  },
+  "limnodromus scolopaceus": {
+    "english": [
+      "Long-billed Dowitcher"
+    ],
+    "group": "bird"
+  },
+  "actitis hypoleucos": {
+    "english": [
+      "Common Sandpiper"
+    ],
+    "group": "bird"
+  },
+  "tringa brevipes": {
+    "english": [
+      "Grey-tailed Tattler"
+    ],
+    "group": "bird"
+  },
+  "tringa incana": {
+    "english": [
+      "Wandering Tattler"
+    ],
+    "group": "bird",
+    "samoan": "Tuli"
+  },
+  "tringa glareola": {
+    "english": [
+      "Wood Sandpiper"
+    ],
+    "group": "bird"
+  },
+  "stercorarius pomarinus": {
+    "english": [
+      "Pomarine Skua"
+    ],
+    "group": "bird"
+  },
+  "stercorarius maccormicki": {
+    "english": [
+      "South Polar Skua"
+    ],
+    "group": "bird"
+  },
+  "stercorarius antarcticus": {
+    "english": [
+      "Brown Skua"
+    ],
+    "group": "bird"
+  },
+  "anous stolidus": {
+    "english": [
+      "Brown Noddy"
+    ],
+    "group": "bird",
+    "samoan": "Gogo"
+  },
+  "anous minutus": {
+    "english": [
+      "Black Noddy"
+    ],
+    "group": "bird",
+    "samoan": "Gogo"
+  },
+  "procelsterna cerulea": {
+    "english": [
+      "Blue Noddy"
+    ],
+    "group": "bird",
+    "samoan": "Laia"
+  },
+  "gygis alba": {
+    "english": [
+      "White Tern",
+      "Atoll Tern"
+    ],
+    "group": "bird",
+    "samoan": "Manusina"
+  },
+  "leucophaeus atricilla": {
+    "english": [
+      "Laughing Gull"
+    ],
+    "group": "bird"
+  },
+  "onychoprion fuscatus": {
+    "english": [
+      "Sooty Tern"
+    ],
+    "group": "bird",
+    "samoan": "Gogo"
+  },
+  "onychoprion anaethetus": {
+    "english": [
+      "Bridled Tern"
+    ],
+    "group": "bird",
+    "samoan": "Gogo Uli"
+  },
+  "onychoprion lunatus": {
+    "english": [
+      "Grey-backed Tern"
+    ],
+    "group": "bird"
+  },
+  "sternula albifrons": {
+    "english": [
+      "Little Tern"
+    ],
+    "group": "bird"
+  },
+  "sterna dougallii": {
+    "english": [
+      "Roseate Tern"
+    ],
+    "group": "bird"
+  },
+  "sterna sumatrana": {
+    "english": [
+      "Black-naped Tern"
+    ],
+    "group": "bird",
+    "samoan": "Gogo"
+  },
+  "sterna hirundo": {
+    "english": [
+      "Common Tern"
+    ],
+    "group": "bird"
+  },
+  "thalasseus bergii": {
+    "english": [
+      "Greater Crested Tern",
+      "Crested Tern"
+    ],
+    "group": "bird",
+    "samoan": "Gogo"
+  },
+  "tyto delicatula": {
+    "english": [
+      "Pearly Owl"
+    ],
+    "group": "bird"
+  },
+  "tyto alba": {
+    "english": [
+      "Common Barn Owl",
+      "Barn Owl"
+    ],
+    "group": "bird",
+    "samoan": "Lulu"
+  },
+  "todiramphus chloris": {
+    "english": [
+      "Collared Kingfisher",
+      "White-collared Kingfisher"
+    ],
+    "group": "bird",
+    "samoan": "Ti'otala"
+  },
+  "todiramphus sanctus": {
+    "english": [
+      "Sacred Kingfisher"
+    ],
+    "group": "bird"
+  },
+  "todiramphus recurvirostris": {
+    "english": [
+      "Flat-billed Kingfisher"
+    ],
+    "group": "bird",
+    "samoan": "Ti'otala"
+  },
+  "falco peregrinus": {
+    "english": [
+      "Peregrine Falcon"
+    ],
+    "group": "bird"
+  },
+  "vini australis": {
+    "english": [
+      "Blue-crowned Lorikeet",
+      "Blue-crowned Lory"
+    ],
+    "group": "bird",
+    "samoan": "Sega vao"
+  },
+  "myzomela cardinalis": {
+    "english": [
+      "Cardinal Myzomela"
+    ],
+    "group": "bird",
+    "samoan": "Segasegamau'u"
+  },
+  "foulehaio carunculatus": {
+    "english": [
+      "Wattled Honeyeater"
+    ],
+    "group": "bird",
+    "samoan": "Iao"
+  },
+  "gymnomyza samoensis": {
+    "english": [
+      "Mao"
+    ],
+    "group": "bird",
+    "samoan": "Ma'oma'o"
+  },
+  "lalage maculosa": {
+    "english": [
+      "Polynesian Triller"
+    ],
+    "group": "bird",
+    "samoan": "Miti tai"
+  },
+  "lalage sharpei": {
+    "english": [
+      "Samoan Triller"
+    ],
+    "group": "bird",
+    "samoan": "Miti"
+  },
+  "pachycephala flavifrons": {
+    "english": [
+      "Samoan Whistler"
+    ],
+    "group": "bird",
+    "samoan": "Vasavasa"
+  },
+  "rhipidura nebulosa": {
+    "english": [
+      "Samoan Fantail"
+    ],
+    "group": "bird",
+    "samoan": "Se'u"
+  },
+  "myiagra albiventris": {
+    "english": [
+      "Samoan Myiagra",
+      "Samoan Broadbill"
+    ],
+    "group": "bird",
+    "samoan": "Tolaifatu"
+  },
+  "clytorhynchus vitiensis": {
+    "english": [
+      "Fiji Shrikebill"
+    ],
+    "group": "bird",
+    "samoan": "Segaolevao"
+  },
+  "petroica multicolor": {
+    "english": [
+      "Pacific Robin",
+      "Scarlet Robin"
+    ],
+    "group": "bird",
+    "samoan": "Toloa ula"
+  },
+  "erythrura cyaneovirens": {
+    "english": [
+      "Red-headed Parrotfinch"
+    ],
+    "group": "bird",
+    "samoan": "Segaula"
+  },
+  "passer domesticus": {
+    "english": [
+      "House Sparrow"
+    ],
+    "group": "bird"
+  },
+  "passer montanus": {
+    "english": [
+      "Eurasian Tree Sparrow"
+    ],
+    "group": "bird"
+  },
+  "hirundo tahitica": {
+    "english": [
+      "Pacific Swallow"
+    ],
+    "group": "bird"
+  },
+  "pycnonotus cafer": {
+    "english": [
+      "Red-vented Bulbul"
+    ],
+    "group": "bird",
+    "samoan": "Manu Palagi"
+  },
+  "zosterops samoensis": {
+    "english": [
+      "Samoan White-eye"
+    ],
+    "group": "bird",
+    "samoan": "Matapapae"
+  },
+  "acridotheres tristis": {
+    "english": [
+      "Common Myna",
+      "Common Mynah"
+    ],
+    "group": "bird",
+    "samoan": "Maina Fanua"
+  },
+  "acridotheres fuscus": {
+    "english": [
+      "Jungle Myna",
+      "Jungle Mynah"
+    ],
+    "group": "bird",
+    "samoan": "Maina Vao"
+  },
+  "aplonis tabuensis": {
+    "english": [
+      "Polynesian Starling"
+    ],
+    "group": "bird",
+    "samoan": "Fuia Vao"
+  },
+  "aplonis atrifusca": {
+    "english": [
+      "Samoan Starling"
+    ],
+    "group": "bird",
+    "samoan": "Fuia"
+  },
+  "turdus poliocephalus": {
+    "english": [
+      "Island Thrush"
+    ],
+    "group": "bird",
+    "samoan": "Tupoulili"
+  },
+  "abantennarius analis": {
+    "english": [
+      "Tailjet frogfish"
+    ],
+    "group": "fish",
+    "samoan": "La'otale"
+  },
+  "abantennarius coccineus": {
+    "english": [
+      "Scarlet frogfish"
+    ],
+    "group": "fish",
+    "samoan": "Nofu"
+  },
+  "abantennarius nummifer": {
+    "english": [
+      "Spotfin frogfish"
+    ],
+    "group": "fish",
+    "samoan": "La'otale"
+  },
+  "abantennarius rosaceus": {
+    "english": [
+      "Spiny-tufted frogfish"
+    ],
+    "group": "fish",
+    "samoan": "La'otale"
+  },
+  "ablennes hians": {
+    "english": [
+      "Flat needlefish"
+    ],
+    "group": "fish",
+    "samoan": "A'u"
+  },
+  "abudefduf bengalensis": {
+    "english": [
+      "Bengal sergeant"
+    ],
+    "group": "fish"
+  },
+  "abudefduf septemfasciatus": {
+    "english": [
+      "Banded sergeant"
+    ],
+    "group": "fish",
+    "samoan": "Mutu"
+  },
+  "abudefduf sexfasciatus": {
+    "english": [
+      "Scissortail sergeant"
+    ],
+    "group": "fish",
+    "samoan": "Mamo"
+  },
+  "abudefduf sordidus": {
+    "english": [
+      "Blackspot sergeant"
+    ],
+    "group": "fish",
+    "samoan": "Mutu"
+  },
+  "abudefduf vaigiensis": {
+    "english": [
+      "Indo-Pacific sergeant"
+    ],
+    "group": "fish",
+    "samoan": "Mamo"
+  },
+  "acanthocybium solandri": {
+    "english": [
+      "Wahoo"
+    ],
+    "group": "fish",
+    "samoan": "Paala"
+  },
+  "acanthurus achilles": {
+    "english": [
+      "Achilles tang"
+    ],
+    "group": "fish",
+    "samoan": "Kolama"
+  },
+  "acanthurus albipectoralis": {
+    "english": [
+      "Whitefin surgeonfish"
+    ],
+    "group": "fish"
+  },
+  "acanthurus auranticavus": {
+    "english": [
+      "Orange-socket surgeonfish"
+    ],
+    "group": "fish"
+  },
+  "acanthurus blochii": {
+    "english": [
+      "Ringtail surgeonfish"
+    ],
+    "group": "fish"
+  },
+  "acanthurus guttatus": {
+    "english": [
+      "Whitespotted surgeonfish"
+    ],
+    "group": "fish",
+    "samoan": "Maogo"
+  },
+  "acanthurus lineatus": {
+    "english": [
+      "Lined surgeonfish"
+    ],
+    "group": "fish",
+    "samoan": "Alogo"
+  },
+  "acanthurus maculiceps": {
+    "english": [
+      "White-freckled surgeonfish"
+    ],
+    "group": "fish"
+  },
+  "acanthurus mata": {
+    "english": [
+      "Elongate surgeonfish"
+    ],
+    "group": "fish"
+  },
+  "acanthurus nigricans": {
+    "english": [
+      "Whitecheek surgeonfish"
+    ],
+    "group": "fish",
+    "samoan": "Gaitolama"
+  },
+  "acanthurus nigricauda": {
+    "english": [
+      "Epaulette surgeonfish"
+    ],
+    "group": "fish",
+    "samoan": "Pone-i'usina"
+  },
+  "acanthurus nigrofuscus": {
+    "english": [
+      "Brown surgeonfish"
+    ],
+    "group": "fish",
+    "samoan": "Ponepone"
+  },
+  "acanthurus nigroris": {
+    "english": [
+      "Bluelined surgeonfish"
+    ],
+    "group": "fish",
+    "samoan": "Ponepone"
+  },
+  "acanthurus olivaceus": {
+    "english": [
+      "Orangespot surgeonfish"
+    ],
+    "group": "fish",
+    "samoan": "Afinamea"
+  },
+  "acanthurus pyroferus": {
+    "english": [
+      "Mimic surgeonfish"
+    ],
+    "group": "fish",
+    "samoan": "Pone-i'usama"
+  },
+  "acanthurus thompsoni": {
+    "english": [
+      "Thompson's surgeonfish"
+    ],
+    "group": "fish",
+    "samoan": "Pone-i'usina"
+  },
+  "acanthurus triostegus": {
+    "english": [
+      "Convict surgeonfish"
+    ],
+    "group": "fish",
+    "samoan": "Manini"
+  },
+  "acanthurus xanthopterus": {
+    "english": [
+      "Yellowfin surgeonfish"
+    ],
+    "group": "fish"
+  },
+  "acentrogobius nebulosus": {
+    "english": [
+      "Shadow goby"
+    ],
+    "group": "fish",
+    "samoan": "Mano'o-gatala"
+  },
+  "aetobatus ocellatus": {
+    "english": [
+      "Ocellated eagle ray"
+    ],
+    "group": "fish"
+  },
+  "alectis ciliaris": {
+    "english": [
+      "African pompano"
+    ],
+    "group": "fish",
+    "samoan": "Noasami"
+  },
+  "alticus arnoldorum": {
+    "english": [
+      "Pacific leaping blenny"
+    ],
+    "group": "fish"
+  },
+  "alticus saliens": {
+    "english": [
+      "Leaping blenny"
+    ],
+    "group": "fish",
+    "samoan": "Mano'o-papa"
+  },
+  "aluterus scriptus": {
+    "english": [
+      "Scrawled Filefish"
+    ],
+    "group": "fish",
+    "samoan": "Falala"
+  },
+  "amanses scopas": {
+    "english": [
+      "Broom filefish"
+    ],
+    "group": "fish",
+    "samoan": "Pa'umalo"
+  },
+  "ambassis miops": {
+    "english": [
+      "Flag-tailed glass perchlet"
+    ],
+    "group": "fish",
+    "samoan": "Lafa"
+  },
+  "amblycirrhitus bimacula": {
+    "english": [
+      "Twospot hawkfish"
+    ],
+    "group": "fish",
+    "samoan": "La'o"
+  },
+  "amblycirrhitus unimacula": {
+    "english": [],
+    "group": "fish",
+    "samoan": "La'o"
+  },
+  "amblyeleotris fasciata": {
+    "english": [
+      "Red-banded prawn-goby"
+    ],
+    "group": "fish",
+    "samoan": "Mano'o-popo"
+  },
+  "amblyeleotris guttata": {
+    "english": [
+      "Spotted prawn-goby"
+    ],
+    "group": "fish",
+    "samoan": "Mano'o-popo"
+  },
+  "amblyeleotris periophthalma": {
+    "english": [
+      "Periophthalma prawn-goby"
+    ],
+    "group": "fish",
+    "samoan": "Mano'o-popo"
+  },
+  "amblyeleotris steinitzi": {
+    "english": [
+      "Steinitz' prawn-goby"
+    ],
+    "group": "fish",
+    "samoan": "Mano'o-popo"
+  },
+  "amblygaster sirm": {
+    "english": [
+      "Spotted sardinella"
+    ],
+    "group": "fish",
+    "samoan": "Pelupelu"
+  },
+  "amblyglyphidodon aureus": {
+    "english": [
+      "Golden damselfish"
+    ],
+    "group": "fish"
+  },
+  "amblyglyphidodon curacao": {
+    "english": [
+      "Staghorn damselfish"
+    ],
+    "group": "fish",
+    "samoan": "Tu'u'u"
+  },
+  "amblyglyphidodon leucogaster": {
+    "english": [
+      "Yellowbelly damselfish"
+    ],
+    "group": "fish",
+    "samoan": "Tu'u'u-mamo"
+  },
+  "amblyglyphidodon orbicularis": {
+    "english": [],
+    "group": "fish"
+  },
+  "amblygobius nocturnus": {
+    "english": [
+      "Nocturn goby"
+    ],
+    "group": "fish",
+    "samoan": "Mano'o"
+  },
+  "amblygobius phalaena": {
+    "english": [
+      "Whitebarred goby"
+    ],
+    "group": "fish",
+    "samoan": "Mano'o-fugafuga"
+  },
+  "amblypomacentrus tricinctus": {
+    "english": [
+      "Threeband damselfish"
+    ],
+    "group": "fish",
+    "samoan": "Tu'u'u"
+  },
+  "amphiprion chrysopterus": {
+    "english": [
+      "Orangefin anemonefish"
+    ],
+    "group": "fish",
+    "samoan": "Tu'u'u-lumane"
+  },
+  "amphiprion melanopus": {
+    "english": [
+      "Fire clownfish"
+    ],
+    "group": "fish",
+    "samoan": "Tu'u'u-lumane"
+  },
+  "amphiprion perideraion": {
+    "english": [
+      "Pink anemonefish"
+    ],
+    "group": "fish",
+    "samoan": "Tu'u'u-lumane"
+  },
+  "anampses caeruleopunctatus": {
+    "english": [
+      "Bluespotted wrasse"
+    ],
+    "group": "fish",
+    "samoan": "Sugale-mafalaugutu"
+  },
+  "anampses melanurus": {
+    "english": [
+      "White-spotted wrasse"
+    ],
+    "group": "fish",
+    "samoan": "Sugale"
+  },
+  "anampses meleagrides": {
+    "english": [
+      "Spotted wrasse"
+    ],
+    "group": "fish",
+    "samoan": "Sugale-tatanu"
+  },
+  "anampses twistii": {
+    "english": [
+      "Yellowbreasted wrasse"
+    ],
+    "group": "fish",
+    "samoan": "Sugale-tatanu"
+  },
+  "anarchias allardicei": {
+    "english": [
+      "Allardice's moray"
+    ],
+    "group": "fish",
+    "samoan": "Pusi"
+  },
+  "anguilla australis": {
+    "english": [
+      "Short-finned eel"
+    ],
+    "group": "fish",
+    "samoan": "Tuna"
+  },
+  "anguilla celebesensis": {
+    "english": [
+      "Celebes longfin eel"
+    ],
+    "group": "fish",
+    "samoan": "Tuna"
+  },
+  "anguilla marmorata": {
+    "english": [
+      "Giant mottled eel"
+    ],
+    "group": "fish",
+    "samoan": "Tuna"
+  },
+  "anomalops katoptron": {
+    "english": [
+      "Splitfin flashlightfish"
+    ],
+    "group": "fish"
+  },
+  "antennarius commerson": {
+    "english": [
+      "Commerson's frogfish"
+    ],
+    "group": "fish",
+    "samoan": "La'otale"
+  },
+  "antennarius pictus": {
+    "english": [
+      "Painted frogfish"
+    ],
+    "group": "fish"
+  },
+  "antennatus tuberosus": {
+    "english": [
+      "Tuberculated frogfish"
+    ],
+    "group": "fish",
+    "samoan": "La'otale"
+  },
+  "anyperodon leucogrammicus": {
+    "english": [
+      "Slender grouper"
+    ],
+    "group": "fish",
+    "samoan": "Gatala-aleva"
+  },
+  "aphareus furca": {
+    "english": [
+      "Small toothed jobfish"
+    ],
+    "group": "fish",
+    "samoan": "Palu-aloalo"
+  },
+  "aphareus rutilans": {
+    "english": [
+      "Rusty jobfish"
+    ],
+    "group": "fish",
+    "samoan": "Palu-gutusiliva"
+  },
+  "apogon coccineus": {
+    "english": [
+      "Ruby cardinalfish"
+    ],
+    "group": "fish",
+    "samoan": "Fo-si'umu"
+  },
+  "apogon crassiceps": {
+    "english": [
+      "Transparent cardinalfish"
+    ],
+    "group": "fish"
+  },
+  "apogon doryssa": {
+    "english": [
+      "Longspine cardinalfish"
+    ],
+    "group": "fish"
+  },
+  "apogon indicus": {
+    "english": [
+      "Indian cardinalfish"
+    ],
+    "group": "fish"
+  },
+  "apolemichthys trimaculatus": {
+    "english": [
+      "Threespot angelfish"
+    ],
+    "group": "fish",
+    "samoan": "Tu'u'u"
+  },
+  "aporops bilinearis": {
+    "english": [
+      "Blotched podge"
+    ],
+    "group": "fish",
+    "samoan": "Ateate"
+  },
+  "aprion virescens": {
+    "english": [
+      "Green jobfish"
+    ],
+    "group": "fish"
+  },
+  "ariosoma scheelei": {
+    "english": [
+      "Tropical conger"
+    ],
+    "group": "fish"
+  },
+  "arothron hispidus": {
+    "english": [
+      "White-spotted puffer"
+    ],
+    "group": "fish",
+    "samoan": "Sue-vaolo"
+  },
+  "arothron immaculatus": {
+    "english": [
+      "Immaculate puffer"
+    ],
+    "group": "fish",
+    "samoan": "Sue-va'a"
+  },
+  "arothron manilensis": {
+    "english": [
+      "Narrowlined puffer"
+    ],
+    "group": "fish"
+  },
+  "arothron mappa": {
+    "english": [
+      "Map puffer"
+    ],
+    "group": "fish"
+  },
+  "arothron meleagris": {
+    "english": [
+      "Guineafowl puffer"
+    ],
+    "group": "fish",
+    "samoan": "Sue-lega"
+  },
+  "arothron nigropunctatus": {
+    "english": [
+      "Blackspotted puffer"
+    ],
+    "group": "fish",
+    "samoan": "Sue-uli"
+  },
+  "arothron stellatus": {
+    "english": [
+      "Stellate puffer"
+    ],
+    "group": "fish",
+    "samoan": "Sue-va'a"
+  },
+  "aspidontus dussumieri": {
+    "english": [
+      "Lance blenny"
+    ],
+    "group": "fish",
+    "samoan": "Mano'o"
+  },
+  "aspidontus taeniatus": {
+    "english": [
+      "False cleanerfish"
+    ],
+    "group": "fish",
+    "samoan": "Mano'o-mo'o"
+  },
+  "asterropteryx bipunctata": {
+    "english": [
+      "Orange-spotted goby"
+    ],
+    "group": "fish"
+  },
+  "asterropteryx semipunctata": {
+    "english": [
+      "Starry goby"
+    ],
+    "group": "fish",
+    "samoan": "Mano'o-palea"
+  },
+  "atherinomorus lacunosus": {
+    "english": [
+      "Hardyhead silverside"
+    ],
+    "group": "fish",
+    "samoan": "Sali"
+  },
+  "atherion elymus": {
+    "english": [
+      "Bearded silverside"
+    ],
+    "group": "fish",
+    "samoan": "Sali"
+  },
+  "atropus hedlandensis": {
+    "english": [
+      "Bumpnose trevally"
+    ],
+    "group": "fish"
+  },
+  "atule mate": {
+    "english": [
+      "Yellowtail scad"
+    ],
+    "group": "fish"
+  },
+  "aulostomus chinensis": {
+    "english": [
+      "Chinese trumpetfish"
+    ],
+    "group": "fish",
+    "samoan": "Au'aulauti"
+  },
+  "aurigequula fasciata": {
+    "english": [
+      "Striped ponyfish"
+    ],
+    "group": "fish",
+    "samoan": "Mumu"
+  },
+  "awaous ocellaris": {
+    "english": [],
+    "group": "fish",
+    "samoan": "Mano'o-apofu"
+  },
+  "balistapus undulatus": {
+    "english": [
+      "Orange-lined triggerfish"
+    ],
+    "group": "fish",
+    "samoan": "Sumu-aimaunu"
+  },
+  "balistoides conspicillum": {
+    "english": [
+      "Clown triggerfish"
+    ],
+    "group": "fish",
+    "samoan": "Sumu-papa"
+  },
+  "balistoides viridescens": {
+    "english": [
+      "Titan triggerfish"
+    ],
+    "group": "fish",
+    "samoan": "Sumu-laulau"
+  },
+  "bascanichthys longipinnis": {
+    "english": [],
+    "group": "fish"
+  },
+  "bathygobius cocosensis": {
+    "english": [
+      "Cocos frill-goby"
+    ],
+    "group": "fish",
+    "samoan": "Mano'o"
+  },
+  "bathygobius cotticeps": {
+    "english": [
+      "Cheekscaled frill-goby"
+    ],
+    "group": "fish",
+    "samoan": "Mano'o-apofusami"
+  },
+  "bathygobius cyclopterus": {
+    "english": [
+      "Spotted frillgoby"
+    ],
+    "group": "fish",
+    "samoan": "Mano'o-apofusami"
+  },
+  "bathygobius fuscus": {
+    "english": [
+      "Dusky frillgoby"
+    ],
+    "group": "fish",
+    "samoan": "Mano'o-apofusami"
+  },
+  "bathygobius laddi": {
+    "english": [
+      "Brownboy goby"
+    ],
+    "group": "fish"
+  },
+  "belonoperca chabanaudi": {
+    "english": [
+      "Arrowhead soapfish"
+    ],
+    "group": "fish",
+    "samoan": "Apoua"
+  },
+  "beryx decadactylus": {
+    "english": [
+      "Alfonsino"
+    ],
+    "group": "fish"
+  },
+  "blenniella caudolineata": {
+    "english": [
+      "Blue-spotted blenny"
+    ],
+    "group": "fish"
+  },
+  "blenniella chrysospilos": {
+    "english": [
+      "Red-spotted blenny"
+    ],
+    "group": "fish",
+    "samoan": "Mano'o-a'au"
+  },
+  "blenniella paula": {
+    "english": [
+      "Bluedash rockskipper"
+    ],
+    "group": "fish"
+  },
+  "blenniella periophthalmus": {
+    "english": [
+      "Blue-dashed rockskipper"
+    ],
+    "group": "fish"
+  },
+  "bodianus axillaris": {
+    "english": [
+      "Axilspot hogfish"
+    ],
+    "group": "fish",
+    "samoan": "Sugale-vaolo"
+  },
+  "bodianus diana": {
+    "english": [
+      "Diana's hogfish"
+    ],
+    "group": "fish",
+    "samoan": "Sugale"
+  },
+  "bodianus dictynna": {
+    "english": [
+      "Redfin hogfish"
+    ],
+    "group": "fish"
+  },
+  "bodianus loxozonus": {
+    "english": [
+      "Blackfin hogfish"
+    ],
+    "group": "fish",
+    "samoan": "Sugale-a'a"
+  },
+  "bolbometopon muricatum": {
+    "english": [
+      "Green humphead parrotfish"
+    ],
+    "group": "fish",
+    "samoan": "Galo uluto'i"
+  },
+  "bostrychus sinensis": {
+    "english": [
+      "Four-eyed sleeper"
+    ],
+    "group": "fish"
+  },
+  "bothus mancus": {
+    "english": [
+      "Flowery flounder"
+    ],
+    "group": "fish",
+    "samoan": "Ali"
+  },
+  "bothus pantherinus": {
+    "english": [
+      "Leopard flounder"
+    ],
+    "group": "fish",
+    "samoan": "Ali"
+  },
+  "brachirus aspilos": {
+    "english": [],
+    "group": "fish"
+  },
+  "brachysomophis crocodilinus": {
+    "english": [
+      "Crocodile snake eel"
+    ],
+    "group": "fish",
+    "samoan": "I'aui"
+  },
+  "brosmophyciops pautzkei": {
+    "english": [
+      "Slimy cuskeel"
+    ],
+    "group": "fish"
+  },
+  "brotula multibarbata": {
+    "english": [
+      "Goatsbeard brotula"
+    ],
+    "group": "fish",
+    "samoan": "Tafuti"
+  },
+  "brotula townsendi": {
+    "english": [
+      "Townsend's cusk eel"
+    ],
+    "group": "fish",
+    "samoan": "Tafuti"
+  },
+  "bryaninops erythrops": {
+    "english": [
+      "Erythrops goby"
+    ],
+    "group": "fish",
+    "samoan": "Mano'o"
+  },
+  "bryaninops loki": {
+    "english": [
+      "Loki whip-goby"
+    ],
+    "group": "fish"
+  },
+  "bryaninops yongei": {
+    "english": [
+      "Whip coral goby"
+    ],
+    "group": "fish",
+    "samoan": "Mano'o"
+  },
+  "caesio caerulaurea": {
+    "english": [
+      "Blue and gold fusilier"
+    ],
+    "group": "fish"
+  },
+  "caesio teres": {
+    "english": [
+      "Yellow and blueback fusilier"
+    ],
+    "group": "fish"
+  },
+  "caesio xanthonota": {
+    "english": [
+      "Yellowback fusilier"
+    ],
+    "group": "fish"
+  },
+  "callechelys marmorata": {
+    "english": [
+      "Marbled snake eel"
+    ],
+    "group": "fish"
+  },
+  "callionymus simplicicornis": {
+    "english": [
+      "Simple-spined dragonet"
+    ],
+    "group": "fish"
+  },
+  "callogobius centrolepis": {
+    "english": [
+      "Centrescale goby"
+    ],
+    "group": "fish",
+    "samoan": "Mano'o"
+  },
+  "callogobius maculipinnis": {
+    "english": [
+      "Ostrich goby"
+    ],
+    "group": "fish",
+    "samoan": "Mano'o"
+  },
+  "callogobius sclateri": {
+    "english": [
+      "Pacific goby"
+    ],
+    "group": "fish",
+    "samoan": "Mano'o"
+  },
+  "calotomus carolinus": {
+    "english": [
+      "Carolines parrotfish"
+    ],
+    "group": "fish",
+    "samoan": "Fuga-valea"
+  },
+  "cantherhines dumerilii": {
+    "english": [
+      "Whitespotted filefish"
+    ],
+    "group": "fish",
+    "samoan": "Pa'umalo"
+  },
+  "cantherhines pardalis": {
+    "english": [
+      "Honeycomb filefish"
+    ],
+    "group": "fish",
+    "samoan": "Aimeo"
+  },
+  "canthidermis maculata": {
+    "english": [
+      "Rough triggerfish"
+    ],
+    "group": "fish",
+    "samoan": "Sumu-va'a"
+  },
+  "canthigaster amboinensis": {
+    "english": [
+      "Spider-eye puffer"
+    ],
+    "group": "fish",
+    "samoan": "Sue-lape"
+  },
+  "canthigaster bennetti": {
+    "english": [
+      "Bennett's sharpnose puffer"
+    ],
+    "group": "fish",
+    "samoan": "Sue-'afa"
+  },
+  "canthigaster janthinoptera": {
+    "english": [
+      "Honeycomb toby"
+    ],
+    "group": "fish",
+    "samoan": "Sue-sugale"
+  },
+  "canthigaster solandri": {
+    "english": [
+      "Spotted sharpnose"
+    ],
+    "group": "fish",
+    "samoan": "Sue-mimi"
+  },
+  "canthigaster valentini": {
+    "english": [
+      "Valentin's sharpnose puffer"
+    ],
+    "group": "fish",
+    "samoan": "Sue-mu"
+  },
+  "caracanthus maculatus": {
+    "english": [
+      "Spotted coral croucher"
+    ],
+    "group": "fish",
+    "samoan": "Tapua"
+  },
+  "caracanthus unipinna": {
+    "english": [
+      "Pygmy coral croucher"
+    ],
+    "group": "fish",
+    "samoan": "Tapua"
+  },
+  "carangichthys dinema": {
+    "english": [
+      "Shadow trevally"
+    ],
+    "group": "fish"
+  },
+  "caranx ignobilis": {
+    "english": [
+      "Giant trevally"
+    ],
+    "group": "fish",
+    "samoan": "Sapo'anae"
+  },
+  "caranx lugubris": {
+    "english": [
+      "Black jack"
+    ],
+    "group": "fish",
+    "samoan": "Tafauli"
+  },
+  "caranx melampygus": {
+    "english": [
+      "Bluefin trevally"
+    ],
+    "group": "fish",
+    "samoan": "Malauli-apamoana"
+  },
+  "caranx papuensis": {
+    "english": [
+      "Brassy trevally"
+    ],
+    "group": "fish",
+    "samoan": "Malauli-sinasama"
+  },
+  "caranx sexfasciatus": {
+    "english": [
+      "Bigeye trevally"
+    ],
+    "group": "fish",
+    "samoan": "Malauli-matalapo'a"
+  },
+  "caranx tille": {
+    "english": [
+      "Tille trevally"
+    ],
+    "group": "fish"
+  },
+  "carassius auratus": {
+    "english": [
+      "Goldfish"
+    ],
+    "group": "fish"
+  },
+  "carcharhinus albimarginatus": {
+    "english": [
+      "Silvertip shark"
+    ],
+    "group": "fish",
+    "samoan": "Aso"
+  },
+  "carcharhinus amblyrhynchos": {
+    "english": [
+      "Blacktail reef shark"
+    ],
+    "group": "fish",
+    "samoan": "Malie-aloalo"
+  },
+  "carcharhinus falciformis": {
+    "english": [
+      "Silky shark"
+    ],
+    "group": "fish",
+    "samoan": "Malie"
+  },
+  "carcharhinus galapagensis": {
+    "english": [
+      "Galapagos shark"
+    ],
+    "group": "fish",
+    "samoan": "Malie"
+  },
+  "carcharhinus leucas": {
+    "english": [
+      "Bull shark"
+    ],
+    "group": "fish",
+    "samoan": "Malie"
+  },
+  "carcharhinus limbatus": {
+    "english": [
+      "Blacktip shark"
+    ],
+    "group": "fish",
+    "samoan": "Malie"
+  },
+  "carcharhinus longimanus": {
+    "english": [
+      "Oceanic whitetip shark"
+    ],
+    "group": "fish",
+    "samoan": "Apoapo"
+  },
+  "carcharhinus melanopterus": {
+    "english": [
+      "Blacktip reef shark"
+    ],
+    "group": "fish",
+    "samoan": "Malie-alamata"
+  },
+  "centropyge aurantia": {
+    "english": [
+      "Golden angelfish"
+    ],
+    "group": "fish",
+    "samoan": "Tifitifi"
+  },
+  "centropyge bicolor": {
+    "english": [
+      "Bicolor angelfish"
+    ],
+    "group": "fish",
+    "samoan": "Tu'u'u-matamalu"
+  },
+  "centropyge bispinosa": {
+    "english": [
+      "Twospined angelfish"
+    ],
+    "group": "fish",
+    "samoan": "Tu'u'u-alomu"
+  },
+  "centropyge fisheri": {
+    "english": [
+      "Orange angelfish"
+    ],
+    "group": "fish",
+    "samoan": "Tu'u'u-uluvela"
+  },
+  "centropyge flavissima": {
+    "english": [
+      "Lemonpeel angelfish"
+    ],
+    "group": "fish",
+    "samoan": "Tu'u'u-lega"
+  },
+  "centropyge heraldi": {
+    "english": [
+      "Yellow angelfish"
+    ],
+    "group": "fish",
+    "samoan": "Tu'u'u-atugauli"
+  },
+  "centropyge loriculus": {
+    "english": [
+      "Flame angel"
+    ],
+    "group": "fish",
+    "samoan": "Tu'u'u-tusiuli"
+  },
+  "centropyge nigriocellus": {
+    "english": [
+      "Blackspot angelfish"
+    ],
+    "group": "fish"
+  },
+  "cephalopholis argus": {
+    "english": [
+      "Peacock hind"
+    ],
+    "group": "fish",
+    "samoan": "Gatala-uli"
+  },
+  "cephalopholis aurantia": {
+    "english": [
+      "Golden hind"
+    ],
+    "group": "fish",
+    "samoan": "Gatala-sega"
+  },
+  "cephalopholis igarashiensis": {
+    "english": [
+      "Garish hind"
+    ],
+    "group": "fish",
+    "samoan": "Gatala-sama"
+  },
+  "cephalopholis leopardus": {
+    "english": [
+      "Leopard hind"
+    ],
+    "group": "fish",
+    "samoan": "Gatala-sina"
+  },
+  "cephalopholis miniata": {
+    "english": [
+      "Coral hind"
+    ],
+    "group": "fish"
+  },
+  "cephalopholis sexmaculata": {
+    "english": [
+      "Sixblotch hind"
+    ],
+    "group": "fish",
+    "samoan": "Gatala-mumu"
+  },
+  "cephalopholis sonnerati": {
+    "english": [
+      "Tomato hind"
+    ],
+    "group": "fish",
+    "samoan": "Mata'ele"
+  },
+  "cephalopholis urodeta": {
+    "english": [
+      "Darkfin hind"
+    ],
+    "group": "fish",
+    "samoan": "Mata'ele"
+  },
+  "ceratobregma helenae": {
+    "english": [
+      "Helen's Triplefin"
+    ],
+    "group": "fish"
+  },
+  "cercamia eremia": {
+    "english": [
+      "Glassy cardinalfish"
+    ],
+    "group": "fish"
+  },
+  "cetoscarus ocellatus": {
+    "english": [
+      "Spotted parrotfish"
+    ],
+    "group": "fish"
+  },
+  "chaetodon auriga": {
+    "english": [
+      "Threadfin butterflyfish"
+    ],
+    "group": "fish",
+    "samoan": "I'usamasama"
+  },
+  "chaetodon citrinellus": {
+    "english": [
+      "Speckled butterflyfish"
+    ],
+    "group": "fish",
+    "samoan": "Tifitifi-muamai"
+  },
+  "chaetodon ephippium": {
+    "english": [
+      "Saddle butterflyfish"
+    ],
+    "group": "fish",
+    "samoan": "Tifitifi-tuauli"
+  },
+  "chaetodon flavirostris": {
+    "english": [
+      "Black butterflyfish"
+    ],
+    "group": "fish",
+    "samoan": "Tifitifi"
+  },
+  "chaetodon kleinii": {
+    "english": [
+      "Sunburst butterflyfish"
+    ],
+    "group": "fish",
+    "samoan": "Tifitifi"
+  },
+  "chaetodon lineolatus": {
+    "english": [
+      "Lined butterflyfish"
+    ],
+    "group": "fish",
+    "samoan": "Tifitifi-laui'a"
+  },
+  "chaetodon lunula": {
+    "english": [
+      "Raccoon butterflyfish"
+    ],
+    "group": "fish",
+    "samoan": "Tifitifi-laumea"
+  },
+  "chaetodon melannotus": {
+    "english": [
+      "Blackback butterflyfish"
+    ],
+    "group": "fish",
+    "samoan": "Tifitifi-laumoli"
+  },
+  "chaetodon mertensii": {
+    "english": [
+      "Mertens' Butterflyfish"
+    ],
+    "group": "fish",
+    "samoan": "Tifitifi-sega'ula"
+  },
+  "chaetodon ornatissimus": {
+    "english": [
+      "Ornate butterflyfish"
+    ],
+    "group": "fish",
+    "samoan": "Tifitifi-'ava'ava"
+  },
+  "chaetodon pelewensis": {
+    "english": [
+      "Sunset butterflyfish"
+    ],
+    "group": "fish",
+    "samoan": "Tifitifi-tusiloloa"
+  },
+  "chaetodon quadrimaculatus": {
+    "english": [
+      "Fourspot butterflyfish"
+    ],
+    "group": "fish",
+    "samoan": "Tifitifi-segasega"
+  },
+  "chaetodon rafflesii": {
+    "english": [
+      "Lattice butterflyfish"
+    ],
+    "group": "fish",
+    "samoan": "Tifitifi-pule"
+  },
+  "chaetodon reticulatus": {
+    "english": [
+      "Mailed butterflyfish"
+    ],
+    "group": "fish",
+    "samoan": "Tifitifi-maono"
+  },
+  "chaetodon semeion": {
+    "english": [
+      "Dotted butterflyfish"
+    ],
+    "group": "fish",
+    "samoan": "Tifitifi-si'o"
+  },
+  "chaetodon trifascialis": {
+    "english": [
+      "Chevron butterflyfish"
+    ],
+    "group": "fish",
+    "samoan": "Tifitifi-sae'u"
+  },
+  "chaetodon trifasciatus": {
+    "english": [
+      "Melon butterflyfish"
+    ],
+    "group": "fish",
+    "samoan": "Tifitifi-manifi"
+  },
+  "chaetodon ulietensis": {
+    "english": [
+      "Pacific double-saddle butterflyfish"
+    ],
+    "group": "fish",
+    "samoan": "Tifitifi-gutu'uli"
+  },
+  "chaetodon unimaculatus": {
+    "english": [
+      "Teardrop butterflyfish"
+    ],
+    "group": "fish",
+    "samoan": "Tifitifi-pulesama"
+  },
+  "chaetodon vagabundus": {
+    "english": [
+      "Vagabond butterflyfish"
+    ],
+    "group": "fish",
+    "samoan": "Tifitifi-matapua'a"
+  },
+  "chalixodytes tauensis": {
+    "english": [
+      "Saddled sandburrower"
+    ],
+    "group": "fish",
+    "samoan": "I'atolo"
+  },
+  "chanos chanos": {
+    "english": [
+      "Milkfish"
+    ],
+    "group": "fish",
+    "samoan": "Avali'i"
+  },
+  "cheilinus chlorourus": {
+    "english": [
+      "Floral wrasse"
+    ],
+    "group": "fish",
+    "samoan": "Lalafi-matapua'a"
+  },
+  "cheilinus oxycephalus": {
+    "english": [
+      "Red Maori Wrasse"
+    ],
+    "group": "fish"
+  },
+  "cheilinus trilobatus": {
+    "english": [
+      "Tripletail wrasse"
+    ],
+    "group": "fish",
+    "samoan": "Lalafi-matamumu"
+  },
+  "cheilinus undulatus": {
+    "english": [
+      "Humphead wrasse"
+    ],
+    "group": "fish",
+    "samoan": "Lalafi"
+  },
+  "cheilio inermis": {
+    "english": [
+      "Cigar wrasse"
+    ],
+    "group": "fish",
+    "samoan": "Sugale-mo'o"
+  },
+  "cheilodipterus macrodon": {
+    "english": [
+      "Large toothed cardinalfish"
+    ],
+    "group": "fish",
+    "samoan": "Fo-taoto"
+  },
+  "cheilodipterus quinquelineatus": {
+    "english": [
+      "Fiveline cardinalfish"
+    ],
+    "group": "fish",
+    "samoan": "Fo-tusiloloa"
+  },
+  "cheilopogon atrisignis": {
+    "english": [
+      "Glider flyingfish"
+    ],
+    "group": "fish",
+    "samoan": "Malolo"
+  },
+  "cheilopogon nigricans": {
+    "english": [
+      "Blacksail flyingfish"
+    ],
+    "group": "fish",
+    "samoan": "Malolo"
+  },
+  "cheilopogon spilonotopterus": {
+    "english": [
+      "Stained flyingfish"
+    ],
+    "group": "fish",
+    "samoan": "Malolo"
+  },
+  "cheilopogon spilopterus": {
+    "english": [
+      "Manyspotted flyingfish"
+    ],
+    "group": "fish",
+    "samoan": "Malolo"
+  },
+  "cheilopogon suttoni": {
+    "english": [
+      "Sutton's flyingfish"
+    ],
+    "group": "fish",
+    "samoan": "Malolo"
+  },
+  "cheilopogon unicolor": {
+    "english": [
+      "Limpid-wing flyingfish"
+    ],
+    "group": "fish",
+    "samoan": "Malolo"
+  },
+  "chlorurus bleekeri": {
+    "english": [
+      "Bleeker's parrotfish"
+    ],
+    "group": "fish"
+  },
+  "chlorurus frontalis": {
+    "english": [
+      "Pacific slopehead parrotfish"
+    ],
+    "group": "fish"
+  },
+  "chlorurus japanensis": {
+    "english": [
+      "Palecheek parrotfish"
+    ],
+    "group": "fish",
+    "samoan": "Fuga-si'umu"
+  },
+  "chlorurus microrhinos": {
+    "english": [
+      "Steephead parrots"
+    ],
+    "group": "fish",
+    "samoan": "Fugausi"
+  },
+  "chlorurus sordidus": {
+    "english": [
+      "Daisy parrotfish"
+    ],
+    "group": "fish",
+    "samoan": "Fugausi-tuavela"
+  },
+  "chlorurus spilurus": {
+    "english": [
+      "Pacific bullethead parrotfish"
+    ],
+    "group": "fish"
+  },
+  "choerodon jordani": {
+    "english": [
+      "Jordan's tuskfish"
+    ],
+    "group": "fish"
+  },
+  "choeroichthys cinctus": {
+    "english": [
+      "Barred shortbody pipefish"
+    ],
+    "group": "fish"
+  },
+  "choeroichthys sculptus": {
+    "english": [
+      "Sculptured pipefish"
+    ],
+    "group": "fish"
+  },
+  "chromis alpha": {
+    "english": [
+      "Yellow-speckled chromis"
+    ],
+    "group": "fish"
+  },
+  "chromis atripectoralis": {
+    "english": [
+      "Black-axil chromis"
+    ],
+    "group": "fish",
+    "samoan": "Tu'u'u-segasega"
+  },
+  "chromis ternatensis": {
+    "english": [
+      "Ternate chromis"
+    ],
+    "group": "fish",
+    "samoan": "Tu'u'u"
+  },
+  "chromis viridis": {
+    "english": [
+      "Blue green damselfish"
+    ],
+    "group": "fish",
+    "samoan": "I'alanumoana"
+  },
+  "chromis weberi": {
+    "english": [
+      "Weber's chromis"
+    ],
+    "group": "fish",
+    "samoan": "Tu'u'u"
+  },
+  "chromis xanthura": {
+    "english": [
+      "Paletail chromis"
+    ],
+    "group": "fish",
+    "samoan": "Tu'u'u-i'usina"
+  },
+  "chrysiptera biocellata": {
+    "english": [
+      "Twinspot damselfish"
+    ],
+    "group": "fish",
+    "samoan": "Tu'u'u-ulavapua"
+  },
+  "chrysiptera brownriggii": {
+    "english": [
+      "Surge damselfish"
+    ],
+    "group": "fish",
+    "samoan": "Tu'u'u-alamu"
+  },
+  "chrysiptera caeruleolineata": {
+    "english": [
+      "Blueline demoiselle"
+    ],
+    "group": "fish",
+    "samoan": "Tu'u'u"
+  },
+  "chrysiptera cyanea": {
+    "english": [
+      "Sapphire devil"
+    ],
+    "group": "fish",
+    "samoan": "Vaiuli-sama"
+  },
+  "chrysiptera glauca": {
+    "english": [
+      "Grey demoiselle"
+    ],
+    "group": "fish",
+    "samoan": "Tu'u'u"
+  },
+  "chrysiptera taupou": {
+    "english": [
+      "Southseas devil"
+    ],
+    "group": "fish"
+  },
+  "cirrhilabrus roseafascia": {
+    "english": [
+      "pink-banded fairy-warsse"
+    ],
+    "group": "fish"
+  },
+  "cirrhitichthys falco": {
+    "english": [
+      "Dwarf hawkfish"
+    ],
+    "group": "fish",
+    "samoan": "La'o-gatala"
+  },
+  "cirrhitus pinnulatus": {
+    "english": [
+      "Stocky hawkfish"
+    ],
+    "group": "fish",
+    "samoan": "Ulutu'i"
+  },
+  "cirripectes castaneus": {
+    "english": [
+      "Chestnut eyelash-blenny"
+    ],
+    "group": "fish"
+  },
+  "cirripectes fuscoguttatus": {
+    "english": [
+      "Spotted blenny"
+    ],
+    "group": "fish",
+    "samoan": "Mano'o-sofe"
+  },
+  "cirripectes jenningsi": {
+    "english": [],
+    "group": "fish"
+  },
+  "cirripectes polyzona": {
+    "english": [],
+    "group": "fish"
+  },
+  "cirripectes quagga": {
+    "english": [
+      "Squiggly blenny"
+    ],
+    "group": "fish",
+    "samoan": "Mano'o"
+  },
+  "cirripectes stigmaticus": {
+    "english": [
+      "Red-streaked blenny"
+    ],
+    "group": "fish",
+    "samoan": "Mano'o-la'o"
+  },
+  "cirripectes variolosus": {
+    "english": [
+      "Red-speckled blenny"
+    ],
+    "group": "fish",
+    "samoan": "Mano'o-la'o"
+  },
+  "concholabrus fasciatus": {
+    "english": [
+      "Redbreasted wrasse"
+    ],
+    "group": "fish",
+    "samoan": "Lalafi-pulepule"
+  },
+  "conger cinereus": {
+    "english": [
+      "Longfin African conger"
+    ],
+    "group": "fish",
+    "samoan": "Pusi-solasulu"
+  },
+  "conidens samoensis": {
+    "english": [],
+    "group": "fish"
+  },
+  "coris aygula": {
+    "english": [
+      "Clown coris"
+    ],
+    "group": "fish",
+    "samoan": "Sugale-uluto'i"
+  },
+  "coris gaimard": {
+    "english": [
+      "African coris"
+    ],
+    "group": "fish",
+    "samoan": "Sugale-mumu"
+  },
+  "coryphaena hippurus": {
+    "english": [
+      "Common dolphinfish"
+    ],
+    "group": "fish",
+    "samoan": "Masimasi"
+  },
+  "corythoichthys amplexus": {
+    "english": [
+      "Brown-banded pipefish"
+    ],
+    "group": "fish"
+  },
+  "corythoichthys flavofasciatus": {
+    "english": [
+      "Network pipefish"
+    ],
+    "group": "fish"
+  },
+  "corythoichthys haematopterus": {
+    "english": [
+      "Messmate pipefish"
+    ],
+    "group": "fish"
+  },
+  "corythoichthys intestinalis": {
+    "english": [
+      "Scribbled pipefish"
+    ],
+    "group": "fish"
+  },
+  "cosmocampus maxweberi": {
+    "english": [
+      "Maxweber's pipefish"
+    ],
+    "group": "fish"
+  },
+  "craterognathus plagiotaenia": {
+    "english": [
+      "Barcheek trevally"
+    ],
+    "group": "fish"
+  },
+  "crossosalarias macrospilus": {
+    "english": [
+      "Tripplespot blenny"
+    ],
+    "group": "fish"
+  },
+  "cryptocentrus leucostictus": {
+    "english": [
+      "Saddled prawn-goby"
+    ],
+    "group": "fish",
+    "samoan": "Mano'o-popo"
+  },
+  "cryptocentrus strigilliceps": {
+    "english": [
+      "Target shrimp goby"
+    ],
+    "group": "fish",
+    "samoan": "Mano'o"
+  },
+  "crystallodytes enderburyensis": {
+    "english": [],
+    "group": "fish"
+  },
+  "ctenochaetus binotatus": {
+    "english": [
+      "Twospot surgeonfish"
+    ],
+    "group": "fish"
+  },
+  "ctenochaetus cyanocheilus": {
+    "english": [
+      "Short-tail bristletooth"
+    ],
+    "group": "fish"
+  },
+  "ctenochaetus hawaiiensis": {
+    "english": [
+      "Chevron tang"
+    ],
+    "group": "fish"
+  },
+  "ctenochaetus striatus": {
+    "english": [
+      "Striated surgeonfish"
+    ],
+    "group": "fish",
+    "samoan": "Pala'ia"
+  },
+  "ctenogobiops aurocingulus": {
+    "english": [
+      "Gold-streaked prawn-goby"
+    ],
+    "group": "fish",
+    "samoan": "Mano'o-popo"
+  },
+  "ctenogobiops tangaroai": {
+    "english": [
+      "Tangaroa shrimpgoby"
+    ],
+    "group": "fish",
+    "samoan": "Mano'o"
+  },
+  "cymolutes praetextatus": {
+    "english": [
+      "Knife razorfish"
+    ],
+    "group": "fish"
+  },
+  "cypselurus angusticeps": {
+    "english": [
+      "Narrowhead flyingfish"
+    ],
+    "group": "fish",
+    "samoan": "Malolo"
+  },
+  "cypselurus poecilopterus": {
+    "english": [
+      "Yellow-wing flyingfish"
+    ],
+    "group": "fish",
+    "samoan": "Malolo"
+  },
+  "cypselurus simus": {
+    "english": [
+      "Short-nosed flyingfish"
+    ],
+    "group": "fish"
+  },
+  "dascyllus aruanus": {
+    "english": [
+      "Whitetail dascyllus"
+    ],
+    "group": "fish",
+    "samoan": "Mamo"
+  },
+  "dascyllus reticulatus": {
+    "english": [
+      "Reticulate dascyllus"
+    ],
+    "group": "fish",
+    "samoan": "Tu'u'u-koko"
+  },
+  "dascyllus trimaculatus": {
+    "english": [
+      "Threespot dascyllus"
+    ],
+    "group": "fish",
+    "samoan": "Tu'u'u-pulelua"
+  },
+  "decapterus macarellus": {
+    "english": [
+      "Mackerel scad"
+    ],
+    "group": "fish",
+    "samoan": "Atuleau"
+  },
+  "decapterus macrosoma": {
+    "english": [
+      "Shortfin scad"
+    ],
+    "group": "fish",
+    "samoan": "Atuleau"
+  },
+  "decapterus tabl": {
+    "english": [
+      "Roughear scad"
+    ],
+    "group": "fish"
+  },
+  "dendrochirus zebra": {
+    "english": [
+      "Zebra turkeyfish"
+    ],
+    "group": "fish"
+  },
+  "diancistrus beateae": {
+    "english": [
+      "Beate's coralbrotula"
+    ],
+    "group": "fish"
+  },
+  "dinematichthys iluocoeteoides": {
+    "english": [
+      "Yellow pigmy brotula"
+    ],
+    "group": "fish"
+  },
+  "diodon eydouxii": {
+    "english": [
+      "Pelagic porcupinefish"
+    ],
+    "group": "fish"
+  },
+  "diodon hystrix": {
+    "english": [
+      "Spot-fin porcupinefish"
+    ],
+    "group": "fish",
+    "samoan": "Tautu"
+  },
+  "diodon liturosus": {
+    "english": [
+      "Black-blotched porcupinefish"
+    ],
+    "group": "fish",
+    "samoan": "Tauta"
+  },
+  "diplogrammus goramensis": {
+    "english": [
+      "Goram dragonet"
+    ],
+    "group": "fish"
+  },
+  "diplospinus multistriatus": {
+    "english": [
+      "Striped escolar"
+    ],
+    "group": "fish"
+  },
+  "doryrhamphus excisus": {
+    "english": [
+      "Bluestripe pipefish"
+    ],
+    "group": "fish"
+  },
+  "drepane longimana": {
+    "english": [
+      "Concertina fish"
+    ],
+    "group": "fish"
+  },
+  "drepane punctata": {
+    "english": [
+      "Spotted sicklefish"
+    ],
+    "group": "fish"
+  },
+  "dunckerocampus dactyliophorus": {
+    "english": [
+      "Ringed pipefish"
+    ],
+    "group": "fish"
+  },
+  "dussumieria acuta": {
+    "english": [
+      "Rainbow sardine"
+    ],
+    "group": "fish",
+    "samoan": "Pelupelu"
+  },
+  "echelus uropterus": {
+    "english": [
+      "Finned worm eel"
+    ],
+    "group": "fish"
+  },
+  "echeneis naucrates": {
+    "english": [
+      "Live sharksucker"
+    ],
+    "group": "fish",
+    "samoan": "Talitaliuli"
+  },
+  "echidna delicatula": {
+    "english": [
+      "Mottled moray"
+    ],
+    "group": "fish",
+    "samoan": "Pusi"
+  },
+  "echidna leucotaenia": {
+    "english": [
+      "Whiteface moray"
+    ],
+    "group": "fish",
+    "samoan": "Mutupu'u"
+  },
+  "echidna nebulosa": {
+    "english": [
+      "Starry moray"
+    ],
+    "group": "fish",
+    "samoan": "Ai'aiuga"
+  },
+  "echidna polyzona": {
+    "english": [
+      "Barred moray"
+    ],
+    "group": "fish",
+    "samoan": "Pusi"
+  },
+  "echidna unicolor": {
+    "english": [
+      "Unicolor moray"
+    ],
+    "group": "fish",
+    "samoan": "Pusi"
+  },
+  "echidna xanthospilos": {
+    "english": [
+      "Yellow-spotted moray"
+    ],
+    "group": "fish"
+  },
+  "ecsenius bicolor": {
+    "english": [
+      "Bicolor blenny"
+    ],
+    "group": "fish",
+    "samoan": "Mano'o-i'usama"
+  },
+  "ecsenius opsifrontalis": {
+    "english": [
+      "Comical blenny"
+    ],
+    "group": "fish",
+    "samoan": "Mano'o"
+  },
+  "ecsenius portenoyi": {
+    "english": [],
+    "group": "fish"
+  },
+  "elagatis bipinnulata": {
+    "english": [
+      "Rainbow runner"
+    ],
+    "group": "fish",
+    "samoan": "Samani"
+  },
+  "eleotris fusca": {
+    "english": [
+      "Dusky sleeper"
+    ],
+    "group": "fish",
+    "samoan": "Apofu"
+  },
+  "eleotris melanosoma": {
+    "english": [
+      "Broadhead sleeper"
+    ],
+    "group": "fish",
+    "samoan": "Apofu"
+  },
+  "ellochelon vaigiensis": {
+    "english": [
+      "Squaretail mullet"
+    ],
+    "group": "fish",
+    "samoan": "Fuitogo"
+  },
+  "elops hawaiensis": {
+    "english": [
+      "Hawaiian ladyfish"
+    ],
+    "group": "fish"
+  },
+  "ematops randalli": {
+    "english": [
+      "Randall's viviparous brotula"
+    ],
+    "group": "fish"
+  },
+  "encheliophis boraborensis": {
+    "english": [
+      "Pinhead pearlfish"
+    ],
+    "group": "fish"
+  },
+  "encheliophis gracilis": {
+    "english": [
+      "Graceful pearlfish"
+    ],
+    "group": "fish"
+  },
+  "encheliophis homei": {
+    "english": [
+      "Silver pearlfish"
+    ],
+    "group": "fish",
+    "samoan": "I'aui"
+  },
+  "enchelycore bayeri": {
+    "english": [
+      "Bayer's moray"
+    ],
+    "group": "fish",
+    "samoan": "Auvaeloloa-uli"
+  },
+  "enchelycore bikiniensis": {
+    "english": [
+      "Bikini Atoll moray"
+    ],
+    "group": "fish"
+  },
+  "enchelycore pardalis": {
+    "english": [
+      "Leopard moray eel"
+    ],
+    "group": "fish",
+    "samoan": "Pusi"
+  },
+  "enchelycore schismatorhynchus": {
+    "english": [
+      "White-margined moray"
+    ],
+    "group": "fish",
+    "samoan": "Auvaeloloa"
+  },
+  "enchelynassa canina": {
+    "english": [
+      "Longfang moray"
+    ],
+    "group": "fish",
+    "samoan": "Auvaeloloa-sina"
+  },
+  "enchelyurus ater": {
+    "english": [
+      "Black blenny"
+    ],
+    "group": "fish",
+    "samoan": "Mano'o"
+  },
+  "encrasicholina heteroloba": {
+    "english": [
+      "Shorthead anchovy"
+    ],
+    "group": "fish"
+  },
+  "encrasicholina punctifer": {
+    "english": [
+      "Buccaneer anchovy"
+    ],
+    "group": "fish"
+  },
+  "enneapterygius elegans": {
+    "english": [
+      "Hourglass triplefin"
+    ],
+    "group": "fish"
+  },
+  "enneapterygius fuscoventer": {
+    "english": [
+      "Blackbelly triplefin"
+    ],
+    "group": "fish"
+  },
+  "enneapterygius hemimelas": {
+    "english": [
+      "Halfblack Triplefin"
+    ],
+    "group": "fish",
+    "samoan": "Mano'o-taoto"
+  },
+  "enneapterygius minutus": {
+    "english": [],
+    "group": "fish",
+    "samoan": "Mano'o-taoto"
+  },
+  "enneapterygius nigricauda": {
+    "english": [
+      "Blacktail triplefin"
+    ],
+    "group": "fish"
+  },
+  "enneapterygius niue": {
+    "english": [
+      "Redbar triplefin"
+    ],
+    "group": "fish"
+  },
+  "enneapterygius philippinus": {
+    "english": [
+      "Minute triplefin"
+    ],
+    "group": "fish",
+    "samoan": "Mano'o-taoto"
+  },
+  "enneapterygius tutuilae": {
+    "english": [
+      "High-hat Triplefin"
+    ],
+    "group": "fish"
+  },
+  "entomacrodus caudofasciatus": {
+    "english": [
+      "Tail-barred rockskipper"
+    ],
+    "group": "fish",
+    "samoan": "Mano'o-fala"
+  },
+  "entomacrodus decussatus": {
+    "english": [
+      "Wavy-lined blenny"
+    ],
+    "group": "fish",
+    "samoan": "Mano'o-fala"
+  },
+  "entomacrodus epalzeocheilos": {
+    "english": [
+      "Fringelip rockskipper"
+    ],
+    "group": "fish",
+    "samoan": "Mano'o-fala"
+  },
+  "entomacrodus niuafoouensis": {
+    "english": [
+      "Tattoo-chin rockskipper"
+    ],
+    "group": "fish",
+    "samoan": "Mano'o-fala"
+  },
+  "entomacrodus sealei": {
+    "english": [
+      "Seale's rockskipper"
+    ],
+    "group": "fish"
+  },
+  "entomacrodus striatus": {
+    "english": [
+      "Reef margin blenny"
+    ],
+    "group": "fish",
+    "samoan": "Mano'o-fala"
+  },
+  "entomacrodus thalassinus": {
+    "english": [
+      "Sea blenny"
+    ],
+    "group": "fish",
+    "samoan": "Mano'o-fala"
+  },
+  "epibulus insidiator": {
+    "english": [
+      "Sling-jaw wrasse"
+    ],
+    "group": "fish",
+    "samoan": "Si'umutu"
+  },
+  "epinephelus chlorostigma": {
+    "english": [
+      "Brownspotted grouper"
+    ],
+    "group": "fish"
+  },
+  "epinephelus coioides": {
+    "english": [
+      "Orange-spotted grouper"
+    ],
+    "group": "fish"
+  },
+  "epinephelus fasciatus": {
+    "english": [
+      "Blacktip grouper"
+    ],
+    "group": "fish",
+    "samoan": "Fausi"
+  },
+  "epinephelus fuscoguttatus": {
+    "english": [
+      "Brown-marbled grouper"
+    ],
+    "group": "fish",
+    "samoan": "Gatala-aloalo"
+  },
+  "epinephelus hexagonatus": {
+    "english": [
+      "Starspotted grouper"
+    ],
+    "group": "fish",
+    "samoan": "Gatala-a'au"
+  },
+  "epinephelus howlandi": {
+    "english": [
+      "Blacksaddle grouper"
+    ],
+    "group": "fish"
+  },
+  "epinephelus lanceolatus": {
+    "english": [
+      "Giant grouper"
+    ],
+    "group": "fish",
+    "samoan": "Ata'ata-uli"
+  },
+  "epinephelus macrospilos": {
+    "english": [
+      "Snubnose grouper"
+    ],
+    "group": "fish"
+  },
+  "epinephelus maculatus": {
+    "english": [
+      "Highfin grouper"
+    ],
+    "group": "fish",
+    "samoan": "Gatala-puleuli"
+  },
+  "epinephelus melanostigma": {
+    "english": [
+      "One-blotch grouper"
+    ],
+    "group": "fish",
+    "samoan": "Gatala-puletasi"
+  },
+  "epinephelus merra": {
+    "english": [
+      "Honeycomb grouper"
+    ],
+    "group": "fish",
+    "samoan": "Gatala-aloalo"
+  },
+  "epinephelus miliaris": {
+    "english": [
+      "Netfin grouper"
+    ],
+    "group": "fish",
+    "samoan": "Ata'ata-uli"
+  },
+  "epinephelus morrhua": {
+    "english": [
+      "Comet grouper"
+    ],
+    "group": "fish",
+    "samoan": "Ata'ata-tusitusi"
+  },
+  "epinephelus polyphekadion": {
+    "english": [
+      "Camouflage grouper"
+    ],
+    "group": "fish",
+    "samoan": "Gatala-aloalo"
+  },
+  "epinephelus retouti": {
+    "english": [
+      "Red-tipped grouper"
+    ],
+    "group": "fish"
+  },
+  "epinephelus socialis": {
+    "english": [
+      "Surge grouper"
+    ],
+    "group": "fish"
+  },
+  "epinephelus spilotoceps": {
+    "english": [
+      "Foursaddle grouper"
+    ],
+    "group": "fish"
+  },
+  "epinephelus tauvina": {
+    "english": [
+      "Greasy grouper"
+    ],
+    "group": "fish",
+    "samoan": "Gatala-tane"
+  },
+  "epinephelus timorensis": {
+    "english": [
+      "Yellowspotted grouper"
+    ],
+    "group": "fish"
+  },
+  "epinnula magistralis": {
+    "english": [
+      "Domine"
+    ],
+    "group": "fish"
+  },
+  "etelis boweni": {
+    "english": [
+      "Giant ruby snapper"
+    ],
+    "group": "fish"
+  },
+  "etelis carbunculus": {
+    "english": [
+      "Deep-water red snapper"
+    ],
+    "group": "fish",
+    "samoan": "Palu-malau"
+  },
+  "etelis coruscans": {
+    "english": [
+      "Deepwater longtail red snapper"
+    ],
+    "group": "fish",
+    "samoan": "Palu-malau"
+  },
+  "etelis radiosus": {
+    "english": [
+      "Pale snapper"
+    ],
+    "group": "fish"
+  },
+  "euleptorhamphus viridis": {
+    "english": [
+      "Ribbon halfbeak"
+    ],
+    "group": "fish",
+    "samoan": "I'usila"
+  },
+  "euthynnus affinis": {
+    "english": [
+      "Kawakawa"
+    ],
+    "group": "fish",
+    "samoan": "Atualo"
+  },
+  "eviota afelei": {
+    "english": [
+      "Afele's dwarfgoby"
+    ],
+    "group": "fish",
+    "samoan": "Mano'o-moi"
+  },
+  "eviota distigma": {
+    "english": [
+      "Twospot dwarfgoby"
+    ],
+    "group": "fish",
+    "samoan": "Mano'o-moi"
+  },
+  "eviota guttata": {
+    "english": [
+      "Spotted dwarfgoby"
+    ],
+    "group": "fish"
+  },
+  "eviota herrei": {
+    "english": [
+      "Herre's dwarfgoby"
+    ],
+    "group": "fish",
+    "samoan": "Mano'o-moi"
+  },
+  "eviota melasma": {
+    "english": [
+      "Headspot dwarfgoby"
+    ],
+    "group": "fish",
+    "samoan": "Mano'o-moi"
+  },
+  "eviota prasites": {
+    "english": [
+      "Hairfin dwarfgoby"
+    ],
+    "group": "fish",
+    "samoan": "Mano'o-lele"
+  },
+  "eviota sebreei": {
+    "english": [
+      "Sebree's dwarfgoby"
+    ],
+    "group": "fish",
+    "samoan": "Mano'o-moi"
+  },
+  "eviota smaragdus": {
+    "english": [
+      "Emerald dwarfgoby"
+    ],
+    "group": "fish",
+    "samoan": "Mano'o-moi"
+  },
+  "eviota sparsa": {
+    "english": [
+      "Speckled dwarfgoby"
+    ],
+    "group": "fish"
+  },
+  "eviota taeiae": {
+    "english": [
+      "Taei's dwarfgoby"
+    ],
+    "group": "fish"
+  },
+  "eviota zonura": {
+    "english": [
+      "Zoned dwarfgoby"
+    ],
+    "group": "fish",
+    "samoan": "Mano'o-moi"
+  },
+  "exallias brevis": {
+    "english": [
+      "Leopard blenny"
+    ],
+    "group": "fish",
+    "samoan": "Mano’o-lau"
+  },
+  "exocoetus monocirrhus": {
+    "english": [
+      "Barbel flyingfish"
+    ],
+    "group": "fish",
+    "samoan": "Malolo"
+  },
+  "exocoetus obtusirostris": {
+    "english": [
+      "Oceanic two-wing flyingfish"
+    ],
+    "group": "fish",
+    "samoan": "Malolo"
+  },
+  "exocoetus volitans": {
+    "english": [
+      "Tropical two-wing flyingfish"
+    ],
+    "group": "fish",
+    "samoan": "Malolo"
+  },
+  "exyrias belissimus": {
+    "english": [
+      "Mud reef-goby"
+    ],
+    "group": "fish"
+  },
+  "exyrias puntang": {
+    "english": [
+      "Puntang goby"
+    ],
+    "group": "fish",
+    "samoan": "Mano'o"
+  },
+  "ferdauia ferdau": {
+    "english": [
+      "Blue trevally"
+    ],
+    "group": "fish"
+  },
+  "ferdauia orthogrammus": {
+    "english": [
+      "Island trevally"
+    ],
+    "group": "fish"
+  },
+  "fibramia lateralis": {
+    "english": [
+      "Humpback cardinal"
+    ],
+    "group": "fish",
+    "samoan": "Fo"
+  },
+  "fistularia commersonii": {
+    "english": [
+      "Bluespotted cornetfish"
+    ],
+    "group": "fish",
+    "samoan": "Taotao"
+  },
+  "foa fo": {
+    "english": [
+      "Weedy cardinalfish"
+    ],
+    "group": "fish",
+    "samoan": "Fo"
+  },
+  "forcipiger flavissimus": {
+    "english": [
+      "Forcepsfish"
+    ],
+    "group": "fish",
+    "samoan": "Gutumanu"
+  },
+  "forcipiger longirostris": {
+    "english": [
+      "Longnose butterflyfish"
+    ],
+    "group": "fish",
+    "samoan": "Gutumanu"
+  },
+  "fowleria aurita": {
+    "english": [
+      "Crosseyed cardinalfish"
+    ],
+    "group": "fish"
+  },
+  "fowleria marmorata": {
+    "english": [
+      "Marbled cardinalfish"
+    ],
+    "group": "fish",
+    "samoan": "Fo-mumu"
+  },
+  "fowleria vaiulae": {
+    "english": [
+      "Mottled cardinalfish"
+    ],
+    "group": "fish",
+    "samoan": "Fo"
+  },
+  "fowleria variegata": {
+    "english": [
+      "Variegated cardinalfish"
+    ],
+    "group": "fish",
+    "samoan": "Fo"
+  },
+  "fusigobius duospilus": {
+    "english": [
+      "Barenape goby"
+    ],
+    "group": "fish"
+  },
+  "fusigobius neophytus": {
+    "english": [
+      "Common fusegoby"
+    ],
+    "group": "fish",
+    "samoan": "Mano'o"
+  },
+  "galeocerdo cuvier": {
+    "english": [
+      "Tiger shark"
+    ],
+    "group": "fish",
+    "samoan": "Naiufi"
+  },
+  "gambusia affinis": {
+    "english": [
+      "Mosquitofish"
+    ],
+    "group": "fish"
+  },
+  "gazza minuta": {
+    "english": [
+      "Toothpony"
+    ],
+    "group": "fish",
+    "samoan": "Mumu"
+  },
+  "gempylus serpens": {
+    "english": [
+      "Snake mackerel"
+    ],
+    "group": "fish"
+  },
+  "gerres longirostris": {
+    "english": [
+      "Strongspine silver-biddy"
+    ],
+    "group": "fish"
+  },
+  "gerres oblongus": {
+    "english": [
+      "Slender silverbiddy"
+    ],
+    "group": "fish",
+    "samoan": "Matu-loa"
+  },
+  "gerres oyena": {
+    "english": [
+      "Common silverbiddy"
+    ],
+    "group": "fish",
+    "samoan": "Matu"
+  },
+  "gerres setifer": {
+    "english": [
+      "Small Bengal silver-biddy"
+    ],
+    "group": "fish",
+    "samoan": "Matu"
+  },
+  "gibberichthys latifrons": {
+    "english": [
+      "Small-scaled gibberfish"
+    ],
+    "group": "fish"
+  },
+  "glyptoparus delicatulus": {
+    "english": [
+      "Delicate blenny"
+    ],
+    "group": "fish"
+  },
+  "gnathanodon speciosus": {
+    "english": [
+      "Golden trevally"
+    ],
+    "group": "fish",
+    "samoan": "Lupovai"
+  },
+  "gnathodentex aureolineatus": {
+    "english": [
+      "Striped large-eye bream"
+    ],
+    "group": "fish",
+    "samoan": "Tolai"
+  },
+  "gnatholepis anjerensis": {
+    "english": [
+      "Eye-bar goby"
+    ],
+    "group": "fish",
+    "samoan": "Mano'o"
+  },
+  "gobiodon citrinus": {
+    "english": [
+      "Poison goby"
+    ],
+    "group": "fish",
+    "samoan": "Moemimi"
+  },
+  "gobiodon histrio": {
+    "english": [
+      "Broad-barred goby"
+    ],
+    "group": "fish"
+  },
+  "gobiodon rivulatus": {
+    "english": [
+      "Rippled coralgoby"
+    ],
+    "group": "fish",
+    "samoan": "Mano'o-ulutu'i"
+  },
+  "gomphosus varius": {
+    "english": [
+      "Bird wrasse"
+    ],
+    "group": "fish",
+    "samoan": "Gutusi'o"
+  },
+  "gorgasia naeocepaea": {
+    "english": [
+      "Freckled garden eel"
+    ],
+    "group": "fish"
+  },
+  "gracila albomarginata": {
+    "english": [
+      "Masked grouper"
+    ],
+    "group": "fish"
+  },
+  "grammatorcynus bilineatus": {
+    "english": [
+      "Doublelined mackerel"
+    ],
+    "group": "fish"
+  },
+  "grammistes sexlineatus": {
+    "english": [
+      "Goldenstriped soapfish"
+    ],
+    "group": "fish",
+    "samoan": "Tusiloa"
+  },
+  "grammistops ocellatus": {
+    "english": [
+      "Ocellate soapfish"
+    ],
+    "group": "fish",
+    "samoan": "Anaoso"
+  },
+  "gunnellichthys monostigma": {
+    "english": [
+      "Onespot wormfish"
+    ],
+    "group": "fish",
+    "samoan": "Mano'o-ui"
+  },
+  "gunnellichthys pleurotaenia": {
+    "english": [
+      "Onestripe wormfish"
+    ],
+    "group": "fish",
+    "samoan": "Mano'o-ui"
+  },
+  "gunnellichthys viridescens": {
+    "english": [
+      "Yellowstripe wormfish"
+    ],
+    "group": "fish"
+  },
+  "gymnapogon urospilotus": {
+    "english": [
+      "B-spot cardinalfish"
+    ],
+    "group": "fish",
+    "samoan": "Fo"
+  },
+  "gymnocranius euanus": {
+    "english": [
+      "Japanese large-eye bream"
+    ],
+    "group": "fish"
+  },
+  "gymnocranius grandoculis": {
+    "english": [
+      "Blue-lined large-eye bream"
+    ],
+    "group": "fish",
+    "samoan": "Filoa-gutupu'u"
+  },
+  "gymnomuraena zebra": {
+    "english": [
+      "Zebra moray"
+    ],
+    "group": "fish",
+    "samoan": "To'etapu"
+  },
+  "gymnosarda unicolor": {
+    "english": [
+      "Dogtooth tuna"
+    ],
+    "group": "fish",
+    "samoan": "Tagi"
+  },
+  "gymnothorax albimarginatus": {
+    "english": [
+      "Whitemargin moray"
+    ],
+    "group": "fish"
+  },
+  "gymnothorax buroensis": {
+    "english": [
+      "Latticetail moray"
+    ],
+    "group": "fish",
+    "samoan": "Pusi"
+  },
+  "gymnothorax chilospilus": {
+    "english": [
+      "Lipspot moray"
+    ],
+    "group": "fish",
+    "samoan": "Pusi"
+  },
+  "gymnothorax elegans": {
+    "english": [
+      "Elegant moray"
+    ],
+    "group": "fish",
+    "samoan": "Pusi"
+  },
+  "gymnothorax enigmaticus": {
+    "english": [
+      "Enigmatic moray"
+    ],
+    "group": "fish",
+    "samoan": "Pusi"
+  },
+  "gymnothorax fimbriatus": {
+    "english": [
+      "Fimbriate moray"
+    ],
+    "group": "fish",
+    "samoan": "Papata-pulepule"
+  },
+  "gymnothorax flavimarginatus": {
+    "english": [
+      "Yellow-edged moray"
+    ],
+    "group": "fish",
+    "samoan": "Pusi"
+  },
+  "gymnothorax fuscomaculatus": {
+    "english": [
+      "Brown spotted moray"
+    ],
+    "group": "fish",
+    "samoan": "Pusi"
+  },
+  "gymnothorax gracilicauda": {
+    "english": [
+      "Slendertail moray"
+    ],
+    "group": "fish",
+    "samoan": "Pusi"
+  },
+  "gymnothorax hepaticus": {
+    "english": [
+      "Liver-colored moray eel"
+    ],
+    "group": "fish",
+    "samoan": "Pusi"
+  },
+  "gymnothorax javanicus": {
+    "english": [
+      "Giant moray"
+    ],
+    "group": "fish",
+    "samoan": "Maoa'e"
+  },
+  "gymnothorax margaritophorus": {
+    "english": [
+      "Blotch-necked moray"
+    ],
+    "group": "fish",
+    "samoan": "Pusi-a'au"
+  },
+  "gymnothorax melatremus": {
+    "english": [
+      "Dwarf moray"
+    ],
+    "group": "fish",
+    "samoan": "Pusi"
+  },
+  "gymnothorax meleagris": {
+    "english": [
+      "Turkey moray"
+    ],
+    "group": "fish",
+    "samoan": "Ai'aiivi"
+  },
+  "gymnothorax monostigma": {
+    "english": [
+      "One-spot moray"
+    ],
+    "group": "fish",
+    "samoan": "Pusi"
+  },
+  "gymnothorax pictus": {
+    "english": [
+      "Paintspotted moray"
+    ],
+    "group": "fish",
+    "samoan": "Onea"
+  },
+  "gymnothorax pindae": {
+    "english": [
+      "Pinda moray"
+    ],
+    "group": "fish",
+    "samoan": "Pusi"
+  },
+  "gymnothorax reevesii": {
+    "english": [
+      "Reeve's moray"
+    ],
+    "group": "fish"
+  },
+  "gymnothorax richardsonii": {
+    "english": [
+      "Richardson's moray"
+    ],
+    "group": "fish",
+    "samoan": "Pusi"
+  },
+  "gymnothorax rueppelliae": {
+    "english": [
+      "Banded moray"
+    ],
+    "group": "fish",
+    "samoan": "Papata-tusitusi"
+  },
+  "gymnothorax thyrsoideus": {
+    "english": [
+      "Greyface moray"
+    ],
+    "group": "fish",
+    "samoan": "Pusi"
+  },
+  "gymnothorax undulatus": {
+    "english": [
+      "Undulated moray"
+    ],
+    "group": "fish",
+    "samoan": "Pusi-pulepule"
+  },
+  "gymnothorax zonipectis": {
+    "english": [
+      "Barredfin moray"
+    ],
+    "group": "fish",
+    "samoan": "Pulenini'i"
+  },
+  "halicampus mataafae": {
+    "english": [
+      "Samoan pipefish"
+    ],
+    "group": "fish"
+  },
+  "halicampus spinirostris": {
+    "english": [
+      "Spinysnout pipefish"
+    ],
+    "group": "fish"
+  },
+  "halichoeres biocellatus": {
+    "english": [
+      "Red-lined wrasse"
+    ],
+    "group": "fish",
+    "samoan": "Sugale"
+  },
+  "halichoeres hartzfeldii": {
+    "english": [
+      "Hartzfeld's wrasse"
+    ],
+    "group": "fish",
+    "samoan": "Sugale-tatanu"
+  },
+  "halichoeres hortulanus": {
+    "english": [
+      "Checkerboard wrasse"
+    ],
+    "group": "fish",
+    "samoan": "Sugale-a'au"
+  },
+  "halichoeres margaritaceus": {
+    "english": [
+      "Pink-belly wrasse"
+    ],
+    "group": "fish",
+    "samoan": "Sugale-uluvela"
+  },
+  "halichoeres marginatus": {
+    "english": [
+      "Dusky wrasse"
+    ],
+    "group": "fish",
+    "samoan": "Sugale-lalafi"
+  },
+  "halichoeres melanurus": {
+    "english": [
+      "Tailspot wrasse"
+    ],
+    "group": "fish",
+    "samoan": "Sugale"
+  },
+  "halichoeres melasmapomus": {
+    "english": [
+      "Cheekspot wrasse"
+    ],
+    "group": "fish",
+    "samoan": "Sugale"
+  },
+  "halichoeres prosopeion": {
+    "english": [
+      "Twotone wrasse"
+    ],
+    "group": "fish",
+    "samoan": "Sugale"
+  },
+  "halichoeres trimaculatus": {
+    "english": [
+      "Threespot wrasse"
+    ],
+    "group": "fish",
+    "samoan": "Lape"
+  },
+  "halichoeres zeylonicus": {
+    "english": [
+      "Goldstripe wrasse"
+    ],
+    "group": "fish"
+  },
+  "helcogramma capidata": {
+    "english": [
+      "Hooded triplefin"
+    ],
+    "group": "fish",
+    "samoan": "Mano'o-taoto"
+  },
+  "helcogramma chica": {
+    "english": [
+      "Little hooded triplefin"
+    ],
+    "group": "fish",
+    "samoan": "Mano'o-taoto"
+  },
+  "helcogramma ellioti": {
+    "english": [],
+    "group": "fish"
+  },
+  "helcogramma hudsoni": {
+    "english": [
+      "Hudson's triplefin"
+    ],
+    "group": "fish",
+    "samoan": "Mano'o-taoto"
+  },
+  "hemigobius hoevenii": {
+    "english": [
+      "Banded mulletgoby"
+    ],
+    "group": "fish"
+  },
+  "hemigymnus fasciatus": {
+    "english": [
+      "Barred thicklip"
+    ],
+    "group": "fish",
+    "samoan": "Sugale-gutumafia"
+  },
+  "hemigymnus melapterus": {
+    "english": [
+      "Blackeye thicklip"
+    ],
+    "group": "fish",
+    "samoan": "Sugale-laugutu"
+  },
+  "hemiramphus archipelagicus": {
+    "english": [
+      "Jumping halfbeak"
+    ],
+    "group": "fish",
+    "samoan": "I'usila"
+  },
+  "hemiramphus far": {
+    "english": [
+      "Black-barred halfbeak"
+    ],
+    "group": "fish",
+    "samoan": "I'usila"
+  },
+  "hemiramphus lutkei": {
+    "english": [
+      "Lutke's halfbeak"
+    ],
+    "group": "fish",
+    "samoan": "I'usila"
+  },
+  "hemitaurichthys polylepis": {
+    "english": [
+      "Pyramid butterflyfish"
+    ],
+    "group": "fish",
+    "samoan": "Alosina"
+  },
+  "hemitaurichthys thompsoni": {
+    "english": [
+      "Thompson's butterflyfish"
+    ],
+    "group": "fish"
+  },
+  "heniochus acuminatus": {
+    "english": [
+      "Pennant coralfish"
+    ],
+    "group": "fish",
+    "samoan": "Laulaufau-laumea"
+  },
+  "heniochus chrysostomus": {
+    "english": [
+      "Pennant bannerfish"
+    ],
+    "group": "fish",
+    "samoan": "Laulaufau-laumea"
+  },
+  "heniochus monoceros": {
+    "english": [
+      "Masked bannerfish"
+    ],
+    "group": "fish",
+    "samoan": "Laulaufau-laumea"
+  },
+  "heniochus singularius": {
+    "english": [
+      "Singular bannerfish"
+    ],
+    "group": "fish"
+  },
+  "heniochus varius": {
+    "english": [
+      "Horned bannerfish"
+    ],
+    "group": "fish",
+    "samoan": "Laulaufau-laumea"
+  },
+  "herklotsichthys quadrimaculatus": {
+    "english": [
+      "Bluestripe herring"
+    ],
+    "group": "fish",
+    "samoan": "Pelupelu"
+  },
+  "heteroconger hassi": {
+    "english": [
+      "Spotted garden-eel"
+    ],
+    "group": "fish"
+  },
+  "heteropriacanthus cruentatus": {
+    "english": [
+      "Glasseye"
+    ],
+    "group": "fish"
+  },
+  "hexanchus griseus": {
+    "english": [
+      "Bluntnose sixgill shark"
+    ],
+    "group": "fish"
+  },
+  "hippichthys spicifer": {
+    "english": [
+      "Bellybarred pipefish"
+    ],
+    "group": "fish"
+  },
+  "hippocampus histrix": {
+    "english": [
+      "Thorny seahorse"
+    ],
+    "group": "fish"
+  },
+  "hippocampus kuda": {
+    "english": [
+      "Spotted seahorse"
+    ],
+    "group": "fish"
+  },
+  "hipposcarus longiceps": {
+    "english": [
+      "Pacific longnose parrotfish"
+    ],
+    "group": "fish",
+    "samoan": "Laea-ulapokea"
+  },
+  "hirundichthys albimaculatus": {
+    "english": [
+      "Whitespot flyingfish"
+    ],
+    "group": "fish",
+    "samoan": "Malolo"
+  },
+  "hirundichthys speculiger": {
+    "english": [
+      "Mirrorwing flyingfish"
+    ],
+    "group": "fish",
+    "samoan": "Malolo"
+  },
+  "hologymnosus doliatus": {
+    "english": [
+      "Pastel ringwrasse"
+    ],
+    "group": "fish",
+    "samoan": "Sugale-lape"
+  },
+  "hypoatherina ovalaua": {
+    "english": [
+      "Fijian silverside"
+    ],
+    "group": "fish",
+    "samoan": "Sali"
+  },
+  "hypoatherina temminckii": {
+    "english": [
+      "Samoan silverside"
+    ],
+    "group": "fish",
+    "samoan": "Sali"
+  },
+  "hyporhamphus acutus": {
+    "english": [
+      "Pacific halfbeak"
+    ],
+    "group": "fish",
+    "samoan": "I'usila"
+  },
+  "hyporhamphus affinis": {
+    "english": [
+      "Tropical halfbeak"
+    ],
+    "group": "fish",
+    "samoan": "I'usila"
+  },
+  "hyporhamphus balinensis": {
+    "english": [
+      "Balinese garfish"
+    ],
+    "group": "fish",
+    "samoan": "I'usila"
+  },
+  "hyporhamphus dussumieri": {
+    "english": [
+      "Dussumier's halfbeak"
+    ],
+    "group": "fish",
+    "samoan": "I'usila"
+  },
+  "hypseleotris cyprinoides": {
+    "english": [
+      "Tropical carp-gudgeon"
+    ],
+    "group": "fish"
+  },
+  "hypseleotris guentheri": {
+    "english": [],
+    "group": "fish",
+    "samoan": "Maluvai"
+  },
+  "iniistius aneitensis": {
+    "english": [
+      "Yellowblotch razorfish"
+    ],
+    "group": "fish",
+    "samoan": "Ulumalo"
+  },
+  "iniistius celebicus": {
+    "english": [
+      "Celebes razorfish"
+    ],
+    "group": "fish",
+    "samoan": "Ulumalo"
+  },
+  "istiblennius bellus": {
+    "english": [
+      "Imspringer"
+    ],
+    "group": "fish",
+    "samoan": "Mano'o"
+  },
+  "istiblennius dussumieri": {
+    "english": [
+      "Streaky rockskipper"
+    ],
+    "group": "fish"
+  },
+  "istiblennius edentulus": {
+    "english": [
+      "Rippled rockskipper"
+    ],
+    "group": "fish"
+  },
+  "istiblennius lineatus": {
+    "english": [
+      "Lined rockskipper"
+    ],
+    "group": "fish"
+  },
+  "istigobius decoratus": {
+    "english": [
+      "Decorated goby"
+    ],
+    "group": "fish"
+  },
+  "istigobius nigroocellatus": {
+    "english": [
+      "Black-spotted goby"
+    ],
+    "group": "fish"
+  },
+  "istigobius ornatus": {
+    "english": [
+      "Ornate goby"
+    ],
+    "group": "fish",
+    "samoan": "Mano'o"
+  },
+  "istiompax indica": {
+    "english": [
+      "Black marlin"
+    ],
+    "group": "fish",
+    "samoan": "Sa'ula-oso"
+  },
+  "istiophorus platypterus": {
+    "english": [
+      "Indo-Pacific sailfish"
+    ],
+    "group": "fish",
+    "samoan": "Sa'ula-lele"
+  },
+  "isurus oxyrinchus": {
+    "english": [
+      "Shortfin mako"
+    ],
+    "group": "fish",
+    "samoan": "Aso-polota"
+  },
+  "kajikia audax": {
+    "english": [
+      "Striped marlin"
+    ],
+    "group": "fish",
+    "samoan": "Sa'ula"
+  },
+  "katsuwonus pelamis": {
+    "english": [
+      "Skipjack tuna"
+    ],
+    "group": "fish",
+    "samoan": "Faolua"
+  },
+  "kaupichthys atronasus": {
+    "english": [
+      "Black-nostril false moray"
+    ],
+    "group": "fish"
+  },
+  "kaupichthys brachychirus": {
+    "english": [
+      "Shortfin false moray"
+    ],
+    "group": "fish"
+  },
+  "kaupichthys hyoproroides": {
+    "english": [
+      "False moray"
+    ],
+    "group": "fish"
+  },
+  "kelloggella cardinalis": {
+    "english": [
+      "Cardinal goby"
+    ],
+    "group": "fish",
+    "samoan": "Mano'o"
+  },
+  "kraemeria samoensis": {
+    "english": [
+      "Samoan sand dart"
+    ],
+    "group": "fish"
+  },
+  "kuhlia marginata": {
+    "english": [
+      "Dark-margined flagtail"
+    ],
+    "group": "fish",
+    "samoan": "Lalele"
+  },
+  "kuhlia mugil": {
+    "english": [
+      "Barred flagtail"
+    ],
+    "group": "fish",
+    "samoan": "Safole"
+  },
+  "kuhlia rupestris": {
+    "english": [
+      "Rock flagtail"
+    ],
+    "group": "fish",
+    "samoan": "Inato"
+  },
+  "kuhlia salelea": {
+    "english": [],
+    "group": "fish"
+  },
+  "kyphosus bigibbus": {
+    "english": [
+      "Brown chub"
+    ],
+    "group": "fish"
+  },
+  "kyphosus cinerascens": {
+    "english": [
+      "Blue sea chub"
+    ],
+    "group": "fish",
+    "samoan": "Mutumutu"
+  },
+  "kyphosus vaigiensis": {
+    "english": [
+      "Brassy chub"
+    ],
+    "group": "fish"
+  },
+  "labrichthys unilineatus": {
+    "english": [
+      "Tubelip wrasse"
+    ],
+    "group": "fish",
+    "samoan": "Sugale-tafuti"
+  },
+  "labroides bicolor": {
+    "english": [
+      "Bicolor cleaner wrasse"
+    ],
+    "group": "fish",
+    "samoan": "Sugale-i'usina"
+  },
+  "labroides dimidiatus": {
+    "english": [
+      "Bluestreak cleaner wrasse"
+    ],
+    "group": "fish",
+    "samoan": "Sugale-mo'otai"
+  },
+  "labroides rubrolabiatus": {
+    "english": [
+      "Redlip cleaner wrasse"
+    ],
+    "group": "fish",
+    "samoan": "Sugale"
+  },
+  "labropsis xanthonota": {
+    "english": [
+      "Yellowback tubelip"
+    ],
+    "group": "fish"
+  },
+  "lactoria cornuta": {
+    "english": [
+      "Longhorn cowfish"
+    ],
+    "group": "fish",
+    "samoan": "Moamoa-ulutao"
+  },
+  "lagocephalus sceleratus": {
+    "english": [
+      "Silver-cheeked toadfish"
+    ],
+    "group": "fish"
+  },
+  "lamnostoma polyophthalmum": {
+    "english": [
+      "Ocellated sand-eel"
+    ],
+    "group": "fish"
+  },
+  "lampris guttatus": {
+    "english": [
+      "Opah"
+    ],
+    "group": "fish",
+    "samoan": "Koko"
+  },
+  "leiognathus equula": {
+    "english": [
+      "Common ponyfish"
+    ],
+    "group": "fish",
+    "samoan": "Mumu"
+  },
+  "leiuranus semicinctus": {
+    "english": [
+      "Saddled snake-eel"
+    ],
+    "group": "fish",
+    "samoan": "Gatauli"
+  },
+  "lepadichthys minor": {
+    "english": [
+      "Minor clingfish"
+    ],
+    "group": "fish"
+  },
+  "lepidocybium flavobrunneum": {
+    "english": [
+      "Escolar"
+    ],
+    "group": "fish"
+  },
+  "leptoscarus vaigiensis": {
+    "english": [
+      "Marbled parrotfish"
+    ],
+    "group": "fish"
+  },
+  "lethrinus amboinensis": {
+    "english": [
+      "Ambon emperor"
+    ],
+    "group": "fish",
+    "samoan": "Filoa-gutumumu"
+  },
+  "lethrinus atkinsoni": {
+    "english": [
+      "Pacific yellowtail emperor"
+    ],
+    "group": "fish"
+  },
+  "lethrinus erythracanthus": {
+    "english": [
+      "Orange-spotted emperor"
+    ],
+    "group": "fish",
+    "samoan": "Filoa-apamumu"
+  },
+  "lethrinus harak": {
+    "english": [
+      "Thumbprint emperor"
+    ],
+    "group": "fish",
+    "samoan": "Filoa-vai"
+  },
+  "lethrinus lentjan": {
+    "english": [
+      "Pink ear emperor"
+    ],
+    "group": "fish"
+  },
+  "lethrinus nebulosus": {
+    "english": [
+      "Spangled emperor"
+    ],
+    "group": "fish",
+    "samoan": "Mulogo"
+  },
+  "lethrinus obsoletus": {
+    "english": [
+      "Orange-striped emperor"
+    ],
+    "group": "fish",
+    "samoan": "Lauloa"
+  },
+  "lethrinus olivaceus": {
+    "english": [
+      "Longface emperor"
+    ],
+    "group": "fish"
+  },
+  "lethrinus rubrioperculatus": {
+    "english": [
+      "Spotcheek emperor"
+    ],
+    "group": "fish",
+    "samoan": "Filoa-pa'o'omumu"
+  },
+  "limnichthys nitidus": {
+    "english": [
+      "Sand submarine"
+    ],
+    "group": "fish",
+    "samoan": "I'atolo"
+  },
+  "liopropoma susumi": {
+    "english": [
+      "Meteor perch"
+    ],
+    "group": "fish",
+    "samoan": "Susumi"
+  },
+  "liopropoma tonstrinum": {
+    "english": [
+      "Redstriped basslet"
+    ],
+    "group": "fish"
+  },
+  "lutjanus argentimaculatus": {
+    "english": [
+      "Mangrove red snapper"
+    ],
+    "group": "fish",
+    "samoan": "Mu-taiva"
+  },
+  "lutjanus biguttatus": {
+    "english": [
+      "Twospot banded snapper"
+    ],
+    "group": "fish"
+  },
+  "lutjanus bohar": {
+    "english": [
+      "Two-spot red snapper"
+    ],
+    "group": "fish",
+    "samoan": "Mu"
+  },
+  "lutjanus boutton": {
+    "english": [
+      "Moluccan snapper"
+    ],
+    "group": "fish"
+  },
+  "lutjanus fulviflamma": {
+    "english": [
+      "Dory snapper"
+    ],
+    "group": "fish"
+  },
+  "lutjanus fulvus": {
+    "english": [
+      "Blacktail snapper"
+    ],
+    "group": "fish",
+    "samoan": "Tamala"
+  },
+  "lutjanus gibbus": {
+    "english": [
+      "Humpback red snapper"
+    ],
+    "group": "fish",
+    "samoan": "Mala'i"
+  },
+  "lutjanus johnii": {
+    "english": [
+      "John's snapper"
+    ],
+    "group": "fish"
+  },
+  "lutjanus kasmira": {
+    "english": [
+      "Common bluestripe snapper"
+    ],
+    "group": "fish",
+    "samoan": "Savane"
+  },
+  "lutjanus malabaricus": {
+    "english": [
+      "Malabar blood snapper"
+    ],
+    "group": "fish"
+  },
+  "lutjanus mizenkoi": {
+    "english": [
+      "Samoan snapper"
+    ],
+    "group": "fish"
+  },
+  "lutjanus monostigma": {
+    "english": [
+      "One-spot snapper"
+    ],
+    "group": "fish",
+    "samoan": "Feloitega"
+  },
+  "lutjanus quinquelineatus": {
+    "english": [
+      "Five-lined snapper"
+    ],
+    "group": "fish"
+  },
+  "lutjanus rivulatus": {
+    "english": [
+      "Blubberlip snapper"
+    ],
+    "group": "fish",
+    "samoan": "Mu-mafalaugutu"
+  },
+  "lutjanus rufolineatus": {
+    "english": [
+      "Yellow-lined snapper"
+    ],
+    "group": "fish",
+    "samoan": "Savane-ulasama"
+  },
+  "lutjanus semicinctus": {
+    "english": [
+      "Black-banded snapper"
+    ],
+    "group": "fish"
+  },
+  "lutjanus timoriensis": {
+    "english": [
+      "Timor snapper"
+    ],
+    "group": "fish"
+  },
+  "macolor niger": {
+    "english": [
+      "Black and white snapper"
+    ],
+    "group": "fish",
+    "samoan": "Matala'oa"
+  },
+  "macrodontogobius wilburi": {
+    "english": [
+      "Largetooth goby"
+    ],
+    "group": "fish",
+    "samoan": "Mano'o"
+  },
+  "macropharyngodon meleagris": {
+    "english": [
+      "Blackspotted wrasse"
+    ],
+    "group": "fish",
+    "samoan": "Sugale-puletasi"
+  },
+  "macropharyngodon negrosensis": {
+    "english": [
+      "Yellowspotted wrasse"
+    ],
+    "group": "fish",
+    "samoan": "Sugale"
+  },
+  "macroramphosus scolopax": {
+    "english": [
+      "Longspine snipefish"
+    ],
+    "group": "fish"
+  },
+  "mahidolia mystacina": {
+    "english": [
+      "Flagfin prawn goby"
+    ],
+    "group": "fish"
+  },
+  "makaira nigricans": {
+    "english": [
+      "Blue marlin"
+    ],
+    "group": "fish",
+    "samoan": "Sa'ula-oso"
+  },
+  "malacanthus brevirostris": {
+    "english": [
+      "Quakerfish"
+    ],
+    "group": "fish"
+  },
+  "malacanthus latovittatus": {
+    "english": [
+      "Blue blanquillo"
+    ],
+    "group": "fish",
+    "samoan": "Mo'o-moana"
+  },
+  "megalaspis cordyla": {
+    "english": [
+      "Torpedo scad"
+    ],
+    "group": "fish",
+    "samoan": "Atualo"
+  },
+  "megalops cyprinoides": {
+    "english": [
+      "Indo-Pacific tarpon"
+    ],
+    "group": "fish",
+    "samoan": "Ana'analagi"
+  },
+  "meiacanthus atrodorsalis": {
+    "english": [
+      "Forktail blenny"
+    ],
+    "group": "fish",
+    "samoan": "Mano'o-si'umaga"
+  },
+  "meiacanthus ditrema": {
+    "english": [
+      "One-striped poison-fang blenny"
+    ],
+    "group": "fish",
+    "samoan": "Mano'o"
+  },
+  "melichthys niger": {
+    "english": [
+      "Black triggerfish"
+    ],
+    "group": "fish",
+    "samoan": "Sumu-uli"
+  },
+  "melichthys vidua": {
+    "english": [
+      "Pinktail triggerfish"
+    ],
+    "group": "fish",
+    "samoan": "Sumu-'apa'apasina"
+  },
+  "micrognathus andersonii": {
+    "english": [
+      "Shortnose pipefish"
+    ],
+    "group": "fish"
+  },
+  "micrognathus brevirostris": {
+    "english": [
+      "Thorntail pipefish"
+    ],
+    "group": "fish"
+  },
+  "microphis brachyurus": {
+    "english": [
+      "Short-tailed pipefish"
+    ],
+    "group": "fish"
+  },
+  "microphis retzii": {
+    "english": [
+      "Ragged-tail pipefish"
+    ],
+    "group": "fish"
+  },
+  "microphis torrentius": {
+    "english": [],
+    "group": "fish"
+  },
+  "mirolabrichthys pascalus": {
+    "english": [
+      "Amethyst anthias"
+    ],
+    "group": "fish",
+    "samoan": "Segasega-moana"
+  },
+  "monacanthus chinensis": {
+    "english": [
+      "Fan-bellied leatherjacket"
+    ],
+    "group": "fish"
+  },
+  "monodactylus argenteus": {
+    "english": [
+      "Silver moony"
+    ],
+    "group": "fish",
+    "samoan": "Valevale"
+  },
+  "monotaxis grandoculis": {
+    "english": [
+      "Humpnose big-eye bream"
+    ],
+    "group": "fish",
+    "samoan": "Matamu"
+  },
+  "moolgarda crenilabis": {
+    "english": [
+      "Fringelip mullet"
+    ],
+    "group": "fish",
+    "samoan": "Anae"
+  },
+  "moolgarda seheli": {
+    "english": [
+      "Bluespot mullet"
+    ],
+    "group": "fish"
+  },
+  "moringua abbreviata": {
+    "english": [],
+    "group": "fish",
+    "samoan": "Fafa"
+  },
+  "moringua javanica": {
+    "english": [
+      "Java spaghetti eel"
+    ],
+    "group": "fish",
+    "samoan": "Fafa"
+  },
+  "moringua microchir": {
+    "english": [
+      "Lesser thrush eel"
+    ],
+    "group": "fish",
+    "samoan": "Fafa"
+  },
+  "mugilogobius notospilus": {
+    "english": [
+      "Freshwater mangrovegoby"
+    ],
+    "group": "fish",
+    "samoan": "Mano'o"
+  },
+  "mulloidichthys flavolineatus": {
+    "english": [
+      "Yellowstripe goatfish"
+    ],
+    "group": "fish",
+    "samoan": "Afolu"
+  },
+  "mulloidichthys vanicolensis": {
+    "english": [
+      "Yellowfin goatfish"
+    ],
+    "group": "fish",
+    "samoan": "Vete"
+  },
+  "muraenichthys schultzei": {
+    "english": [
+      "Maimed snake eel"
+    ],
+    "group": "fish"
+  },
+  "muraenichthys sibogae": {
+    "english": [
+      "Siboga worm eel"
+    ],
+    "group": "fish"
+  },
+  "myrichthys colubrinus": {
+    "english": [
+      "Harlequin snake eel"
+    ],
+    "group": "fish",
+    "samoan": "Gatamea"
+  },
+  "myrichthys maculosus": {
+    "english": [
+      "Tiger snake eel"
+    ],
+    "group": "fish"
+  },
+  "myripristis adusta": {
+    "english": [
+      "Shadowfin soldierfish"
+    ],
+    "group": "fish",
+    "samoan": "Malau-tui"
+  },
+  "myripristis amaena": {
+    "english": [
+      "Brick soldierfish"
+    ],
+    "group": "fish",
+    "samoan": "Malau"
+  },
+  "myripristis berndti": {
+    "english": [
+      "Blotcheye soldierfish"
+    ],
+    "group": "fish",
+    "samoan": "Malau-ugatele"
+  },
+  "myripristis chryseres": {
+    "english": [
+      "Yellowfin soldierfish"
+    ],
+    "group": "fish",
+    "samoan": "Malau"
+  },
+  "myripristis hexagona": {
+    "english": [
+      "Doubletooth soldierfish"
+    ],
+    "group": "fish",
+    "samoan": "Malau"
+  },
+  "myripristis kuntee": {
+    "english": [
+      "Shoulderbar soldierfish"
+    ],
+    "group": "fish",
+    "samoan": "Malau-pu'u"
+  },
+  "myripristis murdjan": {
+    "english": [
+      "Pinecone soldierfish"
+    ],
+    "group": "fish",
+    "samoan": "Malau"
+  },
+  "myripristis pralinia": {
+    "english": [
+      "Scarlet soldierfish"
+    ],
+    "group": "fish",
+    "samoan": "Malau-mamo"
+  },
+  "myripristis randalli": {
+    "english": [],
+    "group": "fish",
+    "samoan": "Malau"
+  },
+  "myripristis violacea": {
+    "english": [
+      "Lattice soldierfish"
+    ],
+    "group": "fish",
+    "samoan": "Malau-tuauli"
+  },
+  "myripristis vittata": {
+    "english": [
+      "Whitetip soldierfish"
+    ],
+    "group": "fish",
+    "samoan": "Malau"
+  },
+  "myripristis woodsi": {
+    "english": [
+      "Whitespot soldierfish"
+    ],
+    "group": "fish",
+    "samoan": "Malau"
+  },
+  "nannosalarias nativitatis": {
+    "english": [
+      "Pygmy blenny"
+    ],
+    "group": "fish",
+    "samoan": "Mano'o"
+  },
+  "naso annulatus": {
+    "english": [
+      "Whitemargin unicornfish"
+    ],
+    "group": "fish"
+  },
+  "naso brevirostris": {
+    "english": [
+      "Spotted unicornfish"
+    ],
+    "group": "fish",
+    "samoan": "Ume-ulutao"
+  },
+  "naso hexacanthus": {
+    "english": [
+      "Sleek unicornfish"
+    ],
+    "group": "fish"
+  },
+  "naso lituratus": {
+    "english": [
+      "Orangespine unicornfish"
+    ],
+    "group": "fish",
+    "samoan": "Umelei"
+  },
+  "naso thynnoides": {
+    "english": [
+      "Oneknife unicornfish"
+    ],
+    "group": "fish"
+  },
+  "naso tonganus": {
+    "english": [
+      "Bulbnose unicornfish"
+    ],
+    "group": "fish",
+    "samoan": "Ume-uluto'i"
+  },
+  "naso unicornis": {
+    "english": [
+      "Bluespine unicornfish"
+    ],
+    "group": "fish",
+    "samoan": "Ume-isu"
+  },
+  "naso vlamingii": {
+    "english": [
+      "Bignose unicornfish"
+    ],
+    "group": "fish",
+    "samoan": "Ume-masimasi"
+  },
+  "naucrates ductor": {
+    "english": [
+      "Pilotfish"
+    ],
+    "group": "fish"
+  },
+  "nealotus tripes": {
+    "english": [
+      "Black snake mackerel"
+    ],
+    "group": "fish"
+  },
+  "nebrius ferrugineus": {
+    "english": [
+      "Tawny nurse shark"
+    ],
+    "group": "fish",
+    "samoan": "Moemoeao"
+  },
+  "nectamia bandanensis": {
+    "english": [
+      "Bigeye cardinalfish"
+    ],
+    "group": "fish",
+    "samoan": "Fo"
+  },
+  "nectamia fusca": {
+    "english": [
+      "Ghost cardinalfish"
+    ],
+    "group": "fish",
+    "samoan": "Fo"
+  },
+  "nectamia savayensis": {
+    "english": [
+      "Samoan cardinalfish"
+    ],
+    "group": "fish",
+    "samoan": "Fo-tala"
+  },
+  "negaprion acutidens": {
+    "english": [
+      "Sicklefin lemon shark"
+    ],
+    "group": "fish",
+    "samoan": "Malie"
+  },
+  "nemanthias dispar": {
+    "english": [
+      "Peach fairy basslet"
+    ],
+    "group": "fish",
+    "samoan": "Segasega-moana"
+  },
+  "nemapterois biocellatus": {
+    "english": [
+      "Twospot turkeyfish"
+    ],
+    "group": "fish"
+  },
+  "nemateleotris decora": {
+    "english": [
+      "Elegant firefish"
+    ],
+    "group": "fish",
+    "samoan": "Mano'o-sugale"
+  },
+  "nemateleotris helfrichi": {
+    "english": [
+      "Helfrichs' dartfish"
+    ],
+    "group": "fish",
+    "samoan": "Mano'o-sugale"
+  },
+  "nemateleotris lavandula": {
+    "english": [
+      "Lavender-blushed dartfish"
+    ],
+    "group": "fish"
+  },
+  "nemateleotris magnifica": {
+    "english": [
+      "Fire goby"
+    ],
+    "group": "fish",
+    "samoan": "Mano'o-sugale"
+  },
+  "neochirus brachyptera": {
+    "english": [
+      "Dwarf lionfish"
+    ],
+    "group": "fish"
+  },
+  "neocirrhites armatus": {
+    "english": [
+      "Flame hawkfish"
+    ],
+    "group": "fish"
+  },
+  "neomyxus leuciscus": {
+    "english": [
+      "Acute-jawed mullet"
+    ],
+    "group": "fish",
+    "samoan": "Anae"
+  },
+  "neoniphon argenteus": {
+    "english": [
+      "Clearfin squirrelfish"
+    ],
+    "group": "fish",
+    "samoan": "Malau"
+  },
+  "neoniphon aurolineatus": {
+    "english": [
+      "Yellowstriped squirrelfish"
+    ],
+    "group": "fish",
+    "samoan": "Malau-va'a"
+  },
+  "neoniphon opercularis": {
+    "english": [
+      "Blackfin squirrelfish"
+    ],
+    "group": "fish",
+    "samoan": "Malau-loa"
+  },
+  "neoniphon sammara": {
+    "english": [
+      "Sammara squirrelfish"
+    ],
+    "group": "fish",
+    "samoan": "Malau-pe'ape'a"
+  },
+  "neopomacentrus metallicus": {
+    "english": [
+      "Metallic demoiselle"
+    ],
+    "group": "fish",
+    "samoan": "Pipi"
+  },
+  "neotrygon kuhlii": {
+    "english": [
+      "Blue-spotted stingray"
+    ],
+    "group": "fish",
+    "samoan": "Fai-tala"
+  },
+  "nesiarchus nasutus": {
+    "english": [
+      "Black gemfish"
+    ],
+    "group": "fish"
+  },
+  "norfolkia brachylepis": {
+    "english": [
+      "Tropical scaly-headed triplefin"
+    ],
+    "group": "fish",
+    "samoan": "Mano'o-taoto"
+  },
+  "novaculichthys taeniourus": {
+    "english": [
+      "Rockmover wrasse"
+    ],
+    "group": "fish",
+    "samoan": "Sugale-taili"
+  },
+  "odonus niger": {
+    "english": [
+      "Red-toothed triggerfish"
+    ],
+    "group": "fish",
+    "samoan": "Sumu-pe'a"
+  },
+  "omobranchus obliquus": {
+    "english": [
+      "Roundhead blenny"
+    ],
+    "group": "fish",
+    "samoan": "Mano'o"
+  },
+  "onigocia oligolepis": {
+    "english": [
+      "Large-scale flathead"
+    ],
+    "group": "fish",
+    "samoan": "Tolo"
+  },
+  "onuxodon margaritiferae": {
+    "english": [
+      "Bivalve pearlfish"
+    ],
+    "group": "fish"
+  },
+  "oplopomus oplopomus": {
+    "english": [
+      "Spinecheek goby"
+    ],
+    "group": "fish",
+    "samoan": "Mano'o-lape"
+  },
+  "oreochromis mossambicus": {
+    "english": [
+      "Mozambique tilapia"
+    ],
+    "group": "fish"
+  },
+  "osteomugil engeli": {
+    "english": [
+      "Kanda"
+    ],
+    "group": "fish",
+    "samoan": "Anae"
+  },
+  "ostichthys delta": {
+    "english": [
+      "Redcoat soldierfish"
+    ],
+    "group": "fish",
+    "samoan": "Malau"
+  },
+  "ostichthys kaianus": {
+    "english": [
+      "Deepwater soldierfish"
+    ],
+    "group": "fish",
+    "samoan": "Malau"
+  },
+  "ostorhinchus angustatus": {
+    "english": [
+      "Broadstriped cardinalfish"
+    ],
+    "group": "fish",
+    "samoan": "Fo-tusiloloa"
+  },
+  "ostorhinchus endekataenia": {
+    "english": [
+      "Candystripe cardinalfish"
+    ],
+    "group": "fish",
+    "samoan": "Fo"
+  },
+  "ostorhinchus nigrofasciatus": {
+    "english": [
+      "Blackstripe cardinalfish"
+    ],
+    "group": "fish",
+    "samoan": "Fo-tuauli"
+  },
+  "ostorhinchus novemfasciatus": {
+    "english": [
+      "Sevenstriped cardinalfish"
+    ],
+    "group": "fish",
+    "samoan": "Fo"
+  },
+  "ostracion cubicum": {
+    "english": [
+      "Yellow boxfish"
+    ],
+    "group": "fish",
+    "samoan": "Moamoa-sama"
+  },
+  "ostracion meleagris": {
+    "english": [
+      "Spotted boxfish"
+    ],
+    "group": "fish"
+  },
+  "oxycheilinus arenatus": {
+    "english": [
+      "Speckled maori wrasse"
+    ],
+    "group": "fish"
+  },
+  "oxycheilinus digramma": {
+    "english": [
+      "Cheeklined wrasse"
+    ],
+    "group": "fish",
+    "samoan": "Lalafi-gutu'umi"
+  },
+  "oxycheilinus orientalis": {
+    "english": [
+      "Oriental maori wrasse"
+    ],
+    "group": "fish"
+  },
+  "oxycheilinus unifasciatus": {
+    "english": [
+      "Ringtail maori wrasse"
+    ],
+    "group": "fish",
+    "samoan": "Lalafi"
+  },
+  "oxymonacanthus longirostris": {
+    "english": [
+      "Harlequin filefish"
+    ],
+    "group": "fish",
+    "samoan": "Pa'umalo-gutuumi"
+  },
+  "oxyurichthys tentacularis": {
+    "english": [],
+    "group": "fish",
+    "samoan": "Mano'o"
+  },
+  "palutrus pruinosa": {
+    "english": [
+      "Pruinosa goby"
+    ],
+    "group": "fish"
+  },
+  "paracaesio kusakarii": {
+    "english": [
+      "Saddleback snapper"
+    ],
+    "group": "fish",
+    "samoan": "Mu-sina"
+  },
+  "paracaesio sordida": {
+    "english": [
+      "Sordid snapper"
+    ],
+    "group": "fish"
+  },
+  "paracaesio stonei": {
+    "english": [
+      "Cocoa snapper"
+    ],
+    "group": "fish",
+    "samoan": "Palu-mutu"
+  },
+  "paracaesio xanthurus": {
+    "english": [
+      "Yellowtail blue snapper"
+    ],
+    "group": "fish",
+    "samoan": "Palu-tuasama"
+  },
+  "paracanthurus hepatus": {
+    "english": [
+      "Palette surgeonfish"
+    ],
+    "group": "fish"
+  },
+  "paracentropyge multifasciata": {
+    "english": [
+      "Barred angelfish"
+    ],
+    "group": "fish",
+    "samoan": "Tu'u'u-manini"
+  },
+  "paracirrhites arcatus": {
+    "english": [
+      "Arc-eye hawkfish"
+    ],
+    "group": "fish",
+    "samoan": "Lausiva"
+  },
+  "paracirrhites forsteri": {
+    "english": [
+      "Blackside hawkfish"
+    ],
+    "group": "fish",
+    "samoan": "Lausiva"
+  },
+  "paracirrhites hemistictus": {
+    "english": [
+      "Whitespot hawkfish"
+    ],
+    "group": "fish",
+    "samoan": "A'a"
+  },
+  "paragobiodon echinocephalus": {
+    "english": [
+      "Redhead goby"
+    ],
+    "group": "fish",
+    "samoan": "Mano'o-ulutu'i"
+  },
+  "paragobiodon lacunicolus": {
+    "english": [
+      "Blackfin coral goby"
+    ],
+    "group": "fish",
+    "samoan": "Mano'o-ulutu'i"
+  },
+  "paragobiodon xanthosoma": {
+    "english": [
+      "Emerald coral goby"
+    ],
+    "group": "fish",
+    "samoan": "Mano'o-ulutu'i"
+  },
+  "parapercis clathrata": {
+    "english": [
+      "Latticed sandperch"
+    ],
+    "group": "fish",
+    "samoan": "Ta'oto"
+  },
+  "parapercis hexophtalma": {
+    "english": [
+      "Speckled sandperch"
+    ],
+    "group": "fish"
+  },
+  "parapercis xanthogramma": {
+    "english": [],
+    "group": "fish"
+  },
+  "pardachirus pavoninus": {
+    "english": [
+      "Peacock sole"
+    ],
+    "group": "fish"
+  },
+  "parenchelyurus hepburni": {
+    "english": [
+      "Hepburn's blenny"
+    ],
+    "group": "fish",
+    "samoan": "Mano'o"
+  },
+  "parexocoetus brachypterus": {
+    "english": [
+      "Sailfin flyingfish"
+    ],
+    "group": "fish",
+    "samoan": "Malolo"
+  },
+  "parupeneus barberinoides": {
+    "english": [
+      "Bicolor goatfish"
+    ],
+    "group": "fish",
+    "samoan": "Ta'uleia"
+  },
+  "parupeneus barberinus": {
+    "english": [
+      "Dotdash goatfish"
+    ],
+    "group": "fish",
+    "samoan": "Tusia"
+  },
+  "parupeneus cyclostomus": {
+    "english": [
+      "Goldsaddle goatfish"
+    ],
+    "group": "fish",
+    "samoan": "Moana"
+  },
+  "parupeneus heptacantha": {
+    "english": [
+      "Cinnabar goatfish"
+    ],
+    "group": "fish",
+    "samoan": "Moana-ula"
+  },
+  "parupeneus indicus": {
+    "english": [
+      "Indian goatfish"
+    ],
+    "group": "fish",
+    "samoan": "Ta'uleia"
+  },
+  "parupeneus insularis": {
+    "english": [
+      "Twosaddle goatfish"
+    ],
+    "group": "fish",
+    "samoan": "Moana"
+  },
+  "parupeneus multifasciatus": {
+    "english": [
+      "Manybar goatfish"
+    ],
+    "group": "fish"
+  },
+  "parupeneus pleurostigma": {
+    "english": [
+      "Sidespot goatfish"
+    ],
+    "group": "fish",
+    "samoan": "Matulau-ilamutu"
+  },
+  "pateobatis fai": {
+    "english": [
+      "Pink whipray"
+    ],
+    "group": "fish"
+  },
+  "pempheris adusta": {
+    "english": [
+      "Dusky sweeper"
+    ],
+    "group": "fish"
+  },
+  "pempheris mangula": {
+    "english": [
+      "Indian sweeper"
+    ],
+    "group": "fish",
+    "samoan": "Manifi"
+  },
+  "pempheris oualensis": {
+    "english": [
+      "Blackspot sweeper"
+    ],
+    "group": "fish",
+    "samoan": "Manifi"
+  },
+  "pempheris vanicolensis": {
+    "english": [
+      "Vanikoro sweeper"
+    ],
+    "group": "fish"
+  },
+  "pentapodus aureofasciatus": {
+    "english": [
+      "Yellowstripe threadfin bream"
+    ],
+    "group": "fish"
+  },
+  "pentapodus caninus": {
+    "english": [
+      "Small-toothed whiptail"
+    ],
+    "group": "fish"
+  },
+  "periophthalmus argentilineatus": {
+    "english": [
+      "Barred mudskipper"
+    ],
+    "group": "fish"
+  },
+  "periophthalmus kalolo": {
+    "english": [
+      "Common mudskipper"
+    ],
+    "group": "fish"
+  },
+  "pervagor janthinosoma": {
+    "english": [
+      "Blackbar filefish"
+    ],
+    "group": "fish"
+  },
+  "pervagor melanocephalus": {
+    "english": [
+      "Redtail filefish"
+    ],
+    "group": "fish",
+    "samoan": "Falala"
+  },
+  "petroscirtes mitratus": {
+    "english": [
+      "Floral blenny"
+    ],
+    "group": "fish",
+    "samoan": "Mano'o"
+  },
+  "petroscirtes xestus": {
+    "english": [
+      "Xestus sabretooth blenny"
+    ],
+    "group": "fish",
+    "samoan": "Mano'o"
+  },
+  "phoxocampus diacanthus": {
+    "english": [
+      "Spined pipefish"
+    ],
+    "group": "fish"
+  },
+  "phtheirichthys lineatus": {
+    "english": [
+      "Slender suckerfish"
+    ],
+    "group": "fish",
+    "samoan": "Talitaliuli"
+  },
+  "phyllophichthus xenodontus": {
+    "english": [
+      "Flappy snake-eel"
+    ],
+    "group": "fish"
+  },
+  "pictichromis porphyrea": {
+    "english": [
+      "Magenta dottyback"
+    ],
+    "group": "fish",
+    "samoan": "Tiva"
+  },
+  "pisodonophis cancrivorus": {
+    "english": [
+      "Longfin snake-eel"
+    ],
+    "group": "fish"
+  },
+  "plagiotremus laudandus": {
+    "english": [
+      "Bicolour fangblenny"
+    ],
+    "group": "fish"
+  },
+  "plagiotremus rhinorhynchos": {
+    "english": [
+      "Bluestriped fangblenny"
+    ],
+    "group": "fish",
+    "samoan": "Mano'o-to'ito'i"
+  },
+  "plagiotremus tapeinosoma": {
+    "english": [
+      "Piano fangblenny"
+    ],
+    "group": "fish",
+    "samoan": "Mano'o-to'ito'i"
+  },
+  "planiliza macrolepis": {
+    "english": [
+      "Largescale mullet"
+    ],
+    "group": "fish",
+    "samoan": "Asae"
+  },
+  "planiliza melinoptera": {
+    "english": [
+      "Otomebora mullet"
+    ],
+    "group": "fish"
+  },
+  "planiliza subviridis": {
+    "english": [
+      "Greenback mullet"
+    ],
+    "group": "fish",
+    "samoan": "Anae"
+  },
+  "platax orbicularis": {
+    "english": [
+      "Orbicular batfish"
+    ],
+    "group": "fish",
+    "samoan": "Pe'ape'a"
+  },
+  "platybelone platyura": {
+    "english": [
+      "Keeled needlefish"
+    ],
+    "group": "fish",
+    "samoan": "Ise"
+  },
+  "plectorhinchus gibbosus": {
+    "english": [
+      "Harry hotlips"
+    ],
+    "group": "fish",
+    "samoan": "Misimisi"
+  },
+  "plectorhinchus vittatus": {
+    "english": [
+      "Oriental sweetlips"
+    ],
+    "group": "fish",
+    "samoan": "Ava'ava-moana"
+  },
+  "plectranthias kamii": {
+    "english": [
+      "Kami's perchlet"
+    ],
+    "group": "fish"
+  },
+  "plectranthias yamakawai": {
+    "english": [],
+    "group": "fish"
+  },
+  "plectroglyphidodon aureus": {
+    "english": [
+      "Golden gregory"
+    ],
+    "group": "fish"
+  },
+  "plectroglyphidodon dickii": {
+    "english": [
+      "Blackbar devil"
+    ],
+    "group": "fish",
+    "samoan": "Tu'u'u-i'usina"
+  },
+  "plectroglyphidodon fasciolatus": {
+    "english": [
+      "Pacific gregory"
+    ],
+    "group": "fish",
+    "samoan": "Tu'u'u-palea"
+  },
+  "plectroglyphidodon imparipennis": {
+    "english": [
+      "Brighteye damselfish"
+    ],
+    "group": "fish",
+    "samoan": "Tu'u'u"
+  },
+  "plectroglyphidodon johnstonianus": {
+    "english": [
+      "Johnston Island damsel"
+    ],
+    "group": "fish",
+    "samoan": "Tu'u'u-'iuuli"
+  },
+  "plectroglyphidodon leucozonus": {
+    "english": [
+      "Singlebar devil"
+    ],
+    "group": "fish",
+    "samoan": "Tu'u'u-si'ugutusina"
+  },
+  "plectroglyphidodon phoenixensis": {
+    "english": [
+      "Phoenix devil"
+    ],
+    "group": "fish",
+    "samoan": "Tu'u'u-popouli"
+  },
+  "plectropomus areolatus": {
+    "english": [
+      "Squaretail coralgrouper"
+    ],
+    "group": "fish",
+    "samoan": "Ata'ata-utu"
+  },
+  "plectropomus leopardus": {
+    "english": [
+      "Leopard coralgrouper"
+    ],
+    "group": "fish",
+    "samoan": "Ata'ata-utu"
+  },
+  "plectrypops lima": {
+    "english": [
+      "Shy soldier"
+    ],
+    "group": "fish",
+    "samoan": "Malau-mutu"
+  },
+  "plesiops coeruleolineatus": {
+    "english": [
+      "Crimsontip longfin"
+    ],
+    "group": "fish"
+  },
+  "plesiops corallicola": {
+    "english": [
+      "Bluegill longfin"
+    ],
+    "group": "fish"
+  },
+  "pleurosicya muscarum": {
+    "english": [
+      "Ghost goby"
+    ],
+    "group": "fish",
+    "samoan": "Mano'o"
+  },
+  "plicomugil labiosus": {
+    "english": [
+      "Hornlip mullet"
+    ],
+    "group": "fish"
+  },
+  "plotosus lineatus": {
+    "english": [
+      "Striped eel catfish"
+    ],
+    "group": "fish",
+    "samoan": "Apoa"
+  },
+  "poecilia mexicana": {
+    "english": [
+      "Shortfin molly"
+    ],
+    "group": "fish",
+    "samoan": "Fo-vai"
+  },
+  "poecilia reticulata": {
+    "english": [
+      "Guppy"
+    ],
+    "group": "fish"
+  },
+  "pogonoperca punctata": {
+    "english": [
+      "Bearded soapfish"
+    ],
+    "group": "fish",
+    "samoan": "Gutunofu"
+  },
+  "polydactylus plebeius": {
+    "english": [
+      "Striped threadfin"
+    ],
+    "group": "fish",
+    "samoan": "Umi'umia"
+  },
+  "polydactylus sexfilis": {
+    "english": [
+      "Sixfinger threadfin"
+    ],
+    "group": "fish",
+    "samoan": "Umi'umia"
+  },
+  "polylepion russelli": {
+    "english": [],
+    "group": "fish"
+  },
+  "pomacanthus imperator": {
+    "english": [
+      "Emperor angelfish"
+    ],
+    "group": "fish",
+    "samoan": "Tu'u'u-moana"
+  },
+  "pomacanthus semicirculatus": {
+    "english": [
+      "Semicircle angelfish"
+    ],
+    "group": "fish"
+  },
+  "pomacentrus brachialis": {
+    "english": [
+      "Charcoal damsel"
+    ],
+    "group": "fish",
+    "samoan": "Tu'u'u-faga"
+  },
+  "pomacentrus coelestis": {
+    "english": [
+      "Neon damselfish"
+    ],
+    "group": "fish",
+    "samoan": "Tu'u'u-segasega"
+  },
+  "pomacentrus nigriradiatus": {
+    "english": [
+      "Blackray damselfish"
+    ],
+    "group": "fish"
+  },
+  "pomacentrus pavo": {
+    "english": [
+      "Sapphire damsel"
+    ],
+    "group": "fish",
+    "samoan": "Teatea"
+  },
+  "pomacentrus vaiuli": {
+    "english": [
+      "Princess damsel"
+    ],
+    "group": "fish",
+    "samoan": "Tu'u'u-vaiuli"
+  },
+  "pomachromis richardsoni": {
+    "english": [
+      "Richardson's reef-damsel"
+    ],
+    "group": "fish",
+    "samoan": "Tu'u'u-malaumataputa"
+  },
+  "pontinus macrocephalus": {
+    "english": [
+      "Largehead scorpionfish"
+    ],
+    "group": "fish"
+  },
+  "praealticus labrovittatus": {
+    "english": [
+      "Crenulate-lipped rockskipper"
+    ],
+    "group": "fish"
+  },
+  "priacanthus blochii": {
+    "english": [
+      "Paeony bulleye"
+    ],
+    "group": "fish",
+    "samoan": "Matapula"
+  },
+  "priacanthus hamrur": {
+    "english": [
+      "Moontail bullseye"
+    ],
+    "group": "fish",
+    "samoan": "Matapula"
+  },
+  "priacanthus sagittarius": {
+    "english": [
+      "Arrowfin bigeye"
+    ],
+    "group": "fish"
+  },
+  "priolepis semidoliata": {
+    "english": [
+      "Half-barred goby"
+    ],
+    "group": "fish",
+    "samoan": "Mano'o"
+  },
+  "prionace glauca": {
+    "english": [
+      "Blue shark"
+    ],
+    "group": "fish",
+    "samoan": "Malie"
+  },
+  "pristiapogon exostigma": {
+    "english": [
+      "Narrowstripe cardinalfish"
+    ],
+    "group": "fish",
+    "samoan": "Fo-loloa"
+  },
+  "pristiapogon fraenatus": {
+    "english": [
+      "Bridled cardinalfish"
+    ],
+    "group": "fish",
+    "samoan": "Fo-loloa"
+  },
+  "pristiapogon kallopterus": {
+    "english": [
+      "Iridescent cardinalfish"
+    ],
+    "group": "fish",
+    "samoan": "Fo-aialo"
+  },
+  "pristicon trimaculatus": {
+    "english": [
+      "Threespot cardinalfish"
+    ],
+    "group": "fish",
+    "samoan": "Fo"
+  },
+  "pristigenys meyeri": {
+    "english": [
+      "Redstripe bigeye"
+    ],
+    "group": "fish"
+  },
+  "pristipomoides argyrogrammicus": {
+    "english": [
+      "Ornate jobfish"
+    ],
+    "group": "fish",
+    "samoan": "Palu-sega"
+  },
+  "pristipomoides auricilla": {
+    "english": [
+      "Goldflag jobfish"
+    ],
+    "group": "fish",
+    "samoan": "Palu-ave"
+  },
+  "pristipomoides filamentosus": {
+    "english": [
+      "Crimson jobfish"
+    ],
+    "group": "fish",
+    "samoan": "Palu-ena'ena"
+  },
+  "pristipomoides flavipinnis": {
+    "english": [
+      "Golden eye jobfish"
+    ],
+    "group": "fish",
+    "samoan": "Palu-pa'epa'e"
+  },
+  "pristipomoides multidens": {
+    "english": [
+      "Goldbanded jobfish"
+    ],
+    "group": "fish",
+    "samoan": "Palu-sina"
+  },
+  "pristipomoides sieboldii": {
+    "english": [
+      "Lavender jobfish"
+    ],
+    "group": "fish"
+  },
+  "pristipomoides typus": {
+    "english": [
+      "Sharptooth jobfish"
+    ],
+    "group": "fish"
+  },
+  "pristipomoides zonatus": {
+    "english": [
+      "Oblique-banded snapper"
+    ],
+    "group": "fish",
+    "samoan": "Palu-ula"
+  },
+  "prognichthys sealei": {
+    "english": [
+      "Sailor flyingfish"
+    ],
+    "group": "fish",
+    "samoan": "Malolo"
+  },
+  "promethichthys prometheus": {
+    "english": [
+      "Roudi escolar"
+    ],
+    "group": "fish",
+    "samoan": "Palu-kamuro"
+  },
+  "psammogobius biocellatus": {
+    "english": [
+      "Sleepy goby"
+    ],
+    "group": "fish",
+    "samoan": "Mano'o"
+  },
+  "psenes cyanophrys": {
+    "english": [
+      "Freckled driftfish"
+    ],
+    "group": "fish"
+  },
+  "pseudamia gelatinosa": {
+    "english": [
+      "Gelatinous cardinalfish"
+    ],
+    "group": "fish"
+  },
+  "pseudamia hayashii": {
+    "english": [
+      "Hayashi's cardinalfish"
+    ],
+    "group": "fish"
+  },
+  "pseudamiops gracilicauda": {
+    "english": [
+      "Graceful-tailed cardinalfish"
+    ],
+    "group": "fish",
+    "samoan": "Fo"
+  },
+  "pseudanthias cooperi": {
+    "english": [
+      "Red-bar anthias"
+    ],
+    "group": "fish"
+  },
+  "pseudanthias hypselosoma": {
+    "english": [
+      "Stocky anthias"
+    ],
+    "group": "fish"
+  },
+  "pseudanthias pleurotaenia": {
+    "english": [
+      "Square-spot fairy basslet"
+    ],
+    "group": "fish"
+  },
+  "pseudechidna brummeri": {
+    "english": [
+      "White ribbon eel"
+    ],
+    "group": "fish",
+    "samoan": "Asulu"
+  },
+  "pseudobalistes flavimarginatus": {
+    "english": [
+      "Yellowmargin triggerfish"
+    ],
+    "group": "fish",
+    "samoan": "Sumu-laulau"
+  },
+  "pseudobalistes fuscus": {
+    "english": [
+      "Yellow-spotted triggerfish"
+    ],
+    "group": "fish",
+    "samoan": "Sumu-laulau"
+  },
+  "pseudocheilinus evanidus": {
+    "english": [
+      "Striated wrasse"
+    ],
+    "group": "fish",
+    "samoan": "Sugale-manifi"
+  },
+  "pseudocheilinus hexataenia": {
+    "english": [
+      "Sixline wrasse"
+    ],
+    "group": "fish"
+  },
+  "pseudocheilinus octotaenia": {
+    "english": [
+      "Eight-lined wrasse"
+    ],
+    "group": "fish",
+    "samoan": "Sugale-manifi"
+  },
+  "pseudochromis jamesi": {
+    "english": [
+      "Spot-tailed dottyback"
+    ],
+    "group": "fish",
+    "samoan": "Tiva"
+  },
+  "pseudocoris yamashiroi": {
+    "english": [
+      "Redspot wrasse"
+    ],
+    "group": "fish",
+    "samoan": "Sugale"
+  },
+  "pseudodax moluccanus": {
+    "english": [
+      "Chiseltooth wrasse"
+    ],
+    "group": "fish",
+    "samoan": "Sugale-siva"
+  },
+  "pseudogramma astigma": {
+    "english": [
+      "Spotless podge"
+    ],
+    "group": "fish"
+  },
+  "pseudogramma polyacantha": {
+    "english": [
+      "Honeycomb podge"
+    ],
+    "group": "fish"
+  },
+  "pseudojuloides cerasinus": {
+    "english": [
+      "Smalltail wrasse"
+    ],
+    "group": "fish"
+  },
+  "pseudoplesiops rosae": {
+    "english": [
+      "Rose Island basslet"
+    ],
+    "group": "fish",
+    "samoan": "Tiva"
+  },
+  "pseudoplesiops wassi": {
+    "english": [
+      "Fleckfin dottyback"
+    ],
+    "group": "fish"
+  },
+  "pteragogus cryptus": {
+    "english": [],
+    "group": "fish"
+  },
+  "pteragogus turdus": {
+    "english": [
+      "Thrush sneaky wrasse"
+    ],
+    "group": "fish"
+  },
+  "ptereleotris evides": {
+    "english": [
+      "Blackfin dartfish"
+    ],
+    "group": "fish",
+    "samoan": "Ma'ulu"
+  },
+  "ptereleotris heteroptera": {
+    "english": [
+      "Blacktail goby"
+    ],
+    "group": "fish",
+    "samoan": "Ma'ulu"
+  },
+  "ptereleotris microlepis": {
+    "english": [
+      "Blue gudgeon"
+    ],
+    "group": "fish",
+    "samoan": "Ma'ulu"
+  },
+  "ptereleotris zebra": {
+    "english": [
+      "Chinese zebra goby"
+    ],
+    "group": "fish",
+    "samoan": "Tilotai"
+  },
+  "pterocaesio chrysozona": {
+    "english": [
+      "Goldband fusilier"
+    ],
+    "group": "fish"
+  },
+  "pterocaesio marri": {
+    "english": [
+      "Marr's fusilier"
+    ],
+    "group": "fish"
+  },
+  "pterocaesio tile": {
+    "english": [
+      "Dark-banded fusilier"
+    ],
+    "group": "fish"
+  },
+  "pterois volitans": {
+    "english": [
+      "Red lionfish"
+    ],
+    "group": "fish",
+    "samoan": "Sausau-lele"
+  },
+  "pteropterus antennatus": {
+    "english": [
+      "Broadbarred firefish"
+    ],
+    "group": "fish",
+    "samoan": "Sausau-lele"
+  },
+  "pteropterus radiatus": {
+    "english": [
+      "Radial firefish"
+    ],
+    "group": "fish",
+    "samoan": "Sausau-lele"
+  },
+  "pycnochromis acares": {
+    "english": [
+      "Midget chromis"
+    ],
+    "group": "fish",
+    "samoan": "Tu'u'u-fo"
+  },
+  "pycnochromis amboinensis": {
+    "english": [
+      "Ambon chromis"
+    ],
+    "group": "fish",
+    "samoan": "Tu'u'u-palevai"
+  },
+  "pycnochromis iomelas": {
+    "english": [
+      "Half-and-half chromis"
+    ],
+    "group": "fish",
+    "samoan": "Tu'u'u-i'usina"
+  },
+  "pycnochromis margaritifer": {
+    "english": [
+      "Bicolor chromis"
+    ],
+    "group": "fish",
+    "samoan": "Tu'u'u-i'usina"
+  },
+  "pycnochromis pacifica": {
+    "english": [
+      "Pacific bronze Chromis"
+    ],
+    "group": "fish",
+    "samoan": "Tu'u'u"
+  },
+  "pycnochromis vanderbilti": {
+    "english": [
+      "Vanderbilt's chromis"
+    ],
+    "group": "fish",
+    "samoan": "Tu'u'u-fo"
+  },
+  "pygoplites diacanthus": {
+    "english": [
+      "Regal angelfish"
+    ],
+    "group": "fish",
+    "samoan": "Tu'u'u-moana"
+  },
+  "pyronotanthias lori": {
+    "english": [
+      "Lori's anthias"
+    ],
+    "group": "fish"
+  },
+  "rastrelliger brachysoma": {
+    "english": [
+      "Short mackerel"
+    ],
+    "group": "fish",
+    "samoan": "Ga"
+  },
+  "rastrelliger kanagurta": {
+    "english": [
+      "Indian mackerel"
+    ],
+    "group": "fish",
+    "samoan": "Ga"
+  },
+  "remora osteochir": {
+    "english": [
+      "Marlin sucker"
+    ],
+    "group": "fish",
+    "samoan": "Talitaliuli"
+  },
+  "remora remora": {
+    "english": [
+      "Shark sucker"
+    ],
+    "group": "fish",
+    "samoan": "Talitaliuli"
+  },
+  "rhincodon typus": {
+    "english": [
+      "Whale shark"
+    ],
+    "group": "fish"
+  },
+  "rhinecanthus aculeatus": {
+    "english": [
+      "White-banded triggerfish"
+    ],
+    "group": "fish",
+    "samoan": "Sumu-uo'uo"
+  },
+  "rhinecanthus rectangulus": {
+    "english": [
+      "Wedgetail triggerfish"
+    ],
+    "group": "fish",
+    "samoan": "Sumu-aloalo"
+  },
+  "rhinomuraena quaesita": {
+    "english": [
+      "Ribbon moray"
+    ],
+    "group": "fish",
+    "samoan": "Pusi"
+  },
+  "rogadius welanderi": {
+    "english": [
+      "Welander's flathead"
+    ],
+    "group": "fish",
+    "samoan": "Tolo"
+  },
+  "ruvettus pretiosus": {
+    "english": [
+      "Oilfish"
+    ],
+    "group": "fish",
+    "samoan": "Palu-talatala"
+  },
+  "salarias alboguttatus": {
+    "english": [
+      "White-spotted blenny"
+    ],
+    "group": "fish",
+    "samoan": "Mano'o"
+  },
+  "salarias fasciatus": {
+    "english": [
+      "Jewelled blenny"
+    ],
+    "group": "fish",
+    "samoan": "Mano'o-sofe"
+  },
+  "salarias guttatus": {
+    "english": [
+      "Breastspot blenny"
+    ],
+    "group": "fish",
+    "samoan": "Mano'o"
+  },
+  "salarias segmentatus": {
+    "english": [
+      "Segmented blenny"
+    ],
+    "group": "fish"
+  },
+  "saloptia powelli": {
+    "english": [
+      "Golden grouper"
+    ],
+    "group": "fish"
+  },
+  "samariscus triocellatus": {
+    "english": [
+      "Three-spot righteye flounder"
+    ],
+    "group": "fish",
+    "samoan": "Ali"
+  },
+  "sardinella albella": {
+    "english": [
+      "White sardinella"
+    ],
+    "group": "fish"
+  },
+  "sardinella fimbriata": {
+    "english": [
+      "Fringescale sardinella"
+    ],
+    "group": "fish"
+  },
+  "sardinella gibbosa": {
+    "english": [
+      "Goldstripe sardinella"
+    ],
+    "group": "fish"
+  },
+  "sardinella melanura": {
+    "english": [
+      "Blacktip sardinella"
+    ],
+    "group": "fish",
+    "samoan": "Salala"
+  },
+  "sargocentron caudimaculatum": {
+    "english": [
+      "Silverspot squirrelfish"
+    ],
+    "group": "fish",
+    "samoan": "Malau-i'usina"
+  },
+  "sargocentron diadema": {
+    "english": [
+      "Crown squirrelfish"
+    ],
+    "group": "fish",
+    "samoan": "Malau-tusitusi"
+  },
+  "sargocentron ensifer": {
+    "english": [
+      "Yellow-striped squirrelfish"
+    ],
+    "group": "fish",
+    "samoan": "Malau"
+  },
+  "sargocentron lepros": {
+    "english": [
+      "Spiny squirrelfish"
+    ],
+    "group": "fish"
+  },
+  "sargocentron melanospilos": {
+    "english": [
+      "Blackblotch squirrelfish"
+    ],
+    "group": "fish",
+    "samoan": "Malau"
+  },
+  "sargocentron microstoma": {
+    "english": [
+      "Smallmouth squirrelfish"
+    ],
+    "group": "fish",
+    "samoan": "Malau-tianiu"
+  },
+  "sargocentron praslin": {
+    "english": [
+      "Dark-striped squirrelfish"
+    ],
+    "group": "fish"
+  },
+  "sargocentron punctatissimum": {
+    "english": [
+      "Speckled squirrelfish"
+    ],
+    "group": "fish",
+    "samoan": "Malau-faiumu"
+  },
+  "sargocentron rubrum": {
+    "english": [
+      "Redcoat"
+    ],
+    "group": "fish",
+    "samoan": "Malau"
+  },
+  "sargocentron spiniferum": {
+    "english": [
+      "Sabre squirrelfish"
+    ],
+    "group": "fish",
+    "samoan": "Mu-malau"
+  },
+  "sargocentron tiere": {
+    "english": [
+      "Blue lined squirrelfish"
+    ],
+    "group": "fish",
+    "samoan": "Malau"
+  },
+  "sargocentron tiereoides": {
+    "english": [
+      "Pink squirrelfish"
+    ],
+    "group": "fish",
+    "samoan": "Malau"
+  },
+  "sargocentron violaceum": {
+    "english": [
+      "Violet squirrelfish"
+    ],
+    "group": "fish",
+    "samoan": "Malau-tifa"
+  },
+  "saurida gracilis": {
+    "english": [
+      "Gracile lizardfish"
+    ],
+    "group": "fish",
+    "samoan": "Ta'oto"
+  },
+  "scarus altipinnis": {
+    "english": [
+      "Filament-finned parrotfish"
+    ],
+    "group": "fish",
+    "samoan": "Laea-sina"
+  },
+  "scarus dimidiatus": {
+    "english": [
+      "Yellowbarred parrotfish"
+    ],
+    "group": "fish",
+    "samoan": "Fuga-alosama"
+  },
+  "scarus festivus": {
+    "english": [
+      "Festive parrotfish"
+    ],
+    "group": "fish"
+  },
+  "scarus frenatus": {
+    "english": [
+      "Bridled parrotfish"
+    ],
+    "group": "fish",
+    "samoan": "Laea-mea"
+  },
+  "scarus ghobban": {
+    "english": [
+      "Blue-barred parrotfish"
+    ],
+    "group": "fish",
+    "samoan": "Fuga-alova"
+  },
+  "scarus globiceps": {
+    "english": [
+      "Globehead parrotfish"
+    ],
+    "group": "fish"
+  },
+  "scarus niger": {
+    "english": [
+      "Dusky parrotfish"
+    ],
+    "group": "fish",
+    "samoan": "Fuga-pala"
+  },
+  "scarus oviceps": {
+    "english": [
+      "Darkcap parrotfish"
+    ],
+    "group": "fish",
+    "samoan": "Fuga-alosina"
+  },
+  "scarus psittacus": {
+    "english": [
+      "Common parrotfish"
+    ],
+    "group": "fish",
+    "samoan": "Fugausi-matapua'a"
+  },
+  "scarus rubroviolaceus": {
+    "english": [
+      "Ember parrotfish"
+    ],
+    "group": "fish",
+    "samoan": "Laea-mea"
+  },
+  "scarus schlegeli": {
+    "english": [
+      "Yellowband parrotfish"
+    ],
+    "group": "fish",
+    "samoan": "Fuga-matapua'a"
+  },
+  "scarus spinus": {
+    "english": [
+      "Greensnout parrotfish"
+    ],
+    "group": "fish",
+    "samoan": "Fuga-a'au"
+  },
+  "scarus tricolor": {
+    "english": [
+      "Tricolour parrotfish"
+    ],
+    "group": "fish",
+    "samoan": "Fuga-alomu"
+  },
+  "scatophagus argus": {
+    "english": [
+      "Spotted scat"
+    ],
+    "group": "fish"
+  },
+  "schismatogobius tuimanua": {
+    "english": [],
+    "group": "fish"
+  },
+  "schismorhynchus labialis": {
+    "english": [
+      "Grooved-jaw worm eel"
+    ],
+    "group": "fish"
+  },
+  "schultzidia johnstonensis": {
+    "english": [
+      "Johnston snake-eel"
+    ],
+    "group": "fish"
+  },
+  "scolecenchelys gymnota": {
+    "english": [
+      "Indo-Pacific slender worm-eel"
+    ],
+    "group": "fish"
+  },
+  "scolecenchelys laticaudata": {
+    "english": [
+      "Redfin worm-eel"
+    ],
+    "group": "fish"
+  },
+  "scolecenchelys macroptera": {
+    "english": [
+      "Narrow worm eel"
+    ],
+    "group": "fish"
+  },
+  "scolopsis lineata": {
+    "english": [
+      "Striped monocle bream"
+    ],
+    "group": "fish"
+  },
+  "scolopsis trilineata": {
+    "english": [
+      "Threeline monocle bream"
+    ],
+    "group": "fish",
+    "samoan": "Tivao"
+  },
+  "scomberoides lysan": {
+    "english": [
+      "Doublespotted queenfish"
+    ],
+    "group": "fish",
+    "samoan": "Lai"
+  },
+  "scorpaenodes guamensis": {
+    "english": [
+      "Guam scorpionfish"
+    ],
+    "group": "fish"
+  },
+  "scorpaenodes hirsutus": {
+    "english": [
+      "Hairy scorpionfish"
+    ],
+    "group": "fish"
+  },
+  "scorpaenodes minor": {
+    "english": [
+      "Minor scorpionfish"
+    ],
+    "group": "fish"
+  },
+  "scorpaenodes parvipinnis": {
+    "english": [
+      "Lowfin scorpionfish"
+    ],
+    "group": "fish"
+  },
+  "scorpaenopsis diabolus": {
+    "english": [
+      "False stonefish"
+    ],
+    "group": "fish"
+  },
+  "scorpaenopsis gibbosa": {
+    "english": [
+      "Humpbacked scorpionfish"
+    ],
+    "group": "fish"
+  },
+  "scorpaenopsis macrochir": {
+    "english": [
+      "Flasher scorpionfish"
+    ],
+    "group": "fish"
+  },
+  "scorpaenopsis possi": {
+    "english": [
+      "Poss's scorpionfish"
+    ],
+    "group": "fish"
+  },
+  "scorpaenopsis vittapinna": {
+    "english": [
+      "Bandfin scorpionfish"
+    ],
+    "group": "fish"
+  },
+  "scuticaria tigrina": {
+    "english": [
+      "Tiger reef-eel"
+    ],
+    "group": "fish",
+    "samoan": "Pusi-solasulu"
+  },
+  "sebastapistes cyanostigma": {
+    "english": [
+      "Yellowspotted scorpionfish"
+    ],
+    "group": "fish"
+  },
+  "sebastapistes fowleri": {
+    "english": [
+      "Pigmy scorpionfish"
+    ],
+    "group": "fish"
+  },
+  "sebastapistes mauritiana": {
+    "english": [
+      "Spineblotch scorpionfish"
+    ],
+    "group": "fish"
+  },
+  "sebastapistes strongia": {
+    "english": [
+      "Barchin scorpionfish"
+    ],
+    "group": "fish"
+  },
+  "selar boops": {
+    "english": [
+      "Oxeye scad"
+    ],
+    "group": "fish"
+  },
+  "selar crumenophthalmus": {
+    "english": [
+      "Bigeye scad"
+    ],
+    "group": "fish",
+    "samoan": "Atule"
+  },
+  "seriola rivoliana": {
+    "english": [
+      "Longfin yellowtail"
+    ],
+    "group": "fish",
+    "samoan": "Palu-kata"
+  },
+  "serrivomer samoensis": {
+    "english": [
+      "Samoa sawtooth eel"
+    ],
+    "group": "fish"
+  },
+  "sicyopterus lagocephalus": {
+    "english": [
+      "Red-tailed goby"
+    ],
+    "group": "fish",
+    "samoan": "Mono'o-vai"
+  },
+  "sicyopterus macrostetholepis": {
+    "english": [],
+    "group": "fish",
+    "samoan": "Mano'o"
+  },
+  "sicyopterus pugnans": {
+    "english": [],
+    "group": "fish",
+    "samoan": "Mano'o"
+  },
+  "siganus argenteus": {
+    "english": [
+      "Streamlined spinefoot"
+    ],
+    "group": "fish",
+    "samoan": "Loloa"
+  },
+  "siganus punctatus": {
+    "english": [
+      "Goldspotted spinefoot"
+    ],
+    "group": "fish",
+    "samoan": "Loele'ele"
+  },
+  "siganus spinus": {
+    "english": [
+      "Little spinefoot"
+    ],
+    "group": "fish",
+    "samoan": "Anefe"
+  },
+  "skythrenchelys macrostomus": {
+    "english": [],
+    "group": "fish"
+  },
+  "soleichthys heterorhinos": {
+    "english": [
+      "Black-tip sole"
+    ],
+    "group": "fish",
+    "samoan": "Ali"
+  },
+  "sphoeroides pachygaster": {
+    "english": [
+      "Blunthead puffer"
+    ],
+    "group": "fish"
+  },
+  "sphyraena barracuda": {
+    "english": [
+      "Great barracuda"
+    ],
+    "group": "fish",
+    "samoan": "Sapatu"
+  },
+  "sphyraena flavicauda": {
+    "english": [
+      "Yellowtail barracuda"
+    ],
+    "group": "fish",
+    "samoan": "Sapatu"
+  },
+  "sphyraena forsteri": {
+    "english": [
+      "Bigeye barracuda"
+    ],
+    "group": "fish",
+    "samoan": "Sapatu"
+  },
+  "sphyraena obtusata": {
+    "english": [
+      "Obtuse barracuda"
+    ],
+    "group": "fish"
+  },
+  "sphyraena qenie": {
+    "english": [
+      "Blackfin barracuda"
+    ],
+    "group": "fish",
+    "samoan": "Sapatu"
+  },
+  "sphyrna lewini": {
+    "english": [
+      "Scalloped hammerhead"
+    ],
+    "group": "fish",
+    "samoan": "Mata'italiga"
+  },
+  "sphyrna zygaena": {
+    "english": [
+      "Smooth hammerhead"
+    ],
+    "group": "fish",
+    "samoan": "Mata'italiga"
+  },
+  "spratelloides delicatulus": {
+    "english": [
+      "Delicate round herring"
+    ],
+    "group": "fish",
+    "samoan": "Nefu"
+  },
+  "spratelloides gracilis": {
+    "english": [
+      "Silver-stripe round herring"
+    ],
+    "group": "fish",
+    "samoan": "Nefu"
+  },
+  "stanulus seychellensis": {
+    "english": [
+      "Seychelle's blenny"
+    ],
+    "group": "fish",
+    "samoan": "Mano'o"
+  },
+  "steeneichthys plesiopsus": {
+    "english": [
+      "Steene's prettyfin"
+    ],
+    "group": "fish"
+  },
+  "stegastes albifasciatus": {
+    "english": [
+      "Whitebar gregory"
+    ],
+    "group": "fish",
+    "samoan": "Tu'u'u-pa"
+  },
+  "stegastes lacrymatus": {
+    "english": [
+      "Whitespotted devil"
+    ],
+    "group": "fish",
+    "samoan": "I'usamasama"
+  },
+  "stegastes nigricans": {
+    "english": [
+      "Dusky farmerfish"
+    ],
+    "group": "fish",
+    "samoan": "Tu'u'u-moi"
+  },
+  "stegastes punctatus": {
+    "english": [
+      "Blunt snout gregory"
+    ],
+    "group": "fish",
+    "samoan": "Tu'u'u-moi"
+  },
+  "stegostoma tigrinum": {
+    "english": [
+      "Zebra shark"
+    ],
+    "group": "fish",
+    "samoan": "Moemoeao"
+  },
+  "stenogobius genivittatus": {
+    "english": [
+      "Chinstripe goby"
+    ],
+    "group": "fish",
+    "samoan": "Mano'o-vai"
+  },
+  "stethojulis bandanensis": {
+    "english": [
+      "Red shoulder wrasse"
+    ],
+    "group": "fish",
+    "samoan": "Lape-a'au"
+  },
+  "stethojulis interrupta": {
+    "english": [
+      "Cutribbon wrasse"
+    ],
+    "group": "fish"
+  },
+  "stethojulis strigiventer": {
+    "english": [
+      "Three-ribbon wrasse"
+    ],
+    "group": "fish",
+    "samoan": "Lape-a'au"
+  },
+  "stethojulis trilineata": {
+    "english": [
+      "Three-lined rainbowfish"
+    ],
+    "group": "fish",
+    "samoan": "Lape-a'au"
+  },
+  "stiphodon elegans": {
+    "english": [],
+    "group": "fish",
+    "samoan": "Mano'o-vai"
+  },
+  "stiphodon hydoreibatus": {
+    "english": [],
+    "group": "fish"
+  },
+  "stolephorus apiensis": {
+    "english": [
+      "Samoan anchovy"
+    ],
+    "group": "fish"
+  },
+  "stolephorus indicus": {
+    "english": [
+      "Indian anchovy"
+    ],
+    "group": "fish"
+  },
+  "stolephorus insularis": {
+    "english": [
+      "Hardenberg's anchovy"
+    ],
+    "group": "fish"
+  },
+  "strongylura incisa": {
+    "english": [
+      "Reef needlefish"
+    ],
+    "group": "fish",
+    "samoan": "A'u"
+  },
+  "sufflamen bursa": {
+    "english": [
+      "Boomerang triggerfish"
+    ],
+    "group": "fish"
+  },
+  "sufflamen chrysopterum": {
+    "english": [
+      "Halfmoon triggerfish"
+    ],
+    "group": "fish",
+    "samoan": "Sumu-gasemoana"
+  },
+  "sufflamen fraenatum": {
+    "english": [
+      "Masked triggerfish"
+    ],
+    "group": "fish",
+    "samoan": "Sumu-gase'ele'ele"
+  },
+  "sunagocia otaitensis": {
+    "english": [
+      "Fringelip flathead"
+    ],
+    "group": "fish",
+    "samoan": "Tolo"
+  },
+  "synanceia verrucosa": {
+    "english": [
+      "Stonefish"
+    ],
+    "group": "fish"
+  },
+  "synchiropus morrisoni": {
+    "english": [
+      "Morrison's dragonet"
+    ],
+    "group": "fish"
+  },
+  "synchiropus ocellatus": {
+    "english": [
+      "Ocellated dragonet"
+    ],
+    "group": "fish",
+    "samoan": "Mano'o-lele"
+  },
+  "syngnathoides biaculeatus": {
+    "english": [
+      "Alligator pipefish"
+    ],
+    "group": "fish"
+  },
+  "synodus binotatus": {
+    "english": [
+      "Twospot lizardfish"
+    ],
+    "group": "fish",
+    "samoan": "Ta'oto"
+  },
+  "synodus variegatus": {
+    "english": [
+      "Variegated lizardfish"
+    ],
+    "group": "fish",
+    "samoan": "Ta'oto"
+  },
+  "taeniamia biguttata": {
+    "english": [
+      "Twinspot cardinalfish"
+    ],
+    "group": "fish",
+    "samoan": "Fo"
+  },
+  "taeniamia fucata": {
+    "english": [
+      "Orangelined cardinalfish"
+    ],
+    "group": "fish",
+    "samoan": "Fo-manifi"
+  },
+  "taeniamia macroptera": {
+    "english": [
+      "Dusky-tailed cardinalfish"
+    ],
+    "group": "fish"
+  },
+  "taenianotus triacanthus": {
+    "english": [
+      "Leaf scorpionfish"
+    ],
+    "group": "fish"
+  },
+  "takifugu oblongus": {
+    "english": [
+      "Lattice blaasop"
+    ],
+    "group": "fish"
+  },
+  "taractichthys longipinnis": {
+    "english": [
+      "Bigscale Pomfret"
+    ],
+    "group": "fish",
+    "samoan": "Manifi-moana"
+  },
+  "terapon jarbua": {
+    "english": [
+      "Jarbua terapon"
+    ],
+    "group": "fish",
+    "samoan": "Ava'ava"
+  },
+  "tetrapturus angustirostris": {
+    "english": [
+      "Shortbill spearfish"
+    ],
+    "group": "fish",
+    "samoan": "Sa'ula"
+  },
+  "thalassoma amblycephalum": {
+    "english": [
+      "Blunthead wrasse"
+    ],
+    "group": "fish",
+    "samoan": "Sugale-aloama"
+  },
+  "thalassoma hardwicke": {
+    "english": [
+      "Sixbar wrasse"
+    ],
+    "group": "fish",
+    "samoan": "Lape-ele'ele"
+  },
+  "thalassoma lutescens": {
+    "english": [
+      "Green moon wrasse"
+    ],
+    "group": "fish",
+    "samoan": "Sugale-samasama"
+  },
+  "thalassoma purpureum": {
+    "english": [
+      "Surge wrasse"
+    ],
+    "group": "fish",
+    "samoan": "Patagaloa"
+  },
+  "thalassoma quinquevittatum": {
+    "english": [
+      "Fivestripe wrasse"
+    ],
+    "group": "fish",
+    "samoan": "Lape-moana"
+  },
+  "thalassoma trilobatum": {
+    "english": [
+      "Christmas wrasse"
+    ],
+    "group": "fish",
+    "samoan": "Pata'ota'o"
+  },
+  "thrissina baelama": {
+    "english": [
+      "Baelama anchovy"
+    ],
+    "group": "fish"
+  },
+  "thunnus alalunga": {
+    "english": [
+      "Albacore"
+    ],
+    "group": "fish",
+    "samoan": "Apakoa"
+  },
+  "thunnus albacares": {
+    "english": [
+      "Yellowfin tuna"
+    ],
+    "group": "fish",
+    "samoan": "Ta'uo"
+  },
+  "thunnus obesus": {
+    "english": [
+      "Bigeye tuna"
+    ],
+    "group": "fish",
+    "samoan": "Asiasi"
+  },
+  "thysanophrys chiltonae": {
+    "english": [
+      "Longsnout flathead"
+    ],
+    "group": "fish",
+    "samoan": "Tolo"
+  },
+  "torquigener hypselogeneion": {
+    "english": [
+      "Orange-spotted toadfish"
+    ],
+    "group": "fish",
+    "samoan": "Sue-mimi"
+  },
+  "trachinotus baillonii": {
+    "english": [
+      "Small spotted dart"
+    ],
+    "group": "fish",
+    "samoan": "Lai"
+  },
+  "trachinotus blochii": {
+    "english": [
+      "Snubnose pompano"
+    ],
+    "group": "fish",
+    "samoan": "Alalafutu"
+  },
+  "triaenodon obesus": {
+    "english": [
+      "Whitetip reef shark"
+    ],
+    "group": "fish",
+    "samoan": "Malu"
+  },
+  "trimma benjamini": {
+    "english": [
+      "Ring-eye pygmygoby"
+    ],
+    "group": "fish"
+  },
+  "trimma caesiura": {
+    "english": [
+      "Caesiura pygmygoby"
+    ],
+    "group": "fish",
+    "samoan": "Mano'o-moi"
+  },
+  "trimma flavatrum": {
+    "english": [
+      "Wasp pygmygoby"
+    ],
+    "group": "fish"
+  },
+  "trimma maiandros": {
+    "english": [
+      "Zigzag pygmygoby"
+    ],
+    "group": "fish"
+  },
+  "trimma tevegae": {
+    "english": [
+      "Tevegae pygmygoby"
+    ],
+    "group": "fish",
+    "samoan": "Mano'o-moi"
+  },
+  "trimmatom eviotops": {
+    "english": [
+      "Red-barred rubble goby"
+    ],
+    "group": "fish",
+    "samoan": "Mano'o-moi"
+  },
+  "triodon macropterus": {
+    "english": [
+      "Threetooth puffer"
+    ],
+    "group": "fish",
+    "samoan": "Sue-moemimi"
+  },
+  "turrum coeruleopinnatum": {
+    "english": [
+      "Coastal trevally"
+    ],
+    "group": "fish",
+    "samoan": "Filu"
+  },
+  "tylosurus crocodilus": {
+    "english": [
+      "Hound needlefish"
+    ],
+    "group": "fish",
+    "samoan": "A'u"
+  },
+  "ucla xenogrammus": {
+    "english": [
+      "Largemouth triplefin"
+    ],
+    "group": "fish"
+  },
+  "upeneus taeniopterus": {
+    "english": [
+      "Bandtail goatfish"
+    ],
+    "group": "fish",
+    "samoan": "Ula'oa"
+  },
+  "upeneus vittatus": {
+    "english": [
+      "Striped goatfish"
+    ],
+    "group": "fish",
+    "samoan": "Ula'oa"
+  },
+  "uranoscopus sulphureus": {
+    "english": [
+      "Whitemargin stargazer"
+    ],
+    "group": "fish"
+  },
+  "uraspis helvola": {
+    "english": [
+      "Whitetongue jack"
+    ],
+    "group": "fish"
+  },
+  "uraspis secunda": {
+    "english": [
+      "Cottonmouth jack"
+    ],
+    "group": "fish",
+    "samoan": "Lufi"
+  },
+  "uropterygius concolor": {
+    "english": [
+      "Unicolor snake moray"
+    ],
+    "group": "fish",
+    "samoan": "Pusi"
+  },
+  "uropterygius fuscoguttatus": {
+    "english": [
+      "Brown spotted snake moray"
+    ],
+    "group": "fish",
+    "samoan": "Pusi"
+  },
+  "uropterygius macrocephalus": {
+    "english": [
+      "Needle-tooth moray"
+    ],
+    "group": "fish",
+    "samoan": "Pusi"
+  },
+  "uropterygius marmoratus": {
+    "english": [
+      "Marbled reef-eel"
+    ],
+    "group": "fish",
+    "samoan": "Pusi"
+  },
+  "uropterygius micropterus": {
+    "english": [
+      "Tidepool snake moray"
+    ],
+    "group": "fish",
+    "samoan": "Pusi-solasulu"
+  },
+  "uropterygius polyspilus": {
+    "english": [
+      "Large-spotted snake moray"
+    ],
+    "group": "fish",
+    "samoan": "Pusi"
+  },
+  "uropterygius supraforatus": {
+    "english": [
+      "Many-toothed snake moray"
+    ],
+    "group": "fish",
+    "samoan": "Pusi-le'a"
+  },
+  "uropterygius xanthopterus": {
+    "english": [
+      "Freckleface reef-eel"
+    ],
+    "group": "fish",
+    "samoan": "Pusi"
+  },
+  "uropterygius xenodontus": {
+    "english": [
+      "Black snake moray"
+    ],
+    "group": "fish"
+  },
+  "valenciennea parva": {
+    "english": [
+      "Parva goby"
+    ],
+    "group": "fish"
+  },
+  "valenciennea puellaris": {
+    "english": [
+      "Maiden goby"
+    ],
+    "group": "fish",
+    "samoan": "Mano'o-sina"
+  },
+  "valenciennea sexguttata": {
+    "english": [
+      "Sixspot goby"
+    ],
+    "group": "fish",
+    "samoan": "Mano'o-sina"
+  },
+  "valenciennea strigata": {
+    "english": [
+      "Blueband goby"
+    ],
+    "group": "fish",
+    "samoan": "Mano'o-sina"
+  },
+  "vanderhorstia ambanoro": {
+    "english": [
+      "Ambanoro prawn-goby"
+    ],
+    "group": "fish",
+    "samoan": "Mano'o-popo"
+  },
+  "vanderhorstia ornatissima": {
+    "english": [
+      "Ornate prawn-goby"
+    ],
+    "group": "fish",
+    "samoan": "Mano'o-popo"
+  },
+  "variola albimarginata": {
+    "english": [
+      "White-edged lyretail"
+    ],
+    "group": "fish"
+  },
+  "variola louti": {
+    "english": [
+      "Yellow-edged lyretail"
+    ],
+    "group": "fish",
+    "samoan": "Velo"
+  },
+  "verilus pacificus": {
+    "english": [],
+    "group": "fish"
+  },
+  "wattsia mossambica": {
+    "english": [
+      "Mozambique large-eye bream"
+    ],
+    "group": "fish",
+    "samoan": "Filoa-mutumutu"
+  },
+  "wetmorella albofasciata": {
+    "english": [
+      "Whitebanded sharpnose wrasse"
+    ],
+    "group": "fish",
+    "samoan": "La'ofia"
+  },
+  "wetmorella nigropinnata": {
+    "english": [
+      "Sharpnose wrasse"
+    ],
+    "group": "fish",
+    "samoan": "La'ofia"
+  },
+  "xanthichthys caeruleolineatus": {
+    "english": [
+      "Outrigger triggerfish"
+    ],
+    "group": "fish",
+    "samoan": "Sumu-palu"
+  },
+  "xenanthias fourmanoiri": {
+    "english": [
+      "Doublespot perchlet"
+    ],
+    "group": "fish",
+    "samoan": "Fo-tala"
+  },
+  "xenanthias nanus": {
+    "english": [
+      "Bownband perchlet"
+    ],
+    "group": "fish",
+    "samoan": "Fo-tala"
+  },
+  "xenisthmus clarus": {
+    "english": [
+      "Clear wriggler"
+    ],
+    "group": "fish",
+    "samoan": "Mano'o-taotao"
+  },
+  "xenisthmus polyzonatus": {
+    "english": [
+      "Bullseye wriggler"
+    ],
+    "group": "fish"
+  },
+  "xiphasia matsubarai": {
+    "english": [
+      "Japanese snake blenny"
+    ],
+    "group": "fish"
+  },
+  "xiphias gladius": {
+    "english": [
+      "Swordfish"
+    ],
+    "group": "fish"
+  },
+  "zanclus cornutus": {
+    "english": [
+      "Moorish idol"
+    ],
+    "group": "fish",
+    "samoan": "Laulaufau"
+  },
+  "zebrasoma rostratum": {
+    "english": [
+      "Longnose surgeonfish"
+    ],
+    "group": "fish"
+  },
+  "zebrasoma scopas": {
+    "english": [
+      "Twotone tang"
+    ],
+    "group": "fish",
+    "samoan": "Pe'ape'a"
+  },
+  "zebrasoma velifer": {
+    "english": [
+      "Sailfin tang"
+    ],
+    "group": "fish",
+    "samoan": "Iliu"
+  },
+  "zenarchopterus dispar": {
+    "english": [
+      "Feathered river-garfish"
+    ],
+    "group": "fish",
+    "samoan": "I'usila"
+  },
+  "zoramia fragilis": {
+    "english": [
+      "Fragile cardinalfish"
+    ],
+    "group": "fish",
+    "samoan": "Fo"
+  },
+  "zoramia leptacanthus": {
+    "english": [
+      "Threadfin cardinalfish"
+    ],
+    "group": "fish",
+    "samoan": "Fo"
+  },
+  "zoramia viridiventer": {
+    "english": [],
+    "group": "fish"
+  }
 }
