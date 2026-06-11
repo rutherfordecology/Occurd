@@ -9215,5 +9215,190 @@
     "english": [],
     "samoan": "Addenda",
     "group": "plant"
+  },
+  "acanthaster planci": {
+    "english": [],
+    "samoan": "alamea",
+    "group": "invertebrate"
+  },
+  "turbo crassus": {
+    "english": [],
+    "samoan": "alili",
+    "group": "invertebrate"
+  },
+  "turbo petholatus": {
+    "english": [],
+    "samoan": "alili",
+    "group": "invertebrate"
+  },
+  "turbo setosus": {
+    "english": [],
+    "samoan": "alili",
+    "group": "invertebrate"
+  },
+  "grapsus tenuicrustatus": {
+    "english": [],
+    "samoan": "'ama'ama",
+    "group": "invertebrate"
+  },
+  "holothuria hilla": {
+    "english": [],
+    "samoan": "amu'u",
+    "group": "invertebrate"
+  },
+  "stichopus chloronotus": {
+    "english": [],
+    "samoan": "amu'u",
+    "group": "invertebrate"
+  },
+  "fromia monilis": {
+    "english": [],
+    "samoan": "'aveau",
+    "group": "invertebrate"
+  },
+  "linckia laevigata": {
+    "english": [],
+    "samoan": "'aveau",
+    "group": "invertebrate"
+  },
+  "linckia multifora": {
+    "english": [],
+    "samoan": "'aveau",
+    "group": "invertebrate"
+  },
+  "ocypode ceratophthalmia": {
+    "english": [],
+    "samoan": "avi'ivi'i",
+    "group": "invertebrate"
+  },
+  "thelenota ananas": {
+    "english": [],
+    "samoan": "faatafa",
+    "group": "invertebrate"
+  },
+  "tridacna maxima": {
+    "english": [],
+    "samoan": "faisua",
+    "group": "invertebrate"
+  },
+  "tridacna squamosa": {
+    "english": [],
+    "samoan": "faisua",
+    "group": "invertebrate"
+  },
+  "octopus sp": {
+    "english": [],
+    "samoan": "fe'e",
+    "group": "invertebrate"
+  },
+  "octopus cyanea": {
+    "english": [],
+    "samoan": "fe'e",
+    "group": "invertebrate"
+  },
+  "bohadschia argus": {
+    "english": [],
+    "samoan": "fugafuga",
+    "group": "invertebrate"
+  },
+  "dolabrifera auricularia": {
+    "english": [],
+    "samoan": "gau",
+    "group": "invertebrate"
+  },
+  "sepioteuthis lessoniana": {
+    "english": [],
+    "samoan": "gufe'e",
+    "group": "invertebrate"
+  },
+  "holothuria atra": {
+    "english": [],
+    "samoan": "loli",
+    "group": "invertebrate"
+  },
+  "holothuria pervicax": {
+    "english": [],
+    "samoan": "loli",
+    "group": "invertebrate"
+  },
+  "carpilius maculatus": {
+    "english": [],
+    "samoan": "kuku",
+    "group": "invertebrate"
+  },
+  "rhodactis howesii": {
+    "english": [],
+    "samoan": "mata-malu",
+    "group": "invertebrate"
+  },
+  "stichopus horrens": {
+    "english": [],
+    "samoan": "neti",
+    "group": "invertebrate"
+  },
+  "brissus latecarinatus": {
+    "english": [],
+    "samoan": "ofa ofa",
+    "group": "invertebrate"
+  },
+  "palola siciliensis": {
+    "english": [],
+    "samoan": "palolo",
+    "group": "invertebrate"
+  },
+  "parribacus antarticus": {
+    "english": [],
+    "samoan": "papata",
+    "group": "invertebrate"
+  },
+  "synapta maculata": {
+    "english": [],
+    "samoan": "peva",
+    "group": "invertebrate"
+  },
+  "euapta godeffroyi": {
+    "english": [],
+    "samoan": "peva",
+    "group": "invertebrate"
+  },
+  "heterocentrotus mammilatus": {
+    "english": [],
+    "samoan": "satula",
+    "group": "invertebrate"
+  },
+  "tripneustes gratilla": {
+    "english": [],
+    "samoan": "sava'e",
+    "group": "invertebrate"
+  },
+  "holothuria leucospilota": {
+    "english": [],
+    "samoan": "sisigo",
+    "group": "invertebrate"
+  },
+  "echinometra mathaei": {
+    "english": [],
+    "samoan": "tui tui",
+    "group": "invertebrate"
+  },
+  "diadema savignyi": {
+    "english": [],
+    "samoan": "vaga",
+    "group": "invertebrate"
+  },
+  "echinothrix calamaris": {
+    "english": [],
+    "samoan": "vaga",
+    "group": "invertebrate"
+  },
+  "echinothrix diadema": {
+    "english": [],
+    "samoan": "vaga",
+    "group": "invertebrate"
+  },
+  "lysiosquilla maculata": {
+    "english": [],
+    "samoan": "valo",
+    "group": "invertebrate"
   }
 }
