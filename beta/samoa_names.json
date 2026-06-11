@@ -7425,5 +7425,1795 @@
   "zoramia viridiventer": {
     "english": [],
     "group": "fish"
+  },
+  "siegesbeckia orientalis": {
+    "english": [],
+    "samoan": "Aa'aa",
+    "group": "plant"
+  },
+  "oxalis corniculata": {
+    "english": [
+      "Creeping woodsorrel"
+    ],
+    "samoan": "A'aa'a",
+    "group": "plant"
+  },
+  "oxalis barrelieri": {
+    "english": [
+      "Erect wood-sorrel"
+    ],
+    "samoan": "A'aa'a Vao",
+    "group": "plant"
+  },
+  "ageratum conyzoides": {
+    "english": [
+      "Goat weed"
+    ],
+    "samoan": "A'amia",
+    "group": "plant"
+  },
+  "euphorbia atoto": {
+    "english": [
+      "Wild cress"
+    ],
+    "samoan": "A'atasi",
+    "group": "plant"
+  },
+  "polyscias reineckei": {
+    "english": [],
+    "samoan": "Afia",
+    "group": "plant"
+  },
+  "litsea magnifolia": {
+    "english": [],
+    "samoan": "Afoafoa",
+    "group": "plant"
+  },
+  "curcuma longa": {
+    "english": [],
+    "samoan": "Ago",
+    "group": "plant"
+  },
+  "cytrandra vaupelii": {
+    "english": [],
+    "samoan": "Alili",
+    "group": "plant"
+  },
+  "premna taitensis": {
+    "english": [],
+    "samoan": "Aloalo",
+    "group": "plant"
+  },
+  "timonius affinis": {
+    "english": [],
+    "samoan": "Aloalo Tane",
+    "group": "plant"
+  },
+  "mussaenda raiateensis": {
+    "english": [],
+    "samoan": "Aloalo Vao",
+    "group": "plant"
+  },
+  "caesalpinia jayabo": {
+    "english": [
+      "Nicker bean"
+    ],
+    "samoan": "'Anaoso",
+    "group": "plant"
+  },
+  "maba elliptica": {
+    "english": [],
+    "samoan": "'Anume",
+    "group": "plant"
+  },
+  "ficus aoa": {
+    "english": [],
+    "samoan": "Aoa",
+    "group": "plant"
+  },
+  "ficus graeffi": {
+    "english": [],
+    "samoan": "'Aoa Tane",
+    "group": "plant"
+  },
+  "diospyros samoensis": {
+    "english": [],
+    "samoan": "Aoaoli",
+    "group": "plant"
+  },
+  "anacardium occidentale": {
+    "english": [],
+    "samoan": "'Apu Initia",
+    "group": "plant"
+  },
+  "oryza sativa": {
+    "english": [],
+    "samoan": "Ar Visa",
+    "group": "plant"
+  },
+  "cucumis melo": {
+    "english": [
+      "Musk-melon"
+    ],
+    "samoan": "Atiu",
+    "group": "plant"
+  },
+  "cyrtandra godeffroyi": {
+    "english": [
+      "found along tracks and on edge of forest"
+    ],
+    "samoan": "Atiu Vao",
+    "group": "plant"
+  },
+  "cucumis anguria": {
+    "english": [
+      "found along tracks and on edge of forest"
+    ],
+    "samoan": "Atiu Vao",
+    "group": "plant"
+  },
+  "myristica inutilis": {
+    "english": [
+      "Wild nutmeg"
+    ],
+    "samoan": "'Atoge",
+    "group": "plant"
+  },
+  "myristica fragrans": {
+    "english": [],
+    "samoan": "'Atoge",
+    "group": "plant"
+  },
+  "myristica hypargyraea": {
+    "english": [
+      "Samoan nutmeg"
+    ],
+    "samoan": "'Atoge",
+    "group": "plant"
+  },
+  "burckella microphylla": {
+    "english": [],
+    "samoan": "'Au",
+    "group": "plant"
+  },
+  "psychotria xanthochlora": {
+    "english": [],
+    "samoan": "'Au'auli",
+    "group": "plant"
+  },
+  "amaranthus viridis": {
+    "english": [
+      "common weed"
+    ],
+    "samoan": "'Au Tasi",
+    "group": "plant"
+  },
+  "hibiscus rosa-sinensis": {
+    "english": [
+      "Coral hibiscus or dragon flower"
+    ],
+    "samoan": "'Aute",
+    "group": "plant"
+  },
+  "hibiscus syriacus": {
+    "english": [
+      "Coral hibiscus or dragon flower"
+    ],
+    "samoan": "'Aute",
+    "group": "plant"
+  },
+  "abelmoschus moschatus": {
+    "english": [],
+    "samoan": "'Aute Toga",
+    "group": "plant"
+  },
+  "piper methysticum": {
+    "english": [],
+    "samoan": "'Ava",
+    "group": "plant"
+  },
+  "piper tutuilae": {
+    "english": [],
+    "samoan": "'Ava'ava Aitu",
+    "group": "plant"
+  },
+  "zingiber officinale": {
+    "english": [
+      "Wild ginger"
+    ],
+    "samoan": "'Ava Pui",
+    "group": "plant"
+  },
+  "alpinia mutica": {
+    "english": [
+      "Wild ginger"
+    ],
+    "samoan": "'Ava Pui",
+    "group": "plant"
+  },
+  "alpinia samoensis": {
+    "english": [],
+    "samoan": "'Ava Pui Tuasivi",
+    "group": "plant"
+  },
+  "phyllanthus simplex": {
+    "english": [],
+    "samoan": "'Avasa",
+    "group": "plant"
+  },
+  "abrus precatorius": {
+    "english": [],
+    "samoan": "'Avasa",
+    "group": "plant"
+  },
+  "persea americana": {
+    "english": [],
+    "samoan": "Aviota",
+    "group": "plant"
+  },
+  "carica papaya": {
+    "english": [],
+    "samoan": "Esi",
+    "group": "plant"
+  },
+  "sterculia fanaiho": {
+    "english": [],
+    "samoan": "Fagafo",
+    "group": "plant"
+  },
+  "canna indica": {
+    "english": [
+      "Wild cannalily"
+    ],
+    "samoan": "Fagamanu",
+    "group": "plant"
+  },
+  "alpinia sanderae": {
+    "english": [],
+    "samoan": "Fagamanu",
+    "group": "plant"
+  },
+  "meryta capitata": {
+    "english": [],
+    "samoan": "Fagufagu",
+    "group": "plant"
+  },
+  "musa textilis": {
+    "english": [],
+    "samoan": "Fa'i Afa",
+    "group": "plant"
+  },
+  "musa balbisiana": {
+    "english": [],
+    "samoan": "Fa'i Papalagi",
+    "group": "plant"
+  },
+  "cassia alata": {
+    "english": [],
+    "samoan": "Fa'i Lafa",
+    "group": "plant"
+  },
+  "pandanus upoluensis": {
+    "english": [],
+    "samoan": "Fala Toto",
+    "group": "plant"
+  },
+  "barringtonia samoensis": {
+    "english": [],
+    "samoan": "Falaga",
+    "group": "plant"
+  },
+  "lemna paucicostata": {
+    "english": [
+      "Duckweed"
+    ],
+    "samoan": "Fala'o'oto",
+    "group": "plant"
+  },
+  "pandanus samoensis": {
+    "english": [
+      "Screwpine"
+    ],
+    "samoan": "Fasa",
+    "group": "plant"
+  },
+  "pandanus lanutooensis": {
+    "english": [
+      "Screwpine"
+    ],
+    "samoan": "Fasa",
+    "group": "plant"
+  },
+  "psychotria insularum": {
+    "english": [],
+    "samoan": "Fat1fati",
+    "group": "plant"
+  },
+  "calophyllum inophyllum": {
+    "english": [
+      "beach mahogany"
+    ],
+    "samoan": "Fetau",
+    "group": "plant"
+  },
+  "ixora amplifolia": {
+    "english": [],
+    "samoan": "Fblifoloa",
+    "group": "plant"
+  },
+  "ixora samoensis": {
+    "english": [],
+    "samoan": "Fblifoloa",
+    "group": "plant"
+  },
+  "flacourtia rukam": {
+    "english": [],
+    "samoan": "Filimoto",
+    "group": "plant"
+  },
+  "erianthus maximus": {
+    "english": [],
+    "samoan": "Fiso",
+    "group": "plant"
+  },
+  "arundo donax": {
+    "english": [
+      "bamboo grass"
+    ],
+    "samoan": "Fiso Papalagi",
+    "group": "plant"
+  },
+  "sophora tomentosa": {
+    "english": [],
+    "samoan": "Fuafeti'iti'i",
+    "group": "plant"
+  },
+  "kleinhovia hospita": {
+    "english": [
+      "Guest tree"
+    ],
+    "samoan": "Fu'a Fu'a",
+    "group": "plant"
+  },
+  "lindernia crustacea": {
+    "english": [],
+    "samoan": "Fua Lanamoana",
+    "group": "plant"
+  },
+  "polygala paniculata": {
+    "english": [],
+    "samoan": "Fua Lele Lili'i",
+    "group": "plant"
+  },
+  "melastoma malabathricum": {
+    "english": [],
+    "samoan": "Fua Lole",
+    "group": "plant"
+  },
+  "evodia samoensis": {
+    "english": [
+      "in open forest"
+    ],
+    "samoan": "Fua Pini",
+    "group": "plant"
+  },
+  "triumfetta procumbens": {
+    "english": [],
+    "samoan": "Fua Tala",
+    "group": "plant"
+  },
+  "cyperus javanicus": {
+    "english": [],
+    "samoan": "Fue",
+    "group": "plant"
+  },
+  "derris malaccensis": {
+    "english": [],
+    "samoan": "Fue Fa'i 'Ava",
+    "group": "plant"
+  },
+  "jasminum didymum": {
+    "english": [
+      "Sea bean"
+    ],
+    "samoan": "Fue Fue",
+    "group": "plant"
+  },
+  "hoya upoluensis": {
+    "english": [
+      "Fragrant kava-vine"
+    ],
+    "samoan": "Fue Manogi",
+    "group": "plant"
+  },
+  "piper graeffei": {
+    "english": [
+      "Fragrant kava-vine"
+    ],
+    "samoan": "Fue Manogi",
+    "group": "plant"
+  },
+  "derris trifoliata": {
+    "english": [
+      "Beach poison vine"
+    ],
+    "samoan": "Fue O'ona",
+    "group": "plant"
+  },
+  "aristolochia cortinata": {
+    "english": [
+      "Samoan calico flower"
+    ],
+    "samoan": "Fue Sa",
+    "group": "plant"
+  },
+  "mikania micrantha": {
+    "english": [],
+    "samoan": "Fue Saina",
+    "group": "plant"
+  },
+  "hoya australis": {
+    "english": [],
+    "samoan": "Fue Se Le La",
+    "group": "plant"
+  },
+  "ipomoea alba": {
+    "english": [
+      "Moon flower"
+    ],
+    "samoan": "Fue Sina",
+    "group": "plant"
+  },
+  "rhaphidophora graeffei": {
+    "english": [],
+    "samoan": "Fue Sosolo",
+    "group": "plant"
+  },
+  "asclepias curassavica": {
+    "english": [],
+    "samoan": "Fue Ulu Fetti",
+    "group": "plant"
+  },
+  "palaquium stehlinii": {
+    "english": [],
+    "samoan": "Gasu",
+    "group": "plant"
+  },
+  "erythrina fusca": {
+    "english": [],
+    "samoan": "Gatae Papalagi",
+    "group": "plant"
+  },
+  "cassytha filiformis": {
+    "english": [
+      "Garland vine"
+    ],
+    "samoan": "Gau Laulili'i",
+    "group": "plant"
+  },
+  "pemphis acidula": {
+    "english": [],
+    "samoan": "Gigie",
+    "group": "plant"
+  },
+  "morinda citrifolia": {
+    "english": [],
+    "samoan": "Gogu",
+    "group": "plant"
+  },
+  "freycinetia reineckei": {
+    "english": [
+      "Climbing screwpine"
+    ],
+    "samoan": "'Le'ie",
+    "group": "plant"
+  },
+  "freycinetia hambronii": {
+    "english": [],
+    "samoan": "'Le'ie Laulilpi",
+    "group": "plant"
+  },
+  "parinari glaberrima": {
+    "english": [],
+    "samoan": "Ifiifi",
+    "group": "plant"
+  },
+  "nasturtium officinale": {
+    "english": [
+      "Watercress"
+    ],
+    "samoan": "Kapisi Vai",
+    "group": "plant"
+  },
+  "elettaria cardamomum": {
+    "english": [],
+    "samoan": "Katamone",
+    "group": "plant"
+  },
+  "pometia pinnata": {
+    "english": [],
+    "samoan": "Kava",
+    "group": "plant"
+  },
+  "rhus taitensis": {
+    "english": [],
+    "samoan": "Kavai",
+    "group": "plant"
+  },
+  "coffea arabica": {
+    "english": [],
+    "samoan": "Kofe",
+    "group": "plant"
+  },
+  "theobroma cacao": {
+    "english": [],
+    "samoan": "Koko",
+    "group": "plant"
+  },
+  "cola nitida": {
+    "english": [],
+    "samoan": "Kola",
+    "group": "plant"
+  },
+  "psidium guajava": {
+    "english": [
+      "Strawberry guava"
+    ],
+    "samoan": "Kua'va",
+    "group": "plant"
+  },
+  "euphorbia hirta": {
+    "english": [],
+    "samoan": "La'au Fai Moti",
+    "group": "plant"
+  },
+  "lycopodium phlegmaria": {
+    "english": [],
+    "samoan": "La'au Fai Pale",
+    "group": "plant"
+  },
+  "hevea brasiliensis": {
+    "english": [],
+    "samoan": "La'au Fai Pulu",
+    "group": "plant"
+  },
+  "lycopodium cernuum": {
+    "english": [],
+    "samoan": "La'au Fai Teu O Pulou",
+    "group": "plant"
+  },
+  "mimosa pudica": {
+    "english": [],
+    "samoan": "La'au Fefe",
+    "group": "plant"
+  },
+  "mimosa invisa": {
+    "english": [],
+    "samoan": "La'au Fefe Tele",
+    "group": "plant"
+  },
+  "dipteris conjugata": {
+    "english": [
+      "Matafao umbrella fern"
+    ],
+    "samoan": "La'au Lau Tetele",
+    "group": "plant"
+  },
+  "adenanthera pavonina": {
+    "english": [],
+    "samoan": "La'au Lopa",
+    "group": "plant"
+  },
+  "indigofera suffruticosa": {
+    "english": [],
+    "samoan": "La'au Mageso",
+    "group": "plant"
+  },
+  "ficus longe-cuspidata": {
+    "english": [
+      "Wild fig"
+    ],
+    "samoan": "La'au Manifi",
+    "group": "plant"
+  },
+  "selaginella reineckei": {
+    "english": [],
+    "samoan": "La'au Mauga",
+    "group": "plant"
+  },
+  "marattia smithii": {
+    "english": [],
+    "samoan": "La'au Mumu",
+    "group": "plant"
+  },
+  "acrostichum aureum": {
+    "english": [
+      "Marsh fern"
+    ],
+    "samoan": "La'au Sa'ato",
+    "group": "plant"
+  },
+  "ocimiim basilicum": {
+    "english": [
+      "often growing as a weed"
+    ],
+    "samoan": "La'au Sauga",
+    "group": "plant"
+  },
+  "ociinum gratissinutm": {
+    "english": [
+      "often growing as a weed"
+    ],
+    "samoan": "La'au Sauga",
+    "group": "plant"
+  },
+  "phreatia graeffei": {
+    "english": [],
+    "samoan": "La'au Sosolo I Le La'au",
+    "group": "plant"
+  },
+  "selaginella laxa": {
+    "english": [
+      "Common small club-moss"
+    ],
+    "samoan": "La'au Sosolo I Le Papa",
+    "group": "plant"
+  },
+  "coleus amboinicus": {
+    "english": [],
+    "samoan": "La'au Tai'e",
+    "group": "plant"
+  },
+  "achyranthes aspera": {
+    "english": [],
+    "samoan": "La'au Talatala",
+    "group": "plant"
+  },
+  "cassia sophera": {
+    "english": [],
+    "samoan": "La'au Tinei Lafa",
+    "group": "plant"
+  },
+  "alstonia reineckiana": {
+    "english": [],
+    "samoan": "La'au Tinei Lafa",
+    "group": "plant"
+  },
+  "flagellaria gigantea": {
+    "english": [],
+    "samoan": "Lafo",
+    "group": "plant"
+  },
+  "aglaia samoensis": {
+    "english": [
+      "Garland tree"
+    ],
+    "samoan": "Laga'ali",
+    "group": "plant"
+  },
+  "pteris tripartita": {
+    "english": [],
+    "samoan": "Lagasese",
+    "group": "plant"
+  },
+  "desmodium umbellatum": {
+    "english": [],
+    "samoan": "Lala Laulala",
+    "group": "plant"
+  },
+  "dodonaea viscosa": {
+    "english": [],
+    "samoan": "Lala Vao",
+    "group": "plant"
+  },
+  "ricinus communis": {
+    "english": [],
+    "samoan": "Lama Papalagi",
+    "group": "plant"
+  },
+  "opuntia vulgaris": {
+    "english": [],
+    "samoan": "Lauaufai Va",
+    "group": "plant"
+  },
+  "scirpodendron costatum": {
+    "english": [
+      "Samoan screwpine"
+    ],
+    "samoan": "Lau Fala",
+    "group": "plant"
+  },
+  "pandanus turritus": {
+    "english": [
+      "Samoan screwpine"
+    ],
+    "samoan": "Lau Fala",
+    "group": "plant"
+  },
+  "pandanus tectorius": {
+    "english": [
+      "Samoan screwpine"
+    ],
+    "samoan": "Lau Fala",
+    "group": "plant"
+  },
+  "collospermum samoense": {
+    "english": [],
+    "samoan": "Lau Falafala",
+    "group": "plant"
+  },
+  "heliconia indica": {
+    "english": [
+      "Wild banana"
+    ],
+    "samoan": "Laufao",
+    "group": "plant"
+  },
+  "asplenium nidus": {
+    "english": [],
+    "samoan": "Laugapapa",
+    "group": "plant"
+  },
+  "ophioglossum pendulum": {
+    "english": [],
+    "samoan": "Laugapapa",
+    "group": "plant"
+  },
+  "diplazium proliferum": {
+    "english": [],
+    "samoan": "Laugasese",
+    "group": "plant"
+  },
+  "tectaria setchellii": {
+    "english": [],
+    "samoan": "Laugasese",
+    "group": "plant"
+  },
+  "freycinetia samoensis": {
+    "english": [],
+    "samoan": "Lau'ie",
+    "group": "plant"
+  },
+  "euphorbia prostrata": {
+    "english": [
+      "Asparagus fern"
+    ],
+    "samoan": "Laulili1",
+    "group": "plant"
+  },
+  "phyllanthus niruri": {
+    "english": [
+      "Asparagus fern"
+    ],
+    "samoan": "Laulili1",
+    "group": "plant"
+  },
+  "trichomanes harveyi": {
+    "english": [
+      "Asparagus fern"
+    ],
+    "samoan": "Laulili1",
+    "group": "plant"
+  },
+  "asparagus plumosus": {
+    "english": [
+      "Asparagus fern"
+    ],
+    "samoan": "Laulili1",
+    "group": "plant"
+  },
+  "crossostylis biflora": {
+    "english": [],
+    "samoan": "Lau Ma'ale'ale",
+    "group": "plant"
+  },
+  "geniostoma samoense": {
+    "english": [],
+    "samoan": "Lau Mafatifati",
+    "group": "plant"
+  },
+  "dendrobium tokai": {
+    "english": [],
+    "samoan": "Laumafiafia",
+    "group": "plant"
+  },
+  "blechnum orientale": {
+    "english": [],
+    "samoan": "Laumagamaga",
+    "group": "plant"
+  },
+  "pteris ensiformis": {
+    "english": [],
+    "samoan": "Laumagamaga",
+    "group": "plant"
+  },
+  "alyxia bracteolosa": {
+    "english": [],
+    "samoan": "Lau Maile",
+    "group": "plant"
+  },
+  "alyxia erythrosperma": {
+    "english": [],
+    "samoan": "Lau Maile",
+    "group": "plant"
+  },
+  "alyxia septangularis": {
+    "english": [
+      "Garland vine"
+    ],
+    "samoan": "Lau Maile Vao",
+    "group": "plant"
+  },
+  "terminalia richii": {
+    "english": [],
+    "samoan": "Lau Manifi",
+    "group": "plant"
+  },
+  "spiraeanthemum samoense": {
+    "english": [],
+    "samoan": "Laumatui",
+    "group": "plant"
+  },
+  "elaeocarpus magnifolius": {
+    "english": [],
+    "samoan": "Lau Pa'auli",
+    "group": "plant"
+  },
+  "pandanus tauensis": {
+    "english": [
+      "Tau screwpine"
+    ],
+    "samoan": "Laupaogo",
+    "group": "plant"
+  },
+  "jatropha curcas": {
+    "english": [],
+    "samoan": "Laupata",
+    "group": "plant"
+  },
+  "ocimum basilicum": {
+    "english": [],
+    "samoan": "Lau Sauga",
+    "group": "plant"
+  },
+  "asplenium falcatum": {
+    "english": [],
+    "samoan": "Lautafifi",
+    "group": "plant"
+  },
+  "lycopodium squarrosum": {
+    "english": [
+      "Prickly clubmoss"
+    ],
+    "samoan": "Lautalatala",
+    "group": "plant"
+  },
+  "dendrobium dactylodes": {
+    "english": [],
+    "samoan": "Lautaliga",
+    "group": "plant"
+  },
+  "crinum asiaticum": {
+    "english": [],
+    "samoan": "Lautalotalo",
+    "group": "plant"
+  },
+  "furcraea gigantea": {
+    "english": [],
+    "samoan": "Lautalotalo Papalagi",
+    "group": "plant"
+  },
+  "pteris comans": {
+    "english": [
+      "common along edge of forest"
+    ],
+    "samoan": "Lau Taputa",
+    "group": "plant"
+  },
+  "cyrtandra compressa": {
+    "english": [],
+    "samoan": "Lautaputa",
+    "group": "plant"
+  },
+  "cerbera odollam": {
+    "english": [],
+    "samoan": "Leva",
+    "group": "plant"
+  },
+  "punica granatum": {
+    "english": [],
+    "samoan": "Limoni",
+    "group": "plant"
+  },
+  "usnea articulata": {
+    "english": [],
+    "samoan": "Limumea",
+    "group": "plant"
+  },
+  "fomes noxius": {
+    "english": [],
+    "samoan": "Limumea",
+    "group": "plant"
+  },
+  "sargassum anapense": {
+    "english": [],
+    "samoan": "Limu Tala",
+    "group": "plant"
+  },
+  "sargassum fonanonense": {
+    "english": [],
+    "samoan": "Limu Tala",
+    "group": "plant"
+  },
+  "bixa orellana": {
+    "english": [],
+    "samoan": "Loa",
+    "group": "plant"
+  },
+  "clerodendrum philippinum": {
+    "english": [],
+    "samoan": "Losa Onolulu",
+    "group": "plant"
+  },
+  "cyrtandra pulchella": {
+    "english": [],
+    "samoan": "Ma'a",
+    "group": "plant"
+  },
+  "canarium samoense": {
+    "english": [],
+    "samoan": "Ma'ali",
+    "group": "plant"
+  },
+  "cyrtandra samoensis": {
+    "english": [],
+    "samoan": "Mafia",
+    "group": "plant"
+  },
+  "canarium mafoa": {
+    "english": [],
+    "samoan": "Mafoa",
+    "group": "plant"
+  },
+  "solarium nigrum": {
+    "english": [],
+    "samoan": "Magalo",
+    "group": "plant"
+  },
+  "psychotria forsteriana": {
+    "english": [],
+    "samoan": "Magalo",
+    "group": "plant"
+  },
+  "garuga pacifica": {
+    "english": [],
+    "samoan": "Magaui",
+    "group": "plant"
+  },
+  "mangifera indica": {
+    "english": [],
+    "samoan": "Imago",
+    "group": "plant"
+  },
+  "hedychium flavum": {
+    "english": [],
+    "samoan": "Makaliki(?)",
+    "group": "plant"
+  },
+  "gomphrena globosa": {
+    "english": [],
+    "samoan": "Makelika",
+    "group": "plant"
+  },
+  "dysoxylum samoense": {
+    "english": [],
+    "samoan": "Mamala",
+    "group": "plant"
+  },
+  "macaranga reineckei": {
+    "english": [],
+    "samoan": "Mamalava",
+    "group": "plant"
+  },
+  "buchanania merrittii": {
+    "english": [],
+    "samoan": "Mamalava",
+    "group": "plant"
+  },
+  "faradaya powellii": {
+    "english": [],
+    "samoan": "Mamalupe",
+    "group": "plant"
+  },
+  "cyrtandra mamolea": {
+    "english": [],
+    "samoan": "Mamolea",
+    "group": "plant"
+  },
+  "manihot esculenta": {
+    "english": [],
+    "samoan": "Manioka",
+    "group": "plant"
+  },
+  "coix lacryma-jobi": {
+    "english": [],
+    "samoan": "Maniuniu",
+    "group": "plant"
+  },
+  "solfta samoensis": {
+    "english": [],
+    "samoan": "Maniuniu",
+    "group": "plant"
+  },
+  "balaka burretiana": {
+    "english": [],
+    "samoan": "Maniuniu",
+    "group": "plant"
+  },
+  "urena lobata": {
+    "english": [],
+    "samoan": "Manutofu",
+    "group": "plant"
+  },
+  "triumfetta rhomboidea": {
+    "english": [],
+    "samoan": "Manutofu",
+    "group": "plant"
+  },
+  "melochia aristata": {
+    "english": [],
+    "samoan": "Ma'o",
+    "group": "plant"
+  },
+  "dysoxylum moata": {
+    "english": [],
+    "samoan": "Maota",
+    "group": "plant"
+  },
+  "dysoxylum huntii": {
+    "english": [],
+    "samoan": "Maota Mea",
+    "group": "plant"
+  },
+  "antidesma sphaerocarpum": {
+    "english": [],
+    "samoan": "Masame",
+    "group": "plant"
+  },
+  "canna edulis": {
+    "english": [
+      "Polynesian arrowroot"
+    ],
+    "samoan": "Masoa",
+    "group": "plant"
+  },
+  "psychotria samoana": {
+    "english": [],
+    "samoan": "Matalafi",
+    "group": "plant"
+  },
+  "psychotria chlorocalyx": {
+    "english": [],
+    "samoan": "Matalafi",
+    "group": "plant"
+  },
+  "psychotria closterocarpa": {
+    "english": [],
+    "samoan": "Matalafi",
+    "group": "plant"
+  },
+  "psychotria pacifica": {
+    "english": [],
+    "samoan": "Matalafi",
+    "group": "plant"
+  },
+  "psychotria stenocarpa": {
+    "english": [],
+    "samoan": "Matalafi Fagua",
+    "group": "plant"
+  },
+  "evodia vatiana": {
+    "english": [],
+    "samoan": "Matamo",
+    "group": "plant"
+  },
+  "calycosia sessilis": {
+    "english": [],
+    "samoan": "Matavai",
+    "group": "plant"
+  },
+  "ficus tinctoria": {
+    "english": [],
+    "samoan": "Mati",
+    "group": "plant"
+  },
+  "sida rhombifolia": {
+    "english": [
+      "Broom weed"
+    ],
+    "samoan": "Mautofu",
+    "group": "plant"
+  },
+  "commelina pacifica": {
+    "english": [
+      "Pacific dayflower"
+    ],
+    "samoan": "Mau'u Toga",
+    "group": "plant"
+  },
+  "aneilema vitiense": {
+    "english": [
+      "Pacific dayflower"
+    ],
+    "samoan": "Mau'u Toga",
+    "group": "plant"
+  },
+  "alstonia reineckeana": {
+    "english": [],
+    "samoan": "Mau'u Toga Vao",
+    "group": "plant"
+  },
+  "citrullus vulgaris": {
+    "english": [
+      "Water melon"
+    ],
+    "samoan": "Meleni",
+    "group": "plant"
+  },
+  "melothria samoensis": {
+    "english": [
+      "Island loofah-vine"
+    ],
+    "samoan": "Meleni Vao",
+    "group": "plant"
+  },
+  "luffa cylindrica": {
+    "english": [
+      "Island loofah-vine"
+    ],
+    "samoan": "Meleni Vao",
+    "group": "plant"
+  },
+  "sorghum vulgare": {
+    "english": [],
+    "samoan": "Mileti",
+    "group": "plant"
+  },
+  "cyrtandra richii": {
+    "english": [],
+    "samoan": "Moamoa Lea",
+    "group": "plant"
+  },
+  "citrus and": {
+    "english": [],
+    "samoan": "Moli",
+    "group": "plant"
+  },
+  "ximenia americana": {
+    "english": [
+      "always near the sea"
+    ],
+    "samoan": "Moli Tae",
+    "group": "plant"
+  },
+  "cyperus rotundus": {
+    "english": [
+      "Nut-grass"
+    ],
+    "samoan": "Mumuta",
+    "group": "plant"
+  },
+  "vitex trifolia": {
+    "english": [],
+    "samoan": "Namulega",
+    "group": "plant"
+  },
+  "buchanania merrillii": {
+    "english": [],
+    "samoan": "Nasu",
+    "group": "plant"
+  },
+  "cocos nucifera": {
+    "english": [
+      "Coconut palm"
+    ],
+    "samoan": "Niu",
+    "group": "plant"
+  },
+  "areca catechu": {
+    "english": [
+      "Betel palm"
+    ],
+    "samoan": "Niu O Le Rotuma",
+    "group": "plant"
+  },
+  "pritchardia pacifica": {
+    "english": [
+      "Pacific Island fan-palm"
+    ],
+    "samoan": "Niu Piu",
+    "group": "plant"
+  },
+  "diplothemium henryanum": {
+    "english": [
+      "So-called female coconut palm"
+    ],
+    "samoan": "„„ Niu Tau'ave",
+    "group": "plant"
+  },
+  "clinostigma oncorhyncha": {
+    "english": [
+      "White dove-orchid"
+    ],
+    "samoan": "Niu Vao",
+    "group": "plant"
+  },
+  "bischofia javanica": {
+    "english": [],
+    "samoan": "'O'a",
+    "group": "plant"
+  },
+  "habenaria supervacanea": {
+    "english": [
+      "Ground orchid"
+    ],
+    "samoan": "'Ofe'ofe",
+    "group": "plant"
+  },
+  "acalypha boehmerioides": {
+    "english": [],
+    "samoan": "Ogoogo",
+    "group": "plant"
+  },
+  "leucas flaccida": {
+    "english": [],
+    "samoan": "Ogoogo Sina",
+    "group": "plant"
+  },
+  "solarium vitiense": {
+    "english": [],
+    "samoan": "Olasina",
+    "group": "plant"
+  },
+  "maoutia australis": {
+    "english": [],
+    "samoan": "O Le Tau'uta",
+    "group": "plant"
+  },
+  "nerium oleander": {
+    "english": [],
+    "samoan": "Oliana",
+    "group": "plant"
+  },
+  "dryopteris samoensis": {
+    "english": [
+      "Tree fern"
+    ],
+    "samoan": "'Oli'oli",
+    "group": "plant"
+  },
+  "diplazium harpeodes": {
+    "english": [
+      "Tree fern"
+    ],
+    "samoan": "'Oli'oli",
+    "group": "plant"
+  },
+  "trichomanes boryanum": {
+    "english": [],
+    "samoan": "'Oli'oli",
+    "group": "plant"
+  },
+  "hoya bicarinata": {
+    "english": [],
+    "samoan": "'Olive Vao",
+    "group": "plant"
+  },
+  "pandanus reineckei": {
+    "english": [],
+    "samoan": "Paogo",
+    "group": "plant"
+  },
+  "pandanus whitmeeanus": {
+    "english": [],
+    "samoan": "Paono",
+    "group": "plant"
+  },
+  "passiflora edulis": {
+    "english": [],
+    "samoan": "Pasio",
+    "group": "plant"
+  },
+  "passiflora laurifolia": {
+    "english": [],
+    "samoan": "Pasio",
+    "group": "plant"
+  },
+  "passiflora maliformis": {
+    "english": [],
+    "samoan": "Pasio",
+    "group": "plant"
+  },
+  "passiflora samoensis": {
+    "english": [],
+    "samoan": "-t» Pasio Vao",
+    "group": "plant"
+  },
+  "rhaphidophora reineckei": {
+    "english": [
+      "Taro-vine"
+    ],
+    "samoan": "Pau Tutuga",
+    "group": "plant"
+  },
+  "piper nigrum": {
+    "english": [
+      "Black pepper"
+    ],
+    "samoan": "Pepa",
+    "group": "plant"
+  },
+  "mirabilis jalapa": {
+    "english": [],
+    "samoan": ",* Peteli",
+    "group": "plant"
+  },
+  "dicliptera samoensis": {
+    "english": [],
+    "samoan": "Peteli Vao",
+    "group": "plant"
+  },
+  "dioscorea pentaphylla": {
+    "english": [],
+    "samoan": "Pilita",
+    "group": "plant"
+  },
+  "pimento officinalis": {
+    "english": [],
+    "samoan": "Pimenta",
+    "group": "plant"
+  },
+  "arachis hypogaea": {
+    "english": [
+      "Peanut"
+    ],
+    "samoan": "Pinati",
+    "group": "plant"
+  },
+  "hernandia moerenhoutiana": {
+    "english": [],
+    "samoan": "Pipi",
+    "group": "plant"
+  },
+  "chrysophyllum cainito": {
+    "english": [],
+    "samoan": "Pipi O Eva",
+    "group": "plant"
+  },
+  "capsicum frutescens": {
+    "english": [],
+    "samoan": "Polo",
+    "group": "plant"
+  },
+  "solanum aculeatissimum": {
+    "english": [],
+    "samoan": "«, Polo Ite",
+    "group": "plant"
+  },
+  "capsicum annuum": {
+    "english": [
+      "Red or cayenne pepper"
+    ],
+    "samoan": "Polo Papalagi",
+    "group": "plant"
+  },
+  "solanum nigrum": {
+    "english": [],
+    "samoan": "Polo Vao",
+    "group": "plant"
+  },
+  "securinega samoana": {
+    "english": [],
+    "samoan": "Poumuli",
+    "group": "plant"
+  },
+  "hernandia peltata": {
+    "english": [
+      "Lantern tree"
+    ],
+    "samoan": "Pu'a",
+    "group": "plant"
+  },
+  "gardenia taitensis": {
+    "english": [],
+    "samoan": "Pua",
+    "group": "plant"
+  },
+  "psychotria dosterocarpa": {
+    "english": [],
+    "samoan": "Pualulu",
+    "group": "plant"
+  },
+  "fagraea berteriana": {
+    "english": [],
+    "samoan": "Pualulu",
+    "group": "plant"
+  },
+  "guettarda speciosa": {
+    "english": [],
+    "samoan": "Pu'apu'a",
+    "group": "plant"
+  },
+  "pleclranthus forsteri": {
+    "english": [],
+    "samoan": "Puapua Lalo'ulu",
+    "group": "plant"
+  },
+  "pisonia grandis": {
+    "english": [],
+    "samoan": "Pu'a Vai,",
+    "group": "plant"
+  },
+  "castilloa elastica": {
+    "english": [
+      "Panama rubber tree"
+    ],
+    "samoan": "Pulu Vao",
+    "group": "plant"
+  },
+  "dictyosphaeria versluysii": {
+    "english": [],
+    "samoan": "Punau",
+    "group": "plant"
+  },
+  "acalypha insuluna": {
+    "english": [],
+    "samoan": "Pupuiono",
+    "group": "plant"
+  },
+  "rapanea samoensis": {
+    "english": [],
+    "samoan": "Saitamu",
+    "group": "plant"
+  },
+  "spiraeanthemum samoensis": {
+    "english": [],
+    "samoan": "Saitamu",
+    "group": "plant"
+  },
+  "laportea photiniphylla": {
+    "english": [
+      "Tree nettle"
+    ],
+    "samoan": "Salato",
+    "group": "plant"
+  },
+  "zea mays": {
+    "english": [],
+    "samoan": "Sana",
+    "group": "plant"
+  },
+  "annona muricata": {
+    "english": [],
+    "samoan": "Sasalapa",
+    "group": "plant"
+  },
+  "parinari insularum": {
+    "english": [],
+    "samoan": "Sea",
+    "group": "plant"
+  },
+  "cyperus ferox": {
+    "english": [],
+    "samoan": "Selesele",
+    "group": "plant"
+  },
+  "cyperus phleoides": {
+    "english": [],
+    "samoan": "Selesele Tai",
+    "group": "plant"
+  },
+  "elaeocarpus grandis": {
+    "english": [],
+    "samoan": "Siapo Atua",
+    "group": "plant"
+  },
+  "musa fehi": {
+    "english": [],
+    "samoan": "Soa'a",
+    "group": "plant"
+  },
+  "dioscorea bulbifera": {
+    "english": [],
+    "samoan": "Soi",
+    "group": "plant"
+  },
+  "cestrum diurnum": {
+    "english": [
+      "Ink-berry"
+    ],
+    "samoan": "Sugi Vao",
+    "group": "plant"
+  },
+  "cestrum nocturnum": {
+    "english": [],
+    "samoan": "Sum Vao",
+    "group": "plant"
+  },
+  "xanthosoma violaceum": {
+    "english": [
+      "Violet taro"
+    ],
+    "samoan": "Ta'amu Papalagi",
+    "group": "plant"
+  },
+  "cyperus kyllingia": {
+    "english": [],
+    "samoan": "-(sill)",
+    "group": "plant"
+  },
+  "selena scrobiculata": {
+    "english": [],
+    "samoan": "Tafatolu",
+    "group": "plant"
+  },
+  "brugmansia candida": {
+    "english": [],
+    "samoan": "Tagamimi",
+    "group": "plant"
+  },
+  "calystegia affinis": {
+    "english": [],
+    "samoan": "Tagamimi Vao",
+    "group": "plant"
+  },
+  "terminalia catappa": {
+    "english": [],
+    "samoan": "Talie",
+    "group": "plant"
+  },
+  "terminalia littoralis": {
+    "english": [],
+    "samoan": "Talie",
+    "group": "plant"
+  },
+  "tamarindus indica": {
+    "english": [
+      "Rain tree"
+    ],
+    "samoan": "Tamalini",
+    "group": "plant"
+  },
+  "calophyllum samoense": {
+    "english": [
+      "Island mahogany"
+    ],
+    "samoan": "Tamanu",
+    "group": "plant"
+  },
+  "portulaca oleracea": {
+    "english": [],
+    "samoan": "Tamole",
+    "group": "plant"
+  },
+  "portulaca lutea": {
+    "english": [],
+    "samoan": "Tamole",
+    "group": "plant"
+  },
+  "nicotiana tabacum": {
+    "english": [],
+    "samoan": "Tapa'a",
+    "group": "plant"
+  },
+  "alectryon samoensis": {
+    "english": [],
+    "samoan": "Taputo'i",
+    "group": "plant"
+  },
+  "cupaniopsis samoensis": {
+    "english": [],
+    "samoan": "Taputo'i",
+    "group": "plant"
+  },
+  "cordia subcordata": {
+    "english": [],
+    "samoan": "Tauagave",
+    "group": "plant"
+  },
+  "solatium repandum": {
+    "english": [
+      "Island tomato"
+    ],
+    "samoan": "Taulo'u",
+    "group": "plant"
+  },
+  "dryopteris subspinosa": {
+    "english": [],
+    "samoan": "Tianiu",
+    "group": "plant"
+  },
+  "cinnamomum zeylanicum": {
+    "english": [],
+    "samoan": "Tigamoni",
+    "group": "plant"
+  },
+  "cinnamomum elegans": {
+    "english": [
+      "Samoan cinnamon"
+    ],
+    "samoan": "Tigamoni Samoa",
+    "group": "plant"
+  },
+  "tectona grandis": {
+    "english": [],
+    "samoan": "Tiki",
+    "group": "plant"
+  },
+  "casuarina equisetifolia": {
+    "english": [],
+    "samoan": "Toa",
+    "group": "plant"
+  },
+  "rhizophora mucronata": {
+    "english": [],
+    "samoan": "Togo",
+    "group": "plant"
+  },
+  "astronidium parviflorum": {
+    "english": [],
+    "samoan": "Togo Vao",
+    "group": "plant"
+  },
+  "scaevola nubigena": {
+    "english": [],
+    "samoan": "To'ito'i Vao",
+    "group": "plant"
+  },
+  "saccharum officinarum": {
+    "english": [],
+    "samoan": "Tolo",
+    "group": "plant"
+  },
+  "amaranthus tricolor": {
+    "english": [],
+    "samoan": "Totoe",
+    "group": "plant"
+  },
+  "morus alba": {
+    "english": [
+      "Mulberry"
+    ],
+    "samoan": "Tutuga 'Aina",
+    "group": "plant"
+  },
+  "broussonetia papyrifera": {
+    "english": [
+      "Paper mulberry"
+    ],
+    "samoan": "U'a",
+    "group": "plant"
+  },
+  "solatium vitiense": {
+    "english": [],
+    "samoan": "Uagagi",
+    "group": "plant"
+  },
+  "ipomoea aquatica": {
+    "english": [],
+    "samoan": "'Umala Vai",
+    "group": "plant"
+  },
+  "evodia hortensis": {
+    "english": [],
+    "samoan": "Usi",
+    "group": "plant"
+  },
+  "oleandra neriiformis": {
+    "english": [],
+    "samoan": "Usi Vao",
+    "group": "plant"
+  },
+  "scleria scrobiculata": {
+    "english": [
+      "Swamp rush"
+    ],
+    "samoan": "'Utu'utu",
+    "group": "plant"
+  },
+  "sarcopygme intermedia": {
+    "english": [],
+    "samoan": "'U'unu",
+    "group": "plant"
+  },
+  "bauhinia monandra": {
+    "english": [],
+    "samoan": "Vae Povi",
+    "group": "plant"
+  },
+  "paspalum conjugatum": {
+    "english": [],
+    "samoan": "Vailima Matafao Vailima",
+    "group": "plant"
+  },
+  "cenchrus echinatus": {
+    "english": [],
+    "samoan": "Vao Papalagi",
+    "group": "plant"
+  },
+  "cassia tora": {
+    "english": [
+      "Peanut weed"
+    ],
+    "samoan": "Vao Pinati",
+    "group": "plant"
+  },
+  "carex graeffeana": {
+    "english": [],
+    "samoan": "Vao Selesele",
+    "group": "plant"
+  },
+  "bulbophyllum nigroscapum": {
+    "english": [
+      "on trees in forest"
+    ],
+    "samoan": "Vao Sosolo I Le La'au",
+    "group": "plant"
+  },
+  "hymenophyllum imbricatum": {
+    "english": [],
+    "samoan": "Vaososolo I Le Papa",
+    "group": "plant"
+  },
+  "aspidium savaiiensis": {
+    "english": [],
+    "samoan": "Vao Tua Niu",
+    "group": "plant"
+  },
+  "asplenium laserpitiifolium": {
+    "english": [],
+    "samoan": "Vao Tua Niu",
+    "group": "plant"
+  },
+  "ruellia tuberosa": {
+    "english": [
+      "Large bell-flower"
+    ],
+    "samoan": "Vaouliuli Lautele",
+    "group": "plant"
+  },
+  "gossypium barbadense": {
+    "english": [
+      "Sea-island cotton"
+    ],
+    "samoan": "Vavae",
+    "group": "plant"
+  },
+  "gossypium hirsutum": {
+    "english": [
+      "Sea-island cotton"
+    ],
+    "samoan": "Vavae",
+    "group": "plant"
+  },
+  "spondias dulcis": {
+    "english": [],
+    "samoan": "Vi",
+    "group": "plant"
+  },
+  "reynoldsia pleiosperma": {
+    "english": [],
+    "samoan": "Vi Vao",
+    "group": "plant"
+  },
+  "physalis minima": {
+    "english": [],
+    "samoan": "Vi Vao",
+    "group": "plant"
+  },
+  "peperomia tutuilana": {
+    "english": [],
+    "samoan": "Addenda",
+    "group": "plant"
   }
 }
