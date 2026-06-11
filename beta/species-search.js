@@ -3,7 +3,7 @@
 // and exposes window._nzorSearch / window._nvsSearch for the taxonomy browser.
 (function() {
   const NZ_BOUNDS    = { minLat: -52, maxLat: -29, minLng: 163, maxLng: 180 };
-  const SAMOA_BOUNDS = { minLat: -14.5, maxLat: -13.3, minLng: -173.0, maxLng: -171.0 };
+  const SAMOA_BOUNDS = { minLat: -15.0, maxLat: -13.0, minLng: -173.5, maxLng: -168.0 };
   const NZOR_URL  = 'https://raw.githubusercontent.com/rutherfordecology/but-is-it-threatened/main/nzor_names.json';
   const NVS_URL   = 'https://raw.githubusercontent.com/rutherfordecology/but-is-it-threatened/main/nvs.json';
 
