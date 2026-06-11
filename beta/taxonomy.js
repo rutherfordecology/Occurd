@@ -145,10 +145,11 @@
 
   function getActiveCountry() {
     const c = map.getCenter();
+    const lng = ((c.lng + 180) % 360 + 360) % 360 - 180;
     if (c.lat >= NZ_BOUNDS_T.minLat && c.lat <= NZ_BOUNDS_T.maxLat &&
-        c.lng >= NZ_BOUNDS_T.minLng && c.lng <= NZ_BOUNDS_T.maxLng) return 'NZ';
+        lng    >= NZ_BOUNDS_T.minLng && lng    <= NZ_BOUNDS_T.maxLng) return 'NZ';
     if (c.lat >= SAMOA_BOUNDS_T.minLat && c.lat <= SAMOA_BOUNDS_T.maxLat &&
-        c.lng >= SAMOA_BOUNDS_T.minLng && c.lng <= SAMOA_BOUNDS_T.maxLng) return 'WS';
+        lng    >= SAMOA_BOUNDS_T.minLng && lng    <= SAMOA_BOUNDS_T.maxLng) return 'WS';
     return null;
   }
 

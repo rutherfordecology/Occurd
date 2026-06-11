@@ -116,10 +116,13 @@
   // Show field only when centred over NZ or Samoa
   function checkNZGate() {
     const c = map.getCenter();
+    // Normalise longitude to [-180, 180] — Leaflet uses a continuous axis so panning
+    // past the antimeridian gives values like 189 instead of -171 for Samoa.
+    let lng = ((c.lng + 180) % 360 + 360) % 360 - 180;
     const inNZ    = c.lat >= NZ_BOUNDS.minLat    && c.lat <= NZ_BOUNDS.maxLat    &&
-                    c.lng >= NZ_BOUNDS.minLng    && c.lng <= NZ_BOUNDS.maxLng;
+                    lng    >= NZ_BOUNDS.minLng    && lng    <= NZ_BOUNDS.maxLng;
     const inSamoa = c.lat >= SAMOA_BOUNDS.minLat && c.lat <= SAMOA_BOUNDS.maxLat &&
-                    c.lng >= SAMOA_BOUNDS.minLng && c.lng <= SAMOA_BOUNDS.maxLng;
+                    lng    >= SAMOA_BOUNDS.minLng && lng    <= SAMOA_BOUNDS.maxLng;
     field.style.display = (inNZ || inSamoa) ? 'block' : 'none';
     if (inNZ && !nzorData && !nzorLoading) ensureData(true);
     if (inNZ && !nvsData && !nvsPromise) ensureNvs();
