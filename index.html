@@ -45,7 +45,7 @@
       <img src="occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v5.08</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v5.15</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -212,7 +212,7 @@
         <!-- Data quality summary -->
         <div class="quality-box" id="qualityBox">
           &#9888; precision &gt;1.5 km = <span class="quality-val" id="qHighUncert">-</span>
-          <div style="font-size:11px;opacity:0.75;margin-top:2px;">(shown with a red ring on map)</div>
+          <div style="font-size:11px;opacity:0.75;margin-top:2px;">low-precision GBIF records shown with a red ring; obscured iNat records with an orange ring</div>
         </div>
 
 <div class="tool-row" style="margin-top:0.6rem;">
@@ -1433,7 +1433,7 @@ function generateShareState() {
   return {
     v: 2,
     // Polygons
-    polys:   geomPolys.map(p => ({ latlngs: p.latlngs.map(_llToArr), label: p.label, holes: (p.holes||[]).map(h => h.map(_llToArr)) })),
+    polys:   geomPolys.map(p => ({ latlngs: p.latlngs.map(_llToArr), label: p.label, holes: (p.holes||[]).map(h => h.map(_llToArr)), obscuredOnly: !!p.obscuredOnly })),
     species: speciesPolys.map(p => ({ name: p.name, taxonKey: p.taxonKey, sciName: p.sciName })),
     // Filters
     dateFrom: document.getElementById('dateFrom').value,
@@ -1510,7 +1510,7 @@ let _pendingSharePostFetch = null; // display state applied after fetch complete
 function restoreFromShare(state) {
   if (!state || !state.polys?.length) return;
   // ── Pre-fetch: polygons, species, dates, taxa, basis, cluster, map view ──
-  state.polys.forEach(p => addPolygon(p.latlngs, p.label, p.holes || []));
+  state.polys.forEach(p => addPolygon(p.latlngs, p.label, p.holes || [], { obscuredOnly: !!p.obscuredOnly }));
   if (state.species && state.species.length) {
     state.species.forEach(s => addSpeciesEntry(s.name, s.taxonKey || null, s.sciName || ''));
   }
@@ -3169,6 +3169,9 @@ function buildRecordPage(rec) {
   const source  = rec.datasetName ? '<div style="font-size:12px;"><b>Source:</b> ' + rec.datasetName + '</div>' : '';
   const uncertVal = parseFloat(rec.coordinateUncertaintyInMeters);
   const uncert  = uncertVal >= 1500 ? '<div style="font-size:11px;color:#dc2626;font-weight:600;">\u26a0 Low precision: \xb1' + Math.round(uncertVal / 100) / 10 + ' km</div>' : '';
+  const obscuredNote = rec.datasetName === 'iNaturalist (obscured)'
+    ? '<div style="font-size:11px;color:#ea580c;font-weight:600;margin-top:2px;">\u26a0 Obscured record \u2014 actual location unknown, may be up to ~11 km from this point</div>'
+    : '';
   const gbifId  = rec.gbifID;
   const photoId = 'gbif-photo-' + (gbifId || Math.random().toString(36).slice(2));
   if (rec.recordPhoto) window._gbifRecordPhotos[photoId] = rec.recordPhoto;
@@ -3206,7 +3209,7 @@ function buildRecordPage(rec) {
     : '';
   return {
     html: '<div id="' + photoId + '" data-taxon-key="' + (rec.taxonKey||'') + '" data-sci-name="' + (rec.scientificName||'').replace(/"/g,'&quot;') + '" style="margin-bottom:8px;"></div>' +
-          primary + cls + date + source + uncert + link + tkLine,
+          primary + cls + date + source + uncert + obscuredNote + link + tkLine,
     photoId,
     taxonKey: rec.taxonKey,
     scientificName: rec.scientificName || ''
@@ -3508,7 +3511,7 @@ function makeMarker(stackedRecords) {
   const hasTkRecord  = _tkSpeciesNames.size > 0 && stackedRecords.some(r => { const n = r.species || r.scientificName; return n && _tkSpeciesNames.has(n); });
   const isInatOnly   = stackedRecords.every(r => r._inatOnly);
   const strokeColor  = hasTkRecord ? '#ec4899' : isInatOnly ? '#f97316' : (uncertain ? '#f87171' : '#fff');
-  const strokeWeight = hasTkRecord ? 2.5 : isInatOnly ? 2.5 : (uncertain ? 1.5 : (stackedRecords.length > 1 ? 2 : 1));
+  const strokeWeight = hasTkRecord ? 2.5 : isInatOnly ? 1.5 : (uncertain ? 1.5 : (stackedRecords.length > 1 ? 2 : 1));
   const marker = L.circleMarker([lat, lng], {
     radius, fillColor: fillColour, color: strokeColor,
     weight: strokeWeight, fillOpacity: baseFillOpacity
@@ -4655,6 +4658,25 @@ runBtn.addEventListener('click', async () => {
   const taxonKeys = getSelectedTaxonKeys();
   const allFetched = [];
 
+  // Shared helper — maps iNat iconic_taxon_name → classification fields for getTaxonGroup().
+  // Defined here so both the obscured fetch and the supplemental fetch can use it.
+  function _inatClassFields(iconicName) {
+    switch (iconicName) {
+      case 'Aves':           return { class: 'Aves',           kingdom: 'Animalia' };
+      case 'Mammalia':       return { class: 'Mammalia',       kingdom: 'Animalia' };
+      case 'Reptilia':       return { class: 'Reptilia',       kingdom: 'Animalia' };
+      case 'Amphibia':       return { class: 'Amphibia',       kingdom: 'Animalia' };
+      case 'Actinopterygii': return { class: 'Actinopterygii', kingdom: 'Animalia' };
+      case 'Insecta':        return { class: 'Insecta',        kingdom: 'Animalia' };
+      case 'Arachnida':      return { class: 'Arachnida',      kingdom: 'Animalia' };
+      case 'Mollusca':       return { phylum: 'Mollusca',      kingdom: 'Animalia' };
+      case 'Fungi':          return { kingdom: 'Fungi' };
+      case 'Chromista':      return { kingdom: 'Chromista' };
+      case 'Plantae':        return { kingdom: 'Plantae' };
+      default:               return {};
+    }
+  }
+
   // Expand fetch tasks: species entries fetch once per geometry polygon
   const _speciesEntries = polygons.filter(p => p.type === 'species');
   const _geomPolys      = polygons.filter(p => p.type !== 'species');
@@ -4693,6 +4715,23 @@ runBtn.addEventListener('click', async () => {
       try { _turfClip = turf.polygon([closeRingCoords(geomPoly.latlngs.map(llToGeoJSON))]); } catch(e) {}
       const _seenObsIds = new Set();
 
+      // Map selected Occurd taxon checkboxes → iNat iconic_taxa values
+      const _inatIconicMap = {
+        '212': 'Aves', '359': 'Mammalia', 'reptilia': 'Reptilia', '131': 'Amphibia', 'fish': 'Actinopterygii',
+        '216': 'Insecta', '367': 'Arachnida', 'crustacea': 'Animalia', '52': 'Mollusca',
+        '50': 'Animalia', '43': 'Animalia', '42': 'Animalia', '1': 'Animalia',
+        'angiosperms': 'Plantae', '194': 'Plantae', '7228684': 'Plantae', 'bryophytes': 'Plantae',
+        'algae': 'Chromista', '5': 'Fungi'
+      };
+      const _selectedCbVals = [...document.querySelectorAll('.taxon-cb')]
+        .filter(cb => cb.closest('label').classList.contains('selected'))
+        .map(cb => cb.value);
+      const _iconicSet = new Set(_selectedCbVals.map(v => _inatIconicMap[v]).filter(Boolean));
+      const _iconicParam = _iconicSet.size > 0
+        ? '&' + [..._iconicSet].map(t => 'iconic_taxa[]=' + t).join('&')
+        : '';
+      const _dateParams = (dateFrom ? '&d1=' + dateFrom : '') + (dateTo ? '&d2=' + dateTo : '');
+
       // iNat treats geoprivacy and taxon_geoprivacy as AND when combined, so run two
       // separate passes (user-obscured OR taxon-obscured) and deduplicate by obs ID.
       const _obscFilters = ['geoprivacy=obscured', 'taxon_geoprivacy=obscured'];
@@ -4703,7 +4742,7 @@ runBtn.addEventListener('click', async () => {
           let _ij;
           try {
             const _iu = 'https://api.inaturalist.org/v1/observations?' +
-              _obscParam +
+              _obscParam + _iconicParam + _dateParams +
               '&swlat=' + _swlat + '&swlng=' + _swlng + '&nelat=' + _nelat + '&nelng=' + _nelng +
               '&per_page=200&page=' + _inatPage;
             const _ir = await fetch(_iu);
@@ -4719,8 +4758,19 @@ runBtn.addEventListener('click', async () => {
             const [_latS, _lngS] = obs.location.split(',');
             const _lat = parseFloat(_latS), _lng = parseFloat(_lngS);
             if (isNaN(_lat) || isNaN(_lng)) continue;
-            // Skip polygon clip for obscured records — the grid-cell centre may lie outside
-            // the buffer polygon even when the actual observation is inside the core area.
+            // Scatter within the polygon shape. Rejection-sample random points in the bbox
+            // until one falls inside the polygon (max 20 tries, then use bbox centre).
+            let _jLat = (_swlat + _nelat) / 2, _jLng = (_swlng + _nelng) / 2;
+            if (_turfClip) {
+              for (let _ji = 0; _ji < 20; _ji++) {
+                const _rLat = _swlat + Math.random() * (_nelat - _swlat);
+                const _rLng = _swlng + Math.random() * (_nelng - _swlng);
+                try { if (turf.booleanPointInPolygon(turf.point([_rLng, _rLat]), _turfClip)) { _jLat = _rLat; _jLng = _rLng; break; } } catch(e) {}
+              }
+            } else {
+              _jLat = _swlat + Math.random() * (_nelat - _swlat);
+              _jLng = _swlng + Math.random() * (_nelng - _swlng);
+            }
             const _obsDate = obs.observed_on || '';
             const _yr = _obsDate ? parseInt(_obsDate.substring(0, 4)) : NaN;
             const _mo = _obsDate ? parseInt(_obsDate.substring(5, 7)) : NaN;
@@ -4737,7 +4787,7 @@ runBtn.addEventListener('click', async () => {
               order: null, family: null,
               genus: _taxon.name ? _taxon.name.split(' ')[0] : null,
               species: (_taxon.rank === 'species') ? _taxon.name : null,
-              decimalLatitude: _lat, decimalLongitude: _lng,
+              decimalLatitude: _jLat, decimalLongitude: _jLng,
               coordinateUncertaintyInMeters: obs.positional_accuracy ? String(obs.positional_accuracy) : '22000',
               hasGeospatialIssues: 'false',
               basisOfRecord: 'HUMAN_OBSERVATION',
@@ -4938,24 +4988,6 @@ runBtn.addEventListener('click', async () => {
       const m = (r.occurrenceID || '').match(/inaturalist\.org\/observations\/(\d+)/i);
       if (m) _gbifInatIds.add(m[1]);
     });
-
-    // Map iNat iconic_taxon_name → classification fields understood by getTaxonGroup
-    function _inatClassFields(iconicName) {
-      switch (iconicName) {
-        case 'Aves':           return { class: 'Aves',           kingdom: 'Animalia' };
-        case 'Mammalia':       return { class: 'Mammalia',       kingdom: 'Animalia' };
-        case 'Reptilia':       return { class: 'Reptilia',       kingdom: 'Animalia' };
-        case 'Amphibia':       return { class: 'Amphibia',       kingdom: 'Animalia' };
-        case 'Actinopterygii': return { class: 'Actinopterygii', kingdom: 'Animalia' };
-        case 'Insecta':        return { class: 'Insecta',        kingdom: 'Animalia' };
-        case 'Arachnida':      return { class: 'Arachnida',      kingdom: 'Animalia' };
-        case 'Mollusca':       return { phylum: 'Mollusca',      kingdom: 'Animalia' };
-        case 'Fungi':          return { kingdom: 'Fungi' };
-        case 'Chromista':      return { kingdom: 'Chromista' };
-        case 'Plantae':        return { kingdom: 'Plantae' };
-        default:               return {};
-      }
-    }
 
     let _inatAdded = 0;
     for (const sp of _speciesEntries) {
@@ -5415,6 +5447,58 @@ if (window._pendingShare) {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v5.15</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>Share/copy URL now preserves iNat obscured-only checkbox state for each polygon</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v5.14</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>Quality box legend updated to distinguish red ring (low-precision GBIF) from orange ring (obscured iNat)</li>
+        <li>Orange ring on obscured iNat markers made thinner</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v5.13</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>Obscured iNat record jitter now constrained to within the actual polygon shape, not just the bounding box — points no longer scatter into corners outside a circular buffer</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v5.12</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>Obscured iNat records now jitter within the drawn polygon bounding box rather than ±0.1° from the grid-cell centre</li>
+        <li>Popup note on obscured records explaining actual location may be up to ~11 km from displayed point</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v5.11</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>Fix iNat obscured records being silently dropped — _inatClassFields was defined after the obscured fetch ran, so all records got no kingdom/class and were filtered out by the taxon group check; moved the definition earlier so both fetch paths can use it</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v5.10</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>Jitter iNat obscured record positions by ±0.1° (half the grid-cell size) so stacked points spread across the plausible area rather than piling on a single pixel</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v5.09</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>iNat obscured query now respects selected taxon groups — maps Occurd taxon checkboxes to iNaturalist iconic_taxa so only the selected groups are returned</li>
+        <li>iNat obscured query now applies the date range filter</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v5.08</span>
       <span class="changelog-date">Jun 2026</span>
