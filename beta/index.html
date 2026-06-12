@@ -45,7 +45,7 @@
       <img src="occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v4.98</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v4.99</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -1855,17 +1855,20 @@ function renderPolyList() {
     el.appendChild(topRow);
     const bufRow = document.createElement('div'); bufRow.className = 'poly-buffer-row';
     const _obscId = 'obscured-' + p.id;
-    bufRow.innerHTML = '<span class="poly-buffer-label">Add buffer:</span>' +
+    bufRow.innerHTML = '<div class="poly-buf-btns"><span class="poly-buffer-label">Add buffer:</span>' +
       [1,2,5,10].map(km => '<button class="poly-buf-btn" data-km="' + km + '" data-unit="km">' + km + ' km</button>').join('') +
       '<button class="poly-buf-btn" data-km="0.2" data-unit="deg" title="0.2° buffer — matches the iNaturalist obscured-record grid square. Use with \'obscured only\' to catch obscured observations near your polygon edge.">0.2°</button>' +
-      '<label class="poly-buf-obscured-label" title="Only fetch records with coordinate uncertainty ≥ 10 km (catches iNaturalist-obscured records near your polygon edge)">' +
-      '<input type="checkbox" id="' + _obscId + '"> obscured only</label>';
+      '</div>' +
+      '<div class="poly-buf-obscured-row"><label class="poly-buf-obscured-label" title="Only fetch records with coordinate uncertainty ≥ 10 km (catches iNaturalist-obscured records near your polygon edge)">' +
+      '<input type="checkbox" id="' + _obscId + '"' + (p._bufObscuredOnly ? ' checked' : '') + '> obscured only</label></div>';
+    bufRow.querySelector('#' + _obscId).addEventListener('change', function() {
+      p._bufObscuredOnly = this.checked;
+    });
     bufRow.querySelectorAll('.poly-buf-btn').forEach(btn => {
       btn.addEventListener('click', () => {
-        const obscuredOnly = bufRow.querySelector('#' + _obscId).checked;
         const val  = parseFloat(btn.dataset.km);
         const unit = btn.dataset.unit || 'km';
-        addBufferPolygon(p, val, obscuredOnly, unit);
+        addBufferPolygon(p, val, p._bufObscuredOnly, unit);
       });
     });
     el.appendChild(bufRow);
@@ -5311,7 +5314,7 @@ if (window._pendingShare) {
   </div>
   <div class="changelog-scroll" id="changelogScroll">
     <div class="changelog-version">
-      <span class="changelog-version-tag">v4.98</span>
+      <span class="changelog-version-tag">v4.99</span>
       <span class="changelog-date">Jun 2026</span>
       <ul>
         <li>iNaturalist supplemental fetch — in species basket mode, after the GBIF fetch completes a second query runs against the iNaturalist API to find research-grade records within your polygon that haven't yet been synced to GBIF; new records are merged in and shown with an orange ring so they're visually distinct from GBIF-sourced records</li>
