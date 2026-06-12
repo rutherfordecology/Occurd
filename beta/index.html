@@ -45,7 +45,7 @@
       <img src="occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v5.07</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v4.96</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -164,7 +164,7 @@
       </div>
       <div class="field sp-wrap" id="spField" style="display:none;">
         <label style="display:flex;align-items:center;justify-content:space-between;">
-          <span>Single species search</span>
+          <span>NZ species search</span>
           <button class="taxo-browse-link" id="taxoBrowseBtn" title="Browse the full GBIF taxonomy tree and select any rank">
             <svg width="11" height="11" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="1.5" r="1.5" fill="currentColor"/><circle cx="2" cy="9.5" r="1.5" fill="currentColor"/><circle cx="10" cy="9.5" r="1.5" fill="currentColor"/><line x1="6" y1="3" x2="6" y2="6.5" stroke="currentColor" stroke-width="1.2"/><line x1="6" y1="6.5" x2="2" y2="8" stroke="currentColor" stroke-width="1.2"/><line x1="6" y1="6.5" x2="10" y2="8" stroke="currentColor" stroke-width="1.2"/></svg>
             Tree of life
@@ -3487,8 +3487,9 @@ function makeMarker(stackedRecords) {
   const baseFillOpacity = uncertain ? 0.65 : 0.85;
 
   const hasTkRecord  = _tkSpeciesNames.size > 0 && stackedRecords.some(r => { const n = r.species || r.scientificName; return n && _tkSpeciesNames.has(n); });
-  const strokeColor  = hasTkRecord ? '#ec4899' : (uncertain ? '#f87171' : '#fff');
-  const strokeWeight = hasTkRecord ? 2.5 : (uncertain ? 1.5 : (stackedRecords.length > 1 ? 2 : 1));
+  const isInatOnly   = stackedRecords.every(r => r._inatOnly);
+  const strokeColor  = hasTkRecord ? '#ec4899' : isInatOnly ? '#f97316' : (uncertain ? '#f87171' : '#fff');
+  const strokeWeight = hasTkRecord ? 2.5 : isInatOnly ? 2.5 : (uncertain ? 1.5 : (stackedRecords.length > 1 ? 2 : 1));
   const marker = L.circleMarker([lat, lng], {
     radius, fillColor: fillColour, color: strokeColor,
     weight: strokeWeight, fillOpacity: baseFillOpacity
@@ -4805,6 +4806,154 @@ runBtn.addEventListener('click', async () => {
     if (removed > 0) setStatus('Clipped to drawn area — ' + removed.toLocaleString() + ' record' + (removed === 1 ? '' : 's') + ' outside boundary removed.', 'info');
   }
 
+  // ── iNaturalist supplemental fetch (species basket mode only) ────────────
+  // Fetches research-grade iNat records not yet synced to GBIF and merges them in.
+  if (_speciesEntries.length > 0 && _geomPolys.length > 0) {
+    setStatus('Checking iNaturalist for records not yet in GBIF…', 'info');
+
+    // Collect iNat obs IDs already covered by GBIF results (occurrenceID format:
+    // "https://www.inaturalist.org/observations/12345")
+    const _gbifInatIds = new Set();
+    allFetched.forEach(r => {
+      const m = (r.occurrenceID || '').match(/inaturalist\.org\/observations\/(\d+)/i);
+      if (m) _gbifInatIds.add(m[1]);
+    });
+
+    // Map iNat iconic_taxon_name → classification fields understood by getTaxonGroup
+    function _inatClassFields(iconicName) {
+      switch (iconicName) {
+        case 'Aves':           return { class: 'Aves',           kingdom: 'Animalia' };
+        case 'Mammalia':       return { class: 'Mammalia',       kingdom: 'Animalia' };
+        case 'Reptilia':       return { class: 'Reptilia',       kingdom: 'Animalia' };
+        case 'Amphibia':       return { class: 'Amphibia',       kingdom: 'Animalia' };
+        case 'Actinopterygii': return { class: 'Actinopterygii', kingdom: 'Animalia' };
+        case 'Insecta':        return { class: 'Insecta',        kingdom: 'Animalia' };
+        case 'Arachnida':      return { class: 'Arachnida',      kingdom: 'Animalia' };
+        case 'Mollusca':       return { phylum: 'Mollusca',      kingdom: 'Animalia' };
+        case 'Fungi':          return { kingdom: 'Fungi' };
+        case 'Chromista':      return { kingdom: 'Chromista' };
+        case 'Plantae':        return { kingdom: 'Plantae' };
+        default:               return {};
+      }
+    }
+
+    let _inatAdded = 0;
+    for (const sp of _speciesEntries) {
+      for (const gp of _geomPolys) {
+        const lls = gp.latlngs;
+        const _lats = lls.map(ll => ll.lat !== undefined ? ll.lat : ll[0]);
+        const _lngs = lls.map(ll => ll.lng !== undefined ? ll.lng : ll[1]);
+        const _swlat = Math.min(..._lats), _nelat = Math.max(..._lats);
+        const _swlng = Math.min(..._lngs), _nelng = Math.max(..._lngs);
+
+        // Build turf polygon for client-side clip
+        let _turfClip = null;
+        try {
+          _turfClip = turf.polygon([closeRingCoords(gp.latlngs.map(llToGeoJSON))]);
+        } catch(e) {}
+
+        const _sciName = sp.sciName || sp.name;
+        let _inatPage = 1;
+
+        while (true) {
+          if (fetchAbortFlag) break;
+          let _inatJson;
+          try {
+            const _inatUrl = 'https://api.inaturalist.org/v1/observations?' +
+              'taxon_name=' + encodeURIComponent(_sciName) +
+              '&quality_grade=research' +
+              '&swlat=' + _swlat + '&swlng=' + _swlng +
+              '&nelat=' + _nelat + '&nelng=' + _nelng +
+              '&per_page=200&page=' + _inatPage;
+            const _ir = await fetch(_inatUrl);
+            if (!_ir.ok) break;
+            _inatJson = await _ir.json();
+          } catch(e) { break; }
+
+          const _inatResults = _inatJson.results || [];
+          if (_inatResults.length === 0) break;
+
+          for (const obs of _inatResults) {
+            if (!obs.location) continue;
+            const _obsId = String(obs.id);
+            if (_gbifInatIds.has(_obsId)) continue; // already in GBIF
+
+            const [_latStr, _lngStr] = obs.location.split(',');
+            const _lat = parseFloat(_latStr), _lng = parseFloat(_lngStr);
+            if (isNaN(_lat) || isNaN(_lng)) continue;
+
+            // Client-side polygon clip
+            if (_turfClip) {
+              try { if (!turf.booleanPointInPolygon(turf.point([_lng, _lat]), _turfClip)) continue; }
+              catch(e) {}
+            }
+
+            const _obsDate = obs.observed_on || '';
+            const _yr = _obsDate ? parseInt(_obsDate.substring(0, 4)) : NaN;
+            const _mo = _obsDate ? parseInt(_obsDate.substring(5, 7)) : NaN;
+            const _dy = _obsDate ? parseInt(_obsDate.substring(8, 10)) : NaN;
+            const _taxon = obs.taxon || {};
+            const _clf = _inatClassFields(_taxon.iconic_taxon_name || '');
+
+            const _rec = {
+              gbifID: null,
+              eventDate: _obsDate || null,
+              year:  isNaN(_yr) ? null : _yr,
+              month: isNaN(_mo) ? null : _mo,
+              day:   isNaN(_dy) ? null : _dy,
+              scientificName: _taxon.name || _sciName,
+              vernacularName: null,
+              kingdom: _clf.kingdom || null,
+              phylum:  _clf.phylum  || null,
+              class:   _clf.class   || null,
+              order:   null, family: null,
+              genus:   _taxon.name ? _taxon.name.split(' ')[0] : null,
+              species: (_taxon.rank === 'species') ? _taxon.name : null,
+              decimalLatitude:               _lat,
+              decimalLongitude:              _lng,
+              coordinateUncertaintyInMeters: obs.positional_accuracy ? String(obs.positional_accuracy) : null,
+              hasGeospatialIssues:           'false',
+              basisOfRecord:                 'HUMAN_OBSERVATION',
+              establishmentMeans:            null,
+              occurrenceID:  'https://www.inaturalist.org/observations/' + _obsId,
+              references:    'https://www.inaturalist.org/observations/' + _obsId,
+              taxonKey:      sp.taxonKey || null,
+              speciesKey:    sp.taxonKey || null,
+              datasetName:   'iNaturalist (not yet in GBIF)',
+              datasetKey:    null,
+              institutionCode: null,
+              country: null, countryCode: null,
+              stateProvince: null,
+              locality:    obs.place_guess || null,
+              recordedBy:  obs.user ? (obs.user.name || obs.user.login || null) : null,
+              dynamicProperties: null,
+              iucnRedListCategory: null,
+              recordPhoto: (() => {
+                const ph = (obs.photos || [])[0];
+                return ph && ph.url ? ph.url.replace('square', 'medium') : null;
+              })(),
+              polygon_name: gp.label || '',
+              _inatOnly: true,
+            };
+            allFetched.push(_rec);
+            _inatAdded++;
+          }
+
+          if (_inatResults.length < 200) break;
+          if (_inatPage >= 50) break; // safety cap
+          _inatPage++;
+        }
+      }
+    }
+
+    if (_inatAdded > 0) {
+      setStatus(_inatAdded.toLocaleString() + ' additional record' + (_inatAdded === 1 ? '' : 's') + ' found on iNaturalist not yet in GBIF.', 'info');
+    } else {
+      setStatus('iNaturalist check complete — no additional records found.', 'info');
+    }
+  }
+  // ─────────────────────────────────────────────────────────────────────────
+
   setStatus('Looking up common names...', 'info');
   await lookupCommonNames(allFetched);
   if (fetchAbortFlag) { setStatus('Fetch cancelled.', 'warning'); setFetchMode(false); return; }
@@ -5147,32 +5296,10 @@ if (window._pendingShare) {
   </div>
   <div class="changelog-scroll" id="changelogScroll">
     <div class="changelog-version">
-      <span class="changelog-version-tag">v5.07</span>
+      <span class="changelog-version-tag">v4.96</span>
       <span class="changelog-date">Jun 2026</span>
       <ul>
-        <li>Samoa marine invertebrate names — 37 species added from National Park of American Samoa checklist (sea cucumbers, starfish, sea urchins, crabs, clams, octopus, etc.); total now 1,479 species with Samoan names</li>
-      </ul>
-    </div>
-    <div class="changelog-version">
-      <span class="changelog-version-tag">v5.06</span>
-      <span class="changelog-date">Jun 2026</span>
-      <ul>
-        <li>Samoa plant names — 322 plant species added from "Plants of Samoa" (Parham 1972, DSIR); Samoan vernacular names extracted from species list; merged into samoa_names.json giving 1,442 species total (birds, fish, plants)</li>
-      </ul>
-    </div>
-    <div class="changelog-version">
-      <span class="changelog-version-tag">v5.05</span>
-      <span class="changelog-date">Jun 2026</span>
-      <ul>
-        <li>Single species search — now visible when centred over New Zealand or Samoa (not globally); renamed from "NZ species search"</li>
-        <li>Tree of Life — now shows Samoan species counts when centred over Samoa (country=WS); NZ behaviour unchanged; geo cache keyed per country so NZ and Samoa results don't collide</li>
-        <li>Fix Samoa bounds — longitude was positive (wrong hemisphere); corrected to −173°–−171°W; extended box to cover American Samoa atolls (−173.5°–−168°W, −15°–−13°S)</li>
-        <li>Fix Samoa detection — normalise Leaflet longitude to [−180, 180] before bounds check; panning past the antimeridian gave ~189° instead of −171°, so Samoa was never detected</li>
-        <li>Fix Tree of Life geo filter — direct nzCache reads were using bare taxon keys; now prefixed with country code so Samoa (WS) filter applies correctly alongside NZ</li>
-        <li>Samoa species names — samoa_names.json loaded when centred over Samoa; single species search autocompletes by Samoan name, English name, or scientific name; 63 bird species with Samoan vernacular names sourced from Conservation International pocket guide</li>
-        <li>Samoa checklist expanded to 107 species from Avibase (Howard &amp; Moore); scientific name is the authority; multiple English common names supported per species; Samoan names merged from PDF where available</li>
-        <li>Tree of Life — Samoa names now shown in species columns and searchable in the search box when centred over Samoa</li>
-        <li>Samoa fish names — 1,008 fish species added from FishBase Samoa checklist; 684 with Samoan vernacular names; merged with bird data to give 1,120 species total (750 with Samoan names)</li>
+        <li>iNaturalist supplemental fetch — in species basket mode, after the GBIF fetch completes a second query runs against the iNaturalist API to find research-grade records within your polygon that haven't yet been synced to GBIF; new records are merged in and shown with an orange ring so they're visually distinct from GBIF-sourced records</li>
       </ul>
     </div>
     <div class="changelog-version">
