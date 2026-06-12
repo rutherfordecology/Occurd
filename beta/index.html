@@ -45,7 +45,7 @@
       <img src="occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v5.06</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v5.07</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -4680,7 +4680,9 @@ runBtn.addEventListener('click', async () => {
     const polyLabel = _fetchTasks.length > 1 ? ' (' + (poly.type === 'species' ? poly.name : poly.label) + ')' : '';
 
     // ── iNat-obscured shortcut: skip GBIF entirely, query iNat with geoprivacy=obscured ──
-    if (poly.obscuredOnly) {
+    // Read from DOM checkbox directly — most reliable source of truth regardless of property sync.
+    const _obscuredOnly = !!(document.getElementById('obscured-' + geomPoly.id) || {checked: geomPoly.obscuredOnly}).checked;
+    if (_obscuredOnly) {
       setStatus('Fetching iNat obscured records' + polyLabel + '…', 'info');
       const lls  = geomPoly.latlngs;
       const _lats = lls.map(ll => ll.lat !== undefined ? ll.lat : ll[0]);
@@ -5414,6 +5416,13 @@ if (window._pendingShare) {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v5.07</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>Fix iNat obscured-only fetch not triggering — reads checkbox state directly from the DOM at fetch time instead of relying on a stored property, ensuring the iNat path is always taken when the checkbox is ticked</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v5.06</span>
       <span class="changelog-date">Jun 2026</span>
