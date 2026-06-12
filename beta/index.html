@@ -45,7 +45,7 @@
       <img src="occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v5.11</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v5.12</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -3169,6 +3169,9 @@ function buildRecordPage(rec) {
   const source  = rec.datasetName ? '<div style="font-size:12px;"><b>Source:</b> ' + rec.datasetName + '</div>' : '';
   const uncertVal = parseFloat(rec.coordinateUncertaintyInMeters);
   const uncert  = uncertVal >= 1500 ? '<div style="font-size:11px;color:#dc2626;font-weight:600;">\u26a0 Low precision: \xb1' + Math.round(uncertVal / 100) / 10 + ' km</div>' : '';
+  const obscuredNote = rec.datasetName === 'iNaturalist (obscured)'
+    ? '<div style="font-size:11px;color:#ea580c;font-weight:600;margin-top:2px;">\u26a0 Obscured record \u2014 actual location unknown, may be up to ~11 km from this point</div>'
+    : '';
   const gbifId  = rec.gbifID;
   const photoId = 'gbif-photo-' + (gbifId || Math.random().toString(36).slice(2));
   if (rec.recordPhoto) window._gbifRecordPhotos[photoId] = rec.recordPhoto;
@@ -3206,7 +3209,7 @@ function buildRecordPage(rec) {
     : '';
   return {
     html: '<div id="' + photoId + '" data-taxon-key="' + (rec.taxonKey||'') + '" data-sci-name="' + (rec.scientificName||'').replace(/"/g,'&quot;') + '" style="margin-bottom:8px;"></div>' +
-          primary + cls + date + source + uncert + link + tkLine,
+          primary + cls + date + source + uncert + obscuredNote + link + tkLine,
     photoId,
     taxonKey: rec.taxonKey,
     scientificName: rec.scientificName || ''
@@ -4755,10 +4758,10 @@ runBtn.addEventListener('click', async () => {
             const [_latS, _lngS] = obs.location.split(',');
             const _lat = parseFloat(_latS), _lng = parseFloat(_lngS);
             if (isNaN(_lat) || isNaN(_lng)) continue;
-            // Jitter within ±0.1° (half the 0.2° obscured grid cell) so stacked points spread
-            // across the plausible area rather than piling on the identical grid-cell centre.
-            const _jLat = _lat + (Math.random() - 0.5) * 0.2;
-            const _jLng = _lng + (Math.random() - 0.5) * 0.2;
+            // Scatter within the polygon bounding box — the grid-cell centre is not the real
+            // location, so spreading across the search area is more honest than a false ±0.1° offset.
+            const _jLat = _swlat + Math.random() * (_nelat - _swlat);
+            const _jLng = _swlng + Math.random() * (_nelng - _swlng);
             const _obsDate = obs.observed_on || '';
             const _yr = _obsDate ? parseInt(_obsDate.substring(0, 4)) : NaN;
             const _mo = _obsDate ? parseInt(_obsDate.substring(5, 7)) : NaN;
@@ -5435,6 +5438,14 @@ if (window._pendingShare) {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v5.12</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>Obscured iNat records now jitter within the drawn polygon bounding box rather than ±0.1° from the grid-cell centre</li>
+        <li>Popup note on obscured records explaining actual location may be up to ~11 km from displayed point</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v5.11</span>
       <span class="changelog-date">Jun 2026</span>
