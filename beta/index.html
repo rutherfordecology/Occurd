@@ -45,7 +45,7 @@
       <img src="occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v5.08</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v5.09</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -4693,6 +4693,23 @@ runBtn.addEventListener('click', async () => {
       try { _turfClip = turf.polygon([closeRingCoords(geomPoly.latlngs.map(llToGeoJSON))]); } catch(e) {}
       const _seenObsIds = new Set();
 
+      // Map selected Occurd taxon checkboxes → iNat iconic_taxa values
+      const _inatIconicMap = {
+        '212': 'Aves', '359': 'Mammalia', 'reptilia': 'Reptilia', '131': 'Amphibia', 'fish': 'Actinopterygii',
+        '216': 'Insecta', '367': 'Arachnida', 'crustacea': 'Animalia', '52': 'Mollusca',
+        '50': 'Animalia', '43': 'Animalia', '42': 'Animalia', '1': 'Animalia',
+        'angiosperms': 'Plantae', '194': 'Plantae', '7228684': 'Plantae', 'bryophytes': 'Plantae',
+        'algae': 'Chromista', '5': 'Fungi'
+      };
+      const _selectedCbVals = [...document.querySelectorAll('.taxon-cb')]
+        .filter(cb => cb.closest('label').classList.contains('selected'))
+        .map(cb => cb.value);
+      const _iconicSet = new Set(_selectedCbVals.map(v => _inatIconicMap[v]).filter(Boolean));
+      const _iconicParam = _iconicSet.size > 0
+        ? '&' + [..._iconicSet].map(t => 'iconic_taxa[]=' + t).join('&')
+        : '';
+      const _dateParams = (dateFrom ? '&d1=' + dateFrom : '') + (dateTo ? '&d2=' + dateTo : '');
+
       // iNat treats geoprivacy and taxon_geoprivacy as AND when combined, so run two
       // separate passes (user-obscured OR taxon-obscured) and deduplicate by obs ID.
       const _obscFilters = ['geoprivacy=obscured', 'taxon_geoprivacy=obscured'];
@@ -4703,7 +4720,7 @@ runBtn.addEventListener('click', async () => {
           let _ij;
           try {
             const _iu = 'https://api.inaturalist.org/v1/observations?' +
-              _obscParam +
+              _obscParam + _iconicParam + _dateParams +
               '&swlat=' + _swlat + '&swlng=' + _swlng + '&nelat=' + _nelat + '&nelng=' + _nelng +
               '&per_page=200&page=' + _inatPage;
             const _ir = await fetch(_iu);
@@ -5415,6 +5432,14 @@ if (window._pendingShare) {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v5.09</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>iNat obscured query now respects selected taxon groups — maps Occurd taxon checkboxes to iNaturalist iconic_taxa so only the selected groups are returned</li>
+        <li>iNat obscured query now applies the date range filter</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v5.08</span>
       <span class="changelog-date">Jun 2026</span>
