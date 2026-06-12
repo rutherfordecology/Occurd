@@ -45,7 +45,7 @@
       <img src="occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v5.14</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v5.15</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -1433,7 +1433,7 @@ function generateShareState() {
   return {
     v: 2,
     // Polygons
-    polys:   geomPolys.map(p => ({ latlngs: p.latlngs.map(_llToArr), label: p.label, holes: (p.holes||[]).map(h => h.map(_llToArr)) })),
+    polys:   geomPolys.map(p => ({ latlngs: p.latlngs.map(_llToArr), label: p.label, holes: (p.holes||[]).map(h => h.map(_llToArr)), obscuredOnly: !!p.obscuredOnly })),
     species: speciesPolys.map(p => ({ name: p.name, taxonKey: p.taxonKey, sciName: p.sciName })),
     // Filters
     dateFrom: document.getElementById('dateFrom').value,
@@ -1510,7 +1510,7 @@ let _pendingSharePostFetch = null; // display state applied after fetch complete
 function restoreFromShare(state) {
   if (!state || !state.polys?.length) return;
   // ── Pre-fetch: polygons, species, dates, taxa, basis, cluster, map view ──
-  state.polys.forEach(p => addPolygon(p.latlngs, p.label, p.holes || []));
+  state.polys.forEach(p => addPolygon(p.latlngs, p.label, p.holes || [], { obscuredOnly: !!p.obscuredOnly }));
   if (state.species && state.species.length) {
     state.species.forEach(s => addSpeciesEntry(s.name, s.taxonKey || null, s.sciName || ''));
   }
@@ -5447,6 +5447,13 @@ if (window._pendingShare) {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v5.15</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>Share/copy URL now preserves iNat obscured-only checkbox state for each polygon</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v5.14</span>
       <span class="changelog-date">Jun 2026</span>
