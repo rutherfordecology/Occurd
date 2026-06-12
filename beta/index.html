@@ -45,7 +45,7 @@
       <img src="occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v5.10</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v5.11</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -4655,6 +4655,25 @@ runBtn.addEventListener('click', async () => {
   const taxonKeys = getSelectedTaxonKeys();
   const allFetched = [];
 
+  // Shared helper — maps iNat iconic_taxon_name → classification fields for getTaxonGroup().
+  // Defined here so both the obscured fetch and the supplemental fetch can use it.
+  function _inatClassFields(iconicName) {
+    switch (iconicName) {
+      case 'Aves':           return { class: 'Aves',           kingdom: 'Animalia' };
+      case 'Mammalia':       return { class: 'Mammalia',       kingdom: 'Animalia' };
+      case 'Reptilia':       return { class: 'Reptilia',       kingdom: 'Animalia' };
+      case 'Amphibia':       return { class: 'Amphibia',       kingdom: 'Animalia' };
+      case 'Actinopterygii': return { class: 'Actinopterygii', kingdom: 'Animalia' };
+      case 'Insecta':        return { class: 'Insecta',        kingdom: 'Animalia' };
+      case 'Arachnida':      return { class: 'Arachnida',      kingdom: 'Animalia' };
+      case 'Mollusca':       return { phylum: 'Mollusca',      kingdom: 'Animalia' };
+      case 'Fungi':          return { kingdom: 'Fungi' };
+      case 'Chromista':      return { kingdom: 'Chromista' };
+      case 'Plantae':        return { kingdom: 'Plantae' };
+      default:               return {};
+    }
+  }
+
   // Expand fetch tasks: species entries fetch once per geometry polygon
   const _speciesEntries = polygons.filter(p => p.type === 'species');
   const _geomPolys      = polygons.filter(p => p.type !== 'species');
@@ -4957,24 +4976,6 @@ runBtn.addEventListener('click', async () => {
       const m = (r.occurrenceID || '').match(/inaturalist\.org\/observations\/(\d+)/i);
       if (m) _gbifInatIds.add(m[1]);
     });
-
-    // Map iNat iconic_taxon_name → classification fields understood by getTaxonGroup
-    function _inatClassFields(iconicName) {
-      switch (iconicName) {
-        case 'Aves':           return { class: 'Aves',           kingdom: 'Animalia' };
-        case 'Mammalia':       return { class: 'Mammalia',       kingdom: 'Animalia' };
-        case 'Reptilia':       return { class: 'Reptilia',       kingdom: 'Animalia' };
-        case 'Amphibia':       return { class: 'Amphibia',       kingdom: 'Animalia' };
-        case 'Actinopterygii': return { class: 'Actinopterygii', kingdom: 'Animalia' };
-        case 'Insecta':        return { class: 'Insecta',        kingdom: 'Animalia' };
-        case 'Arachnida':      return { class: 'Arachnida',      kingdom: 'Animalia' };
-        case 'Mollusca':       return { phylum: 'Mollusca',      kingdom: 'Animalia' };
-        case 'Fungi':          return { kingdom: 'Fungi' };
-        case 'Chromista':      return { kingdom: 'Chromista' };
-        case 'Plantae':        return { kingdom: 'Plantae' };
-        default:               return {};
-      }
-    }
 
     let _inatAdded = 0;
     for (const sp of _speciesEntries) {
@@ -5434,6 +5435,13 @@ if (window._pendingShare) {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v5.11</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>Fix iNat obscured records being silently dropped — _inatClassFields was defined after the obscured fetch ran, so all records got no kingdom/class and were filtered out by the taxon group check; moved the definition earlier so both fetch paths can use it</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v5.10</span>
       <span class="changelog-date">Jun 2026</span>
