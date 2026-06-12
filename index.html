@@ -45,7 +45,7 @@
       <img src="occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v5.04</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v5.05</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -4675,69 +4675,77 @@ runBtn.addEventListener('click', async () => {
       const _swlng = Math.min(..._lngs), _nelng = Math.max(..._lngs);
       let _turfClip = null;
       try { _turfClip = turf.polygon([closeRingCoords(geomPoly.latlngs.map(llToGeoJSON))]); } catch(e) {}
-      let _inatPage = 1, _inatTotal = null;
-      while (true) {
-        if (fetchAbortFlag) { setStatus('Fetch cancelled.', 'warning'); setFetchMode(false); return; }
-        let _ij;
-        try {
-          const _iu = 'https://api.inaturalist.org/v1/observations?' +
-            'geoprivacy=obscured&taxon_geoprivacy=obscured' +
-            '&swlat=' + _swlat + '&swlng=' + _swlng + '&nelat=' + _nelat + '&nelng=' + _nelng +
-            '&per_page=200&page=' + _inatPage;
-          const _ir = await fetch(_iu);
-          if (!_ir.ok) break;
-          _ij = await _ir.json();
-        } catch(e) { break; }
-        if (_inatTotal === null) _inatTotal = _ij.total_results || 0;
-        const _iRes = _ij.results || [];
-        if (_iRes.length === 0) break;
-        for (const obs of _iRes) {
-          if (!obs.location) continue;
-          const [_latS, _lngS] = obs.location.split(',');
-          const _lat = parseFloat(_latS), _lng = parseFloat(_lngS);
-          if (isNaN(_lat) || isNaN(_lng)) continue;
-          if (_turfClip) {
-            try { if (!turf.booleanPointInPolygon(turf.point([_lng, _lat]), _turfClip)) continue; } catch(e) {}
+      const _seenObsIds = new Set();
+
+      // iNat treats geoprivacy and taxon_geoprivacy as AND when combined, so run two
+      // separate passes (user-obscured OR taxon-obscured) and deduplicate by obs ID.
+      const _obscFilters = ['geoprivacy=obscured', 'taxon_geoprivacy=obscured'];
+      for (const _obscParam of _obscFilters) {
+        let _inatPage = 1;
+        while (true) {
+          if (fetchAbortFlag) { setStatus('Fetch cancelled.', 'warning'); setFetchMode(false); return; }
+          let _ij;
+          try {
+            const _iu = 'https://api.inaturalist.org/v1/observations?' +
+              _obscParam +
+              '&swlat=' + _swlat + '&swlng=' + _swlng + '&nelat=' + _nelat + '&nelng=' + _nelng +
+              '&per_page=200&page=' + _inatPage;
+            const _ir = await fetch(_iu);
+            if (!_ir.ok) break;
+            _ij = await _ir.json();
+          } catch(e) { break; }
+          const _iRes = _ij.results || [];
+          if (_iRes.length === 0) break;
+          for (const obs of _iRes) {
+            if (_seenObsIds.has(obs.id)) continue;
+            _seenObsIds.add(obs.id);
+            if (!obs.location) continue;
+            const [_latS, _lngS] = obs.location.split(',');
+            const _lat = parseFloat(_latS), _lng = parseFloat(_lngS);
+            if (isNaN(_lat) || isNaN(_lng)) continue;
+            if (_turfClip) {
+              try { if (!turf.booleanPointInPolygon(turf.point([_lng, _lat]), _turfClip)) continue; } catch(e) {}
+            }
+            const _obsDate = obs.observed_on || '';
+            const _yr = _obsDate ? parseInt(_obsDate.substring(0, 4)) : NaN;
+            const _mo = _obsDate ? parseInt(_obsDate.substring(5, 7)) : NaN;
+            const _dy = _obsDate ? parseInt(_obsDate.substring(8, 10)) : NaN;
+            const _taxon = obs.taxon || {};
+            const _clf = typeof _inatClassFields === 'function' ? _inatClassFields(_taxon.iconic_taxon_name || '') : {};
+            allFetched.push({
+              gbifID: null,
+              eventDate: _obsDate || null,
+              year: isNaN(_yr) ? null : _yr, month: isNaN(_mo) ? null : _mo, day: isNaN(_dy) ? null : _dy,
+              scientificName: _taxon.name || null,
+              vernacularName: null,
+              kingdom: _clf.kingdom || null, phylum: _clf.phylum || null, class: _clf.class || null,
+              order: null, family: null,
+              genus: _taxon.name ? _taxon.name.split(' ')[0] : null,
+              species: (_taxon.rank === 'species') ? _taxon.name : null,
+              decimalLatitude: _lat, decimalLongitude: _lng,
+              coordinateUncertaintyInMeters: obs.positional_accuracy ? String(obs.positional_accuracy) : '22000',
+              hasGeospatialIssues: 'false',
+              basisOfRecord: 'HUMAN_OBSERVATION',
+              establishmentMeans: null,
+              occurrenceID:  'https://www.inaturalist.org/observations/' + obs.id,
+              references:    'https://www.inaturalist.org/observations/' + obs.id,
+              taxonKey: null, speciesKey: null,
+              datasetName: 'iNaturalist (obscured)',
+              datasetKey: null, institutionCode: null,
+              country: null, countryCode: null, stateProvince: null,
+              locality: obs.place_guess || null,
+              recordedBy: obs.user ? (obs.user.name || obs.user.login || null) : null,
+              dynamicProperties: null, iucnRedListCategory: null,
+              recordPhoto: (() => { const ph = (obs.photos || [])[0]; return ph && ph.url ? ph.url.replace('square','medium') : null; })(),
+              polygon_name: geomPoly.label || '',
+              _inatOnly: true,
+            });
           }
-          const _obsDate = obs.observed_on || '';
-          const _yr = _obsDate ? parseInt(_obsDate.substring(0, 4)) : NaN;
-          const _mo = _obsDate ? parseInt(_obsDate.substring(5, 7)) : NaN;
-          const _dy = _obsDate ? parseInt(_obsDate.substring(8, 10)) : NaN;
-          const _taxon = obs.taxon || {};
-          const _clf = typeof _inatClassFields === 'function' ? _inatClassFields(_taxon.iconic_taxon_name || '') : {};
-          allFetched.push({
-            gbifID: null,
-            eventDate: _obsDate || null,
-            year: isNaN(_yr) ? null : _yr, month: isNaN(_mo) ? null : _mo, day: isNaN(_dy) ? null : _dy,
-            scientificName: _taxon.name || null,
-            vernacularName: null,
-            kingdom: _clf.kingdom || null, phylum: _clf.phylum || null, class: _clf.class || null,
-            order: null, family: null,
-            genus: _taxon.name ? _taxon.name.split(' ')[0] : null,
-            species: (_taxon.rank === 'species') ? _taxon.name : null,
-            decimalLatitude: _lat, decimalLongitude: _lng,
-            coordinateUncertaintyInMeters: obs.positional_accuracy ? String(obs.positional_accuracy) : '22000',
-            hasGeospatialIssues: 'false',
-            basisOfRecord: 'HUMAN_OBSERVATION',
-            establishmentMeans: null,
-            occurrenceID:  'https://www.inaturalist.org/observations/' + obs.id,
-            references:    'https://www.inaturalist.org/observations/' + obs.id,
-            taxonKey: null, speciesKey: null,
-            datasetName: 'iNaturalist (obscured)',
-            datasetKey: null, institutionCode: null,
-            country: null, countryCode: null, stateProvince: null,
-            locality: obs.place_guess || null,
-            recordedBy: obs.user ? (obs.user.name || obs.user.login || null) : null,
-            dynamicProperties: null, iucnRedListCategory: null,
-            recordPhoto: (() => { const ph = (obs.photos || [])[0]; return ph && ph.url ? ph.url.replace('square','medium') : null; })(),
-            polygon_name: geomPoly.label || '',
-            _inatOnly: true,
-          });
+          setProgress(10, 'Fetching iNat obscured records' + polyLabel + '… ' + allFetched.length.toLocaleString());
+          if (_iRes.length < 200) break;
+          if (_inatPage >= 50) break;
+          _inatPage++;
         }
-        setProgress(10, 'Fetching iNat obscured records' + polyLabel + '… ' + allFetched.length.toLocaleString() + ((_inatTotal) ? ' / ~' + _inatTotal.toLocaleString() : ''));
-        if (_iRes.length < 200) break;
-        if (_inatPage >= 50) break;
-        _inatPage++;
       }
       continue; // skip the GBIF fetch below for this polygon
     }
@@ -5393,7 +5401,7 @@ if (window._pendingShare) {
   </div>
   <div class="changelog-scroll" id="changelogScroll">
     <div class="changelog-version">
-      <span class="changelog-version-tag">v5.04</span>
+      <span class="changelog-version-tag">v5.05</span>
       <span class="changelog-date">Jun 2026</span>
       <ul>
         <li>iNaturalist supplemental fetch — in species basket mode, after the GBIF fetch completes a second query runs against the iNaturalist API to find research-grade records within your polygon that haven't yet been synced to GBIF; new records are merged in and shown with an orange ring so they're visually distinct from GBIF-sourced records</li>
