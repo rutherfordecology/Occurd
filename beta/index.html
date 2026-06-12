@@ -45,7 +45,7 @@
       <img src="occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v5.05</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v5.06</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -136,29 +136,29 @@
             <label class="taxon-item taxon-all" id="taxonAllLabel">
               <input type="checkbox" id="taxonAll"> All taxa
             </label>
-            <div class="taxon-group-label">Vertebrates</div>
-            <label class="taxon-item"><input type="checkbox" value="212" class="taxon-cb"> Aves (birds)</label>
-            <label class="taxon-item"><input type="checkbox" value="359" class="taxon-cb"> Mammalia</label>
-            <label class="taxon-item"><input type="checkbox" value="reptilia" class="taxon-cb"> Reptilia</label>
-            <label class="taxon-item"><input type="checkbox" value="131" class="taxon-cb"> Amphibia</label>
-            <label class="taxon-item"><input type="checkbox" value="fish" class="taxon-cb"> Fish</label>
-            <div class="taxon-group-label">Invertebrates</div>
-            <label class="taxon-item"><input type="checkbox" value="216" class="taxon-cb"> Insecta</label>
-            <label class="taxon-item"><input type="checkbox" value="367" class="taxon-cb"> Arachnida</label>
-            <label class="taxon-item"><input type="checkbox" value="crustacea" class="taxon-cb"> Crustacea</label>
-            <label class="taxon-item"><input type="checkbox" value="52" class="taxon-cb"> Mollusca</label>
-            <label class="taxon-item"><input type="checkbox" value="50" class="taxon-cb"> Echinodermata</label>
-            <label class="taxon-item"><input type="checkbox" value="43" class="taxon-cb"> Cnidaria</label>
-            <label class="taxon-item"><input type="checkbox" value="42" class="taxon-cb"> Annelida</label>
-            <label class="taxon-item"><input type="checkbox" value="1" class="taxon-cb"> Other Animalia</label>
-            <div class="taxon-group-label">Plants</div>
-            <label class="taxon-item"><input type="checkbox" value="angiosperms" class="taxon-cb"> Angiosperms</label>
-            <label class="taxon-item"><input type="checkbox" value="194" class="taxon-cb"> Gymnosperms</label>
-            <label class="taxon-item"><input type="checkbox" value="7228684" class="taxon-cb"> Ferns &amp; allies</label>
-            <label class="taxon-item"><input type="checkbox" value="bryophytes" class="taxon-cb"> Bryophytes</label>
-            <div class="taxon-group-label">Other</div>
-            <label class="taxon-item"><input type="checkbox" value="algae" class="taxon-cb"> Algae</label>
-            <label class="taxon-item"><input type="checkbox" value="5" class="taxon-cb"> Fungi</label>
+            <div class="taxon-group-label taxon-group-toggle" data-group="vertebrates" title="Click to toggle all vertebrates">Vertebrates</div>
+            <label class="taxon-item"><input type="checkbox" value="212" class="taxon-cb" data-group="vertebrates"> Aves (birds)</label>
+            <label class="taxon-item"><input type="checkbox" value="359" class="taxon-cb" data-group="vertebrates"> Mammalia</label>
+            <label class="taxon-item"><input type="checkbox" value="reptilia" class="taxon-cb" data-group="vertebrates"> Reptilia</label>
+            <label class="taxon-item"><input type="checkbox" value="131" class="taxon-cb" data-group="vertebrates"> Amphibia</label>
+            <label class="taxon-item"><input type="checkbox" value="fish" class="taxon-cb" data-group="vertebrates"> Fish</label>
+            <div class="taxon-group-label taxon-group-toggle" data-group="invertebrates" title="Click to toggle all invertebrates">Invertebrates</div>
+            <label class="taxon-item"><input type="checkbox" value="216" class="taxon-cb" data-group="invertebrates"> Insecta</label>
+            <label class="taxon-item"><input type="checkbox" value="367" class="taxon-cb" data-group="invertebrates"> Arachnida</label>
+            <label class="taxon-item"><input type="checkbox" value="crustacea" class="taxon-cb" data-group="invertebrates"> Crustacea</label>
+            <label class="taxon-item"><input type="checkbox" value="52" class="taxon-cb" data-group="invertebrates"> Mollusca</label>
+            <label class="taxon-item"><input type="checkbox" value="50" class="taxon-cb" data-group="invertebrates"> Echinodermata</label>
+            <label class="taxon-item"><input type="checkbox" value="43" class="taxon-cb" data-group="invertebrates"> Cnidaria</label>
+            <label class="taxon-item"><input type="checkbox" value="42" class="taxon-cb" data-group="invertebrates"> Annelida</label>
+            <label class="taxon-item"><input type="checkbox" value="1" class="taxon-cb" data-group="invertebrates"> Other Animalia</label>
+            <div class="taxon-group-label taxon-group-toggle" data-group="plants" title="Click to toggle all plants">Plants</div>
+            <label class="taxon-item"><input type="checkbox" value="angiosperms" class="taxon-cb" data-group="plants"> Angiosperms</label>
+            <label class="taxon-item"><input type="checkbox" value="194" class="taxon-cb" data-group="plants"> Gymnosperms</label>
+            <label class="taxon-item"><input type="checkbox" value="7228684" class="taxon-cb" data-group="plants"> Ferns &amp; allies</label>
+            <label class="taxon-item"><input type="checkbox" value="bryophytes" class="taxon-cb" data-group="plants"> Bryophytes</label>
+            <div class="taxon-group-label taxon-group-toggle" data-group="other" title="Click to toggle algae, fungi &amp; other">Other</div>
+            <label class="taxon-item"><input type="checkbox" value="algae" class="taxon-cb" data-group="other"> Algae</label>
+            <label class="taxon-item"><input type="checkbox" value="5" class="taxon-cb" data-group="other"> Fungi</label>
           </div>
         </div>
       </div>
@@ -4493,6 +4493,20 @@ taxonCbs().forEach(cb => {
   });
 });
 
+// Group header toggles — click Vertebrates/Invertebrates/Plants/Other to select/deselect all in that group
+document.querySelectorAll('.taxon-group-toggle').forEach(header => {
+  header.addEventListener('click', () => {
+    const group = header.dataset.group;
+    const groupCbs = [...document.querySelectorAll('.taxon-cb[data-group="' + group + '"]')];
+    const allOn = groupCbs.every(cb => cb.closest('label').classList.contains('selected'));
+    groupCbs.forEach(cb => {
+      cb.closest('label').classList.toggle('selected', !allOn);
+    });
+    taxonAllLabel.classList.remove('selected');
+    updateTaxonLabel();
+  });
+});
+
 // Build taxon key params for the GBIF occurrence search API
 function buildTaxonParams(keys) {
   if (keys.length === 0) return [];
@@ -5401,7 +5415,7 @@ if (window._pendingShare) {
   </div>
   <div class="changelog-scroll" id="changelogScroll">
     <div class="changelog-version">
-      <span class="changelog-version-tag">v5.05</span>
+      <span class="changelog-version-tag">v5.06</span>
       <span class="changelog-date">Jun 2026</span>
       <ul>
         <li>iNaturalist supplemental fetch — in species basket mode, after the GBIF fetch completes a second query runs against the iNaturalist API to find research-grade records within your polygon that haven't yet been synced to GBIF; new records are merged in and shown with an orange ring so they're visually distinct from GBIF-sourced records</li>

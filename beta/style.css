@@ -356,6 +356,8 @@ html, body { max-width: 100vw; overflow-x: hidden; }
 .taxon-arrow { font-size: 10px; color: var(--text3); }
 .taxon-dropdown-menu { position: absolute; top: 100%; left: 0; right: 0; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); z-index: 1000; max-height: 280px; overflow-y: auto; box-shadow: 0 4px 12px rgba(0,0,0,0.1); margin-top: 2px; }
 .taxon-group-label { font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text3); padding: 4px 10px 2px; background: var(--surface2); border-top: 0.5px solid var(--border); }
+.taxon-group-toggle { cursor: pointer; user-select: none; }
+.taxon-group-toggle:hover { color: var(--green-dark); background: var(--green-light); }
 .taxon-item { display: flex; align-items: center; gap: 7px; padding: 3px 10px; font-size: 11.5px; cursor: pointer; color: var(--text3); transition: color 0.1s; user-select: none; }
 .taxon-item:hover { color: var(--text); }
 .taxon-item.selected { color: var(--text); font-weight: 500; }
