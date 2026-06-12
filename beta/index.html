@@ -45,7 +45,7 @@
       <img src="occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v5.12</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v5.13</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -4758,10 +4758,19 @@ runBtn.addEventListener('click', async () => {
             const [_latS, _lngS] = obs.location.split(',');
             const _lat = parseFloat(_latS), _lng = parseFloat(_lngS);
             if (isNaN(_lat) || isNaN(_lng)) continue;
-            // Scatter within the polygon bounding box — the grid-cell centre is not the real
-            // location, so spreading across the search area is more honest than a false ±0.1° offset.
-            const _jLat = _swlat + Math.random() * (_nelat - _swlat);
-            const _jLng = _swlng + Math.random() * (_nelng - _swlng);
+            // Scatter within the polygon shape. Rejection-sample random points in the bbox
+            // until one falls inside the polygon (max 20 tries, then use bbox centre).
+            let _jLat = (_swlat + _nelat) / 2, _jLng = (_swlng + _nelng) / 2;
+            if (_turfClip) {
+              for (let _ji = 0; _ji < 20; _ji++) {
+                const _rLat = _swlat + Math.random() * (_nelat - _swlat);
+                const _rLng = _swlng + Math.random() * (_nelng - _swlng);
+                try { if (turf.booleanPointInPolygon(turf.point([_rLng, _rLat]), _turfClip)) { _jLat = _rLat; _jLng = _rLng; break; } } catch(e) {}
+              }
+            } else {
+              _jLat = _swlat + Math.random() * (_nelat - _swlat);
+              _jLng = _swlng + Math.random() * (_nelng - _swlng);
+            }
             const _obsDate = obs.observed_on || '';
             const _yr = _obsDate ? parseInt(_obsDate.substring(0, 4)) : NaN;
             const _mo = _obsDate ? parseInt(_obsDate.substring(5, 7)) : NaN;
@@ -5438,6 +5447,13 @@ if (window._pendingShare) {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v5.13</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>Obscured iNat record jitter now constrained to within the actual polygon shape, not just the bounding box — points no longer scatter into corners outside a circular buffer</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v5.12</span>
       <span class="changelog-date">Jun 2026</span>
