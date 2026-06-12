@@ -45,7 +45,7 @@
       <img src="occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v4.99</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v5.00</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -1859,8 +1859,8 @@ function renderPolyList() {
       [1,2,5,10].map(km => '<button class="poly-buf-btn" data-km="' + km + '" data-unit="km">' + km + ' km</button>').join('') +
       '<button class="poly-buf-btn" data-km="0.2" data-unit="deg" title="0.2° buffer — matches the iNaturalist obscured-record grid square. Use with \'obscured only\' to catch obscured observations near your polygon edge.">0.2°</button>' +
       '</div>' +
-      '<div class="poly-buf-obscured-row"><label class="poly-buf-obscured-label" title="Only fetch records with coordinate uncertainty ≥ 10 km (catches iNaturalist-obscured records near your polygon edge)">' +
-      '<input type="checkbox" id="' + _obscId + '"' + (p._bufObscuredOnly ? ' checked' : '') + '> obscured only</label></div>';
+      '<div class="poly-buf-obscured-row"><label class="poly-buf-obscured-label" title="Fetches only obscured iNaturalist records — skips GBIF entirely and queries iNat directly with geoprivacy=obscured. Use this on a buffer polygon to catch observations whose obscured grid-centre falls outside your core area.">' +
+      '<input type="checkbox" id="' + _obscId + '"' + (p._bufObscuredOnly ? ' checked' : '') + '> iNat obscured records</label></div>';
     bufRow.querySelector('#' + _obscId).addEventListener('change', function() {
       p._bufObscuredOnly = this.checked;
     });
@@ -4663,8 +4663,85 @@ runBtn.addEventListener('click', async () => {
     const { poly, geomPoly } = _fetchTasks[ti];
     const polyLabel = _fetchTasks.length > 1 ? ' (' + (poly.type === 'species' ? poly.name : poly.label) + ')' : '';
 
+    // ── iNat-obscured shortcut: skip GBIF entirely, query iNat with geoprivacy=obscured ──
+    if (poly.obscuredOnly) {
+      setStatus('Fetching iNat obscured records' + polyLabel + '…', 'info');
+      const lls  = geomPoly.latlngs;
+      const _lats = lls.map(ll => ll.lat !== undefined ? ll.lat : ll[0]);
+      const _lngs = lls.map(ll => ll.lng !== undefined ? ll.lng : ll[1]);
+      const _swlat = Math.min(..._lats), _nelat = Math.max(..._lats);
+      const _swlng = Math.min(..._lngs), _nelng = Math.max(..._lngs);
+      let _turfClip = null;
+      try { _turfClip = turf.polygon([closeRingCoords(geomPoly.latlngs.map(llToGeoJSON))]); } catch(e) {}
+      let _inatPage = 1, _inatTotal = null;
+      while (true) {
+        if (fetchAbortFlag) { setStatus('Fetch cancelled.', 'warning'); setFetchMode(false); return; }
+        let _ij;
+        try {
+          const _iu = 'https://api.inaturalist.org/v1/observations?' +
+            'geoprivacy=obscured&taxon_geoprivacy=obscured' +
+            '&swlat=' + _swlat + '&swlng=' + _swlng + '&nelat=' + _nelat + '&nelng=' + _nelng +
+            '&per_page=200&page=' + _inatPage;
+          const _ir = await fetch(_iu);
+          if (!_ir.ok) break;
+          _ij = await _ir.json();
+        } catch(e) { break; }
+        if (_inatTotal === null) _inatTotal = _ij.total_results || 0;
+        const _iRes = _ij.results || [];
+        if (_iRes.length === 0) break;
+        for (const obs of _iRes) {
+          if (!obs.location) continue;
+          const [_latS, _lngS] = obs.location.split(',');
+          const _lat = parseFloat(_latS), _lng = parseFloat(_lngS);
+          if (isNaN(_lat) || isNaN(_lng)) continue;
+          if (_turfClip) {
+            try { if (!turf.booleanPointInPolygon(turf.point([_lng, _lat]), _turfClip)) continue; } catch(e) {}
+          }
+          const _obsDate = obs.observed_on || '';
+          const _yr = _obsDate ? parseInt(_obsDate.substring(0, 4)) : NaN;
+          const _mo = _obsDate ? parseInt(_obsDate.substring(5, 7)) : NaN;
+          const _dy = _obsDate ? parseInt(_obsDate.substring(8, 10)) : NaN;
+          const _taxon = obs.taxon || {};
+          const _clf = typeof _inatClassFields === 'function' ? _inatClassFields(_taxon.iconic_taxon_name || '') : {};
+          allFetched.push({
+            gbifID: null,
+            eventDate: _obsDate || null,
+            year: isNaN(_yr) ? null : _yr, month: isNaN(_mo) ? null : _mo, day: isNaN(_dy) ? null : _dy,
+            scientificName: _taxon.name || null,
+            vernacularName: null,
+            kingdom: _clf.kingdom || null, phylum: _clf.phylum || null, class: _clf.class || null,
+            order: null, family: null,
+            genus: _taxon.name ? _taxon.name.split(' ')[0] : null,
+            species: (_taxon.rank === 'species') ? _taxon.name : null,
+            decimalLatitude: _lat, decimalLongitude: _lng,
+            coordinateUncertaintyInMeters: obs.positional_accuracy ? String(obs.positional_accuracy) : '22000',
+            hasGeospatialIssues: 'false',
+            basisOfRecord: 'HUMAN_OBSERVATION',
+            establishmentMeans: null,
+            occurrenceID:  'https://www.inaturalist.org/observations/' + obs.id,
+            references:    'https://www.inaturalist.org/observations/' + obs.id,
+            taxonKey: null, speciesKey: null,
+            datasetName: 'iNaturalist (obscured)',
+            datasetKey: null, institutionCode: null,
+            country: null, countryCode: null, stateProvince: null,
+            locality: obs.place_guess || null,
+            recordedBy: obs.user ? (obs.user.name || obs.user.login || null) : null,
+            dynamicProperties: null, iucnRedListCategory: null,
+            recordPhoto: (() => { const ph = (obs.photos || [])[0]; return ph && ph.url ? ph.url.replace('square','medium') : null; })(),
+            polygon_name: geomPoly.label || '',
+            _inatOnly: true,
+          });
+        }
+        setProgress(10, 'Fetching iNat obscured records' + polyLabel + '… ' + allFetched.length.toLocaleString() + ((_inatTotal) ? ' / ~' + _inatTotal.toLocaleString() : ''));
+        if (_iRes.length < 200) break;
+        if (_inatPage >= 50) break;
+        _inatPage++;
+      }
+      continue; // skip the GBIF fetch below for this polygon
+    }
+    // ─────────────────────────────────────────────────────────────────────────
+
     const baseParams = [['geometry', getQueryWKT(geomPoly)], ['hasCoordinate', 'true'], ['limit', '300']];
-    if (poly.obscuredOnly) baseParams.push(['coordinateUncertaintyInMeters', '10000,*']);
     if (dateFrom && dateTo) baseParams.push(['eventDate', dateFrom + ',' + dateTo]);
     const _basisMap = {
       inclObservations: ['HUMAN_OBSERVATION','MACHINE_OBSERVATION','OCCURRENCE'],
@@ -5314,12 +5391,13 @@ if (window._pendingShare) {
   </div>
   <div class="changelog-scroll" id="changelogScroll">
     <div class="changelog-version">
-      <span class="changelog-version-tag">v4.99</span>
+      <span class="changelog-version-tag">v5.00</span>
       <span class="changelog-date">Jun 2026</span>
       <ul>
         <li>iNaturalist supplemental fetch — in species basket mode, after the GBIF fetch completes a second query runs against the iNaturalist API to find research-grade records within your polygon that haven't yet been synced to GBIF; new records are merged in and shown with an orange ring so they're visually distinct from GBIF-sourced records</li>
         <li>Buffer "obscured only" option — a checkbox next to the buffer distance buttons; when ticked the resulting buffer polygon fetches only records with coordinate uncertainty ≥ 10 km from GBIF (catching iNat-obscured records near the polygon edge without pulling in thousands of precise records)</li>
-        <li>0.2° buffer option — new buffer button sized to match the iNaturalist obscured-record grid square; hover tooltip explains its use; works with the "obscured only" checkbox</li>
+        <li>0.2° buffer option — new buffer button sized to match the iNaturalist obscured-record grid square; hover tooltip explains its use; works with the "iNat obscured records" checkbox</li>
+        <li>iNat obscured records mode — when ticked on a buffer polygon, skips GBIF entirely and queries the iNaturalist API directly with geoprivacy=obscured; only obscured iNat observations within the buffer are returned, keeping record counts manageable; markers shown with orange ring</li>
       </ul>
     </div>
     <div class="changelog-version">
