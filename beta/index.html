@@ -45,7 +45,7 @@
       <img src="occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v5.13</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v5.14</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -212,7 +212,7 @@
         <!-- Data quality summary -->
         <div class="quality-box" id="qualityBox">
           &#9888; precision &gt;1.5 km = <span class="quality-val" id="qHighUncert">-</span>
-          <div style="font-size:11px;opacity:0.75;margin-top:2px;">(shown with a red ring on map)</div>
+          <div style="font-size:11px;opacity:0.75;margin-top:2px;">low-precision GBIF records shown with a red ring; obscured iNat records with an orange ring</div>
         </div>
 
 <div class="tool-row" style="margin-top:0.6rem;">
@@ -3511,7 +3511,7 @@ function makeMarker(stackedRecords) {
   const hasTkRecord  = _tkSpeciesNames.size > 0 && stackedRecords.some(r => { const n = r.species || r.scientificName; return n && _tkSpeciesNames.has(n); });
   const isInatOnly   = stackedRecords.every(r => r._inatOnly);
   const strokeColor  = hasTkRecord ? '#ec4899' : isInatOnly ? '#f97316' : (uncertain ? '#f87171' : '#fff');
-  const strokeWeight = hasTkRecord ? 2.5 : isInatOnly ? 2.5 : (uncertain ? 1.5 : (stackedRecords.length > 1 ? 2 : 1));
+  const strokeWeight = hasTkRecord ? 2.5 : isInatOnly ? 1.5 : (uncertain ? 1.5 : (stackedRecords.length > 1 ? 2 : 1));
   const marker = L.circleMarker([lat, lng], {
     radius, fillColor: fillColour, color: strokeColor,
     weight: strokeWeight, fillOpacity: baseFillOpacity
@@ -5447,6 +5447,14 @@ if (window._pendingShare) {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v5.14</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>Quality box legend updated to distinguish red ring (low-precision GBIF) from orange ring (obscured iNat)</li>
+        <li>Orange ring on obscured iNat markers made thinner</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v5.13</span>
       <span class="changelog-date">Jun 2026</span>
