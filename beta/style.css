@@ -52,14 +52,14 @@ header { background: var(--green-dark); color: white; padding: 0 1.5rem; display
 .poly-group-label { font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text3); margin: 0.5rem 0 0.25rem; padding: 0 1px; }
 .poly-item-row { display: flex; align-items: center; gap: 6px; width: 100%; }
 .poly-buffer-row { display: flex; flex-direction: column; gap: 4px; padding-top: 3px; border-top: 0.5px solid var(--green-mid); }
-.poly-buf-btns { display: flex; align-items: center; gap: 3px; }
+.poly-buf-obscured-row { display: flex; align-items: center; }
+.poly-buf-obscured-label { font-size: 10px; color: var(--text3); cursor: pointer; display: flex; align-items: center; gap: 3px; white-space: nowrap; }
+.poly-buf-obscured-label input { cursor: pointer; accent-color: var(--green-dark); }
+.poly-buf-btns { display: flex; align-items: center; gap: 3px; padding-top: 4px; border-top: 0.5px solid var(--green-mid); }
 .poly-buffer-label { font-size: 10px; color: var(--text3); font-weight: 600; flex-shrink: 0; margin-right: 2px; }
 .poly-buf-btn { font-size: 10px; padding: 2px 6px; border-radius: 10px; border: 0.5px solid var(--green-mid); background: transparent; color: var(--green-dark); cursor: pointer; font-family: var(--font-sans); transition: all 0.12s; white-space: nowrap; line-height: 1.4; }
 .poly-buf-btn:hover { background: var(--green-mid); }
 .poly-buf-btn.active { background: var(--green-dark); color: white; border-color: var(--green-dark); }
-.poly-buf-obscured-row { display: flex; align-items: center; }
-.poly-buf-obscured-label { font-size: 10px; color: var(--text3); cursor: pointer; display: flex; align-items: center; gap: 3px; white-space: nowrap; }
-.poly-buf-obscured-label input { cursor: pointer; accent-color: var(--green-dark); }
 .poly-item-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: text; }
 .poly-item-name:hover { text-decoration: underline dotted; }
 .poly-name-input { flex: 1; font-size: 12px; font-family: var(--font-sans); color: var(--green-dark); background: white; border: 1px solid var(--green-mid); border-radius: 4px; padding: 1px 5px; min-width: 0; outline: none; }

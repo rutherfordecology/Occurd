@@ -45,7 +45,7 @@
       <img src="occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v5.03</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v5.04</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -1855,31 +1855,16 @@ function renderPolyList() {
     el.appendChild(topRow);
     const bufRow = document.createElement('div'); bufRow.className = 'poly-buffer-row';
     const _obscId = 'obscured-' + p.id;
-    // Label differs by context: on an obscured-mode polygon it describes this polygon's fetch;
-    // on a normal polygon it describes the buffer about to be created.
-    const _obscLabel  = p.obscuredOnly
-      ? 'This polygon: iNat obscured records only'
-      : 'New buffer: iNat obscured records only';
-    const _obscTitle  = p.obscuredOnly
-      ? 'This polygon skips GBIF and fetches only obscured iNaturalist records. Untick to restore normal GBIF fetching.'
-      : 'Tick before clicking a buffer size to create a buffer that fetches only obscured iNaturalist records (skips GBIF). Useful for catching observations whose obscured grid-centre falls just outside your core polygon.';
-    bufRow.innerHTML = '<div class="poly-buf-btns"><span class="poly-buffer-label">Add buffer:</span>' +
+    bufRow.innerHTML =
+      '<div class="poly-buf-obscured-row"><label class="poly-buf-obscured-label" title="Skips GBIF and fetches only obscured iNaturalist records for this polygon. When ticked, any buffer created from this polygon will also use iNat obscured mode.">' +
+      '<input type="checkbox" id="' + _obscId + '"' + (p.obscuredOnly ? ' checked' : '') + '> this polygon: iNat obscured only</label></div>' +
+      '<div class="poly-buf-btns"><span class="poly-buffer-label">Add buffer:</span>' +
       [1,2,5,10].map(km => '<button class="poly-buf-btn" data-km="' + km + '" data-unit="km">' + km + ' km</button>').join('') +
-      '<button class="poly-buf-btn" data-km="0.2" data-unit="deg" title="0.2° buffer — matches the iNaturalist obscured-record grid square. Use with \'New buffer: iNat obscured records only\' to catch obscured observations near your polygon edge.">0.2°</button>' +
-      '</div>' +
-      '<div class="poly-buf-obscured-row"><label class="poly-buf-obscured-label" title="' + _obscTitle + '">' +
-      '<input type="checkbox" id="' + _obscId + '"' + ((p.obscuredOnly || p._bufObscuredOnly) ? ' checked' : '') + '> ' + _obscLabel + '</label></div>';
+      '<button class="poly-buf-btn" data-km="0.2" data-unit="deg" title="0.2° buffer — matches the iNaturalist obscured-record grid square.">0.2°</button>' +
+      '</div>';
     bufRow.querySelector('#' + _obscId).addEventListener('change', function() {
       p.obscuredOnly     = this.checked;
       p._bufObscuredOnly = this.checked;
-      // Update the label text live to reflect the new context
-      const lbl = bufRow.querySelector('.poly-buf-obscured-label');
-      lbl.childNodes[lbl.childNodes.length - 1].textContent = ' ' + (p.obscuredOnly
-        ? 'This polygon: iNat obscured records only'
-        : 'New buffer: iNat obscured records only');
-      lbl.title = p.obscuredOnly
-        ? 'This polygon skips GBIF and fetches only obscured iNaturalist records. Untick to restore normal GBIF fetching.'
-        : 'Tick before clicking a buffer size to create a buffer that fetches only obscured iNaturalist records (skips GBIF). Useful for catching observations whose obscured grid-centre falls just outside your core polygon.';
     });
     bufRow.querySelectorAll('.poly-buf-btn').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -5408,7 +5393,7 @@ if (window._pendingShare) {
   </div>
   <div class="changelog-scroll" id="changelogScroll">
     <div class="changelog-version">
-      <span class="changelog-version-tag">v5.03</span>
+      <span class="changelog-version-tag">v5.04</span>
       <span class="changelog-date">Jun 2026</span>
       <ul>
         <li>iNaturalist supplemental fetch — in species basket mode, after the GBIF fetch completes a second query runs against the iNaturalist API to find research-grade records within your polygon that haven't yet been synced to GBIF; new records are merged in and shown with an orange ring so they're visually distinct from GBIF-sourced records</li>
