@@ -133,24 +133,30 @@
     if (!samoaData) return [];
     const norm = q.toLowerCase().trim();
     if (norm.length < 2) return [];
-    const starts = [], contains = [];
+    const sciStarts = [], sciContains = [], vernStarts = [], vernContains = [];
     for (const [sci, entry] of Object.entries(samoaData)) {
-      const samoan   = (entry.samoan || '').toLowerCase();
+      const sciLow     = sci.toLowerCase();
+      const samoan     = (entry.samoan || '').toLowerCase();
       const englishArr = Array.isArray(entry.english) ? entry.english : [entry.english || ''];
-      const engMatch = name => name.toLowerCase();
-      const startHit = samoan.startsWith(norm) || sci.startsWith(norm) ||
-                       englishArr.some(e => engMatch(e).startsWith(norm));
-      const containHit = !startHit && (samoan.includes(norm) || sci.includes(norm) ||
-                          englishArr.some(e => engMatch(e).includes(norm)));
-      if (startHit)   starts.push({ sci, ...entry });
-      else if (containHit) contains.push({ sci, ...entry });
+      const engLow     = name => name.toLowerCase();
+      // Latin name match takes priority over vernacular
+      const sciStart   = sciLow.startsWith(norm);
+      const sciContain = !sciStart && sciLow.includes(norm);
+      if (sciStart || sciContain) {
+        const item = { cls: 'samoa', matchBy: 'sci', n: sci, sci, english: englishArr.join(' / '), samoan: entry.samoan || '' };
+        if (sciStart) sciStarts.push(item); else sciContains.push(item);
+      } else {
+        const vernStart   = samoan.startsWith(norm) || englishArr.some(e => engLow(e).startsWith(norm));
+        const vernContain = !vernStart && (samoan.includes(norm) || englishArr.some(e => engLow(e).includes(norm)));
+        if (vernStart || vernContain) {
+          const item = { cls: 'samoa', matchBy: 'samoan', n: entry.samoan || englishArr[0], sci, english: englishArr.join(' / '), samoan: entry.samoan || '' };
+          if (vernStart) vernStarts.push(item); else vernContains.push(item);
+        }
+      }
     }
-    const top = starts.slice(0, 10);
-    if (top.length < 10) top.push(...contains.slice(0, 10 - top.length));
-    return top.map(e => {
-      const englishArr = Array.isArray(e.english) ? e.english : [e.english || ''];
-      return { cls: 'samoa', n: e.samoan || englishArr[0], sci: e.sci, english: englishArr.join(' / '), samoan: e.samoan || '' };
-    });
+    // Latin matches first (more precise), then vernacular
+    const top = [...sciStarts, ...vernStarts, ...sciContains, ...vernContains].slice(0, 10);
+    return top;
   }
 
   window.getSamoaVernacular = function(sciName) {
@@ -265,10 +271,17 @@
           '<div class="sp-sci">' + item.sci + '</div>' +
           '<div class="sp-common"><span class="nvs-badge">NVS ' + item.nvscode.toUpperCase() + '</span></div>';
       } else if (item.cls === 'samoa') {
-        el.innerHTML =
-          '<div class="sp-sci">' + item.sci + '</div>' +
-          '<div class="sp-common">' + item.samoan +
-          (item.english ? ' · ' + item.english : '') + '</div>';
+        if (item.matchBy === 'sci') {
+          // Latin search: Latin as primary, Samoan/English as subtitle
+          el.innerHTML =
+            '<div class="sp-sci">' + item.sci + '</div>' +
+            '<div class="sp-common">' + [item.samoan, item.english].filter(Boolean).join(' · ') + '</div>';
+        } else {
+          // Vernacular search: Samoan/English as primary, Latin as subtitle
+          el.innerHTML =
+            '<div class="sp-sci">' + item.n + '</div>' +
+            '<div class="sp-common">' + item.sci + '</div>';
+        }
       } else {
         // vernacular entry: show common name + scientific
         // scientific entry: show scientific name only
@@ -330,7 +343,9 @@
     const sciName = (item.cls === 'v' || item.cls === 'nvs' || item.cls === 'samoa') ? (item.sci || item.n) : item.n;
     const displayName = item.cls === 'nvs'
       ? item.sci + ' (NVS ' + item.nvscode.toUpperCase() + ')'
-      : item.n + (item.cls === 'v' && item.sci ? ' (' + item.sci + ')' : '');
+      : item.cls === 'samoa'
+        ? (item.matchBy === 'sci' ? item.sci : item.n + ' (' + item.sci + ')')
+        : item.n + (item.cls === 'v' && item.sci ? ' (' + item.sci + ')' : '');
 
     // Show resolving state briefly
     input.value = displayName;
@@ -349,7 +364,7 @@
 
     // Add to polygon list as a virtual species entry, then clear the input
     if (typeof window.addSpeciesEntry === 'function') {
-      window.addSpeciesEntry(item.n, resolvedKey, resolvedKey ? null : sciName);
+      window.addSpeciesEntry(displayName, resolvedKey, resolvedKey ? null : sciName);
     }
     // Reset input ready for next species
     input.value = '';
