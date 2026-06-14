@@ -404,7 +404,7 @@
 
 <header>
   <div>
-    <h1>but is it threatened? <span style="font-size:0.65rem;font-weight:400;opacity:0.4;letter-spacing:0.05em;">v1.42</span></h1>
+    <h1>but is it threatened? <span style="font-size:0.65rem;font-weight:400;opacity:0.4;letter-spacing:0.05em;">v1.43</span></h1>
     <p>NZOR names · NZTCS conservation status</p>
   </div>
   <div id="dot" class="status-dot loading" title="Loading NZTCS data…"></div>
@@ -647,9 +647,24 @@ Promise.all([
       if (!list.some(x => norm(x.sci) === sn)) list.push({ sci: val.n });
     }
   }
+  // Build synonym → accepted-name map from nztcs (e.g. Dysoxylum spectabile → Didymocheton spectabilis)
+  const nztcsAccepted = {};
+  for (const [, val] of Object.entries(nztcsData)) {
+    if (val.n) nztcsAccepted[norm(val.n)] = norm(val.n);
+  }
+  // Also map NZOR synonyms: entries with acc field → their accepted name
+  for (const [k, val] of Object.entries(nzorData)) {
+    if (val.acc) nztcsAccepted[norm(k)] = norm(val.acc);
+  }
+  const resolveAccepted = sn => nztcsAccepted[norm(sn)] || norm(sn);
+
   ambiguousNames = {};
   for (const [k, list] of vernacCollect) {
-    if (list.length >= 2) ambiguousNames[k] = list;
+    if (list.length >= 2) {
+      // Resolve all candidates to their accepted names; if they all collapse to one, not ambiguous
+      const resolved = new Set(list.map(x => resolveAccepted(x.sci)));
+      if (resolved.size >= 2) ambiguousNames[k] = list;
+    }
   }
   buildIndex(nzorData);
   // Add NVS 6-letter codes to the search index
