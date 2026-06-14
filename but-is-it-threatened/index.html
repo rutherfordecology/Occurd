@@ -404,7 +404,7 @@
 
 <header>
   <div>
-    <h1>but is it threatened? <span style="font-size:0.65rem;font-weight:400;opacity:0.4;letter-spacing:0.05em;">v1.45</span></h1>
+    <h1>but is it threatened? <span style="font-size:0.65rem;font-weight:400;opacity:0.4;letter-spacing:0.05em;">v1.46</span></h1>
     <p>NZOR names · NZTCS conservation status</p>
   </div>
   <div id="dot" class="status-dot loading" title="Loading NZTCS data…"></div>
@@ -478,9 +478,10 @@
     <textarea id="batch-paste" placeholder="Paste species names (one per line, comma-separated, or any block of text — scientific names will be extracted automatically)…"></textarea>
     <div class="batch-actions">
       <button class="btn-primary" id="batch-run" onclick="runBatch()">Match names</button>
+      <button class="btn-secondary" id="batch-clear" onclick="clearBatch()" style="display:none">Clear</button>
       <button class="btn-secondary" id="batch-dl" onclick="downloadBatchCSV()" disabled>Download CSV</button>
       <button class="btn-secondary" id="batch-dl-nvs" onclick="downloadNVSTemplate()" disabled>Download template</button>
-      <button id="batch-looklike" onclick="openInLooklike()" style="display:none">📷 View in LookLike</button>
+      <button id="batch-looklike" onclick="openInLooklike()" style="display:none">📷 LookLike?</button>
       <span class="batch-count" id="batch-count"></span>
     </div>
     <div id="batch-results"></div>
@@ -1252,6 +1253,12 @@ function runBatch() {
   document.getElementById('batch-dl').disabled = matched === 0;
   document.getElementById('batch-dl-nvs').disabled = matched === 0;
   document.getElementById('batch-looklike').style.display = matched > 0 ? '' : 'none';
+  document.getElementById('batch-clear').style.display = '';
+  updateLooklikeBtn();
+  // Update LookLike button count whenever a checkbox changes
+  document.getElementById('batch-results').addEventListener('change', e => {
+    if (e.target.classList.contains('batch-cb')) updateLooklikeBtn();
+  });
 }
 
 function renderBatchTable(results) {
@@ -1296,6 +1303,28 @@ function renderBatchTable(results) {
 
 function toggleAllBatchCbs(checked) {
   document.querySelectorAll('.batch-cb').forEach(cb => cb.checked = checked);
+  updateLooklikeBtn();
+}
+
+function updateLooklikeBtn() {
+  const total = document.querySelectorAll('.batch-cb').length;
+  const checked = document.querySelectorAll('.batch-cb:checked').length;
+  const btn = document.getElementById('batch-looklike');
+  if (!btn || btn.style.display === 'none') return;
+  btn.textContent = checked === total
+    ? '📷 LookLike?'
+    : `📷 LookLike? (${checked} selected)`;
+}
+
+function clearBatch() {
+  batchPaste.value = '';
+  batchResults = [];
+  document.getElementById('batch-results').innerHTML = '';
+  document.getElementById('batch-count').textContent = '';
+  document.getElementById('batch-dl').disabled = true;
+  document.getElementById('batch-dl-nvs').disabled = true;
+  document.getElementById('batch-looklike').style.display = 'none';
+  document.getElementById('batch-clear').style.display = 'none';
 }
 
 function openInLooklike() {
