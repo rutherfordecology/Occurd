@@ -404,7 +404,7 @@
 
 <header>
   <div>
-    <h1>but is it threatened? <span style="font-size:0.65rem;font-weight:400;opacity:0.4;letter-spacing:0.05em;">v1.43</span></h1>
+    <h1>but is it threatened? <span style="font-size:0.65rem;font-weight:400;opacity:0.4;letter-spacing:0.05em;">v1.44</span></h1>
     <p>NZOR names · NZTCS conservation status</p>
   </div>
   <div id="dot" class="status-dot loading" title="Loading NZTCS data…"></div>
@@ -475,7 +475,7 @@
       <p><strong>Drag &amp; drop a CSV or text file here</strong></p>
       <p>One name per row — any column, any name type (scientific, common, Māori, synonym)</p>
     </div>
-    <textarea id="batch-paste" placeholder="Or paste names here — one per line or comma-separated…"></textarea>
+    <textarea id="batch-paste" placeholder="Paste species names (one per line, comma-separated, or any block of text — scientific names will be extracted automatically)…"></textarea>
     <div class="batch-actions">
       <button class="btn-primary" id="batch-run" onclick="runBatch()">Match names</button>
       <button class="btn-secondary" id="batch-dl" onclick="downloadBatchCSV()" disabled>Download CSV</button>
@@ -1172,6 +1172,19 @@ function batchMatch(rawName) {
   };
 }
 
+function extractBinomialsFromText(text) {
+  // Extract potential scientific names (Genus epithet) from a prose block
+  const seen = new Set();
+  const names = [];
+  const re = /\b([A-Z][a-z]{2,})\s+([a-z][a-z\-]{2,})\b/g;
+  let m;
+  while ((m = re.exec(text)) !== null) {
+    const name = m[1] + ' ' + m[2];
+    if (!seen.has(name)) { seen.add(name); names.push(name); }
+  }
+  return names;
+}
+
 function runBatch() {
   const raw = batchPaste.value.trim();
   if (!raw) return;
@@ -1191,6 +1204,14 @@ function runBatch() {
         if (name) names.push(name);
       }
     }
+  }
+
+  // If any entry looks like prose (>4 words), switch to binomial extraction mode
+  const looksLikeProse = names.some(n => n.split(/\s+/).length > 4);
+  if (looksLikeProse) {
+    const extracted = extractBinomialsFromText(raw);
+    names.length = 0;
+    names.push(...extracted);
   }
 
   batchResults = names.map(batchMatch).filter(Boolean);
