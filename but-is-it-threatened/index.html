@@ -408,7 +408,7 @@
 
 <header>
   <div>
-    <h1>but is it threatened? <span style="font-size:0.65rem;font-weight:400;opacity:0.4;letter-spacing:0.05em;">v1.50</span></h1>
+    <h1>but is it threatened? <span style="font-size:0.65rem;font-weight:400;opacity:0.4;letter-spacing:0.05em;">v1.51</span></h1>
     <p>NZOR names · NZTCS conservation status</p>
   </div>
   <div id="dot" class="status-dot loading" title="Loading NZTCS data…"></div>
@@ -528,6 +528,12 @@ function badgeHtml(entry) {
   if (!e?.s) return '';
   return `<span class="badge ${catClass(e.c)}">${escHtml(e.s || e.c)}</span>`;
 }
+function makeSubspEntry(list) {
+  const statuses = new Set(list.map(s => threatRank(s.s)));
+  const ambig = statuses.size > 1; // subspecies differ in threat status
+  return { _subspeciesList: true, _subspeciesAmbig: ambig, list, best: list[0] };
+}
+
 function nztcsFor(...names) {
   if (!nztcs) return null;
   for (const n of names) {
@@ -535,13 +541,13 @@ function nztcsFor(...names) {
     const k = norm(n);
     if (nztcs[k]) return nztcs[k];
     if (nztcsStripped?.[k]) return { ...nztcsStripped[k], _uncertain: nztcsStrippedAmbig.has(k) };
-    if (nztcsSubspecies?.[k]?.length) return { _subspeciesList: true, list: nztcsSubspecies[k], best: nztcsSubspecies[k][0] };
+    if (nztcsSubspecies?.[k]?.length) return makeSubspEntry(nztcsSubspecies[k]);
     // For subspecies-level names (3+ words), also try genus+species fallback
     const parts = k.split(' ');
     if (parts.length >= 3) {
       const sp = parts[0] + ' ' + parts[1];
       if (nztcsStripped?.[sp]) return { ...nztcsStripped[sp], _uncertain: nztcsStrippedAmbig.has(sp) };
-      if (nztcsSubspecies?.[sp]?.length) return { _subspeciesList: true, list: nztcsSubspecies[sp], best: nztcsSubspecies[sp][0] };
+      if (nztcsSubspecies?.[sp]?.length) return makeSubspEntry(nztcsSubspecies[sp]);
     }
   }
   return null;
@@ -1207,7 +1213,9 @@ function batchMatch(rawName) {
     status:        eff?.s || '',
     category:      eff?.c || '',
     year:          eff?.y || '',
-    _subspeciesBest: eff?._subspeciesBest || false,
+    _subspeciesBest:  eff?._subspeciesBest || false,
+    _subspeciesAmbig: nztcsEntry?._subspeciesAmbig || false,
+    _subspeciesOptions: nztcsEntry?._subspeciesAmbig ? nztcsEntry.list : null,
     pest:     pest ? 'Yes' : '',
     origin,
   };
@@ -1330,6 +1338,16 @@ function renderBatchTable(results) {
       ).join('');
       return `<tr class="ambig-row"><td class="cb-col"></td><td>${escHtml(r.input)}</td><td colspan="7"><span class="ambig-inline">⚠ multiple species — which one?</span><div class="ambig-picks">${btns}</div></td></tr>`;
     }
+    if (r._subspeciesAmbig) {
+      const btns = (r._subspeciesOptions || []).map((s, i) =>
+        `<button class="ambig-pick-btn" onclick="resolveBatchSubsp(${origIdx},${i})">${escHtml(s.n)} <span style="opacity:.7;font-style:normal">— ${escHtml(s.s)}</span></button>`
+      ).join('');
+      return `<tr class="ambig-row">
+        <td class="cb-col"><input type="checkbox" class="batch-cb" data-sci="${escHtml(r.sci)}" checked></td>
+        <td>${escHtml(r.input)}</td><td><em>${escHtml(r.sci)}</em></td>
+        <td colspan="6"><span class="ambig-inline">⚠ subspecies differ in status — which applies?</span><div class="ambig-picks">${btns}</div></td>
+      </tr>`;
+    }
     const pestCell = r.pest ? `<span class="badge cat-pest-plant">Pest plant</span>` : '';
     const statusCell = r.status
       ? `<span class="badge ${catClass(r.category)}">${escHtml(r.status)}</span>${r._subspeciesBest ? ' <span class="subsp-best-note">most threatened subspecies</span>' : ''}`
@@ -1422,6 +1440,18 @@ function resolveBatchAmbig(idx, sciName) {
   const original = batchResults[idx].input;
   const resolved = batchMatch(sciName);
   if (resolved) { resolved.input = original; batchResults[idx] = resolved; }
+  renderBatchTable(batchResults);
+  const anyMatched = batchResults.some(r => r.matched);
+  document.getElementById('batch-dl').disabled = !anyMatched;
+  document.getElementById('batch-dl-nvs').disabled = !anyMatched;
+}
+
+function resolveBatchSubsp(idx, subspIdx) {
+  const r = batchResults[idx];
+  const chosen = (r._subspeciesOptions || [])[subspIdx];
+  if (!chosen) return;
+  const resolved = batchMatch(chosen.n);
+  if (resolved) { resolved.input = r.input; batchResults[idx] = resolved; }
   renderBatchTable(batchResults);
   const anyMatched = batchResults.some(r => r.matched);
   document.getElementById('batch-dl').disabled = !anyMatched;
