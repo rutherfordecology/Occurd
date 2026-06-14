@@ -365,6 +365,10 @@
       font-size:.72rem; text-transform:uppercase; letter-spacing:.06em;
       white-space:nowrap;
     }
+    .results-table th.sortable { cursor:pointer; user-select:none; }
+    .results-table th.sortable:hover { background:#254d62; }
+    .results-table th.sort-asc::after  { content:' ▲'; opacity:.8; }
+    .results-table th.sort-desc::after { content:' ▼'; opacity:.8; }
     .results-table td {
       padding:.45rem .75rem; border-bottom:1px solid #f0f2f5;
       vertical-align:middle;
@@ -404,7 +408,7 @@
 
 <header>
   <div>
-    <h1>but is it threatened? <span style="font-size:0.65rem;font-weight:400;opacity:0.4;letter-spacing:0.05em;">v1.46</span></h1>
+    <h1>but is it threatened? <span style="font-size:0.65rem;font-weight:400;opacity:0.4;letter-spacing:0.05em;">v1.47</span></h1>
     <p>NZOR names · NZTCS conservation status</p>
   </div>
   <div id="dot" class="status-dot loading" title="Loading NZTCS data…"></div>
@@ -491,6 +495,7 @@
 <script>
 const NZOR = 'https://data.nzor.org.nz/v1';
 
+let threatRank     = () => 0; // hoisted — assigned in Promise.all once data loads
 let nztcs          = null;   // nztcs_slim.json: lowercase-name → {s,c,y,...}
 let nztcsStripped      = null;   // author-stripped keys: "genus species subsp" → entry
 let nztcsStrippedAmbig = null;   // set of stripped keys where 2+ NZTCS entries map to the same stripped name
@@ -577,7 +582,7 @@ Promise.all([
   nztcs = nztcsData;
   nppa  = new Set(nppaData);
   // Build species-level fallback: "genus species" → most threatened subspecies entry
-  const threatRank = s => {
+  threatRank = s => {
     const t = (s || '').toLowerCase();
     if (t.includes('nationally critical'))   return 9;
     if (t.includes('nationally endangered')) return 8;
@@ -1261,15 +1266,55 @@ function runBatch() {
   });
 }
 
+let batchSort = { col: null, dir: 1 };
+
+const SORT_KEYS = {
+  input: r => (r.input || '').toLowerCase(),
+  sci:   r => (r.sci   || '').toLowerCase(),
+  common:r => (r.common|| '').toLowerCase(),
+  maori: r => (r.maori || '').toLowerCase(),
+  status:r => threatRank(r.status || ''),
+  category: r => (r.category || '').toLowerCase(),
+  year:  r => +(r.year) || 0,
+  origin:r => (r.origin || '').toLowerCase(),
+};
+
+function sortBatch(col) {
+  if (batchSort.col === col) {
+    batchSort.dir *= -1;
+  } else {
+    batchSort.col = col;
+    batchSort.dir = col === 'status' ? -1 : 1; // status: most threatened first by default
+  }
+  renderBatchTable(batchResults);
+}
+
+function sortedResults(results) {
+  if (!batchSort.col) return results;
+  const key = SORT_KEYS[batchSort.col];
+  if (!key) return results;
+  return [...results].sort((a, b) => {
+    // Unmatched/ambiguous always sink to bottom
+    const aOk = a.matched && !a._ambiguous;
+    const bOk = b.matched && !b._ambiguous;
+    if (aOk !== bOk) return aOk ? -1 : 1;
+    if (!aOk && !bOk) return 0;
+    const av = key(a), bv = key(b);
+    return av < bv ? -batchSort.dir : av > bv ? batchSort.dir : 0;
+  });
+}
+
 function renderBatchTable(results) {
   if (!results.length) { document.getElementById('batch-results').innerHTML = ''; return; }
-  const rows = results.map((r, i) => {
+  const sorted = sortedResults(results);
+  const rows = sorted.map((r) => {
+    const origIdx = batchResults.indexOf(r);
     if (!r.matched) {
       return `<tr class="unmatched"><td class="cb-col"></td><td>${escHtml(r.input)}</td><td colspan="7">No match found</td></tr>`;
     }
     if (r._ambiguous) {
       const btns = (r._options || []).map(s =>
-        `<button class="ambig-pick-btn" onclick="resolveBatchAmbig(${i},'${s.replace(/'/g,"\\'")}')">${escHtml(s)}</button>`
+        `<button class="ambig-pick-btn" onclick="resolveBatchAmbig(${origIdx},'${s.replace(/'/g,"\\'")}')">${escHtml(s)}</button>`
       ).join('');
       return `<tr class="ambig-row"><td class="cb-col"></td><td>${escHtml(r.input)}</td><td colspan="7"><span class="ambig-inline">⚠ multiple species — which one?</span><div class="ambig-picks">${btns}</div></td></tr>`;
     }
@@ -1290,12 +1335,23 @@ function renderBatchTable(results) {
     </tr>`;
   }).join('');
 
+  const sc = batchSort.col;
+  const sd = batchSort.dir;
+  function thCls(col) {
+    return `class="sortable${sc===col ? (sd>0?' sort-asc':' sort-desc') : ''}"`;
+  }
   document.getElementById('batch-results').innerHTML = `
     <table class="results-table">
       <thead><tr>
         <th class="cb-col"><input type="checkbox" id="batch-sel-all" checked onchange="toggleAllBatchCbs(this.checked)" title="Select all"></th>
-        <th>Input name</th><th>Scientific name</th><th>Common name</th>
-        <th>Māori name</th><th>Status</th><th>Category</th><th>Year</th><th>Origin</th>
+        <th ${thCls('input')}   onclick="sortBatch('input')">Input name</th>
+        <th ${thCls('sci')}     onclick="sortBatch('sci')">Scientific name</th>
+        <th ${thCls('common')}  onclick="sortBatch('common')">Common name</th>
+        <th ${thCls('maori')}   onclick="sortBatch('maori')">Māori name</th>
+        <th ${thCls('status')}  onclick="sortBatch('status')">Status</th>
+        <th ${thCls('category')}onclick="sortBatch('category')">Category</th>
+        <th ${thCls('year')}    onclick="sortBatch('year')">Year</th>
+        <th ${thCls('origin')}  onclick="sortBatch('origin')">Origin</th>
       </tr></thead>
       <tbody>${rows}</tbody>
     </table>`;
