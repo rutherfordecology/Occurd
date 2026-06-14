@@ -45,7 +45,7 @@
       <img src="occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v5.26</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v5.27</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -4491,7 +4491,7 @@ function openInLooklike() {
   } catch(e) {}
 
   // URL params carry the names as a guaranteed fallback
-  const url = 'https://rutherfordecology.github.io/looklike/?v=' + Date.now() + '&s=' + speciesData.map(s => encodeURIComponent(s.name)).join('%7C');
+  const url = 'https://occurd.rutherfordecology.co.nz/looklike/?v=' + Date.now() + '&s=' + speciesData.map(s => encodeURIComponent(s.name)).join('%7C');
   window.open(url, '_blank');
 }
 
@@ -5594,7 +5594,7 @@ if (window._pendingShare) {
   </div>
   <div class="changelog-scroll" id="changelogScroll">
     <div class="changelog-version">
-      <span class="changelog-version-tag">v5.26</span>
+      <span class="changelog-version-tag">v5.27</span>
       <span class="changelog-date">Jun 2026</span>
       <ul>
         <li>LookLike — fix: record photos now correctly passed through (was reading r.media instead of r.recordPhoto on mapped records)</li>

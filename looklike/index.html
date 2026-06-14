@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LookLike — Visual Species Browser</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #162518;
+    --surface: #1e3322;
+    --surface2: #26402a;
+    --border: #2e5035;
+    --accent: #7fc97a;
+    --accent-dim: #5aaa54;
+    --text: #e8f0e8;
+    --text-muted: #7aad8a;
+    --green: #52c78a;
+    --red: #e07070;
+    --radius: 10px;
+    --card-w: 280px;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  /* ─── Header ─── */
+  header {
+    padding: 18px 24px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: var(--surface);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .logo img {
+    height: 32px;
+    width: auto;
+    display: block;
+  }
+  .header-meta {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    flex: 1;
+  }
+  #filter-wrap {
+    display: none;
+    gap: 8px;
+    align-items: center;
+  }
+  #filter-wrap.visible { display: flex; }
+  #filter-input {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    padding: 6px 10px;
+    font-size: 0.85rem;
+    width: 200px;
+  }
+  #filter-input:focus { outline: none; border-color: var(--accent); }
+  #back-btn {
+    display: none;
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    border-radius: 6px;
+    padding: 6px 14px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: border-color 0.15s, color 0.15s;
+  }
+  #back-btn.visible { display: block; }
+  #back-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .re-link { text-decoration: none; }
+  .version { color: var(--text-muted); font-size: 0.75rem; margin-left: 4px; opacity: 0.6; }
+  .re-by { color: #7aad8a; font-weight: 400; }
+  .re-name { color: #fff; font-weight: 700; }
+  .re-link:hover .re-by { color: #a8cdb4; }
+  .re-link:hover .re-name { color: #d4eedc; }
+
+  /* ─── Landing ─── */
+  #landing {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: calc(100vh - 61px);
+    padding: 40px 20px;
+    gap: 24px;
+  }
+  .landing-hero {
+    text-align: center;
+  }
+  .landing-hero img {
+    height: 140px;
+    width: auto;
+  }
+  .landing-hero p {
+    margin-top: 8px;
+    color: var(--text-muted);
+    font-size: 1rem;
+  }
+  #species-input {
+    width: 100%;
+    max-width: 560px;
+    height: 220px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    padding: 14px 16px;
+    font-size: 0.95rem;
+    font-family: "Courier New", monospace;
+    resize: vertical;
+    line-height: 1.6;
+  }
+  #species-input:focus { outline: none; border-color: var(--accent); }
+  #species-input::placeholder { color: var(--text-muted); }
+  .load-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+  #load-btn {
+    background: var(--accent);
+    border: none;
+    border-radius: 8px;
+    color: #162518;
+    padding: 10px 28px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  #load-btn:hover { background: var(--accent-dim); }
+  #load-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .hint { font-size: 0.78rem; color: var(--text-muted); }
+
+  /* ─── Gallery ─── */
+  #gallery { display: none; padding: 24px; }
+  #gallery.visible { display: block; }
+
+  #species-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(var(--card-w), 1fr));
+    gap: 20px;
+  }
+
+  /* ─── Card ─── */
+  .sp-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.15s, border-color 0.15s;
+  }
+  .sp-card:hover { transform: translateY(-2px); border-color: var(--accent); }
+
+  .photos-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+    height: 160px;
+  }
+  .photo-slot {
+    position: relative;
+    overflow: hidden;
+    cursor: pointer;
+    background: var(--bg);
+  }
+  .photo-slot + .photo-slot { border-left: 1px solid var(--border); }
+  .photo-slot img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: opacity 0.2s;
+  }
+  .photo-slot .slot-label {
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    background: rgba(0,0,0,0.65);
+    color: #fff;
+    font-size: 0.65rem;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    pointer-events: none;
+  }
+  .skeleton {
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, var(--surface2) 25%, var(--border) 50%, var(--surface2) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.4s infinite;
+  }
+  @keyframes shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+  .no-photo {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    color: var(--text-muted);
+    font-size: 0.75rem;
+  }
+  .no-photo svg { opacity: 0.35; }
+
+  /* GBIF nav arrows */
+  .gbif-nav {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: space-between;
+    padding: 4px;
+    background: linear-gradient(transparent, rgba(0,0,0,0.7));
+  }
+  .gbif-nav button {
+    background: rgba(0,0,0,0.6);
+    border: none;
+    color: #fff;
+    border-radius: 4px;
+    width: 22px;
+    height: 22px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.1s;
+  }
+  .gbif-nav button:hover { background: var(--accent); }
+  .gbif-counter {
+    position: absolute;
+    bottom: 6px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.6rem;
+    color: rgba(255,255,255,0.7);
+    pointer-events: none;
+  }
+
+  .card-body {
+    padding: 12px 14px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .sci-name {
+    font-style: italic;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1.3;
+  }
+  .common-name {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .badges {
+    display: flex;
+    gap: 6px;
+    margin-top: 4px;
+    flex-wrap: wrap;
+  }
+  .badge {
+    font-size: 0.68rem;
+    padding: 2px 7px;
+    border-radius: 4px;
+    font-weight: 600;
+  }
+  .badge-inat { background: rgba(79,156,249,0.15); color: var(--accent); border: 1px solid rgba(79,156,249,0.3); }
+  .badge-gbif { background: rgba(82,199,138,0.15); color: var(--green); border: 1px solid rgba(82,199,138,0.3); }
+  .badge-none { background: rgba(224,92,92,0.12); color: var(--red); border: 1px solid rgba(224,92,92,0.25); }
+  .card-links {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    padding: 8px 14px;
+    border-top: 1px solid var(--border);
+  }
+  .card-links a {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    transition: color 0.15s;
+  }
+  .card-links a:hover { color: var(--accent); }
+  .photo-legend {
+    display: flex;
+    justify-content: space-between;
+    padding: 4px 10px;
+    font-size: 0.65rem;
+    color: var(--text-muted);
+    background: var(--surface2);
+    border-top: 1px solid var(--border);
+    letter-spacing: 0.02em;
+  }
+  .gallery-about {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 14px;
+    margin-bottom: 18px;
+    line-height: 1.6;
+  }
+  .gallery-about strong { color: var(--text); }
+
+  /* ─── Lightbox ─── */
+  #lightbox {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.92);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  #lightbox.open { display: flex; }
+  #lb-inner {
+    max-width: 900px;
+    width: 100%;
+    position: relative;
+  }
+  #lb-img {
+    width: 100%;
+    max-height: 75vh;
+    object-fit: contain;
+    border-radius: 8px;
+  }
+  #lb-caption {
+    margin-top: 12px;
+    text-align: center;
+    font-size: 0.9rem;
+    color: var(--text-muted);
+  }
+  #lb-caption strong { color: var(--text); font-style: italic; }
+  #lb-close {
+    position: absolute;
+    top: -14px;
+    right: -14px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 50%;
+    width: 34px;
+    height: 34px;
+    font-size: 1.1rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  #lb-close:hover { background: var(--red); border-color: var(--red); color: #fff; }
+
+  /* ─── Responsive ─── */
+  @media (max-width: 600px) {
+    :root { --card-w: 160px; }
+    .photos-row { height: 120px; }
+    header { padding: 12px 14px; }
+    #gallery { padding: 14px; }
+    #species-grid { gap: 12px; }
+    .landing-hero img { height: 90px; }
+    #filter-input { width: 140px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo"><img src="Logo-long.png" alt="LookLike?"></div>
+  <div class="header-meta" id="header-meta">Visual species photo browser · <a href="https://www.rutherfordecology.co.nz/" target="_blank" rel="noopener" class="re-link"><span class="re-by">by </span><span class="re-name">Rutherford</span><span class="re-by"> ecology</span></a> <span class="version">v1.08</span></div>
+  <div id="filter-wrap">
+    <input id="filter-input" type="search" placeholder="Filter species…" autocomplete="off">
+  </div>
+  <button id="back-btn">← Edit list</button>
+</header>
+
+<!-- Landing -->
+<div id="landing">
+  <div class="landing-hero">
+    <img src="Logo-updown.png" alt="LookLike?">
+    <p>Paste a list of scientific names — get an instant photo field guide.</p>
+  </div>
+  <textarea id="species-input" placeholder="Acanthurus triostegus&#10;Chaetodon auriga&#10;Chromis viridis&#10;Epinephelus merra&#10;Zanclus cornutus"></textarea>
+  <div class="load-row">
+    <button id="load-btn">Load species</button>
+    <span class="hint">One name per line · scientific names</span>
+  </div>
+</div>
+
+<!-- Gallery -->
+<div id="gallery">
+  <div class="gallery-about">
+    <strong>Left photo</strong> — iNaturalist taxon photo (representative image for the species) &nbsp;·&nbsp;
+    <strong>Right photo</strong> — GBIF occurrence record photo (an actual field or museum record). Use ‹ › to cycle through record photos. Click any photo to enlarge.
+    <br><span style="opacity:0.6;font-size:0.72rem;">Photos are sourced via the iNaturalist and GBIF APIs. Licences vary by record and institution — photos are displayed for identification reference only. Verify licence terms via the source links before reproducing.</span>
+  </div>
+  <div id="species-grid"></div>
+</div>
+
+<!-- Lightbox -->
+<div id="lightbox">
+  <div id="lb-inner">
+    <button id="lb-close">✕</button>
+    <img id="lb-img" src="" alt="">
+    <div id="lb-caption"></div>
+  </div>
+</div>
+
+<script>
+// ─── State ───────────────────────────────────────────────────────
+const state = {
+  names: [],
+  cards: [], // { name, inatData, gbifPhotos, gbifIdx, el }
+};
+
+// ─── DOM refs ────────────────────────────────────────────────────
+const landing      = document.getElementById('landing');
+const gallery      = document.getElementById('gallery');
+const grid         = document.getElementById('species-grid');
+const loadBtn      = document.getElementById('load-btn');
+const backBtn      = document.getElementById('back-btn');
+const input        = document.getElementById('species-input');
+const filterWrap   = document.getElementById('filter-wrap');
+const filterInput  = document.getElementById('filter-input');
+const headerMeta   = document.getElementById('header-meta');
+const lightbox     = document.getElementById('lightbox');
+const lbImg        = document.getElementById('lb-img');
+const lbCaption    = document.getElementById('lb-caption');
+const lbClose      = document.getElementById('lb-close');
+
+// ─── Routing ─────────────────────────────────────────────────────
+function showGallery() {
+  landing.style.display = 'none';
+  gallery.classList.add('visible');
+  backBtn.classList.add('visible');
+  filterWrap.classList.add('visible');
+}
+function showLanding() {
+  landing.style.display = '';
+  gallery.classList.remove('visible');
+  backBtn.classList.remove('visible');
+  filterWrap.classList.remove('visible');
+  headerMeta.textContent = 'Visual species photo browser';
+}
+
+// ─── Load ────────────────────────────────────────────────────────
+loadBtn.addEventListener('click', () => {
+  const raw = input.value.trim();
+  if (!raw) return;
+  const names = raw.split('\n').map(s => s.trim()).filter(Boolean);
+  if (!names.length) return;
+  state.names = names;
+  state.cards = [];
+  grid.innerHTML = '';
+  filterInput.value = '';
+  buildGrid(names);
+  showGallery();
+});
+
+backBtn.addEventListener('click', showLanding);
+
+// ─── Filter ──────────────────────────────────────────────────────
+filterInput.addEventListener('input', () => {
+  const q = filterInput.value.toLowerCase();
+  for (const card of state.cards) {
+    if (!card.el) continue;
+    const text = (card.name + ' ' + (card.commonName || '')).toLowerCase();
+    card.el.style.display = text.includes(q) ? '' : 'none';
+  }
+});
+
+// ─── Grid builder ────────────────────────────────────────────────
+function buildGrid(names) {
+  headerMeta.textContent = `${names.length} species`;
+  const observer = new IntersectionObserver((entries) => {
+    for (const entry of entries) {
+      if (entry.isIntersecting) {
+        const idx = +entry.target.dataset.idx;
+        observer.unobserve(entry.target);
+        loadCard(idx);
+      }
+    }
+  }, { rootMargin: '200px' });
+
+  names.forEach((name, idx) => {
+    const card = createCardSkeleton(name, idx);
+    state.cards.push({ name, el: card, commonName: '', inatPhoto: null, gbifPhotos: [], gbifIdx: 0 });
+    grid.appendChild(card);
+    observer.observe(card);
+  });
+}
+
+// ─── Skeleton card ───────────────────────────────────────────────
+function createCardSkeleton(name, idx) {
+  const card = document.createElement('div');
+  card.className = 'sp-card';
+  card.dataset.idx = idx;
+  card.innerHTML = `
+    <div class="photos-row">
+      <div class="photo-slot" data-slot="inat">
+        <div class="skeleton"></div>
+        <span class="slot-label">iNat</span>
+      </div>
+      <div class="photo-slot" data-slot="gbif">
+        <div class="skeleton"></div>
+        <span class="slot-label">GBIF</span>
+      </div>
+    </div>
+    <div class="photo-legend">
+      <span>← Taxon photo</span>
+      <span>Record photo →</span>
+    </div>
+    <div class="card-body">
+      <div class="sci-name">${escHtml(name)}</div>
+      <div class="common-name">Loading…</div>
+      <div class="badges"></div>
+    </div>
+    <div class="card-links"></div>`;
+  return card;
+}
+
+// ─── Load one card's data ────────────────────────────────────────
+async function loadCard(idx) {
+  const card = state.cards[idx];
+  const el = card.el;
+
+  // Use exact records from Occurd handoff if available
+  const handoff = state.handoff && state.handoff[card.name];
+  const gbifPromise = handoff
+    ? Promise.resolve(handoff.records
+        .filter(r => r.photoUrl)
+        .map(r => ({ url: r.photoUrl, gbifID: r.gbifID, occurrenceID: r.occurrenceID, references: r.references, institutionCode: r.institutionCode, datasetKey: r.datasetKey })))
+    : fetchGBIF(card.name);
+
+  const [inatRes, gbifRes] = await Promise.allSettled([
+    fetchINat(card.name),
+    gbifPromise,
+  ]);
+
+  // iNat
+  const inatSlot = el.querySelector('[data-slot="inat"]');
+  if (inatRes.status === 'fulfilled' && inatRes.value) {
+    const { photoUrl, commonName, taxonId } = inatRes.value;
+    card.commonName = commonName;
+    card.inatPhoto = photoUrl;
+    card.inatTaxonId = taxonId || null;
+    el.querySelector('.common-name').textContent = commonName || '—';
+    if (photoUrl) {
+      renderPhoto(inatSlot, photoUrl, `${card.name} — iNaturalist`, card.name, commonName);
+    } else {
+      renderNoPhoto(inatSlot);
+    }
+    addBadge(el, 'inat', 'iNat ✓');
+  } else {
+    el.querySelector('.common-name').textContent = '—';
+    renderNoPhoto(inatSlot);
+    addBadge(el, 'none', 'iNat ✗');
+  }
+
+  // GBIF
+  const gbifSlot = el.querySelector('[data-slot="gbif"]');
+  if (gbifRes.status === 'fulfilled' && gbifRes.value?.length) {
+    card.gbifPhotos = gbifRes.value;
+    renderGBIFSlot(card, gbifSlot);
+    addBadge(el, 'gbif', `${gbifRes.value.length} rec photos`);
+  } else {
+    renderNoPhoto(gbifSlot);
+    addBadge(el, 'none', 'GBIF ✗');
+  }
+
+  updateCardLinks(card);
+}
+
+// ─── Render helpers ──────────────────────────────────────────────
+function renderPhoto(slot, url, alt, sciName, commonName) {
+  slot.innerHTML = `<span class="slot-label">${slot.dataset.slot === 'inat' ? 'iNat' : 'GBIF'}</span>`;
+  const img = document.createElement('img');
+  img.src = url;
+  img.alt = alt;
+  img.loading = 'lazy';
+  img.addEventListener('error', () => renderNoPhoto(slot));
+  img.addEventListener('click', (e) => {
+    e.stopPropagation();
+    openLightbox(url, sciName, commonName);
+  });
+  slot.insertBefore(img, slot.firstChild);
+}
+
+function renderGBIFSlot(card, slot) {
+  const photos = card.gbifPhotos;
+  const idx = card.gbifIdx;
+  const photo = photos[idx];
+  slot.innerHTML = `<span class="slot-label">GBIF</span>`;
+
+  const img = document.createElement('img');
+  img.src = photo.url;
+  img.alt = card.name + ' — GBIF';
+  img.loading = 'lazy';
+  img.addEventListener('error', () => {
+    if (card.gbifIdx < card.gbifPhotos.length - 1) {
+      card.gbifIdx++;
+      renderGBIFSlot(card, slot);
+    } else {
+      renderNoPhoto(slot);
+    }
+  });
+  img.addEventListener('click', (e) => {
+    e.stopPropagation();
+    openLightbox(photo.url, card.name, card.commonName);
+  });
+  slot.insertBefore(img, slot.firstChild);
+
+  if (photos.length > 1) {
+    const nav = document.createElement('div');
+    nav.className = 'gbif-nav';
+    nav.innerHTML = `<button title="Previous">‹</button><button title="Next">›</button>`;
+    const counter = document.createElement('span');
+    counter.className = 'gbif-counter';
+    counter.textContent = `${idx + 1}/${photos.length}`;
+    slot.appendChild(nav);
+    slot.appendChild(counter);
+
+    nav.children[0].addEventListener('click', (e) => {
+      e.stopPropagation();
+      card.gbifIdx = (card.gbifIdx - 1 + photos.length) % photos.length;
+      renderGBIFSlot(card, slot);
+      updateCardLinks(card);
+    });
+    nav.children[1].addEventListener('click', (e) => {
+      e.stopPropagation();
+      card.gbifIdx = (card.gbifIdx + 1) % photos.length;
+      renderGBIFSlot(card, slot);
+      updateCardLinks(card);
+    });
+  }
+}
+
+function updateCardLinks(card) {
+  const linksEl = card.el.querySelector('.card-links');
+  if (!linksEl) return;
+  const photo = card.gbifPhotos[card.gbifIdx];
+  const src = photo ? sourceLink(photo) : null;
+  const gbifHref = photo && photo.gbifID
+    ? `https://www.gbif.org/occurrence/${photo.gbifID}` : null;
+
+  let html = '';
+  if (gbifHref) html += `<a href="${gbifHref}" target="_blank" rel="noopener">GBIF record ↗</a>`;
+  if (src)      html += `<a href="${escHtml(src.url)}" target="_blank" rel="noopener">${escHtml(src.label)} ↗</a>`;
+  linksEl.innerHTML = html || '<span style="color:var(--border)">No links available</span>';
+}
+
+function renderNoPhoto(slot) {
+  const label = slot.dataset.slot === 'inat' ? 'iNat' : 'GBIF';
+  slot.innerHTML = `
+    <span class="slot-label">${label}</span>
+    <div class="no-photo">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <rect x="3" y="3" width="18" height="18" rx="3"/>
+        <circle cx="8.5" cy="8.5" r="1.5"/>
+        <polyline points="21 15 16 10 5 21"/>
+      </svg>
+      <span>No photo</span>
+    </div>`;
+}
+
+function addBadge(el, type, text) {
+  const badges = el.querySelector('.badges');
+  const b = document.createElement('span');
+  b.className = `badge badge-${type === 'inat' ? 'inat' : type === 'gbif' ? 'gbif' : 'none'}`;
+  b.textContent = text;
+  badges.appendChild(b);
+}
+
+// ─── Lightbox ────────────────────────────────────────────────────
+function openLightbox(url, sciName, commonName) {
+  lbImg.src = url;
+  lbCaption.innerHTML = `<strong>${escHtml(sciName)}</strong>${commonName ? ' · ' + escHtml(commonName) : ''}`;
+  lightbox.classList.add('open');
+}
+lbClose.addEventListener('click', () => lightbox.classList.remove('open'));
+lightbox.addEventListener('click', (e) => { if (e.target === lightbox) lightbox.classList.remove('open'); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') lightbox.classList.remove('open'); });
+
+// ─── API fetchers ────────────────────────────────────────────────
+async function fetchINat(name) {
+  const url = `https://api.inaturalist.org/v1/taxa?q=${encodeURIComponent(name)}&per_page=1`;
+  const res = await fetch(url);
+  if (!res.ok) return null;
+  const data = await res.json();
+  const taxon = data.results?.[0];
+  if (!taxon) return null;
+  return {
+    photoUrl: taxon.default_photo?.medium_url || null,
+    commonName: taxon.preferred_common_name || taxon.english_common_name || '',
+    taxonId: taxon.id,
+  };
+}
+
+async function fetchGBIF(name) {
+  const url = `https://api.gbif.org/v1/occurrence/search?scientificName=${encodeURIComponent(name)}&mediaType=StillImage&limit=5`;
+  const res = await fetch(url);
+  if (!res.ok) return [];
+  const data = await res.json();
+  const photos = [];
+  for (const occ of (data.results || [])) {
+    // One photo per record — take the first StillImage only
+    const med = (occ.media || []).find(m => m.type === 'StillImage' && m.identifier);
+    if (med) {
+      photos.push({
+        url:             med.identifier,
+        gbifID:          occ.gbifID || occ.key || null,
+        occurrenceID:    occ.occurrenceID || null,
+        references:      occ.references || med.references || null,
+        institutionCode: occ.institutionCode || null,
+        datasetKey:      occ.datasetKey || null,
+      });
+    }
+    if (photos.length >= 5) break;
+  }
+  return photos;
+}
+
+// Port of Occurd's sourceLink — resolves the best direct link for an occurrence
+function sourceLink(rec) {
+  if (!rec) return null;
+  const id  = (rec.occurrenceID || '').trim();
+  if (/^https?:\/\/(www\.)?inaturalist\.org\//i.test(id))  return { label: 'iNaturalist', url: id };
+  if (/xeno-canto/i.test(id))                               return { label: 'Xeno-canto', url: id };
+  if (/URN:catalog:CLO:EBIRD/i.test(id))                   return null; // login required
+  const isNHM = rec.datasetKey === '7e380070-f762-11e1-a439-00145eb45e9a' || rec.institutionCode === 'NHMUK';
+  if (isNHM && /^[0-9a-f-]{36}$/i.test(id))
+    return { label: 'NHM London', url: 'https://data.nhm.ac.uk/object/' + id };
+  if (/^https?:\/\//i.test(id)) return { label: 'Source record', url: id };
+  const ref = (rec.references || '').trim();
+  if (/xeno-canto/i.test(ref))   return { label: 'Xeno-canto', url: ref };
+  if (/^https?:\/\//i.test(ref)) return { label: 'Source record', url: ref };
+  return null;
+}
+
+// ─── Utils ───────────────────────────────────────────────────────
+// Auto-load from ?s= URL params; localStorage enriches with exact Occurd records
+(function() {
+  const params = new URLSearchParams(window.location.search);
+  const s = params.get('s');
+  if (!s) return;
+  const names = s.split('|').map(n => decodeURIComponent(n).trim()).filter(Boolean);
+  if (!names.length) return;
+
+  // Try to load exact record data from localStorage
+  try {
+    const raw = localStorage.getItem('looklike_handoff');
+    if (raw) {
+      const data = JSON.parse(raw);
+      localStorage.removeItem('looklike_handoff');
+      if (data.species && data.species.length && Date.now() - data.ts < 5 * 60 * 1000) {
+        state.handoff = {};
+        data.species.forEach(s => { state.handoff[s.name] = s; });
+      }
+    }
+  } catch(e) {}
+
+  input.value = names.join('\n');
+  grid.innerHTML = '';
+  buildGrid(names);
+  showGallery();
+})();
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+</script>
+</body>
+</html>
