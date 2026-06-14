@@ -408,7 +408,7 @@
 
 <header>
   <div>
-    <h1>but is it threatened? <span style="font-size:0.65rem;font-weight:400;opacity:0.4;letter-spacing:0.05em;">v1.49</span></h1>
+    <h1>but is it threatened? <span style="font-size:0.65rem;font-weight:400;opacity:0.4;letter-spacing:0.05em;">v1.50</span></h1>
     <p>NZOR names · NZTCS conservation status</p>
   </div>
   <div id="dot" class="status-dot loading" title="Loading NZTCS data…"></div>
@@ -1184,10 +1184,15 @@ function batchMatch(rawName) {
   // Subspecies list fallback — use best entry for batch but flag it
   const eff = nztcsEntry?._subspeciesList ? { ...nztcsEntry.best, _subspeciesBest: true } : nztcsEntry;
 
-  // Common + Māori: prefer NZTCS entry for the canonical sci name
+  // Common + Māori: prefer NZTCS entry for the canonical sci name.
+  // When only subspecies exist, don't inherit the subspecies's common name —
+  // look up the species-level name from NZOR instead.
   const sciEntry = sciName ? nztcs?.[norm(sciName)] : null;
-  const common   = sciEntry?.cn || eff?.cn || '';
-  const maori    = sciEntry?.mn || eff?.mn || '';
+  const { cn: nzorCn, mn: nzorMn } = nztcsEntry?._subspeciesList
+    ? commonNamesFor(sciName)
+    : { cn: '', mn: '' };
+  const common = sciEntry?.cn || nzorCn || (!nztcsEntry?._subspeciesList ? eff?.cn : '') || '';
+  const maori  = sciEntry?.mn || nzorMn || (!nztcsEntry?._subspeciesList ? eff?.mn : '') || '';
 
   const categoryLower = (eff?.c || '').toLowerCase();
   const exoticFromNztcs = categoryLower.includes('introduced') || categoryLower.includes('naturalised');
