@@ -45,7 +45,7 @@
       <img src="occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v5.24</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v5.25</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -4474,14 +4474,13 @@ function openInLooklike() {
     (allRecords || []).forEach(r => {
       const name = r.species || r.scientificName || '';
       if (name !== sp.name) return;
-      const med = (r.media || []).find(m => m.type === 'StillImage' && m.identifier);
       records.push({
-        gbifID:          r.gbifID        || null,
-        occurrenceID:    r.occurrenceID  || null,
-        references:      r.references    || (med ? med.references : null) || null,
+        gbifID:          r.gbifID          || null,
+        occurrenceID:    r.occurrenceID    || null,
+        references:      r.references      || null,
         institutionCode: r.institutionCode || null,
-        datasetKey:      r.datasetKey    || null,
-        photoUrl:        med ? med.identifier : null,
+        datasetKey:      r.datasetKey      || null,
+        photoUrl:        r.recordPhoto ? r.recordPhoto.url : null,
       });
     });
     return { name: sp.name, commonName: sp.commonName, records };
@@ -5594,6 +5593,13 @@ if (window._pendingShare) {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v5.25</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>LookLike — fix: record photos now correctly passed through (was reading r.media instead of r.recordPhoto on mapped records)</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v5.23</span>
       <span class="changelog-date">Jun 2026</span>
