@@ -4,8 +4,8 @@
 (function() {
   const NZ_BOUNDS    = { minLat: -52, maxLat: -29, minLng: 163, maxLng: 180 };
   const SAMOA_BOUNDS = { minLat: -15.0, maxLat: -13.0, minLng: -173.5, maxLng: -168.0 };
-  const NZOR_URL        = 'https://raw.githubusercontent.com/rutherfordecology/but-is-it-threatened/main/nzor_names.json';
-  const NVS_URL         = 'https://raw.githubusercontent.com/rutherfordecology/but-is-it-threatened/main/nvs.json';
+  const NZOR_URL        = '../but-is-it-threatened/nzor_names.json';
+  const NVS_URL         = '../but-is-it-threatened/nvs.json';
   const SAMOA_NAMES_URL = 'samoa_names.json';
 
   const field  = document.getElementById('spField');
