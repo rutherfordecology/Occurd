@@ -400,7 +400,7 @@
 
 <header>
   <div class="logo"><img src="Logo-long.png" alt="LookLike?"></div>
-  <div class="header-meta" id="header-meta"><span id="header-label">Visual species photo browser · <a href="https://www.rutherfordecology.co.nz/" target="_blank" rel="noopener" class="re-link"><span class="re-by">by </span><span class="re-name">Rutherford</span><span class="re-by"> ecology</span></a></span> <span class="version">v1.09</span></div>
+  <div class="header-meta" id="header-meta"><span id="header-label">Visual species photo browser · <a href="https://www.rutherfordecology.co.nz/" target="_blank" rel="noopener" class="re-link"><span class="re-by">by </span><span class="re-name">Rutherford</span><span class="re-by"> ecology</span></a></span> <span class="version">v1.10</span></div>
   <div id="filter-wrap">
     <input id="filter-input" type="search" placeholder="Filter species…" autocomplete="off">
   </div>
@@ -540,14 +540,9 @@ function createCardSkeleton(name, idx) {
         <span class="slot-label">GBIF</span>
       </div>
     </div>
-    <div class="photo-legend">
-      <span>← Taxon photo</span>
-      <span>Record photo →</span>
-    </div>
     <div class="card-body">
       <div class="sci-name">${escHtml(name)}</div>
       <div class="common-name">Loading…</div>
-      <div class="badges"></div>
     </div>
     <div class="card-links"></div>`;
   return card;
@@ -584,11 +579,9 @@ async function loadCard(idx) {
     } else {
       renderNoPhoto(inatSlot);
     }
-    addBadge(el, 'inat', 'iNat ✓');
   } else {
     el.querySelector('.common-name').textContent = '—';
     renderNoPhoto(inatSlot);
-    addBadge(el, 'none', 'iNat ✗');
   }
 
   // GBIF
@@ -596,10 +589,8 @@ async function loadCard(idx) {
   if (gbifRes.status === 'fulfilled' && gbifRes.value?.length) {
     card.gbifPhotos = gbifRes.value;
     renderGBIFSlot(card, gbifSlot);
-    addBadge(el, 'gbif', `${gbifRes.value.length} rec photos`);
   } else {
     renderNoPhoto(gbifSlot);
-    addBadge(el, 'none', 'GBIF ✗');
   }
 
   updateCardLinks(card);
@@ -680,7 +671,8 @@ function updateCardLinks(card) {
   let html = '';
   if (gbifHref) html += `<a href="${gbifHref}" target="_blank" rel="noopener">GBIF record ↗</a>`;
   if (src)      html += `<a href="${escHtml(src.url)}" target="_blank" rel="noopener">${escHtml(src.label)} ↗</a>`;
-  linksEl.innerHTML = html || '<span style="color:var(--border)">No links available</span>';
+  linksEl.innerHTML = html;
+  linksEl.style.display = html ? '' : 'none';
 }
 
 function renderNoPhoto(slot) {
