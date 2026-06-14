@@ -45,7 +45,7 @@
       <img src="occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v5.18</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v5.19</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -371,6 +371,10 @@
       </div>
       <div class="cl-search">
         <input type="text" id="clSearchInput" placeholder="Search species...">
+      </div>
+      <div class="cl-looklike-bar" id="clLooklikeBar" style="display:none;">
+        <label class="cl-selall-label"><input type="checkbox" id="clSelAllVisible"> Select all visible</label>
+        <button class="cl-looklike-btn" id="clLooklikeBtn" onclick="openInLooklike()">📷 LookLike</button>
       </div>
       <div class="cl-nztcs-filters" id="clNztcsFilters" style="display:none;">
         <span class="filter-row-label">NZTCS</span>
@@ -1076,6 +1080,7 @@ const outputSection  = document.getElementById('outputSection');
 const checklistPanel = document.getElementById('checklistPanel');
 const clSelectedInfo = document.getElementById('clSelectedInfo');
 const clScroll       = document.getElementById('clScroll');
+const clLooklikeBar  = document.getElementById('clLooklikeBar');
 const qualityBoxEl   = document.getElementById('qualityBox');
 const richnessBoxEl  = document.getElementById('richnessBox');
 
@@ -1646,7 +1651,7 @@ function clearResults() {
   progressTrack.querySelectorAll('.progress-footprint').forEach(fp => fp.classList.remove('visible'));
   checklistPanel.classList.remove('open');
   _showChecklistHandle(false);
-  clScroll.innerHTML = ''; clSelectedInfo.style.display = 'none';
+  clScroll.innerHTML = ''; clSelectedInfo.style.display = 'none'; clLooklikeBar.style.display = 'none';
   const _clf = document.getElementById('clFooter'); if (_clf) _clf.style.display = 'none';
   if (clusterLayer) { map.removeLayer(clusterLayer); clusterLayer = null; }
   if (heatLayer)    { map.removeLayer(heatLayer);    heatLayer = null; }
@@ -4354,7 +4359,12 @@ function buildChecklist(records) {
         '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:' + colour + ';flex-shrink:0;"></span>' +
         label +
       '</span>' +
-      '<span class="cl-chevron" style="font-size:10px;color:var(--text3);transition:transform 0.15s;display:inline-block;">&#9660;</span>';
+      '<span style="display:flex;align-items:center;gap:8px;">' +
+        '<label class="cl-group-selall" title="Select all ' + label + '" onclick="event.stopPropagation()">' +
+          '<input type="checkbox" class="cl-group-cb" data-group="' + g + '">' +
+        '</label>' +
+        '<span class="cl-chevron" style="font-size:10px;color:var(--text3);transition:transform 0.15s;display:inline-block;">&#9660;</span>' +
+      '</span>';
     let _lastFire = 0;
     function handleGroupToggle(e) {
       e.preventDefault();
@@ -4391,7 +4401,11 @@ function buildChecklist(records) {
       const tkBadge = _tkSpeciesNames.has(name)
         ? '<span class="tk-badge" title="Traditional Knowledge / Biocultural label — Local Contexts">🏷️</span>' : '';
       row.innerHTML =
-        '<div class="cl-row-top"><span class="cl-name">' + name + nztcsBadge + iucnBadge + tkBadge + '</span><span class="cl-count">' + info.count + '</span></div>' +
+        '<div class="cl-row-top"><span class="cl-name">' + name + nztcsBadge + iucnBadge + tkBadge + '</span>' +
+        '<span style="display:flex;align-items:center;gap:6px;flex-shrink:0;">' +
+          '<span class="cl-count">' + info.count + '</span>' +
+          '<input type="checkbox" class="cl-photo-cb" title="Select for LookLike" onclick="event.stopPropagation()">' +
+        '</span></div>' +
         (info.common ? '<div class="cl-common">' + info.common + '</div>' : '');
       row.addEventListener('click', () => {
         if (selectedSpecies === name) clearSpeciesSelection();
@@ -4408,6 +4422,8 @@ function buildChecklist(records) {
       footer.style.display = hasUncertain ? '' : 'none';
     }
   }
+  clLooklikeBar.style.display = '';
+  _updateLooklikeBtn();
   // IUCN — only fetch and show filters if user has unlocked
   if (iucnUnlocked) {
     _showIucnFiltersIfData();
@@ -4415,6 +4431,92 @@ function buildChecklist(records) {
     _iucnFetchAbort = true;
     setTimeout(() => { _iucnFetchAbort = false; fetchIucnStatuses(records); }, 0);
   }
+}
+
+// ── LookLike integration ─────────────────────────────────────────────────────
+function _updateLooklikeBtn() {
+  const n = document.querySelectorAll('.cl-row .cl-photo-cb:checked').length;
+  const btn = document.getElementById('clLooklikeBtn');
+  if (btn) btn.textContent = n ? '📷 LookLike (' + n + ' selected) →' : '📷 LookLike';
+}
+
+function openInLooklike() {
+  const names = [];
+  document.querySelectorAll('.cl-row .cl-photo-cb:checked').forEach(cb => {
+    const row = cb.closest('.cl-row');
+    if (row && row.dataset.species) names.push(row.dataset.species);
+  });
+  if (!names.length) { alert('Tick at least one species first.'); return; }
+  const url = 'https://rutherfordecology.github.io/looklike/?s=' + names.map(encodeURIComponent).join('|');
+  window.open(url, '_blank');
+}
+
+// Delegated checkbox handling on clScroll
+clScroll.addEventListener('change', function(e) {
+  if (e.target.classList.contains('cl-photo-cb')) {
+    _updateLooklikeBtn();
+    // Update group checkbox indeterminate state
+    const header = (function() {
+      let el = e.target.closest('.cl-row').previousElementSibling;
+      while (el && !el.classList.contains('cl-group-header')) el = el.previousElementSibling;
+      return el;
+    })();
+    if (header) _syncGroupCb(header);
+    // Update select-all-visible state
+    _syncSelAllVisible();
+  } else if (e.target.classList.contains('cl-group-cb')) {
+    const checked = e.target.checked;
+    let el = e.target.closest('.cl-group-header').nextElementSibling;
+    while (el && !el.classList.contains('cl-group-header')) {
+      if (!el.classList.contains('hidden') && el.style.display !== 'none') {
+        const cb = el.querySelector('.cl-photo-cb');
+        if (cb) cb.checked = checked;
+      }
+      el = el.nextElementSibling;
+    }
+    _updateLooklikeBtn();
+    _syncSelAllVisible();
+  }
+});
+
+document.getElementById('clSelAllVisible').addEventListener('change', function() {
+  const checked = this.checked;
+  document.querySelectorAll('.cl-row').forEach(row => {
+    if (!row.classList.contains('hidden') && row.style.display !== 'none') {
+      const cb = row.querySelector('.cl-photo-cb');
+      if (cb) cb.checked = checked;
+    }
+  });
+  document.querySelectorAll('.cl-group-cb').forEach(gcb => {
+    gcb.checked = checked;
+    gcb.indeterminate = false;
+  });
+  _updateLooklikeBtn();
+});
+
+function _syncGroupCb(header) {
+  const gcb = header.querySelector('.cl-group-cb');
+  if (!gcb) return;
+  let total = 0, checked = 0;
+  let el = header.nextElementSibling;
+  while (el && !el.classList.contains('cl-group-header')) {
+    if (!el.classList.contains('hidden') && el.style.display !== 'none') {
+      total++;
+      if (el.querySelector('.cl-photo-cb')?.checked) checked++;
+    }
+    el = el.nextElementSibling;
+  }
+  gcb.checked = checked > 0 && checked === total;
+  gcb.indeterminate = checked > 0 && checked < total;
+}
+
+function _syncSelAllVisible() {
+  const all = document.querySelectorAll('.cl-row:not(.hidden) .cl-photo-cb');
+  const checkedCount = document.querySelectorAll('.cl-row:not(.hidden) .cl-photo-cb:checked').length;
+  const cb = document.getElementById('clSelAllVisible');
+  if (!cb) return;
+  cb.checked = checkedCount > 0 && checkedCount === all.length;
+  cb.indeterminate = checkedCount > 0 && checkedCount < all.length;
 }
 
 // Filter — group headers in checklist act as toggles (chips removed)
@@ -5447,6 +5549,13 @@ if (window._pendingShare) {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v5.19</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>LookLike integration — tick species in the checklist and open them in LookLike to browse taxon and record photos; select-all per taxon group and for the whole visible list</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v5.18</span>
       <span class="changelog-date">Jun 2026</span>
