@@ -423,7 +423,7 @@
 
 <header>
   <div class="logo"><img src="Logo-long.png" alt="LookLike?"></div>
-  <div class="header-meta" id="header-meta"><span id="header-label">Visual species photo browser · <a href="https://www.rutherfordecology.co.nz/" target="_blank" rel="noopener" class="re-link"><span class="re-by">by </span><span class="re-name">Rutherford</span><span class="re-by"> ecology</span></a></span> <span class="version">v1.22</span></div>
+  <div class="header-meta" id="header-meta"><span id="header-label">Visual species photo browser · <a href="https://www.rutherfordecology.co.nz/" target="_blank" rel="noopener" class="re-link"><span class="re-by">by </span><span class="re-name">Rutherford</span><span class="re-by"> ecology</span></a></span> <span class="version">v1.23</span></div>
   <div id="filter-wrap">
     <input id="filter-input" type="search" placeholder="Filter species…" autocomplete="off">
     <button class="sort-btn active" id="sort-orig" title="Original order">Order</button>
@@ -904,15 +904,30 @@ function sourceLink(rec) {
 }
 
 // ─── Utils ───────────────────────────────────────────────────────
-// Auto-load from ?s= URL params; localStorage enriches with exact Occurd records
+// Auto-load from localStorage (but-is-it-threatened handoff) or legacy ?s= URL param
 (function() {
-  const params = new URLSearchParams(window.location.search);
-  const s = params.get('s');
-  if (!s) return;
-  const names = [...new Set(s.split('|').map(n => decodeURIComponent(n).trim()).filter(Boolean))];
+  let names = [];
+
+  try {
+    const raw = localStorage.getItem('looklike_names');
+    if (raw) {
+      const data = JSON.parse(raw);
+      localStorage.removeItem('looklike_names');
+      if (data.names && data.names.length && Date.now() - data.ts < 5 * 60 * 1000) {
+        names = [...new Set(data.names.map(n => n.trim()).filter(Boolean))];
+      }
+    }
+  } catch(e) {}
+
+  // Fallback: legacy ?s= URL param
+  if (!names.length) {
+    const s = new URLSearchParams(window.location.search).get('s');
+    if (s) names = [...new Set(s.split('|').map(n => decodeURIComponent(n).trim()).filter(Boolean))];
+  }
+
   if (!names.length) return;
 
-  // Try to load exact record data from localStorage
+  // Load exact record data from Occurd handoff if present
   try {
     const raw = localStorage.getItem('looklike_handoff');
     if (raw) {
