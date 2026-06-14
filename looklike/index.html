@@ -423,7 +423,7 @@
 
 <header>
   <div class="logo"><img src="Logo-long.png" alt="LookLike?"></div>
-  <div class="header-meta" id="header-meta"><span id="header-label">Visual species photo browser · <a href="https://www.rutherfordecology.co.nz/" target="_blank" rel="noopener" class="re-link"><span class="re-by">by </span><span class="re-name">Rutherford</span><span class="re-by"> ecology</span></a></span> <span class="version">v1.15</span></div>
+  <div class="header-meta" id="header-meta"><span id="header-label">Visual species photo browser · <a href="https://www.rutherfordecology.co.nz/" target="_blank" rel="noopener" class="re-link"><span class="re-by">by </span><span class="re-name">Rutherford</span><span class="re-by"> ecology</span></a></span> <span class="version">v1.16</span></div>
   <div id="filter-wrap">
     <input id="filter-input" type="search" placeholder="Filter species…" autocomplete="off">
     <button class="sort-btn active" id="sort-orig" title="Original order">Order</button>
@@ -777,30 +777,23 @@ lightbox.addEventListener('click', (e) => { if (e.target === lightbox) lightbox.
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') lightbox.classList.remove('open'); });
 
 // ─── API fetchers ────────────────────────────────────────────────
-async function fetchINatTaxon(binomial, activeOnly) {
-  const params = new URLSearchParams({ q: binomial, rank: 'species', per_page: '5' });
-  if (activeOnly) params.set('is_active', 'true');
-  const res = await fetch(`https://api.inaturalist.org/v1/taxa?${params}`);
-  if (!res.ok) return null;
-  const data = await res.json();
-  return (data.results || []).find(t =>
-    t.name && t.name.toLowerCase() === binomial.toLowerCase()
-  ) || null;
-}
-
 async function fetchINat(name) {
   const binomial = name.split(/\s+/).slice(0, 2).join(' ');
 
-  // Try active taxa first (exact name match required to avoid iNat taxon swaps)
-  let taxon = await fetchINatTaxon(binomial, true);
+  // 1. Try active taxa (exact name match required to avoid iNat taxon swaps)
+  let taxon = await inatTaxaSearch(binomial, 'true');
   let resolvedName = null;
 
-  // If not found, try including inactive taxa — synonyms have a current_taxon pointer
+  // 2. If not found, search inactive taxa — synonyms exist there
   if (!taxon) {
-    const inactive = await fetchINatTaxon(binomial, false);
-    if (inactive?.current_taxon) {
-      taxon = inactive.current_taxon;
-      resolvedName = taxon.name; // accepted name differs from searched name
+    const inactive = await inatTaxaSearch(binomial, 'false');
+    if (inactive) {
+      // Fetch the full taxon record to get current_taxon pointer
+      const full = await inatTaxonById(inactive.id);
+      if (full?.current_taxon) {
+        taxon = full.current_taxon;
+        resolvedName = taxon.name;
+      }
     }
   }
 
@@ -811,6 +804,23 @@ async function fetchINat(name) {
     taxonId: taxon.id,
     resolvedName,
   };
+}
+
+async function inatTaxaSearch(binomial, isActive) {
+  const params = new URLSearchParams({ q: binomial, rank: 'species', per_page: '5', is_active: isActive });
+  const res = await fetch(`https://api.inaturalist.org/v1/taxa?${params}`);
+  if (!res.ok) return null;
+  const data = await res.json();
+  return (data.results || []).find(t =>
+    t.name && t.name.toLowerCase() === binomial.toLowerCase()
+  ) || null;
+}
+
+async function inatTaxonById(id) {
+  const res = await fetch(`https://api.inaturalist.org/v1/taxa/${id}`);
+  if (!res.ok) return null;
+  const data = await res.json();
+  return data.results?.[0] || null;
 }
 
 async function fetchGBIF(name) {
