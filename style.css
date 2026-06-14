@@ -167,10 +167,8 @@ header { background: var(--green-dark); color: white; padding: 0 1.5rem; display
 .cl-search { padding: 8px 10px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
 .cl-search input { width: 100%; border: 1px solid var(--border); border-radius: var(--radius); padding: 5px 9px; font-size: 12px; font-family: var(--font-sans); background: var(--surface2); color: var(--text); }
 .cl-search input:focus { outline: none; border-color: var(--green); }
-.cl-looklike-bar { display: flex; align-items: center; justify-content: space-between; padding: 5px 10px; border-bottom: 0.5px solid var(--border); background: var(--surface); flex-shrink: 0; gap: 6px; }
-.cl-selall-label { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text2); cursor: pointer; user-select: none; white-space: nowrap; }
-.cl-selall-label input { accent-color: var(--green); flex-shrink: 0; }
-.cl-looklike-btn { background: var(--green); border: none; border-radius: 4px; color: #fff; font-size: 11px; font-weight: 600; padding: 4px 8px; cursor: pointer; transition: background 0.15s; white-space: nowrap; }
+.cl-looklike-bar { display: block; padding: 5px 10px; border-bottom: 0.5px solid var(--border); background: var(--surface); flex-shrink: 0; }
+.cl-looklike-btn { display: block; width: 100%; background: var(--green); border: none; border-radius: 4px; color: #fff; font-size: 11px; font-weight: 700; padding: 5px 8px; cursor: pointer; transition: background 0.15s; text-align: center; letter-spacing: 0.03em; }
 .cl-looklike-btn:hover { background: var(--green-dark); }
 .cl-group-selall { display: flex; align-items: center; cursor: pointer; padding: 2px; }
 .cl-group-selall input { accent-color: var(--green); margin: 0; }
