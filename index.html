@@ -45,7 +45,7 @@
       <img src="occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v5.23</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v5.24</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -4491,7 +4491,9 @@ function openInLooklike() {
     localStorage.setItem('looklike_handoff', JSON.stringify({ ts: Date.now(), species: speciesData }));
   } catch(e) {}
 
-  window.open('https://rutherfordecology.github.io/looklike/', '_blank');
+  // URL params carry the names as a guaranteed fallback
+  const url = 'https://rutherfordecology.github.io/looklike/?s=' + speciesData.map(s => encodeURIComponent(s.name)).join('%7C');
+  window.open(url, '_blank');
 }
 
 // Delegated checkbox handling on clScroll
