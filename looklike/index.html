@@ -423,7 +423,7 @@
 
 <header>
   <div class="logo"><img src="Logo-long.png" alt="LookLike?"></div>
-  <div class="header-meta" id="header-meta"><span id="header-label">Visual species photo browser · <a href="https://www.rutherfordecology.co.nz/" target="_blank" rel="noopener" class="re-link"><span class="re-by">by </span><span class="re-name">Rutherford</span><span class="re-by"> ecology</span></a></span> <span class="version">v1.19</span></div>
+  <div class="header-meta" id="header-meta"><span id="header-label">Visual species photo browser · <a href="https://www.rutherfordecology.co.nz/" target="_blank" rel="noopener" class="re-link"><span class="re-by">by </span><span class="re-name">Rutherford</span><span class="re-by"> ecology</span></a></span> <span class="version">v1.20</span></div>
   <div id="filter-wrap">
     <input id="filter-input" type="search" placeholder="Filter species…" autocomplete="off">
     <button class="sort-btn active" id="sort-orig" title="Original order">Order</button>
@@ -613,6 +613,7 @@ async function loadCard(idx) {
   // Use exact records from Occurd handoff if available
   const handoff = state.handoff && state.handoff[card.name];
   const hasHandoff = handoff && handoff.records && handoff.records.some(r => r.photoUrl);
+  card.fromOccurd = !!(state.handoff && state.handoff[card.name]); // any Occurd handoff, even if no photo
 
   // No handoff — taxon photo only, no GBIF slot
   if (!hasHandoff) {
@@ -740,7 +741,13 @@ function updateCardLinks(card) {
     ? `https://www.gbif.org/occurrence/${photo.gbifID}` : null;
 
   let html = '';
-  if (gbifHref) html += `<a href="${gbifHref}" target="_blank" rel="noopener">GBIF record ↗</a>`;
+  if (gbifHref) {
+    html += `<a href="${gbifHref}" target="_blank" rel="noopener">GBIF record ↗</a>`;
+  } else if (card.fromOccurd) {
+    // Occurd handoff but this photo has no gbifID — link to occurrence search
+    const searchHref = `https://www.gbif.org/occurrence/search?scientificName=${encodeURIComponent(card.name)}`;
+    html += `<a href="${searchHref}" target="_blank" rel="noopener">GBIF occurrences ↗</a>`;
+  }
   if (src) html += `<a href="${escHtml(src.url)}" target="_blank" rel="noopener">${escHtml(src.label)} ↗</a>`;
   linksEl.innerHTML = html;
   linksEl.style.display = html ? '' : 'none';
