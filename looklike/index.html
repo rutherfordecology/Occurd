@@ -400,7 +400,7 @@
 
 <header>
   <div class="logo"><img src="Logo-long.png" alt="LookLike?"></div>
-  <div class="header-meta" id="header-meta">Visual species photo browser · <a href="https://www.rutherfordecology.co.nz/" target="_blank" rel="noopener" class="re-link"><span class="re-by">by </span><span class="re-name">Rutherford</span><span class="re-by"> ecology</span></a> <span class="version">v1.08</span></div>
+  <div class="header-meta" id="header-meta"><span id="header-label">Visual species photo browser · <a href="https://www.rutherfordecology.co.nz/" target="_blank" rel="noopener" class="re-link"><span class="re-by">by </span><span class="re-name">Rutherford</span><span class="re-by"> ecology</span></a></span> <span class="version">v1.09</span></div>
   <div id="filter-wrap">
     <input id="filter-input" type="search" placeholder="Filter species…" autocomplete="off">
   </div>
@@ -456,6 +456,7 @@ const input        = document.getElementById('species-input');
 const filterWrap   = document.getElementById('filter-wrap');
 const filterInput  = document.getElementById('filter-input');
 const headerMeta   = document.getElementById('header-meta');
+const headerLabel  = document.getElementById('header-label');
 const lightbox     = document.getElementById('lightbox');
 const lbImg        = document.getElementById('lb-img');
 const lbCaption    = document.getElementById('lb-caption');
@@ -473,7 +474,7 @@ function showLanding() {
   gallery.classList.remove('visible');
   backBtn.classList.remove('visible');
   filterWrap.classList.remove('visible');
-  headerMeta.textContent = 'Visual species photo browser';
+  headerLabel.innerHTML = 'Visual species photo browser · <a href="https://www.rutherfordecology.co.nz/" target="_blank" rel="noopener" class="re-link"><span class="re-by">by </span><span class="re-name">Rutherford</span><span class="re-by"> ecology</span></a>';
 }
 
 // ─── Load ────────────────────────────────────────────────────────
@@ -504,7 +505,7 @@ filterInput.addEventListener('input', () => {
 
 // ─── Grid builder ────────────────────────────────────────────────
 function buildGrid(names) {
-  headerMeta.textContent = `${names.length} species`;
+  headerLabel.textContent = `${names.length} species`;
   const observer = new IntersectionObserver((entries) => {
     for (const entry of entries) {
       if (entry.isIntersecting) {
