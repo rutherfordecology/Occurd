@@ -45,7 +45,7 @@
       <img src="occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v5.19</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v5.20</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -628,12 +628,20 @@ const map = L.map('map').setView([-41.5, 172.5], 5);
 // Custom pane for QEII covenants — sits below the standard overlay (400) and marker (600) panes
 map.createPane('qeiiPane');
 map.getPane('qeiiPane').style.zIndex = 350;
+const _tileOpts = { maxZoom: 19, keepBuffer: 4, updateWhenZooming: false };
 const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  attribution: '&copy; <a href="https://openstreetmap.org/copyright">OpenStreetMap</a> contributors', maxZoom: 19 });
+  ..._tileOpts, attribution: '&copy; <a href="https://openstreetmap.org/copyright">OpenStreetMap</a> contributors' });
 const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-  attribution: '&copy; <a href="https://www.esri.com">Esri</a>, Maxar, Earthstar Geographics', maxZoom: 19 });
+  ..._tileOpts, attribution: '&copy; <a href="https://www.esri.com">Esri</a>, Maxar, Earthstar Geographics' });
 const greyscaleLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-  attribution: '&copy; <a href="https://openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>', maxZoom: 19 });
+  ..._tileOpts, attribution: '&copy; <a href="https://openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>' });
+
+// Retry failed tiles once after a short delay
+[osmLayer, satelliteLayer, greyscaleLayer].forEach(layer => {
+  layer.on('tileerror', function(e) {
+    setTimeout(() => { if (e.tile) e.tile.src = e.tile.src.split('?')[0] + '?retry=1'; }, 2000);
+  });
+});
 osmLayer.addTo(map);
 L.control.layers({ 'Map': osmLayer, 'Greyscale': greyscaleLayer, 'Satellite': satelliteLayer }, {}, { position: 'topleft' }).addTo(map);
 // Align draw hint with the actual polygon button after all controls are rendered
@@ -766,20 +774,22 @@ map.on('draw:drawvertex', function(e) {
 });
 
 map.on('mousemove', function(e) {
-  if (!isDrawingPoly || !drawLastVertex) return;
-  const mid  = L.latLng((drawLastVertex.lat + e.latlng.lat) / 2, (drawLastVertex.lng + e.latlng.lng) / 2);
-  const text = fmtDist(drawLastVertex.distanceTo(e.latlng));
-  if (!drawMoveLabel) {
-    drawMoveLabel = makeDistLabel(mid, text, true);
-  } else {
-    drawMoveLabel.setLatLng(mid);
-    drawMoveLabel.setIcon(L.divIcon({
-      className: 'draw-dist-label draw-dist-moving',
-      html: '<span>' + text + '</span>',
-      iconSize: [0, 0],
-      iconAnchor: [0, 0]
-    }));
-  }
+  if (!isDrawingPoly || !drawLastVertex || map._animatingZoom) return;
+  try {
+    const mid  = L.latLng((drawLastVertex.lat + e.latlng.lat) / 2, (drawLastVertex.lng + e.latlng.lng) / 2);
+    const text = fmtDist(drawLastVertex.distanceTo(e.latlng));
+    if (!drawMoveLabel) {
+      drawMoveLabel = makeDistLabel(mid, text, true);
+    } else {
+      drawMoveLabel.setLatLng(mid);
+      drawMoveLabel.setIcon(L.divIcon({
+        className: 'draw-dist-label draw-dist-moving',
+        html: '<span>' + text + '</span>',
+        iconSize: [0, 0],
+        iconAnchor: [0, 0]
+      }));
+    }
+  } catch(err) {}
 });
 
 let _lastFinish = 0, _lastUndo = 0, _lastCancel = 0;
@@ -5549,6 +5559,14 @@ if (window._pendingShare) {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v5.20</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>Map stability — tile layers now buffer more aggressively and skip updates during zoom animation, preventing the grey/checkerboard crash when zooming quickly while drawing</li>
+        <li>Draw tool — distance label handler now ignores events fired during zoom animation to prevent state corruption</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v5.19</span>
       <span class="changelog-date">Jun 2026</span>
