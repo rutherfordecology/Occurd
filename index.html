@@ -45,7 +45,7 @@
       <img src="occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v5.48</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v5.49</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -2672,8 +2672,8 @@ function searchAreaOverlapsNZ() {
   const geomPolys = polygons.filter(p => p.latlngs && p.latlngs.length > 0 && p.type !== 'species');
   if (geomPolys.length === 0) return false;
   return geomPolys.some(poly => {
-    const lats = poly.latlngs.map(ll => ll.lat);
-    const lngs = poly.latlngs.map(ll => ll.lng);
+    const lats = poly.latlngs.map(ll => ll.lat !== undefined ? ll.lat : ll[0]);
+    const lngs = poly.latlngs.map(ll => ll.lng !== undefined ? ll.lng : ll[1]);
     const minLat = Math.min(...lats), maxLat = Math.max(...lats);
     const minLng = Math.min(...lngs), maxLng = Math.max(...lngs);
     return maxLat >= NZ_BBOX.minLat && minLat <= NZ_BBOX.maxLat &&
@@ -5604,9 +5604,10 @@ if (window._pendingShare) {
   </div>
   <div class="changelog-scroll" id="changelogScroll">
     <div class="changelog-version">
-      <span class="changelog-version-tag">v5.48</span>
+      <span class="changelog-version-tag">v5.49</span>
       <span class="changelog-date">Jun 2026</span>
       <ul>
+        <li>Fix NZTCS button not appearing after fetch with QEII project active — searchAreaOverlapsNZ now handles array-format latlngs used by auto-added covenant polygons</li>
         <li>Exclude low-precision records checkbox (pre-fetch) — when ticked, the GBIF query adds coordinateUncertaintyInMeters=*,1499 so low-precision records never count against the 10k cap; iNat obscured records and supplemental iNat records with positional accuracy ≥1.5 km are also skipped</li>
       </ul>
     </div>
