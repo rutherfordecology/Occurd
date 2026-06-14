@@ -388,6 +388,14 @@
     .subsp-best-note { font-size:.75rem; color:#888; margin-left:.3rem; }
     .nvs-tag { background:#e8f4f8; color:#1a5276; border:1px solid #aed6f1; }
     .results-table em { font-style:italic; }
+    .results-table .cb-col { width:28px; text-align:center; }
+    .batch-cb, #batch-sel-all { cursor:pointer; width:15px; height:15px; }
+    #batch-looklike {
+      padding:.55rem 1.1rem; background:#1a3a4a; color:#fff;
+      border:none; border-radius:8px; cursor:pointer; font-size:.9rem;
+      transition:opacity .15s;
+    }
+    #batch-looklike:hover { opacity:.85; }
   </style>
 </head>
 <body>
@@ -396,7 +404,7 @@
 
 <header>
   <div>
-    <h1>but is it threatened? <span style="font-size:0.65rem;font-weight:400;opacity:0.4;letter-spacing:0.05em;">v1.41</span></h1>
+    <h1>but is it threatened? <span style="font-size:0.65rem;font-weight:400;opacity:0.4;letter-spacing:0.05em;">v1.42</span></h1>
     <p>NZOR names · NZTCS conservation status</p>
   </div>
   <div id="dot" class="status-dot loading" title="Loading NZTCS data…"></div>
@@ -472,6 +480,7 @@
       <button class="btn-primary" id="batch-run" onclick="runBatch()">Match names</button>
       <button class="btn-secondary" id="batch-dl" onclick="downloadBatchCSV()" disabled>Download CSV</button>
       <button class="btn-secondary" id="batch-dl-nvs" onclick="downloadNVSTemplate()" disabled>Download template</button>
+      <button id="batch-looklike" onclick="openInLooklike()" style="display:none">📷 View in LookLike</button>
       <span class="batch-count" id="batch-count"></span>
     </div>
     <div id="batch-results"></div>
@@ -1177,25 +1186,27 @@ function runBatch() {
     `${matched} of ${batchResults.length} matched`;
   document.getElementById('batch-dl').disabled = matched === 0;
   document.getElementById('batch-dl-nvs').disabled = matched === 0;
+  document.getElementById('batch-looklike').style.display = matched > 0 ? '' : 'none';
 }
 
 function renderBatchTable(results) {
   if (!results.length) { document.getElementById('batch-results').innerHTML = ''; return; }
   const rows = results.map((r, i) => {
     if (!r.matched) {
-      return `<tr class="unmatched"><td>${escHtml(r.input)}</td><td colspan="7">No match found</td></tr>`;
+      return `<tr class="unmatched"><td class="cb-col"></td><td>${escHtml(r.input)}</td><td colspan="7">No match found</td></tr>`;
     }
     if (r._ambiguous) {
       const btns = (r._options || []).map(s =>
         `<button class="ambig-pick-btn" onclick="resolveBatchAmbig(${i},'${s.replace(/'/g,"\\'")}')">${escHtml(s)}</button>`
       ).join('');
-      return `<tr class="ambig-row"><td>${escHtml(r.input)}</td><td colspan="7"><span class="ambig-inline">⚠ multiple species — which one?</span><div class="ambig-picks">${btns}</div></td></tr>`;
+      return `<tr class="ambig-row"><td class="cb-col"></td><td>${escHtml(r.input)}</td><td colspan="7"><span class="ambig-inline">⚠ multiple species — which one?</span><div class="ambig-picks">${btns}</div></td></tr>`;
     }
     const pestCell = r.pest ? `<span class="badge cat-pest-plant">Pest plant</span>` : '';
     const statusCell = r.status
       ? `<span class="badge ${catClass(r.category)}">${escHtml(r.status)}</span>${r._subspeciesBest ? ' <span class="subsp-best-note">most threatened subspecies</span>' : ''}`
       : '<span style="color:#bbb">—</span>';
     return `<tr>
+      <td class="cb-col"><input type="checkbox" class="batch-cb" data-sci="${escHtml(r.sci)}" checked></td>
       <td>${escHtml(r.input)}</td>
       <td><em>${escHtml(r.sci)}</em></td>
       <td>${escHtml(r.common)}</td>
@@ -1210,11 +1221,26 @@ function renderBatchTable(results) {
   document.getElementById('batch-results').innerHTML = `
     <table class="results-table">
       <thead><tr>
+        <th class="cb-col"><input type="checkbox" id="batch-sel-all" checked onchange="toggleAllBatchCbs(this.checked)" title="Select all"></th>
         <th>Input name</th><th>Scientific name</th><th>Common name</th>
         <th>Māori name</th><th>Status</th><th>Category</th><th>Year</th><th>Origin</th>
       </tr></thead>
       <tbody>${rows}</tbody>
     </table>`;
+}
+
+function toggleAllBatchCbs(checked) {
+  document.querySelectorAll('.batch-cb').forEach(cb => cb.checked = checked);
+}
+
+function openInLooklike() {
+  const names = [];
+  document.querySelectorAll('.batch-cb:checked').forEach(cb => {
+    if (cb.dataset.sci) names.push(cb.dataset.sci);
+  });
+  if (!names.length) { alert('Tick at least one species first.'); return; }
+  const url = 'https://occurd.rutherfordecology.co.nz/looklike/?v=' + Date.now() + '&s=' + names.map(s => encodeURIComponent(s)).join('%7C');
+  window.open(url, '_blank');
 }
 
 // ── Download CSV ──────────────────────────────────────────────────────────────
