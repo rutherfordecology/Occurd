@@ -423,7 +423,7 @@
 
 <header>
   <div class="logo"><img src="Logo-long.png" alt="LookLike?"></div>
-  <div class="header-meta" id="header-meta"><span id="header-label">Visual species photo browser · <a href="https://www.rutherfordecology.co.nz/" target="_blank" rel="noopener" class="re-link"><span class="re-by">by </span><span class="re-name">Rutherford</span><span class="re-by"> ecology</span></a></span> <span class="version">v1.18</span></div>
+  <div class="header-meta" id="header-meta"><span id="header-label">Visual species photo browser · <a href="https://www.rutherfordecology.co.nz/" target="_blank" rel="noopener" class="re-link"><span class="re-by">by </span><span class="re-name">Rutherford</span><span class="re-by"> ecology</span></a></span> <span class="version">v1.19</span></div>
   <div id="filter-wrap">
     <input id="filter-input" type="search" placeholder="Filter species…" autocomplete="off">
     <button class="sort-btn active" id="sort-orig" title="Original order">Order</button>
@@ -776,30 +776,66 @@ lbClose.addEventListener('click', () => lightbox.classList.remove('open'));
 lightbox.addEventListener('click', (e) => { if (e.target === lightbox) lightbox.classList.remove('open'); });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') lightbox.classList.remove('open'); });
 
+// ─── NZTCS synonym resolver (lazy-loaded) ────────────────────────
+let nztcsSynonymMap = null; // norm(synonym) → accepted name string
+
+async function getNztcsSynonymMap() {
+  if (nztcsSynonymMap) return nztcsSynonymMap;
+  try {
+    const res = await fetch('../but-is-it-threatened/nztcs_slim.json');
+    if (!res.ok) { nztcsSynonymMap = {}; return nztcsSynonymMap; }
+    const data = await res.json();
+    nztcsSynonymMap = {};
+    for (const [key, val] of Object.entries(data)) {
+      if (!val.n) continue;
+      // Strip author citations from key — same logic as but-is-it-threatened
+      const stripped = key
+        .replace(/\s*\([^)]+\)\s*$/, '')
+        .replace(/\s+[a-z]+(?:\s+&\s+[a-z]+)?,\s*\d{4}\s*$/, '')
+        .trim();
+      const acceptedNorm = val.n.toLowerCase().trim();
+      const strippedNorm = stripped.toLowerCase().trim();
+      if (strippedNorm !== acceptedNorm) {
+        nztcsSynonymMap[strippedNorm] = val.n;
+      }
+    }
+  } catch(e) { nztcsSynonymMap = {}; }
+  return nztcsSynonymMap;
+}
+
 // ─── API fetchers ────────────────────────────────────────────────
 async function fetchINat(name) {
   const binomial = name.split(/\s+/).slice(0, 2).join(' ');
-  const epithet = binomial.split(' ')[1]?.toLowerCase();
 
-  const params = new URLSearchParams({ q: binomial, rank: 'species', per_page: '5', is_active: 'true' });
-  const res = await fetch(`https://api.inaturalist.org/v1/taxa?${params}`);
-  if (!res.ok) return null;
-  const data = await res.json();
-  const results = data.results || [];
-
-  // Exact genus+species match — avoids iNat taxon swaps (e.g. Carduelis carduelis → wrong goldfinch)
-  let taxon = results.find(t => t.name?.toLowerCase() === binomial.toLowerCase());
-
-  // Epithet fallback — handles genus reclassifications (e.g. Fuscospora → Nothofagus,
-  // Dysoxylum → Didymocheton). iNat returns the accepted name; epithets may differ
-  // by Latin gender ending (spectabile vs spectabilis), so compare on shared stem.
+  // 1. Try exact match on the given name
+  let taxon = await inatExactSearch(binomial);
   let resolvedName = null;
-  if (!taxon && epithet) {
-    taxon = results.find(t => {
-      const parts = t.name?.toLowerCase().split(' ');
-      return parts?.length === 2 && latinSameEpithet(parts[1], epithet);
-    });
-    if (taxon) resolvedName = taxon.name;
+
+  // 2. If not found, resolve via NZTCS synonym map (e.g. Dysoxylum → Didymocheton)
+  if (!taxon) {
+    const synMap = await getNztcsSynonymMap();
+    const accepted = synMap[binomial.toLowerCase()];
+    if (accepted && accepted.toLowerCase() !== binomial.toLowerCase()) {
+      taxon = await inatExactSearch(accepted);
+      if (taxon) resolvedName = accepted;
+    }
+  }
+
+  // 3. Epithet fallback for genus reclassifications not in NZTCS (e.g. Fuscospora → Nothofagus)
+  if (!taxon) {
+    const epithet = binomial.split(' ')[1]?.toLowerCase();
+    if (epithet) {
+      const params = new URLSearchParams({ q: binomial, rank: 'species', per_page: '5', is_active: 'true' });
+      const res = await fetch(`https://api.inaturalist.org/v1/taxa?${params}`);
+      if (res.ok) {
+        const results = (await res.json()).results || [];
+        taxon = results.find(t => {
+          const parts = t.name?.toLowerCase().split(' ');
+          return parts?.length === 2 && latinSameEpithet(parts[1], epithet);
+        });
+        if (taxon) resolvedName = taxon.name;
+      }
+    }
   }
 
   if (!taxon) return null;
@@ -809,6 +845,14 @@ async function fetchINat(name) {
     taxonId: taxon.id,
     resolvedName,
   };
+}
+
+async function inatExactSearch(name) {
+  const params = new URLSearchParams({ q: name, rank: 'species', per_page: '5', is_active: 'true' });
+  const res = await fetch(`https://api.inaturalist.org/v1/taxa?${params}`);
+  if (!res.ok) return null;
+  const results = (await res.json()).results || [];
+  return results.find(t => t.name?.toLowerCase() === name.toLowerCase()) || null;
 }
 
 async function fetchGBIF(name) {
