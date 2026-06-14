@@ -393,7 +393,7 @@
 
 <header>
   <div>
-    <h1>but is it threatened? <span style="font-size:0.65rem;font-weight:400;opacity:0.4;letter-spacing:0.05em;">v1.53</span></h1>
+    <h1>but is it threatened? <span style="font-size:0.65rem;font-weight:400;opacity:0.4;letter-spacing:0.05em;">v1.54</span></h1>
     <p>NZOR names · NZTCS conservation status</p>
   </div>
   <div id="dot" class="status-dot loading" title="Loading NZTCS data…"></div>
@@ -1205,36 +1205,73 @@ function extractBinomialsFromText(text) {
   return names;
 }
 
+// Parse a single CSV row, respecting quoted fields
+function parseCsvRow(line) {
+  const cells = [];
+  let cur = '', inQ = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === '"') { inQ = !inQ; }
+    else if (ch === ',' && !inQ) { cells.push(cur); cur = ''; }
+    else { cur += ch; }
+  }
+  cells.push(cur);
+  return cells.map(c => c.trim());
+}
+
+// Strip author citation from a scientific name — keep genus + lowercase epithets only
+function stripAuthor(name) {
+  const words = name.split(/\s+/);
+  const kept = [words[0]]; // genus
+  for (let i = 1; i < words.length; i++) {
+    if (/^[a-z][a-z\-]+$/.test(words[i])) kept.push(words[i]);
+    else break; // hit an author (capital letter) — stop
+  }
+  return kept.length >= 2 ? kept.join(' ') : null; // need at least genus + epithet
+}
+
 function runBatch() {
   const raw = batchPaste.value.trim();
   if (!raw) return;
 
-  // Parse: CSV (take first non-empty cell per row), one name per line, or comma-separated names
   const lines = raw.split(/\r?\n/).filter(l => l.trim());
   const names = [];
-  for (const l of lines) {
-    if (l.includes('"')) {
-      // Quoted CSV row — take first non-empty cell only
-      const first = l.split(',').map(c => c.replace(/^"|"$/g, '').trim()).find(c => c);
-      if (first) names.push(first);
-    } else {
-      // Plain text — split on commas, each part is a separate name
+
+  // Detect CSV with a scientificName column
+  const headerLine = lines[0];
+  const headerCells = parseCsvRow(headerLine).map(c => c.toLowerCase());
+  const sciCol = headerCells.indexOf('scientificname');
+
+  if (sciCol >= 0) {
+    // Proper CSV with scientificName column — extract and strip authors
+    for (let i = 1; i < lines.length; i++) {
+      const cells = parseCsvRow(lines[i]);
+      const raw_sci = cells[sciCol] || '';
+      const cleaned = stripAuthor(raw_sci);
+      if (cleaned) names.push(cleaned);
+    }
+  } else {
+    // Plain text / unknown format
+    for (const l of lines) {
       for (const part of l.split(',')) {
-        const name = part.trim();
+        const name = part.replace(/^"|"$/g, '').trim();
         if (name) names.push(name);
       }
     }
+    // If any entry looks like prose (>4 words), switch to binomial extraction mode
+    const looksLikeProse = names.some(n => n.split(/\s+/).length > 4);
+    if (looksLikeProse) {
+      const extracted = extractBinomialsFromText(raw);
+      names.length = 0;
+      names.push(...extracted);
+    }
   }
 
-  // If any entry looks like prose (>4 words), switch to binomial extraction mode
-  const looksLikeProse = names.some(n => n.split(/\s+/).length > 4);
-  if (looksLikeProse) {
-    const extracted = extractBinomialsFromText(raw);
-    names.length = 0;
-    names.push(...extracted);
-  }
+  // Deduplicate
+  const seen = new Set();
+  const unique = names.filter(n => { const k = n.toLowerCase(); return seen.has(k) ? false : seen.add(k); });
 
-  batchResults = names.map(batchMatch).filter(Boolean);
+  batchResults = unique.map(batchMatch).filter(Boolean);
 
   renderBatchTable(batchResults);
   const matched = batchResults.filter(r => r.matched).length;
