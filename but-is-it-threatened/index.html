@@ -41,12 +41,10 @@
     @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
 
     main {
-      max-width: 780px;
+      max-width: 1100px;
       margin: 2.5rem auto;
       padding: 0 1.25rem;
-      transition: max-width .2s;
     }
-    main.wide { max-width: 1100px; }
 
     /* ── Search ─────────────────────────────────────────── */
     .search-wrap {
@@ -289,17 +287,6 @@
       vertical-align:top;
     }
 
-    /* ── Tabs ───────────────────────────────────────────── */
-    .tabs {
-      display:flex; gap:.5rem; margin-bottom:1.25rem;
-    }
-    .tab-btn {
-      padding:.45rem 1.1rem; border-radius:8px; border:1.5px solid #dde1e9;
-      background:#fff; font-size:.88rem; cursor:pointer; color:#666;
-      transition:background .1s, color .1s, border-color .1s;
-    }
-    .tab-btn.active { background:#1a3a4a; color:#fff; border-color:#1a3a4a; }
-
     /* ── Sensitive name toast ───────────────────────────── */
     #sensitive-toast {
       display:none; position:fixed; top:6rem; left:50%; transform:translateX(-50%);
@@ -316,8 +303,6 @@
     }
 
     /* ── Batch ──────────────────────────────────────────── */
-    #batch-panel { display:none; }
-    #batch-panel.visible { display:block; }
 
     .drop-zone {
       border:2px dashed #cdd3dc; border-radius:10px;
@@ -408,19 +393,14 @@
 
 <header>
   <div>
-    <h1>but is it threatened? <span style="font-size:0.65rem;font-weight:400;opacity:0.4;letter-spacing:0.05em;">v1.51</span></h1>
+    <h1>but is it threatened? <span style="font-size:0.65rem;font-weight:400;opacity:0.4;letter-spacing:0.05em;">v1.52</span></h1>
     <p>NZOR names · NZTCS conservation status</p>
   </div>
   <div id="dot" class="status-dot loading" title="Loading NZTCS data…"></div>
 </header>
 
 <main>
-  <div class="tabs">
-    <button class="tab-btn active" id="tab-search" onclick="switchTab('search')">Search</button>
-    <button class="tab-btn" id="tab-batch" onclick="switchTab('batch')">Batch lookup</button>
-  </div>
-
-  <div id="search-panel">
+  <div id="search-panel" style="display:none">
     <div class="search-wrap">
       <input id="search" type="text"
         placeholder="Search by name — scientific, common, or Māori…"
@@ -429,7 +409,24 @@
       <div id="suggestions" hidden role="listbox"></div>
     </div>
     <div id="detail" hidden></div>
-    <p class="hint" id="hint">Search by scientific name, common name, Māori name, synonym, or NVS 6-letter code — with conservation status from NZTCS.</p>
+  </div>
+
+  <div id="batch-panel">
+    <div class="drop-zone" id="drop-zone">
+      <p><strong>Drag &amp; drop a file here</strong></p>
+      <p>CSV, TXT, or PDF — scientific names extracted automatically</p>
+    </div>
+    <textarea id="batch-paste" placeholder="Paste species names (one per line, comma-separated, or any block of text — scientific names will be extracted automatically)…"></textarea>
+    <div class="batch-actions">
+      <button class="btn-primary" id="batch-run" onclick="runBatch()">Match names</button>
+      <button class="btn-secondary" id="batch-clear" onclick="clearBatch()" style="display:none">Clear</button>
+      <button class="btn-secondary" id="batch-hide-unmatched" onclick="toggleHideUnmatched()" style="display:none">Hide unmatched</button>
+      <button class="btn-secondary" id="batch-dl" onclick="downloadBatchCSV()" disabled>Download CSV</button>
+      <button class="btn-secondary" id="batch-dl-nvs" onclick="downloadNVSTemplate()" disabled>Download template</button>
+      <button id="batch-looklike" onclick="openInLooklike()" style="display:none">📷 LookLike?</button>
+      <span class="batch-count" id="batch-count"></span>
+    </div>
+    <div id="batch-results"></div>
 
     <details class="nerd-notes" id="nerd-notes">
       <summary>Nerd notes</summary>
@@ -472,24 +469,6 @@
 
       </div>
     </details>
-  </div>
-
-  <div id="batch-panel">
-    <div class="drop-zone" id="drop-zone">
-      <p><strong>Drag &amp; drop a file here</strong></p>
-      <p>CSV, TXT, or PDF — scientific names extracted automatically</p>
-    </div>
-    <textarea id="batch-paste" placeholder="Paste species names (one per line, comma-separated, or any block of text — scientific names will be extracted automatically)…"></textarea>
-    <div class="batch-actions">
-      <button class="btn-primary" id="batch-run" onclick="runBatch()">Match names</button>
-      <button class="btn-secondary" id="batch-clear" onclick="clearBatch()" style="display:none">Clear</button>
-      <button class="btn-secondary" id="batch-hide-unmatched" onclick="toggleHideUnmatched()" style="display:none">Hide unmatched</button>
-      <button class="btn-secondary" id="batch-dl" onclick="downloadBatchCSV()" disabled>Download CSV</button>
-      <button class="btn-secondary" id="batch-dl-nvs" onclick="downloadNVSTemplate()" disabled>Download template</button>
-      <button id="batch-looklike" onclick="openInLooklike()" style="display:none">📷 LookLike?</button>
-      <span class="batch-count" id="batch-count"></span>
-    </div>
-    <div id="batch-results"></div>
   </div>
 </main>
 
@@ -1086,14 +1065,6 @@ function escHtml(s) {
   return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-// ── Tab switching ─────────────────────────────────────────────────────────────
-function switchTab(tab) {
-  document.getElementById('search-panel').style.display = tab === 'search' ? '' : 'none';
-  document.getElementById('batch-panel').classList.toggle('visible', tab === 'batch');
-  document.getElementById('tab-search').classList.toggle('active', tab === 'search');
-  document.getElementById('tab-batch').classList.toggle('active', tab === 'batch');
-  document.querySelector('main').classList.toggle('wide', tab === 'batch');
-}
 
 // ── Drag & drop ───────────────────────────────────────────────────────────────
 const dropZone = document.getElementById('drop-zone');
