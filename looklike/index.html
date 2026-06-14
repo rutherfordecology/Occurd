@@ -296,6 +296,15 @@
     overflow: hidden;
     text-overflow: ellipsis;
   }
+  .resolved-name {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    opacity: 0.65;
+    font-style: italic;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
   .badges {
     display: flex;
     gap: 6px;
@@ -414,7 +423,7 @@
 
 <header>
   <div class="logo"><img src="Logo-long.png" alt="LookLike?"></div>
-  <div class="header-meta" id="header-meta"><span id="header-label">Visual species photo browser · <a href="https://www.rutherfordecology.co.nz/" target="_blank" rel="noopener" class="re-link"><span class="re-by">by </span><span class="re-name">Rutherford</span><span class="re-by"> ecology</span></a></span> <span class="version">v1.14</span></div>
+  <div class="header-meta" id="header-meta"><span id="header-label">Visual species photo browser · <a href="https://www.rutherfordecology.co.nz/" target="_blank" rel="noopener" class="re-link"><span class="re-by">by </span><span class="re-name">Rutherford</span><span class="re-by"> ecology</span></a></span> <span class="version">v1.15</span></div>
   <div id="filter-wrap">
     <input id="filter-input" type="search" placeholder="Filter species…" autocomplete="off">
     <button class="sort-btn active" id="sort-orig" title="Original order">Order</button>
@@ -590,6 +599,7 @@ function createCardSkeleton(name, idx) {
     <div class="card-body">
       <div class="sci-name">${escHtml(name)}</div>
       <div class="common-name">Loading…</div>
+      <div class="resolved-name" style="display:none"></div>
     </div>
     <div class="card-links"></div>`;
   return card;
@@ -623,11 +633,16 @@ async function loadCard(idx) {
   // iNat
   const inatSlot = el.querySelector('[data-slot="inat"]');
   if (inatRes.status === 'fulfilled' && inatRes.value) {
-    const { photoUrl, commonName, taxonId } = inatRes.value;
+    const { photoUrl, commonName, taxonId, resolvedName } = inatRes.value;
     card.commonName = commonName;
     card.inatPhoto = photoUrl;
     card.inatTaxonId = taxonId || null;
     el.querySelector('.common-name').textContent = commonName || '—';
+    if (resolvedName) {
+      const r = el.querySelector('.resolved-name');
+      r.textContent = `→ ${resolvedName}`;
+      r.style.display = '';
+    }
     if (photoUrl) {
       renderPhoto(inatSlot, photoUrl, `${card.name} — iNaturalist`, card.name, commonName);
     } else {
@@ -762,22 +777,39 @@ lightbox.addEventListener('click', (e) => { if (e.target === lightbox) lightbox.
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') lightbox.classList.remove('open'); });
 
 // ─── API fetchers ────────────────────────────────────────────────
-async function fetchINat(name) {
-  const binomial = name.split(/\s+/).slice(0, 2).join(' ');
-  const url = `https://api.inaturalist.org/v1/taxa?q=${encodeURIComponent(binomial)}&rank=species&per_page=5&is_active=true`;
-  const res = await fetch(url);
+async function fetchINatTaxon(binomial, activeOnly) {
+  const params = new URLSearchParams({ q: binomial, rank: 'species', per_page: '5' });
+  if (activeOnly) params.set('is_active', 'true');
+  const res = await fetch(`https://api.inaturalist.org/v1/taxa?${params}`);
   if (!res.ok) return null;
   const data = await res.json();
-  // Require exact scientific name match — iNat taxon swaps can return the wrong
-  // species (e.g. "Carduelis carduelis" returning an American Goldfinch)
-  const taxon = (data.results || []).find(t =>
+  return (data.results || []).find(t =>
     t.name && t.name.toLowerCase() === binomial.toLowerCase()
-  );
+  ) || null;
+}
+
+async function fetchINat(name) {
+  const binomial = name.split(/\s+/).slice(0, 2).join(' ');
+
+  // Try active taxa first (exact name match required to avoid iNat taxon swaps)
+  let taxon = await fetchINatTaxon(binomial, true);
+  let resolvedName = null;
+
+  // If not found, try including inactive taxa — synonyms have a current_taxon pointer
+  if (!taxon) {
+    const inactive = await fetchINatTaxon(binomial, false);
+    if (inactive?.current_taxon) {
+      taxon = inactive.current_taxon;
+      resolvedName = taxon.name; // accepted name differs from searched name
+    }
+  }
+
   if (!taxon) return null;
   return {
     photoUrl: taxon.default_photo?.medium_url || null,
     commonName: taxon.preferred_common_name || taxon.english_common_name || '',
     taxonId: taxon.id,
+    resolvedName,
   };
 }
 
