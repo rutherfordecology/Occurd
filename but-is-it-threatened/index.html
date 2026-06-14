@@ -404,7 +404,7 @@
 
 <header>
   <div>
-    <h1>but is it threatened? <span style="font-size:0.65rem;font-weight:400;opacity:0.4;letter-spacing:0.05em;">v1.44</span></h1>
+    <h1>but is it threatened? <span style="font-size:0.65rem;font-weight:400;opacity:0.4;letter-spacing:0.05em;">v1.45</span></h1>
     <p>NZOR names · NZTCS conservation status</p>
   </div>
   <div id="dot" class="status-dot loading" title="Loading NZTCS data…"></div>
@@ -472,8 +472,8 @@
 
   <div id="batch-panel">
     <div class="drop-zone" id="drop-zone">
-      <p><strong>Drag &amp; drop a CSV or text file here</strong></p>
-      <p>One name per row — any column, any name type (scientific, common, Māori, synonym)</p>
+      <p><strong>Drag &amp; drop a file here</strong></p>
+      <p>CSV, TXT, or PDF — scientific names extracted automatically</p>
     </div>
     <textarea id="batch-paste" placeholder="Paste species names (one per line, comma-separated, or any block of text — scientific names will be extracted automatically)…"></textarea>
     <div class="batch-actions">
@@ -1088,7 +1088,7 @@ const batchPaste = document.getElementById('batch-paste');
 
 dropZone.addEventListener('click', () => {
   const inp = document.createElement('input');
-  inp.type = 'file'; inp.accept = '.csv,.txt,.tsv';
+  inp.type = 'file'; inp.accept = '.csv,.txt,.tsv,.pdf';
   inp.onchange = e => loadFile(e.target.files[0]);
   inp.click();
 });
@@ -1099,10 +1099,39 @@ dropZone.addEventListener('drop', e => {
   if (e.dataTransfer.files[0]) loadFile(e.dataTransfer.files[0]);
 });
 
-function loadFile(file) {
-  const reader = new FileReader();
-  reader.onload = e => { batchPaste.value = e.target.result; };
-  reader.readAsText(file);
+async function loadFile(file) {
+  if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
+    dropZone.querySelector('p').textContent = 'Reading PDF…';
+    try {
+      const pdfjsLib = await loadPdfJs();
+      const arrayBuffer = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      const pages = [];
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const content = await page.getTextContent();
+        pages.push(content.items.map(item => item.str).join(' '));
+      }
+      batchPaste.value = pages.join('\n');
+    } catch(e) {
+      alert('Could not read PDF: ' + e.message);
+    }
+    dropZone.querySelector('p').textContent = 'Drag & drop a file here';
+  } else {
+    const reader = new FileReader();
+    reader.onload = e => { batchPaste.value = e.target.result; };
+    reader.readAsText(file);
+  }
+}
+
+let _pdfJs = null;
+async function loadPdfJs() {
+  if (_pdfJs) return _pdfJs;
+  const mod = await import('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.min.mjs');
+  mod.GlobalWorkerOptions.workerSrc =
+    'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.worker.min.mjs';
+  _pdfJs = mod;
+  return mod;
 }
 
 // ── Batch match ───────────────────────────────────────────────────────────────
