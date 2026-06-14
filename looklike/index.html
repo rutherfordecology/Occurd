@@ -423,7 +423,7 @@
 
 <header>
   <div class="logo"><img src="Logo-long.png" alt="LookLike?"></div>
-  <div class="header-meta" id="header-meta"><span id="header-label">Visual species photo browser · <a href="https://www.rutherfordecology.co.nz/" target="_blank" rel="noopener" class="re-link"><span class="re-by">by </span><span class="re-name">Rutherford</span><span class="re-by"> ecology</span></a></span> <span class="version">v1.20</span></div>
+  <div class="header-meta" id="header-meta"><span id="header-label">Visual species photo browser · <a href="https://www.rutherfordecology.co.nz/" target="_blank" rel="noopener" class="re-link"><span class="re-by">by </span><span class="re-name">Rutherford</span><span class="re-by"> ecology</span></a></span> <span class="version">v1.21</span></div>
   <div id="filter-wrap">
     <input id="filter-input" type="search" placeholder="Filter species…" autocomplete="off">
     <button class="sort-btn active" id="sort-orig" title="Original order">Order</button>
@@ -847,7 +847,7 @@ async function fetchINat(name) {
 
   if (!taxon) return null;
   return {
-    photoUrl: taxon.default_photo?.medium_url || null,
+    photoUrl: fixInatUrl(taxon.default_photo?.medium_url),
     commonName: taxon.preferred_common_name || taxon.english_common_name || '',
     taxonId: taxon.id,
     resolvedName,
@@ -930,6 +930,12 @@ function sourceLink(rec) {
   buildGrid(names);
   showGallery();
 })();
+
+// Some older iNat photos return "medium." with no extension — S3 needs "medium.jpeg"
+function fixInatUrl(url) {
+  if (!url) return null;
+  return url.endsWith('.') ? url + 'jpeg' : url;
+}
 
 // Match epithets that differ only by Latin gender ending (e.g. spectabile / spectabilis)
 function latinSameEpithet(a, b) {

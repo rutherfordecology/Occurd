@@ -408,7 +408,7 @@
 
 <header>
   <div>
-    <h1>but is it threatened? <span style="font-size:0.65rem;font-weight:400;opacity:0.4;letter-spacing:0.05em;">v1.47</span></h1>
+    <h1>but is it threatened? <span style="font-size:0.65rem;font-weight:400;opacity:0.4;letter-spacing:0.05em;">v1.48</span></h1>
     <p>NZOR names · NZTCS conservation status</p>
   </div>
   <div id="dot" class="status-dot loading" title="Loading NZTCS data…"></div>
@@ -483,6 +483,7 @@
     <div class="batch-actions">
       <button class="btn-primary" id="batch-run" onclick="runBatch()">Match names</button>
       <button class="btn-secondary" id="batch-clear" onclick="clearBatch()" style="display:none">Clear</button>
+      <button class="btn-secondary" id="batch-hide-unmatched" onclick="toggleHideUnmatched()" style="display:none">Hide unmatched</button>
       <button class="btn-secondary" id="batch-dl" onclick="downloadBatchCSV()" disabled>Download CSV</button>
       <button class="btn-secondary" id="batch-dl-nvs" onclick="downloadNVSTemplate()" disabled>Download template</button>
       <button id="batch-looklike" onclick="openInLooklike()" style="display:none">📷 LookLike?</button>
@@ -1259,6 +1260,11 @@ function runBatch() {
   document.getElementById('batch-dl-nvs').disabled = matched === 0;
   document.getElementById('batch-looklike').style.display = matched > 0 ? '' : 'none';
   document.getElementById('batch-clear').style.display = '';
+  const hasUnmatched = batchResults.some(r => !r.matched || r._ambiguous);
+  const hideBtn = document.getElementById('batch-hide-unmatched');
+  hideBtn.style.display = hasUnmatched ? '' : 'none';
+  hideBtn.textContent = 'Hide unmatched';
+  hideUnmatched = false;
   updateLooklikeBtn();
   // Update LookLike button count whenever a checkbox changes
   document.getElementById('batch-results').addEventListener('change', e => {
@@ -1306,7 +1312,8 @@ function sortedResults(results) {
 
 function renderBatchTable(results) {
   if (!results.length) { document.getElementById('batch-results').innerHTML = ''; return; }
-  const sorted = sortedResults(results);
+  const filtered = hideUnmatched ? results.filter(r => r.matched && !r._ambiguous) : results;
+  const sorted = sortedResults(filtered);
   const rows = sorted.map((r) => {
     const origIdx = batchResults.indexOf(r);
     if (!r.matched) {
@@ -1372,6 +1379,14 @@ function updateLooklikeBtn() {
     : `📷 LookLike? (${checked} selected)`;
 }
 
+let hideUnmatched = false;
+function toggleHideUnmatched() {
+  hideUnmatched = !hideUnmatched;
+  const btn = document.getElementById('batch-hide-unmatched');
+  btn.textContent = hideUnmatched ? 'Show unmatched' : 'Hide unmatched';
+  renderBatchTable(batchResults);
+}
+
 function clearBatch() {
   batchPaste.value = '';
   batchResults = [];
@@ -1381,6 +1396,8 @@ function clearBatch() {
   document.getElementById('batch-dl-nvs').disabled = true;
   document.getElementById('batch-looklike').style.display = 'none';
   document.getElementById('batch-clear').style.display = 'none';
+  document.getElementById('batch-hide-unmatched').style.display = 'none';
+  hideUnmatched = false;
 }
 
 function openInLooklike() {
