@@ -423,7 +423,7 @@
 
 <header>
   <div class="logo"><img src="Logo-long.png" alt="LookLike?"></div>
-  <div class="header-meta" id="header-meta"><span id="header-label">Visual species photo browser · <a href="https://www.rutherfordecology.co.nz/" target="_blank" rel="noopener" class="re-link"><span class="re-by">by </span><span class="re-name">Rutherford</span><span class="re-by"> ecology</span></a></span> <span class="version">v1.21</span></div>
+  <div class="header-meta" id="header-meta"><span id="header-label">Visual species photo browser · <a href="https://www.rutherfordecology.co.nz/" target="_blank" rel="noopener" class="re-link"><span class="re-by">by </span><span class="re-name">Rutherford</span><span class="re-by"> ecology</span></a></span> <span class="version">v1.22</span></div>
   <div id="filter-wrap">
     <input id="filter-input" type="search" placeholder="Filter species…" autocomplete="off">
     <button class="sort-btn active" id="sort-orig" title="Original order">Order</button>
@@ -909,7 +909,7 @@ function sourceLink(rec) {
   const params = new URLSearchParams(window.location.search);
   const s = params.get('s');
   if (!s) return;
-  const names = s.split('|').map(n => decodeURIComponent(n).trim()).filter(Boolean);
+  const names = [...new Set(s.split('|').map(n => decodeURIComponent(n).trim()).filter(Boolean))];
   if (!names.length) return;
 
   // Try to load exact record data from localStorage

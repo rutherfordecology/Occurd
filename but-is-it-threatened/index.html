@@ -408,7 +408,7 @@
 
 <header>
   <div>
-    <h1>but is it threatened? <span style="font-size:0.65rem;font-weight:400;opacity:0.4;letter-spacing:0.05em;">v1.48</span></h1>
+    <h1>but is it threatened? <span style="font-size:0.65rem;font-weight:400;opacity:0.4;letter-spacing:0.05em;">v1.49</span></h1>
     <p>NZOR names · NZTCS conservation status</p>
   </div>
   <div id="dot" class="status-dot loading" title="Loading NZTCS data…"></div>
@@ -1401,9 +1401,11 @@ function clearBatch() {
 }
 
 function openInLooklike() {
+  const seen = new Set();
   const names = [];
   document.querySelectorAll('.batch-cb:checked').forEach(cb => {
-    if (cb.dataset.sci) names.push(cb.dataset.sci);
+    const sci = cb.dataset.sci;
+    if (sci && !seen.has(sci)) { seen.add(sci); names.push(sci); }
   });
   if (!names.length) { alert('Tick at least one species first.'); return; }
   const url = 'https://occurd.rutherfordecology.co.nz/looklike/?v=' + Date.now() + '&s=' + names.map(s => encodeURIComponent(s)).join('%7C');
