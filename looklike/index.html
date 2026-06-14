@@ -67,6 +67,18 @@
     width: 200px;
   }
   #filter-input:focus { outline: none; border-color: var(--accent); }
+  .sort-btn {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    border-radius: 6px;
+    padding: 5px 10px;
+    font-size: 0.78rem;
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s;
+  }
+  .sort-btn.active { border-color: var(--accent); color: var(--accent); }
+  .sort-btn:hover { border-color: var(--accent); color: var(--accent); }
   #back-btn {
     display: none;
     background: none;
@@ -402,9 +414,11 @@
 
 <header>
   <div class="logo"><img src="Logo-long.png" alt="LookLike?"></div>
-  <div class="header-meta" id="header-meta"><span id="header-label">Visual species photo browser · <a href="https://www.rutherfordecology.co.nz/" target="_blank" rel="noopener" class="re-link"><span class="re-by">by </span><span class="re-name">Rutherford</span><span class="re-by"> ecology</span></a></span> <span class="version">v1.13</span></div>
+  <div class="header-meta" id="header-meta"><span id="header-label">Visual species photo browser · <a href="https://www.rutherfordecology.co.nz/" target="_blank" rel="noopener" class="re-link"><span class="re-by">by </span><span class="re-name">Rutherford</span><span class="re-by"> ecology</span></a></span> <span class="version">v1.14</span></div>
   <div id="filter-wrap">
     <input id="filter-input" type="search" placeholder="Filter species…" autocomplete="off">
+    <button class="sort-btn active" id="sort-orig" title="Original order">Order</button>
+    <button class="sort-btn" id="sort-az" title="Sort A–Z">A–Z</button>
   </div>
   <button id="back-btn">← Edit list</button>
 </header>
@@ -424,7 +438,7 @@
 
 <!-- Gallery -->
 <div id="gallery">
-  <div class="gallery-about">
+  <div class="gallery-about" id="gallery-about">
     <strong>Left photo</strong> — iNaturalist taxon photo (representative image for the species) &nbsp;·&nbsp;
     <strong>Right photo</strong> — GBIF occurrence record photo (an actual field or museum record). Use ‹ › to cycle through record photos. Click any photo to enlarge.
     <br><span style="opacity:0.6;font-size:0.72rem;">Photos are sourced via the iNaturalist and GBIF APIs. Licences vary by record and institution — photos are displayed for identification reference only. Verify licence terms via the source links before reproducing.</span>
@@ -505,9 +519,42 @@ filterInput.addEventListener('input', () => {
   }
 });
 
+// ─── Sort ────────────────────────────────────────────────────────
+let sortOrder = 'original';
+const sortOrigBtn = document.getElementById('sort-orig');
+const sortAzBtn   = document.getElementById('sort-az');
+
+function applySort() {
+  const cards = [...state.cards].filter(c => c.el);
+  if (sortOrder === 'az') {
+    cards.sort((a, b) => a.name.localeCompare(b.name));
+  } else {
+    cards.sort((a, b) => a.origIdx - b.origIdx);
+  }
+  cards.forEach(c => grid.appendChild(c.el));
+}
+
+sortOrigBtn.addEventListener('click', () => {
+  sortOrder = 'original';
+  sortOrigBtn.classList.add('active');
+  sortAzBtn.classList.remove('active');
+  applySort();
+});
+sortAzBtn.addEventListener('click', () => {
+  sortOrder = 'az';
+  sortAzBtn.classList.add('active');
+  sortOrigBtn.classList.remove('active');
+  applySort();
+});
+
 // ─── Grid builder ────────────────────────────────────────────────
 function buildGrid(names) {
   headerLabel.textContent = `${names.length} species`;
+
+  // Show explainer only when there are handoff records (dual-photo mode)
+  const hasHandoff = state.handoff && Object.keys(state.handoff).length > 0;
+  document.getElementById('gallery-about').style.display = hasHandoff ? '' : 'none';
+
   const observer = new IntersectionObserver((entries) => {
     for (const entry of entries) {
       if (entry.isIntersecting) {
@@ -520,7 +567,7 @@ function buildGrid(names) {
 
   names.forEach((name, idx) => {
     const card = createCardSkeleton(name, idx);
-    state.cards.push({ name, el: card, commonName: '', inatPhoto: null, gbifPhotos: [], gbifIdx: 0 });
+    state.cards.push({ name, el: card, commonName: '', inatPhoto: null, gbifPhotos: [], gbifIdx: 0, origIdx: idx });
     grid.appendChild(card);
     observer.observe(card);
   });
@@ -535,11 +582,9 @@ function createCardSkeleton(name, idx) {
     <div class="photos-row">
       <div class="photo-slot" data-slot="inat">
         <div class="skeleton"></div>
-        <span class="slot-label">iNat</span>
       </div>
       <div class="photo-slot" data-slot="gbif">
         <div class="skeleton"></div>
-        <span class="slot-label">GBIF</span>
       </div>
     </div>
     <div class="card-body">
@@ -609,7 +654,7 @@ async function loadCard(idx) {
 
 // ─── Render helpers ──────────────────────────────────────────────
 function renderPhoto(slot, url, alt, sciName, commonName) {
-  slot.innerHTML = `<span class="slot-label">${slot.dataset.slot === 'inat' ? 'iNat' : 'GBIF'}</span>`;
+  slot.innerHTML = '';
   const img = document.createElement('img');
   img.src = url;
   img.alt = alt;
@@ -626,7 +671,7 @@ function renderGBIFSlot(card, slot) {
   const photos = card.gbifPhotos;
   const idx = card.gbifIdx;
   const photo = photos[idx];
-  slot.innerHTML = `<span class="slot-label">GBIF</span>`;
+  slot.innerHTML = '';
 
   const img = document.createElement('img');
   img.src = photo.url;
@@ -680,21 +725,14 @@ function updateCardLinks(card) {
     ? `https://www.gbif.org/occurrence/${photo.gbifID}` : null;
 
   let html = '';
-  if (gbifHref) {
-    html += `<a href="${gbifHref}" target="_blank" rel="noopener">GBIF record ↗</a>`;
-  } else {
-    const searchHref = `https://www.gbif.org/occurrence/search?scientificName=${encodeURIComponent(card.name)}`;
-    html += `<a href="${searchHref}" target="_blank" rel="noopener">GBIF occurrences ↗</a>`;
-  }
+  if (gbifHref) html += `<a href="${gbifHref}" target="_blank" rel="noopener">GBIF record ↗</a>`;
   if (src) html += `<a href="${escHtml(src.url)}" target="_blank" rel="noopener">${escHtml(src.label)} ↗</a>`;
   linksEl.innerHTML = html;
-  linksEl.style.display = '';
+  linksEl.style.display = html ? '' : 'none';
 }
 
 function renderNoPhoto(slot) {
-  const label = slot.dataset.slot === 'inat' ? 'iNat' : 'GBIF';
   slot.innerHTML = `
-    <span class="slot-label">${label}</span>
     <div class="no-photo">
       <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
         <rect x="3" y="3" width="18" height="18" rx="3"/>
