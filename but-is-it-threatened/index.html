@@ -422,7 +422,7 @@
 <header>
   <div class="header-logo"><img src="logo.png" alt=""></div>
   <div class="header-meta">
-    <h1>but is it threatened? <span style="font-size:0.65rem;font-weight:400;opacity:0.4;letter-spacing:0.05em;">v1.56</span></h1>
+    <h1>but is it threatened? <span style="font-size:0.65rem;font-weight:400;opacity:0.4;letter-spacing:0.05em;">v1.57</span></h1>
     <p>NZOR names · NZTCS status · by <a href="https://www.rutherfordecology.co.nz/" target="_blank" rel="noopener" class="re-link">Rutherford ecology</a></p>
   </div>
   <a class="bmc-btn" href="https://buymeacoffee.com/rutherfordecology" target="_blank" rel="noopener">☕ Buy me a coffee</a>
@@ -1538,12 +1538,11 @@ function openInLooklike() {
     if (sci && !seen.has(sci)) { seen.add(sci); names.push(sci); }
   });
   if (!names.length) { alert('Tick at least one species first.'); return; }
+  const ts = Date.now();
   try {
-    localStorage.setItem('looklike_names', JSON.stringify({ names, ts: Date.now() }));
+    localStorage.setItem('looklike_names', JSON.stringify({ names, ts }));
   } catch(e) {}
-  const sParam = names.map(n => encodeURIComponent(n)).join('|');
-  const url = 'https://occurd.rutherfordecology.co.nz/looklike/?s=' + sParam;
-  window.open(url, '_blank');
+  window.open('https://occurd.rutherfordecology.co.nz/looklike/?v=' + ts, '_blank');
 }
 
 // ── Download CSV ──────────────────────────────────────────────────────────────
