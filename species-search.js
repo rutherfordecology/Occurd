@@ -1,11 +1,11 @@
-// ── Single species search ──────────────────────────────────────────────────────
-// Handles the species field (NZOR + NVS + Samoa autocomplete), location gate,
+// ── NZ species search ─────────────────────────────────────────────────────────
+// Handles the NZ species field (NZOR + NVS autocomplete), NZ gate,
 // and exposes window._nzorSearch / window._nvsSearch for the taxonomy browser.
 (function() {
   const NZ_BOUNDS    = { minLat: -52, maxLat: -29, minLng: 163, maxLng: 180 };
   const SAMOA_BOUNDS = { minLat: -15.0, maxLat: -13.0, minLng: -173.5, maxLng: -168.0 };
-  const NZOR_URL        = 'but-is-it-threatened/nzor_names.json';
-  const NVS_URL         = 'but-is-it-threatened/nvs.json';
+  const NZOR_URL        = '../but-is-it-threatened/nzor_names.json';
+  const NVS_URL         = '../but-is-it-threatened/nvs.json';
   const SAMOA_NAMES_URL = 'samoa_names.json';
 
   const field  = document.getElementById('spField');
@@ -311,7 +311,7 @@
       let resolvedKey = null;
       try {
         // Primary: species/match — only accept if it actually returned a GENUS rank
-        const r = await fetch('https://api.gbif.org/v1/species/match?verbose=false&rank=GENUS&name=' + encodeURIComponent(genusName));
+        const r = await gbifFetch('https://api.gbif.org/v1/species/match?verbose=false&rank=GENUS&name=' + encodeURIComponent(genusName));
         if (r.ok) {
           const j = await r.json();
           if (j.usageKey && j.rank === 'GENUS' && j.matchType !== 'NONE') {
@@ -322,7 +322,7 @@
       if (!resolvedKey) {
         // Fallback: backbone suggest API — look for an exact canonical name match at genus rank
         try {
-          const r2 = await fetch('https://api.gbif.org/v1/species/suggest?datasetKey=d7dddbf4-2cf0-4f39-9b2a-bb099caae36c&rank=GENUS&q=' + encodeURIComponent(genusName) + '&limit=10');
+          const r2 = await gbifFetch('https://api.gbif.org/v1/species/suggest?datasetKey=d7dddbf4-2cf0-4f39-9b2a-bb099caae36c&rank=GENUS&q=' + encodeURIComponent(genusName) + '&limit=10');
           if (r2.ok) {
             const arr = await r2.json();
             const exact = arr.find(x => x.rank === 'GENUS' && x.canonicalName &&
@@ -355,7 +355,7 @@
     // Resolve GBIF taxon key
     let resolvedKey = null;
     try {
-      const r = await fetch('https://api.gbif.org/v1/species/match?verbose=false&name=' + encodeURIComponent(sciName));
+      const r = await gbifFetch('https://api.gbif.org/v1/species/match?verbose=false&name=' + encodeURIComponent(sciName));
       if (r.ok) {
         const j = await r.json();
         resolvedKey = j.usageKey || j.speciesKey || null;

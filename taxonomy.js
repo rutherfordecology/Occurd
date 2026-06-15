@@ -136,9 +136,22 @@
   // ── State ─────────────────────────────────────────────────────────────────
   const NUM_COLS = 7;    // number of Miller columns
 
-  const taxoCache    = {};   // parentKey → rank-filtered ACCEPTED children, sorted (no NZ filter)
+  const taxoCache    = {};   // parentKey → rank-filtered ACCEPTED children, sorted (no geo filter)
   const taxoInFlight = {};   // parentKey → Promise — prevents duplicate fetches without a [] sentinel
-  const nzCache      = {};   // 'root' | taxonKey → Map<key,count> or null
+  const nzCache      = {};   // 'CC:root' | 'CC:taxonKey' → Map<key,count> or null (CC = country code)
+
+  const NZ_BOUNDS_T    = { minLat: -52, maxLat: -29, minLng: 163, maxLng: 180 };
+  const SAMOA_BOUNDS_T = { minLat: -15.0, maxLat: -13.0, minLng: -173.5, maxLng: -168.0 };
+
+  function getActiveCountry() {
+    const c = map.getCenter();
+    const lng = ((c.lng + 180) % 360 + 360) % 360 - 180;
+    if (c.lat >= NZ_BOUNDS_T.minLat && c.lat <= NZ_BOUNDS_T.maxLat &&
+        lng    >= NZ_BOUNDS_T.minLng && lng    <= NZ_BOUNDS_T.maxLng) return 'NZ';
+    if (c.lat >= SAMOA_BOUNDS_T.minLat && c.lat <= SAMOA_BOUNDS_T.maxLat &&
+        lng    >= SAMOA_BOUNDS_T.minLng && lng    <= SAMOA_BOUNDS_T.maxLng) return 'WS';
+    return null;
+  }
 
   // ── Taxonomy cache persistence (localStorage, 7-day TTL) ────────────────
   const LS_TAXO_KEY    = 'occurd_taxoCache_v1';
@@ -258,10 +271,14 @@
       nameSpan.textContent = name;
       textGroup.appendChild(nameSpan);
 
-      // Common name — species only; NZOR first (NZ-specific), fall back to GBIF vernacularName
+      // Common name — species only; local names first (NZOR for NZ, Samoa names for WS), fall back to GBIF
       if (node.rank === 'SPECIES') {
-        let common = (typeof window.getNzorVernacular === 'function')
-          ? window.getNzorVernacular(name) : '';
+        const cc = getActiveCountry();
+        let common = '';
+        if (cc === 'WS' && typeof window.getSamoaVernacular === 'function')
+          common = window.getSamoaVernacular(name);
+        if (!common && typeof window.getNzorVernacular === 'function')
+          common = window.getNzorVernacular(name);
         // GBIF backbone includes vernacularName on some species — use as fallback
         // Apply ASCII+macron filter so non-English names (é, ñ, etc.) are excluded
         if (!common && node.vernacularName &&
@@ -342,7 +359,7 @@
     const mySeq = ++_jumpSeq;
 
     try {
-      const res = await fetch('https://api.gbif.org/v1/species/' + anchor.key + '/parents');
+      const res = await gbifFetch('https://api.gbif.org/v1/species/' + anchor.key + '/parents');
       if (!res.ok || _jumpSeq !== mySeq) return;
       const parents = await res.json();
       if (_jumpSeq !== mySeq) return;
@@ -449,20 +466,22 @@
     }
   }
 
-  // Fetch child taxon keys that have NZ occurrence records, with their record counts.
-  // parentKey=null → root level (uses kingdomKey facet with no taxon filter).
-  // Returns a Map<string, number> (key → NZ occurrence count), or null on failure.
+  // Fetch child taxon keys that have occurrence records in the active country (NZ or WS),
+  // with their record counts. parentKey=null → root level.
+  // Returns a Map<string, number> (key → count), or null on failure / no active country.
   async function getGeoKeys(parentKey, parentRank) {
-    const cacheKey = parentKey || 'root';
+    const cc = getActiveCountry();
+    if (!cc) return null;
+    const cacheKey = cc + ':' + (parentKey || 'root');
     if (nzCache[cacheKey] !== undefined) return nzCache[cacheKey];
     let facetField, baseUrl;
     if (!parentKey) {
       facetField = 'kingdomKey';
-      baseUrl    = 'https://api.gbif.org/v1/occurrence/search?country=NZ&limit=0';
+      baseUrl    = 'https://api.gbif.org/v1/occurrence/search?country=' + cc + '&limit=0';
     } else {
       facetField = RANK_TO_CHILD_FACET[parentRank];
       if (!facetField) { nzCache[cacheKey] = null; return null; }
-      baseUrl = 'https://api.gbif.org/v1/occurrence/search?country=NZ&taxonKey='+parentKey+'&limit=0';
+      baseUrl = 'https://api.gbif.org/v1/occurrence/search?country=' + cc + '&taxonKey=' + parentKey + '&limit=0';
     }
     try {
       const res = await fetch(baseUrl + '&facet=' + facetField + '&facetLimit=1000&facetMincount=1');
@@ -473,7 +492,7 @@
       saveNZCacheToStorage();
       return counts;
     } catch(e) {
-      nzCache[cacheKey] = null; // fallback: no filter
+      nzCache[cacheKey] = null;
       return null;
     }
   }
@@ -491,7 +510,7 @@
         const all = [];
         let offset = 0;
         while (true) {
-          const res = await fetch('https://api.gbif.org/v1/species/' + parentKey + '/children?limit=200&offset=' + offset);
+          const res = await gbifFetch('https://api.gbif.org/v1/species/' + parentKey + '/children?limit=200&offset=' + offset);
           if (!res.ok) throw new Error('HTTP ' + res.status);
           const j = await res.json();
           (j.results || []).forEach(x => {
@@ -576,8 +595,9 @@
       if (!children) { hideLoadingPhrase(); cols[ci] = []; renderCol(ci); return; }
     }
 
-    // Final render with complete results + NZ filter if cached
-    const cachedNZ = nzCache[key];
+    // Final render with complete results + geo filter if cached
+    const _cc = getActiveCountry();
+    const cachedNZ = _cc ? nzCache[_cc + ':' + (key || 'root')] : undefined;
     cols[ci] = (cachedNZ !== undefined) ? nzFilterAndCount(children, cachedNZ) : children;
     renderCol(ci);
     updateHint();
@@ -801,18 +821,18 @@
     drop.innerHTML = '<div class="miller-sug-msg">Searching…</div>';
     drop.style.display = '';
 
-    // Phase 1 — local search (NZOR + NVS are in-memory lookups, no network)
-    const [nzorResults, nvsResults] = await Promise.all([searchNzor(q), searchNvsForTaxo(q)]);
+    // Phase 1 — local search (NZOR + NVS + Samoa are in-memory lookups, no network)
+    const [nzorResults, nvsResults, samoaResults] = await Promise.all([searchNzor(q), searchNvsForTaxo(q), searchSamoaForTaxo(q)]);
     if (_searchSeq !== mySeq) return;
 
-    const initial = _mergeSearchResults([...nzorResults, ...nvsResults], q);
+    const initial = _mergeSearchResults([...samoaResults, ...nzorResults, ...nvsResults], q);
     if (initial.length > 0) showMillerDrop(initial);
 
     // Phase 2 — GBIF search (network, slower)
     const [gbifResults, gbifFullResults] = await Promise.all([searchGbif(q), searchGbifFull(q)]);
     if (_searchSeq !== mySeq) return;
 
-    const all = _mergeSearchResults([...nzorResults, ...nvsResults, ...gbifFullResults, ...gbifResults], q);
+    const all = _mergeSearchResults([...samoaResults, ...nzorResults, ...nvsResults, ...gbifFullResults, ...gbifResults], q);
     showMillerDrop(all);
   }
 
@@ -828,6 +848,19 @@
       gbifKey:  null,
       nzorData: null,
       nvsSci:   h.sci,
+    }));
+  }
+
+  async function searchSamoaForTaxo(q) {
+    if (typeof window._samoaSearch !== 'function') return [];
+    const hits = window._samoaSearch(q).slice(0, 20);
+    return hits.map(h => ({
+      type:     'vernacular',
+      display:  h.samoan || h.english,
+      subLabel: h.sci || '',
+      rank:     (h.sci && h.sci.trim().split(/\s+/).length === 2) ? 'Species' : '',
+      gbifKey:  null,
+      nzorData: { cls: 'samoa', n: h.samoan || h.english, sci: h.sci },
     }));
   }
 
@@ -979,8 +1012,8 @@
     showLoadingPhrase();
     try {
       const [taxonRes, parentsRes] = await Promise.all([
-        fetch('https://api.gbif.org/v1/species/' + gbifKey),
-        fetch('https://api.gbif.org/v1/species/' + gbifKey + '/parents'),
+        gbifFetch('https://api.gbif.org/v1/species/' + gbifKey),
+        gbifFetch('https://api.gbif.org/v1/species/' + gbifKey + '/parents'),
       ]);
       if (!taxonRes.ok || !parentsRes.ok) return;
       const taxon   = await taxonRes.json();
@@ -1064,8 +1097,9 @@
       const lastChildren = await fetchTaxoChildren(lastSrc.key);
       if (_jumpSeq !== mySeq) return;
 
-      // Apply cached NZ if already available (from a prior search of the same taxa)
-      const cachedLastNZ = nzCache[lastSrc.key];
+      // Apply cached geo filter if already available (from a prior search of the same taxa)
+      const _cc2 = getActiveCountry();
+      const cachedLastNZ = _cc2 ? nzCache[_cc2 + ':' + lastSrc.key] : undefined;
       cols[NUM_COLS - 1] = (cachedLastNZ !== undefined)
         ? nzFilterAndCount(lastChildren, cachedLastNZ)
         : lastChildren;
