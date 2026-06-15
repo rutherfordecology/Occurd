@@ -45,7 +45,7 @@
       <img src="occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v5.64</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v5.65</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -5757,7 +5757,7 @@ if (window._pendingShare) {
   </div>
   <div class="changelog-scroll" id="changelogScroll">
     <div class="changelog-version">
-      <span class="changelog-version-tag">v5.64</span>
+      <span class="changelog-version-tag">v5.65</span>
       <span class="changelog-date">Jun 2026</span>
       <ul>
         <li>but is it threatened? v1.56 — fix LookLike handoff: pass species names via URL param (?s=) so handoff works even if localStorage is unavailable</li>
@@ -5765,6 +5765,7 @@ if (window._pendingShare) {
         <li>vn: cache auto-eviction — cap at 300 entries (evict oldest first), reduce TTL from 30 to 7 days to prevent quota from filling again</li>
         <li>LookLike v1.26 — GBIF photo fallback when iNat returns no photo, reducing "No photo" cards</li>
         <li>but is it threatened? v1.57 — revert ?s= URL handoff to localStorage (URL was too long for large species lists)</li>
+        <li>LookLike v1.27 — replace Order button with Taxonomic sort (groups by Plantae, Fungi, then vertebrate classes); A–Z is now the default</li>
       </ul>
     </div>
     <div class="changelog-version">

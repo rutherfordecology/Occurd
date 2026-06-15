@@ -437,12 +437,12 @@
 
 <header>
   <div class="logo"><img src="Logo-long.png" alt="LookLike?"></div>
-  <div class="header-meta" id="header-meta"><span id="header-label">Visual species photo browser · <a href="https://www.rutherfordecology.co.nz/" target="_blank" rel="noopener" class="re-link"><span class="re-by">by </span><span class="re-name">Rutherford</span><span class="re-by"> ecology</span></a></span> <span class="version">v1.26</span></div>
+  <div class="header-meta" id="header-meta"><span id="header-label">Visual species photo browser · <a href="https://www.rutherfordecology.co.nz/" target="_blank" rel="noopener" class="re-link"><span class="re-by">by </span><span class="re-name">Rutherford</span><span class="re-by"> ecology</span></a></span> <span class="version">v1.27</span></div>
   <a class="bmc-btn" href="https://buymeacoffee.com/rutherfordecology" target="_blank" rel="noopener">☕ Buy me a coffee</a>
   <div id="filter-wrap">
     <input id="filter-input" type="search" placeholder="Filter species…" autocomplete="off">
-    <button class="sort-btn active" id="sort-orig" title="Original order">Order</button>
-    <button class="sort-btn" id="sort-az" title="Sort A–Z">A–Z</button>
+    <button class="sort-btn active" id="sort-az" title="Sort A–Z">A–Z</button>
+    <button class="sort-btn" id="sort-tax" title="Taxonomic order">Taxonomic</button>
   </div>
   <button id="back-btn">← Edit list</button>
 </header>
@@ -544,30 +544,40 @@ filterInput.addEventListener('input', () => {
 });
 
 // ─── Sort ────────────────────────────────────────────────────────
-let sortOrder = 'original';
-const sortOrigBtn = document.getElementById('sort-orig');
-const sortAzBtn   = document.getElementById('sort-az');
+let sortOrder = 'az';
+const sortAzBtn  = document.getElementById('sort-az');
+const sortTaxBtn = document.getElementById('sort-tax');
+
+// Taxonomic group rank order (Plantae first for NZ ecology context)
+const ICONIC_RANK = ['Plantae','Fungi','Chromista','Protozoa','Mollusca','Annelida','Arachnida','Insecta','Actinopterygii','Amphibia','Reptilia','Aves','Mammalia','Animalia'];
 
 function applySort() {
   const cards = [...state.cards].filter(c => c.el);
-  if (sortOrder === 'az') {
-    cards.sort((a, b) => a.name.localeCompare(b.name));
+  if (sortOrder === 'taxonomic') {
+    cards.sort((a, b) => {
+      const ra = ICONIC_RANK.indexOf(a.iconicTaxon || '');
+      const rb = ICONIC_RANK.indexOf(b.iconicTaxon || '');
+      const ia = ra === -1 ? 999 : ra;
+      const ib = rb === -1 ? 999 : rb;
+      if (ia !== ib) return ia - ib;
+      return a.name.localeCompare(b.name);
+    });
   } else {
-    cards.sort((a, b) => a.origIdx - b.origIdx);
+    cards.sort((a, b) => a.name.localeCompare(b.name));
   }
   cards.forEach(c => grid.appendChild(c.el));
 }
 
-sortOrigBtn.addEventListener('click', () => {
-  sortOrder = 'original';
-  sortOrigBtn.classList.add('active');
-  sortAzBtn.classList.remove('active');
-  applySort();
-});
 sortAzBtn.addEventListener('click', () => {
   sortOrder = 'az';
   sortAzBtn.classList.add('active');
-  sortOrigBtn.classList.remove('active');
+  sortTaxBtn.classList.remove('active');
+  applySort();
+});
+sortTaxBtn.addEventListener('click', () => {
+  sortOrder = 'taxonomic';
+  sortTaxBtn.classList.add('active');
+  sortAzBtn.classList.remove('active');
   applySort();
 });
 
@@ -653,6 +663,7 @@ async function loadCard(idx) {
     card.commonName = commonName;
     card.inatPhoto = photoUrl;
     card.inatTaxonId = taxonId || null;
+    card.iconicTaxon = iconicTaxon || '';
     el.querySelector('.common-name').textContent = commonName || '—';
     if (resolvedName) {
       const r = el.querySelector('.resolved-name');
@@ -871,6 +882,7 @@ async function fetchINat(name) {
     photoUrl: fixInatUrl(taxon.default_photo?.medium_url),
     commonName: taxon.preferred_common_name || taxon.english_common_name || '',
     taxonId: taxon.id,
+    iconicTaxon: taxon.iconic_taxon_name || '',
     resolvedName,
   };
 }
