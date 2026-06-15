@@ -45,7 +45,7 @@
       <img src="occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v5.55</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v5.58</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -1069,6 +1069,7 @@ function _vnLoad(key) {
 function _vnSave(key, data) {
   try { localStorage.setItem('vn:' + key, JSON.stringify({ ts: Date.now(), data })); } catch(e) {}
 }
+
 
 // UI refs
 const runBtn         = document.getElementById('runBtn');
@@ -2936,23 +2937,14 @@ async function lookupCommonNames(records) {
   const dominantCountry = Object.entries(countryCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || '';
   const prefLang = (dominantCountry && COUNTRY_LANG[dominantCountry]) || 'eng';
 
-  // 2. Fetch GBIF species vernacular name lists, caching per taxon.
-  // localStorage cache (30-day TTL) avoids re-fetching known species across sessions.
+  // 2. Fetch GBIF species vernacular name lists, caching the raw results array per taxon
   const taxonKeys = [...new Set(records.map(r => r.taxonKey).filter(Boolean))];
-  // Seed session cache from localStorage for any keys not already in session
-  taxonKeys.forEach(key => {
-    if (commonNameCache[key] === undefined) {
-      const stored = _vnLoad(key);
-      if (stored !== undefined) commonNameCache[key] = stored;
-    }
-  });
-  const toFetch = taxonKeys.filter(key => commonNameCache[key] === undefined);
-  const total = toFetch.length;
+  const total = taxonKeys.length;
   let done = 0;
-  const BATCH = 4; // reduced from 10 to stay under GBIF rate limits
-  for (let i = 0; i < toFetch.length; i += BATCH) {
+  const BATCH = 10;
+  for (let i = 0; i < taxonKeys.length; i += BATCH) {
     if (fetchAbortFlag) return;
-    const batch = toFetch.slice(i, i + BATCH);
+    const batch = taxonKeys.slice(i, i + BATCH);
     await Promise.all(batch.map(async key => {
       if (fetchAbortFlag) return;
       if (commonNameCache[key] !== undefined) return;
@@ -2961,12 +2953,10 @@ async function lookupCommonNames(records) {
         if (!res.ok) { commonNameCache[key] = []; return; }
         const json = await res.json();
         commonNameCache[key] = json.results || [];
-        _vnSave(key, commonNameCache[key]); // persist to localStorage
       } catch(e) { commonNameCache[key] = []; }
       done++;
     }));
     setProgress(50 + Math.round((done / total) * 45), 'Loading common names... ' + done + ' / ' + total + ' species');
-    if (i + BATCH < toFetch.length) await new Promise(r => setTimeout(r, 150)); // pace requests
   }
 
   // 3. Overwrite every record's vernacularName with the API result (or null).
@@ -3256,10 +3246,21 @@ function buildRecordPage(rec) {
   const linkId   = 'inat-nm-' + (rec.taxonKey || Math.random().toString(36).slice(2));
   const initHref = binomial ? 'https://www.inaturalist.org/taxa/search?q=' + encodeURIComponent(binomial) : '#';
   const linkAttr = ' id="' + linkId + '" href="' + initHref + '" target="_blank" rel="noopener" title="View on iNaturalist map" style="color:inherit;text-decoration:none;border-bottom:1px dotted #aaa;"';
+  let nztcsPopupBadge = '';
+  if (nztcsUnlocked && nztcsData) {
+    try {
+      const nm = lookupNztcs(rec);
+      if (nm && nm.conflict) {
+        nztcsPopupBadge = nztcsConflictBadgeHtml(rec.species || rec.scientificName || '');
+      } else if (nm && nm.entry) {
+        nztcsPopupBadge = nztcsBadgeHtml(nm.entry, nm.certain);
+      }
+    } catch(e) {}
+  }
   const primary = common
-    ? '<div style="font-weight:600;font-size:13px;"><a' + linkAttr + '>' + common + '</a></div>' +
+    ? '<div style="font-weight:600;font-size:13px;display:flex;align-items:center;gap:5px;flex-wrap:wrap;"><a' + linkAttr + '>' + common + '</a>' + nztcsPopupBadge + '</div>' +
       '<div style="color:#9b9890;font-size:11px;font-style:italic;margin-top:1px;">' + (rec.scientificName || '') + '</div>'
-    : '<div style="font-weight:600;font-size:13px;"><a' + linkAttr + '>' + (rec.scientificName || 'Unknown') + '</a></div>';
+    : '<div style="font-weight:600;font-size:13px;display:flex;align-items:center;gap:5px;flex-wrap:wrap;"><a' + linkAttr + '>' + (rec.scientificName || 'Unknown') + '</a>' + nztcsPopupBadge + '</div>';
   setTimeout(() => resolveInatLink(linkId, rec.taxonKey, rec.scientificName), 0);
   const cls     = rec.class ? '<div style="color:#9b9890;font-size:11px;">' + rec.class + '</div>' : '';
   const date    = rec.eventDate   ? '<div style="margin-top:4px;font-size:12px;"><b>Date:</b> ' + rec.eventDate + '</div>' : '';
@@ -5151,7 +5152,7 @@ runBtn.addEventListener('click', async () => {
         } else {
           setStatus('Fetch failed: HTTP ' + res0.status + '. If it keeps failing: ① smaller polygon  ② specific taxa  ③ shorter year range.', 'error');
         }
-        statusBar.innerHTML += ' <button onclick="document.getElementById(\'runBtn\').click()" style="margin-left:8px;background:none;border:1px solid currentColor;border-radius:3px;padding:2px 8px;cursor:pointer;font-size:11px;font-family:var(--font-sans);color:inherit;font-weight:600;">Try again</button>';
+        statusBar.innerHTML += ' <button onclick="document.getElementById('runBtn').click()" style="margin-left:8px;background:none;border:1px solid currentColor;border-radius:3px;padding:2px 8px;cursor:pointer;font-size:11px;font-family:var(--font-sans);color:inherit;font-weight:600;">Try again</button>';
         setFetchMode(false); return;
       }
       totalCount = json0.count;
@@ -5703,7 +5704,21 @@ if (window._pendingShare) {
   </div>
   <div class="changelog-scroll" id="changelogScroll">
     <div class="changelog-version">
-      <span class="changelog-version-tag">v5.55</span>
+      <span class="changelog-version-tag">v5.58</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>Fix NZTCS missing for species with informal/quoted subspecies names (e.g. NZ Falcon "southern", Powelliphanta varieties) — build script now detects conflicts across all subspecies including those named with quotes or author abbreviations</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v5.57</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>NZTCS badge shown next to species name in photo popup when NZTCS is unlocked</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v5.56</span>
       <span class="changelog-date">Jun 2026</span>
       <ul>
         <li>Fix NZTCS button not appearing after fetch with QEII project active — searchAreaOverlapsNZ now handles array-format latlngs used by auto-added covenant polygons</li>

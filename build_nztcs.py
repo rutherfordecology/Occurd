@@ -13,7 +13,7 @@ sys.stdout.reconfigure(encoding='utf-8')
 import openpyxl
 
 XLSX = r'C:\Users\User\Downloads\NZTCS Exported Data.xlsx'
-OUT  = r'C:\Users\User\GBIF-Record-Finder\.claude\worktrees\infallible-babbage-f27395\nztcs.json'
+OUT  = r'C:\Users\User\Occurd\nztcs.json'
 
 def clean(s):
     """Return stripped string or None."""
@@ -139,45 +139,98 @@ def is_latin_name(key, entry):
         return False
     return entry.get('name', '')[:1].isupper()
 
+def has_latin_binomial(key, entry):
+    """True if key starts with two pure-Latin lowercase tokens (genus + species),
+    those tokens actually match the genus+species in the entry's name field,
+    and the key has at least one more token after them.
+
+    This covers:
+      - standard subspecies: 'falco novaeseelandiae ferox'
+      - informal/quoted varieties: 'falco novaeseelandiae "southern"'
+      - authority-qualified synonyms: 'lycopodium fastigiatum r.br.'
+
+    It rejects common-name keys like 'new zealand falcon' (tokens 'new'/'zealand'
+    don't match the entry name 'Falco novaeseelandiae …').
+    """
+    parts = key.split()
+    if len(parts) < 3:
+        return False
+    if not (re.match(r'^[a-z][a-z\-]*$', parts[0]) and re.match(r'^[a-z][a-z\-]*$', parts[1])):
+        return False
+    if not entry.get('name', '')[:1].isupper():
+        return False
+    # Verify the key's genus+species matches the entry's own name
+    name_parts = norm_name(entry.get('name', '')).split()
+    if len(name_parts) < 2:
+        return False
+    return name_parts[0] == parts[0] and name_parts[1] == parts[1]
+
+def dedup_by_name(entries):
+    """Deduplicate entry list by 'name' field, preserving order."""
+    seen, out = set(), []
+    for e in entries:
+        n = e.get('name', '')
+        if n not in seen:
+            seen.add(n)
+            out.append(e)
+    return out
+
 from collections import defaultdict
 
-# --- 1. Subspecies binomial aliases (current 3-word names → 2-word binomial) ---
+# --- 1. Subspecies / variety / informal-name binomial aliases ---
+# Covers:
+#   - Standard 3-token subspecies: "falco novaeseelandiae ferox"
+#   - Informal/quoted varieties: 'falco novaeseelandiae "southern"', 'powelliphanta gilliesi "haidinger"'
+#   - Author-qualified synonyms: "lycopodium fastigiatum r.br."
+# Any key where the first two tokens are pure-Latin lowercase is a candidate for
+# the 2-token binomial.  We no longer skip when the binomial already exists in
+# lookup as an alias — that was suppressing conflict detection.
 binomial_candidates = defaultdict(list)
 for key, entry in lookup.items():
+    if not has_latin_binomial(key, entry):
+        continue
     parts = key.split()
-    if len(parts) == 3 and is_latin_name(key, entry):
-        binomial_candidates[parts[0] + ' ' + parts[1]].append(entry)
+    binomial = parts[0] + ' ' + parts[1]
+    if key == binomial:
+        continue  # don't add the binomial entry to its own candidate list
+    binomial_candidates[binomial].append(entry)
 
 subsp_added = subsp_skipped = 0
-for binomial, entries in binomial_candidates.items():
-    if binomial in lookup:
-        continue
+for binomial, raw_entries in binomial_candidates.items():
+    entries = dedup_by_name(raw_entries)
+    conflict_key = 'conflict:' + binomial
     statuses = set(e.get('status') for e in entries)
-    if len(statuses) == 1:               # all subspecies agree → safe alias
-        lookup[binomial] = entries[0]
-        subsp_added += 1
+    if len(statuses) == 1:
+        # All subspecies agree — add alias only if nothing exists yet
+        if binomial not in lookup:
+            lookup[binomial] = entries[0]
+            subsp_added += 1
     else:
-        subsp_skipped += 1               # mixed → no alias; store conflict for runtime picker
-        lookup['conflict:' + binomial] = {'_conflict': True, 'options': entries}
+        # Mixed statuses — write conflict regardless of whether an alias exists
+        subsp_skipped += 1
+        if conflict_key not in lookup:
+            lookup[conflict_key] = {'_conflict': True, 'options': entries}
 
-print(f"  Subspecies binomial aliases added: {subsp_added} (skipped {subsp_skipped} mixed-status)")
+print(f"  Subspecies/variety binomial aliases added: {subsp_added} (skipped {subsp_skipped} mixed-status)")
 
 # --- 2. Old-name binomial aliases (4+ token alias keys → 2-word binomial) ---
 # e.g. "porzana tabuensis tabuensis gmelin, 1789" → "porzana tabuensis"
-# Collect candidates first, then apply the same all-agree rule.
+# Section 1 now handles most of these via the widened has_latin_binomial check,
+# but keep section 2 for stragglers that only appear after the alias expansion pass.
 old_binomial_candidates = defaultdict(list)
 for key in list(lookup.keys()):
+    entry = lookup[key]
+    if not has_latin_binomial(key, entry):
+        continue
     parts = key.split()
-    if len(parts) < 3:
-        continue
-    if not is_latin_name(key, lookup[key]):
-        continue
     binomial = parts[0] + ' ' + parts[1]
-    if binomial not in lookup:
-        old_binomial_candidates[binomial].append(lookup[key])
+    if key == binomial or binomial in lookup or 'conflict:' + binomial in lookup:
+        continue
+    old_binomial_candidates[binomial].append(entry)
 
 old_binomial_added = old_binomial_skipped = 0
-for binomial, entries in old_binomial_candidates.items():
+for binomial, raw_entries in old_binomial_candidates.items():
+    entries = dedup_by_name(raw_entries)
     statuses = set(e.get('status') for e in entries)
     if len(statuses) == 1:
         lookup[binomial] = entries[0]
@@ -224,7 +277,7 @@ print(f"  Total lookup entries: {len(lookup)}")
 
 # Status summary
 from collections import Counter
-status_counts = Counter(v['status'] for v in lookup.values())
+status_counts = Counter(v['status'] for v in lookup.values() if 'status' in v)
 print("\nStatus distribution (unique entries):")
 for status, count in status_counts.most_common():
     print(f"  {status}: {count}")

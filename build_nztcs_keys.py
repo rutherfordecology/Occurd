@@ -25,8 +25,8 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from collections import Counter
 
 XLSX       = r'C:\Users\User\Downloads\NZTCS Exported Data.xlsx'
-NZTCS_JSON = r'C:\Users\User\GBIF-Record-Finder\.claude\worktrees\infallible-babbage-f27395\nztcs.json'
-CACHE_FILE = r'C:\Users\User\GBIF-Record-Finder\.claude\worktrees\infallible-babbage-f27395\_gbif_match_cache.json'
+NZTCS_JSON = r'C:\Users\User\Occurd\nztcs.json'
+CACHE_FILE = r'C:\Users\User\Occurd\_gbif_match_cache.json'
 
 CONCURRENCY  = 20      # parallel requests
 CONFIDENCE   = 85      # minimum GBIF match confidence to accept
