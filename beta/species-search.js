@@ -311,7 +311,7 @@
       let resolvedKey = null;
       try {
         // Primary: species/match — only accept if it actually returned a GENUS rank
-        const r = await fetch('https://api.gbif.org/v1/species/match?verbose=false&rank=GENUS&name=' + encodeURIComponent(genusName));
+        const r = await gbifFetch('https://api.gbif.org/v1/species/match?verbose=false&rank=GENUS&name=' + encodeURIComponent(genusName));
         if (r.ok) {
           const j = await r.json();
           if (j.usageKey && j.rank === 'GENUS' && j.matchType !== 'NONE') {
@@ -322,7 +322,7 @@
       if (!resolvedKey) {
         // Fallback: backbone suggest API — look for an exact canonical name match at genus rank
         try {
-          const r2 = await fetch('https://api.gbif.org/v1/species/suggest?datasetKey=d7dddbf4-2cf0-4f39-9b2a-bb099caae36c&rank=GENUS&q=' + encodeURIComponent(genusName) + '&limit=10');
+          const r2 = await gbifFetch('https://api.gbif.org/v1/species/suggest?datasetKey=d7dddbf4-2cf0-4f39-9b2a-bb099caae36c&rank=GENUS&q=' + encodeURIComponent(genusName) + '&limit=10');
           if (r2.ok) {
             const arr = await r2.json();
             const exact = arr.find(x => x.rank === 'GENUS' && x.canonicalName &&
@@ -355,7 +355,7 @@
     // Resolve GBIF taxon key
     let resolvedKey = null;
     try {
-      const r = await fetch('https://api.gbif.org/v1/species/match?verbose=false&name=' + encodeURIComponent(sciName));
+      const r = await gbifFetch('https://api.gbif.org/v1/species/match?verbose=false&name=' + encodeURIComponent(sciName));
       if (r.ok) {
         const j = await r.json();
         resolvedKey = j.usageKey || j.speciesKey || null;

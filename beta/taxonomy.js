@@ -359,7 +359,7 @@
     const mySeq = ++_jumpSeq;
 
     try {
-      const res = await fetch('https://api.gbif.org/v1/species/' + anchor.key + '/parents');
+      const res = await gbifFetch('https://api.gbif.org/v1/species/' + anchor.key + '/parents');
       if (!res.ok || _jumpSeq !== mySeq) return;
       const parents = await res.json();
       if (_jumpSeq !== mySeq) return;
@@ -510,7 +510,7 @@
         const all = [];
         let offset = 0;
         while (true) {
-          const res = await fetch('https://api.gbif.org/v1/species/' + parentKey + '/children?limit=200&offset=' + offset);
+          const res = await gbifFetch('https://api.gbif.org/v1/species/' + parentKey + '/children?limit=200&offset=' + offset);
           if (!res.ok) throw new Error('HTTP ' + res.status);
           const j = await res.json();
           (j.results || []).forEach(x => {
@@ -1012,8 +1012,8 @@
     showLoadingPhrase();
     try {
       const [taxonRes, parentsRes] = await Promise.all([
-        fetch('https://api.gbif.org/v1/species/' + gbifKey),
-        fetch('https://api.gbif.org/v1/species/' + gbifKey + '/parents'),
+        gbifFetch('https://api.gbif.org/v1/species/' + gbifKey),
+        gbifFetch('https://api.gbif.org/v1/species/' + gbifKey + '/parents'),
       ]);
       if (!taxonRes.ok || !parentsRes.ok) return;
       const taxon   = await taxonRes.json();
