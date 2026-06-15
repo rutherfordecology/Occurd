@@ -45,7 +45,7 @@
       <img src="occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v5.60</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v5.61</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -1084,7 +1084,16 @@ function _vnLoad(key) {
   } catch(e) { return undefined; }
 }
 function _vnSave(key, data) {
-  try { localStorage.setItem('vn:' + key, JSON.stringify({ ts: Date.now(), data })); } catch(e) {}
+  try { localStorage.setItem('vn:' + key, JSON.stringify({ ts: Date.now(), data })); } catch(e) {
+    // Quota exceeded — evict all vn: entries and retry once
+    _evictVnCache();
+    try { localStorage.setItem('vn:' + key, JSON.stringify({ ts: Date.now(), data })); } catch(e2) {}
+  }
+}
+function _evictVnCache() {
+  const keys = [];
+  for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k && k.startsWith('vn:')) keys.push(k); }
+  keys.forEach(k => localStorage.removeItem(k));
 }
 
 
@@ -4616,10 +4625,11 @@ function openInLooklike() {
   });
 
   const ts = Date.now();
-  try {
-    localStorage.setItem('looklike_handoff', JSON.stringify({ ts, species: speciesData }));
-    localStorage.setItem('looklike_names', JSON.stringify({ ts, names: speciesData.map(s => s.name) }));
-  } catch(e) {}
+  function _trySet(key, value) {
+    try { localStorage.setItem(key, value); } catch(e) { _evictVnCache(); try { localStorage.setItem(key, value); } catch(e2) {} }
+  }
+  _trySet('looklike_handoff', JSON.stringify({ ts, species: speciesData }));
+  _trySet('looklike_names', JSON.stringify({ ts, names: speciesData.map(s => s.name) }));
 
   const url = 'https://occurd.rutherfordecology.co.nz/looklike/?v=' + ts;
   window.open(url, '_blank');
@@ -5739,10 +5749,11 @@ if (window._pendingShare) {
   </div>
   <div class="changelog-scroll" id="changelogScroll">
     <div class="changelog-version">
-      <span class="changelog-version-tag">v5.60</span>
+      <span class="changelog-version-tag">v5.61</span>
       <span class="changelog-date">Jun 2026</span>
       <ul>
         <li>but is it threatened? v1.56 — fix LookLike handoff: pass species names via URL param (?s=) so handoff works even if localStorage is unavailable</li>
+        <li>Fix LookLike handoff failing silently when localStorage quota is full — evict vernacular name cache (vn:*) and retry</li>
       </ul>
     </div>
     <div class="changelog-version">
