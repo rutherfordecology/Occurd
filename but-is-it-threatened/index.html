@@ -422,7 +422,7 @@
 <header>
   <div class="header-logo"><img src="logo.png" alt=""></div>
   <div class="header-meta">
-    <h1>but is it threatened? <span style="font-size:0.65rem;font-weight:400;opacity:0.4;letter-spacing:0.05em;">v1.55</span></h1>
+    <h1>but is it threatened? <span style="font-size:0.65rem;font-weight:400;opacity:0.4;letter-spacing:0.05em;">v1.56</span></h1>
     <p>NZOR names · NZTCS status · by <a href="https://www.rutherfordecology.co.nz/" target="_blank" rel="noopener" class="re-link">Rutherford ecology</a></p>
   </div>
   <a class="bmc-btn" href="https://buymeacoffee.com/rutherfordecology" target="_blank" rel="noopener">☕ Buy me a coffee</a>
@@ -444,7 +444,7 @@
   <div id="batch-panel">
     <div class="drop-zone" id="drop-zone">
       <p><strong>Drag &amp; drop a file here</strong></p>
-      <p>CSV, TXT, or PDF — scientific names extracted automatically</p>
+      <p>CSV, TXT, PDF, Word (.docx), or Excel (.xlsx) — scientific names extracted automatically</p>
     </div>
     <textarea id="batch-paste" placeholder="Paste species names (one per line, comma-separated, or any block of text — scientific names will be extracted automatically)…"></textarea>
     <div class="batch-actions">
@@ -1102,7 +1102,7 @@ const batchPaste = document.getElementById('batch-paste');
 
 dropZone.addEventListener('click', () => {
   const inp = document.createElement('input');
-  inp.type = 'file'; inp.accept = '.csv,.txt,.tsv,.pdf';
+  inp.type = 'file'; inp.accept = '.csv,.txt,.tsv,.pdf,.doc,.docx,.xls,.xlsx';
   inp.onchange = e => loadFile(e.target.files[0]);
   inp.click();
 });
@@ -1114,7 +1114,62 @@ dropZone.addEventListener('drop', e => {
 });
 
 async function loadFile(file) {
-  if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
+  const lname = file.name.toLowerCase();
+  if (lname.endsWith('.docx') || file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+    dropZone.querySelector('p').textContent = 'Reading Word document…';
+    try {
+      const JSZip = await loadJSZip();
+      const zip = await JSZip.loadAsync(await file.arrayBuffer());
+      const xmlFile = zip.files['word/document.xml'];
+      if (!xmlFile) throw new Error('No document.xml found inside .docx');
+      const xml = await xmlFile.async('string');
+      const doc = new DOMParser().parseFromString(xml, 'text/xml');
+      const texts = [...doc.querySelectorAll('t')].map(el => el.textContent).join(' ');
+      batchPaste.value = texts;
+    } catch(e) {
+      alert('Could not read .docx: ' + e.message);
+    }
+    dropZone.querySelector('p').textContent = 'Drag & drop a file here';
+    return;
+  }
+  if (lname.endsWith('.doc')) {
+    alert('.doc (old Word format) cannot be read in the browser. Please save as .docx, PDF, or plain text and try again.');
+    return;
+  }
+  if (lname.endsWith('.xlsx') || file.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') {
+    dropZone.querySelector('p').textContent = 'Reading Excel file…';
+    try {
+      const JSZip = await loadJSZip();
+      const zip = await JSZip.loadAsync(await file.arrayBuffer());
+      // Extract shared strings (cell text values are stored here)
+      const ssFile = zip.files['xl/sharedStrings.xml'];
+      let texts = '';
+      if (ssFile) {
+        const xml = await ssFile.async('string');
+        const doc = new DOMParser().parseFromString(xml, 'text/xml');
+        texts = [...doc.querySelectorAll('t')].map(el => el.textContent).join(' ');
+      }
+      // Also pull inline strings from sheet1 in case sharedStrings is absent
+      const sheetFile = zip.files['xl/worksheets/sheet1.xml'];
+      if (sheetFile) {
+        const xml = await sheetFile.async('string');
+        const doc = new DOMParser().parseFromString(xml, 'text/xml');
+        const inline = [...doc.querySelectorAll('is t')].map(el => el.textContent).join(' ');
+        if (inline) texts = texts ? texts + ' ' + inline : inline;
+      }
+      if (!texts) throw new Error('No text content found in spreadsheet.');
+      batchPaste.value = texts;
+    } catch(e) {
+      alert('Could not read .xlsx: ' + e.message);
+    }
+    dropZone.querySelector('p').textContent = 'Drag & drop a file here';
+    return;
+  }
+  if (lname.endsWith('.xls')) {
+    alert('.xls (old Excel format) cannot be read in the browser. Please save as .xlsx or CSV and try again.');
+    return;
+  }
+  if (file.type === 'application/pdf' || lname.endsWith('.pdf')) {
     dropZone.querySelector('p').textContent = 'Reading PDF…';
     try {
       const pdfjsLib = await loadPdfJs();
@@ -1136,6 +1191,20 @@ async function loadFile(file) {
     reader.onload = e => { batchPaste.value = e.target.result; };
     reader.readAsText(file);
   }
+}
+
+let _jsZip = null;
+async function loadJSZip() {
+  if (_jsZip) return _jsZip;
+  if (window.JSZip) { _jsZip = window.JSZip; return _jsZip; }
+  await new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = 'https://unpkg.com/jszip@3.10.1/dist/jszip.min.js';
+    s.onload = resolve; s.onerror = reject;
+    document.head.appendChild(s);
+  });
+  _jsZip = window.JSZip;
+  return _jsZip;
 }
 
 let _pdfJs = null;
@@ -1472,7 +1541,9 @@ function openInLooklike() {
   try {
     localStorage.setItem('looklike_names', JSON.stringify({ names, ts: Date.now() }));
   } catch(e) {}
-  window.open('https://occurd.rutherfordecology.co.nz/looklike/?v=' + Date.now(), '_blank');
+  const sParam = names.map(n => encodeURIComponent(n)).join('|');
+  const url = 'https://occurd.rutherfordecology.co.nz/looklike/?s=' + sParam;
+  window.open(url, '_blank');
 }
 
 // ── Download CSV ──────────────────────────────────────────────────────────────
