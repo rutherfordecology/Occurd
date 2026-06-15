@@ -45,7 +45,7 @@
       <img src="occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v5.54</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v5.55</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -5119,8 +5119,12 @@ runBtn.addEventListener('click', async () => {
           setStatus('Skipping' + polyLabel + ' — shape rejected by GBIF' + (hullRetried ? ' even after convex hull fallback' : '') + '.', 'warning');
           break page0;
         }
-        setStatus('Fetch failed: HTTP ' + res0.status + '. If it keeps failing: ① smaller polygon  ② specific taxa  ③ shorter year range.', 'error');
-        statusBar.innerHTML += ' <button onclick="document.getElementById(\'runBtn\').click()" style="margin-left:8px;background:none;border:1px solid currentColor;border-radius:3px;padding:2px 8px;cursor:pointer;font-size:11px;font-family:var(--font-sans);color:inherit;font-weight:600;">Try again</button>';
+        if (res0.status === 429) {
+          setStatus('GBIF rate limit hit (HTTP 429) — wait a minute then try again. If this keeps happening, space out your fetches.', 'error');
+        } else {
+          setStatus('Fetch failed: HTTP ' + res0.status + '. If it keeps failing: ① smaller polygon  ② specific taxa  ③ shorter year range.', 'error');
+        }
+        statusBar.innerHTML += ' <button onclick="document.getElementById('runBtn').click()" style="margin-left:8px;background:none;border:1px solid currentColor;border-radius:3px;padding:2px 8px;cursor:pointer;font-size:11px;font-family:var(--font-sans);color:inherit;font-weight:600;">Try again</button>';
         setFetchMode(false); return;
       }
       totalCount = json0.count;
@@ -5672,7 +5676,7 @@ if (window._pendingShare) {
   </div>
   <div class="changelog-scroll" id="changelogScroll">
     <div class="changelog-version">
-      <span class="changelog-version-tag">v5.54</span>
+      <span class="changelog-version-tag">v5.55</span>
       <span class="changelog-date">Jun 2026</span>
       <ul>
         <li>Fix NZTCS button not appearing after fetch with QEII project active — searchAreaOverlapsNZ now handles array-format latlngs used by auto-added covenant polygons</li>
