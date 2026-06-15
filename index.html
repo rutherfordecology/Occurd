@@ -4615,12 +4615,13 @@ function openInLooklike() {
     return { name: sp.name, commonName: sp.commonName, records };
   });
 
+  const ts = Date.now();
   try {
-    localStorage.setItem('looklike_handoff', JSON.stringify({ ts: Date.now(), species: speciesData }));
+    localStorage.setItem('looklike_handoff', JSON.stringify({ ts, species: speciesData }));
+    localStorage.setItem('looklike_names', JSON.stringify({ ts, names: speciesData.map(s => s.name) }));
   } catch(e) {}
 
-  // URL params carry the names as a guaranteed fallback
-  const url = 'https://occurd.rutherfordecology.co.nz/looklike/?v=' + Date.now() + '&s=' + speciesData.map(s => encodeURIComponent(s.name)).join('%7C');
+  const url = 'https://occurd.rutherfordecology.co.nz/looklike/?v=' + ts;
   window.open(url, '_blank');
 }
 
