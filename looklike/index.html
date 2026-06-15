@@ -926,26 +926,21 @@ function sourceLink(rec) {
 
   try {
     const raw = localStorage.getItem('looklike_names');
-    console.log('[LookLike autoload] looklike_names raw:', raw);
     if (raw) {
       const data = JSON.parse(raw);
       localStorage.removeItem('looklike_names');
-      const age = Date.now() - data.ts;
-      console.log('[LookLike autoload] names count:', data.names && data.names.length, 'age ms:', age);
-      if (data.names && data.names.length && age < 5 * 60 * 1000) {
+      if (data.names && data.names.length && Date.now() - data.ts < 5 * 60 * 1000) {
         names = [...new Set(data.names.map(n => n.trim()).filter(Boolean))];
       }
     }
-  } catch(e) { console.log('[LookLike autoload] localStorage error:', e); }
+  } catch(e) {}
 
   // Fallback: legacy ?s= URL param
   if (!names.length) {
     const s = new URLSearchParams(window.location.search).get('s');
-    console.log('[LookLike autoload] ?s= param:', s);
     if (s) names = [...new Set(s.split('|').map(n => decodeURIComponent(n).trim()).filter(Boolean))];
   }
 
-  console.log('[LookLike autoload] final names:', names);
   if (!names.length) return;
 
   // Load exact record data from Occurd handoff if present
