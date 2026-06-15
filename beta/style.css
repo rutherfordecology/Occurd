@@ -312,7 +312,7 @@ html, body { max-width: 100vw; overflow-x: hidden; }
 @media (max-width: 400px) {
   .sidebar-section { padding: 0.75rem 0.9rem; }
   .field-row { flex-direction: column; gap: 6px; }
-  .export-row { grid-template-columns: 1fr; }
+
   .metrics { grid-template-columns: repeat(2, 1fr); }
 }
 /* Draw action bar (shown over map while drawing) */
