@@ -189,7 +189,8 @@ for sk, entries in species_key_entries.items():
         species_added += 1
         added += 1
     else:
-        species_skipped += 1   # mixed subspecies — no species-level badge
+        species_skipped += 1   # mixed subspecies — store conflict for runtime picker
+        nztcs['gbifconflict:' + str(sk)] = {'_conflict': True, 'options': entries}
 
 # Always add usage keys (subspecies-specific, unambiguous)
 usage_added = 0

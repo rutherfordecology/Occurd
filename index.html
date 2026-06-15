@@ -45,7 +45,7 @@
       <img src="occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v5.49</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v5.50</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -2384,9 +2384,10 @@ document.getElementById('disclaimerAccept').addEventListener('click', () => {
 });
 
 // ── NZTCS conservation status ──────────────────────────────────────────────
-const NZTCS_BETA_KEY = 'nztcs_beta_agreed';
-let nztcsData        = null;
-let nztcsUnlocked    = false;
+const NZTCS_BETA_KEY    = 'nztcs_beta_agreed';
+let nztcsData           = null;
+let nztcsUnlocked       = false;
+const nztcsConflictChoices = new Map(); // speciesName → chosen entry (session-scoped)
 let nztcsBetaAgreed  = !!sessionStorage.getItem(NZTCS_BETA_KEY);
 let iucnUnlocked     = false;
 
@@ -2420,7 +2421,7 @@ function nztcsNormKey(s) {
   return s.toLowerCase().replace(/^["'\s]+|["'\s]+$/g, '').replace(/\s+/g, ' ');
 }
 
-// Returns { entry, certain } or null.
+// Returns { entry, certain } | { conflict: true, options: [] } | null.
 // certain=false means the match was via a binomial-prefix fallback and should be flagged with *.
 function lookupNztcs(rec) {
   if (!nztcsData || !rec) return null;
@@ -2431,6 +2432,8 @@ function lookupNztcs(rec) {
   for (const k of keysToTry) {
     const e = nztcsData['gbifkey:' + k];
     if (e) return { entry: e, certain: true };
+    const c = nztcsData['gbifconflict:' + k];
+    if (c) return { conflict: true, options: c.options };
   }
   // 2. Exact name-based lookup — also reliable
   const candidates = [
@@ -2441,6 +2444,8 @@ function lookupNztcs(rec) {
   for (const name of candidates) {
     const k = nztcsNormKey(name);
     if (k && nztcsData[k]) return { entry: nztcsData[k], certain: true };
+    const ck = k && nztcsData['conflict:' + k];
+    if (ck) return { conflict: true, options: ck.options };
   }
   // 3. Binomial prefix fallback — mark uncertain (e.g. authority strings or subspecies dropped)
   for (const name of candidates) {
@@ -2449,6 +2454,8 @@ function lookupNztcs(rec) {
       if (parts.length >= 2) {
         const bin = (parts[0] + ' ' + parts[1]).toLowerCase();
         if (nztcsData[bin]) return { entry: nztcsData[bin], certain: false };
+        const cb = nztcsData['conflict:' + bin];
+        if (cb) return { conflict: true, options: cb.options };
       }
     }
   }
@@ -2466,6 +2473,40 @@ function nztcsBadgeHtml(entry, certain) {
   const tip    = `${entry.status}${yr}${common}${maori}${uncert}`.replace(/"/g, '&quot;');
   const label  = cfg.label + (certain === false ? '*' : '');
   return `<span class="nztcs-badge nb-${cfg.cls}" title="${tip}">${label}</span>`;
+}
+
+// Returns just the ⚠? badge span (inserted into cl-name).
+function nztcsConflictBadgeHtml(speciesName) {
+  const enc = speciesName.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+  return `<span class="nztcs-badge nb-conflict" title="Subspecies differ in status — click to choose" onclick="event.stopPropagation();toggleNztcsConflict('${enc}')">&#9651;&thinsp;?</span>`;
+}
+
+// Returns the expandable picker div (inserted as sibling to cl-row-top, not inside cl-name).
+function nztcsConflictPickerHtml(options, speciesName) {
+  const enc  = speciesName.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+  const opts = options.map((e, i) => {
+    const parts = [e.name, e.status, e.maori, e.common].filter(Boolean);
+    return `<button class="cl-conflict-opt" onclick="event.stopPropagation();chooseNztcsSubsp('${enc}',${i})">${parts.join(' — ')}</button>`;
+  }).join('');
+  const stored = JSON.stringify(options).replace(/"/g, '&quot;');
+  return `<div class="cl-conflict-picker" id="nztcs-conflict-${CSS.escape(speciesName)}" data-options="${stored}" style="display:none;">` +
+    `<span class="cl-conflict-picker-label">Subspecies differ — which applies?</span>${opts}</div>`;
+}
+
+function toggleNztcsConflict(speciesName) {
+  const picker = document.getElementById('nztcs-conflict-' + CSS.escape(speciesName));
+  if (!picker) return;
+  picker.style.display = picker.style.display === 'none' ? '' : 'none';
+}
+
+function chooseNztcsSubsp(speciesName, optionIndex) {
+  const picker = document.getElementById('nztcs-conflict-' + CSS.escape(speciesName));
+  if (!picker) return;
+  const options = JSON.parse(picker.dataset.options || '[]');
+  const chosen  = options[optionIndex];
+  if (!chosen) return;
+  nztcsConflictChoices.set(speciesName, chosen);
+  buildChecklist(allRecords);
 }
 
 function updateNztcsBtn() {
@@ -4409,9 +4450,23 @@ function buildChecklist(records) {
       row.dataset.species = name;
       row.dataset.common  = info.common;
       const nztcsMatch = nztcsUnlocked ? lookupNztcs(info.record) : null;
-      const nztcsEntry = nztcsMatch ? nztcsMatch.entry : null;
-      if (nztcsMatch && !nztcsMatch.certain) hasUncertain = true;
-      const nztcsBadge = nztcsBadgeHtml(nztcsEntry, nztcsMatch ? nztcsMatch.certain : true);
+      let nztcsEntry = null, nztcsBadge = '', nztcsPickerDiv = '';
+      if (nztcsMatch) {
+        if (nztcsMatch.conflict) {
+          const chosen = nztcsConflictChoices.get(name);
+          if (chosen) {
+            nztcsEntry = chosen;
+            nztcsBadge = nztcsBadgeHtml(chosen, true);
+          } else {
+            nztcsBadge    = nztcsConflictBadgeHtml(name);
+            nztcsPickerDiv = nztcsConflictPickerHtml(nztcsMatch.options, name);
+          }
+        } else {
+          nztcsEntry = nztcsMatch.entry;
+          if (!nztcsMatch.certain) hasUncertain = true;
+          nztcsBadge = nztcsBadgeHtml(nztcsEntry, nztcsMatch.certain);
+        }
+      }
       row.dataset.nztcs = nztcsEntry ? (nztcsEntry.status || '') : '';
       // IUCN — only show if user has unlocked
       const iucnKey = iucnUnlocked ? (info.record.speciesKey || info.record.taxonKey) : null;
@@ -4426,6 +4481,7 @@ function buildChecklist(records) {
           '<input type="checkbox" class="cl-photo-cb" title="Select for LookLike" onclick="event.stopPropagation()">' +
           '<span class="cl-count">' + info.count + '</span>' +
         '</div>' +
+        nztcsPickerDiv +
         (info.common ? '<div class="cl-common">' + info.common + '</div>' : '');
       row.addEventListener('click', () => {
         if (selectedSpecies === name) clearSpeciesSelection();
@@ -5520,9 +5576,13 @@ document.getElementById('dlChecklistBtn').addEventListener('click', () => {
   if (nztcsUnlocked && nztcsData) {
     rows.forEach(e => {
       const m = lookupNztcs(e._record);
-      e.nztcs_status   = m ? (m.entry.status   || '') : '';
-      e.nztcs_category = m ? (m.entry.category || '') : '';
-      e.nztcs_year     = m ? (m.entry.year     || '') : '';
+      const speciesName = e._record ? (e._record.species || e._record.scientificName) : null;
+      const entry = m
+        ? (m.conflict ? (speciesName && nztcsConflictChoices.get(speciesName)) || null : m.entry)
+        : null;
+      e.nztcs_status   = entry ? (entry.status   || '') : '';
+      e.nztcs_category = entry ? (entry.category || '') : '';
+      e.nztcs_year     = entry ? (entry.year     || '') : '';
     });
   }
   // Remove internal _record field before export
@@ -5604,7 +5664,7 @@ if (window._pendingShare) {
   </div>
   <div class="changelog-scroll" id="changelogScroll">
     <div class="changelog-version">
-      <span class="changelog-version-tag">v5.49</span>
+      <span class="changelog-version-tag">v5.50</span>
       <span class="changelog-date">Jun 2026</span>
       <ul>
         <li>Fix NZTCS button not appearing after fetch with QEII project active — searchAreaOverlapsNZ now handles array-format latlngs used by auto-added covenant polygons</li>

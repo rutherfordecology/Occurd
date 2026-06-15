@@ -157,7 +157,8 @@ for binomial, entries in binomial_candidates.items():
         lookup[binomial] = entries[0]
         subsp_added += 1
     else:
-        subsp_skipped += 1               # mixed → no alias, no misleading badge
+        subsp_skipped += 1               # mixed → no alias; store conflict for runtime picker
+        lookup['conflict:' + binomial] = {'_conflict': True, 'options': entries}
 
 print(f"  Subspecies binomial aliases added: {subsp_added} (skipped {subsp_skipped} mixed-status)")
 
@@ -183,6 +184,9 @@ for binomial, entries in old_binomial_candidates.items():
         old_binomial_added += 1
     else:
         old_binomial_skipped += 1
+        ck = 'conflict:' + binomial
+        if ck not in lookup:
+            lookup[ck] = {'_conflict': True, 'options': entries}
 
 print(f"  Old-name binomial aliases added: {old_binomial_added} (skipped {old_binomial_skipped} mixed-status)")
 
@@ -211,6 +215,9 @@ for split_key, entries in split_candidates.items():
         split_added += 1
     else:
         split_skipped += 1
+        ck = 'conflict:' + split_key
+        if ck not in lookup:
+            lookup[ck] = {'_conflict': True, 'options': entries}
 
 print(f"  Split-species aliases added: {split_added} (skipped {split_skipped} mixed-status)")
 print(f"  Total lookup entries: {len(lookup)}")
