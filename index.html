@@ -45,7 +45,7 @@
       <img src="occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v5.54</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v5.55</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -1053,6 +1053,22 @@ let iucnCache = {};        // speciesKey → status string ('EN','LC',…) or nu
 let _iucnFetchAbort = false;
 let allMarkers = [];
 let commonNameCache = {}; // taxonKey → Array of { vernacularName, language, country } from GBIF species API
+
+// Persist vernacular names across sessions — reduces GBIF API call count significantly.
+// Format: localStorage key 'vn:{taxonKey}' → JSON { ts: epochMs, data: [...] }
+const VN_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
+function _vnLoad(key) {
+  try {
+    const raw = localStorage.getItem('vn:' + key);
+    if (!raw) return undefined;
+    const { ts, data } = JSON.parse(raw);
+    if (Date.now() - ts > VN_TTL_MS) { localStorage.removeItem('vn:' + key); return undefined; }
+    return data;
+  } catch(e) { return undefined; }
+}
+function _vnSave(key, data) {
+  try { localStorage.setItem('vn:' + key, JSON.stringify({ ts: Date.now(), data })); } catch(e) {}
+}
 
 // UI refs
 const runBtn         = document.getElementById('runBtn');
@@ -2920,14 +2936,23 @@ async function lookupCommonNames(records) {
   const dominantCountry = Object.entries(countryCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || '';
   const prefLang = (dominantCountry && COUNTRY_LANG[dominantCountry]) || 'eng';
 
-  // 2. Fetch GBIF species vernacular name lists, caching the raw results array per taxon
+  // 2. Fetch GBIF species vernacular name lists, caching per taxon.
+  // localStorage cache (30-day TTL) avoids re-fetching known species across sessions.
   const taxonKeys = [...new Set(records.map(r => r.taxonKey).filter(Boolean))];
-  const total = taxonKeys.length;
+  // Seed session cache from localStorage for any keys not already in session
+  taxonKeys.forEach(key => {
+    if (commonNameCache[key] === undefined) {
+      const stored = _vnLoad(key);
+      if (stored !== undefined) commonNameCache[key] = stored;
+    }
+  });
+  const toFetch = taxonKeys.filter(key => commonNameCache[key] === undefined);
+  const total = toFetch.length;
   let done = 0;
-  const BATCH = 10;
-  for (let i = 0; i < taxonKeys.length; i += BATCH) {
+  const BATCH = 4; // reduced from 10 to stay under GBIF rate limits
+  for (let i = 0; i < toFetch.length; i += BATCH) {
     if (fetchAbortFlag) return;
-    const batch = taxonKeys.slice(i, i + BATCH);
+    const batch = toFetch.slice(i, i + BATCH);
     await Promise.all(batch.map(async key => {
       if (fetchAbortFlag) return;
       if (commonNameCache[key] !== undefined) return;
@@ -2936,10 +2961,12 @@ async function lookupCommonNames(records) {
         if (!res.ok) { commonNameCache[key] = []; return; }
         const json = await res.json();
         commonNameCache[key] = json.results || [];
+        _vnSave(key, commonNameCache[key]); // persist to localStorage
       } catch(e) { commonNameCache[key] = []; }
       done++;
     }));
     setProgress(50 + Math.round((done / total) * 45), 'Loading common names... ' + done + ' / ' + total + ' species');
+    if (i + BATCH < toFetch.length) await new Promise(r => setTimeout(r, 150)); // pace requests
   }
 
   // 3. Overwrite every record's vernacularName with the API result (or null).
@@ -5676,7 +5703,7 @@ if (window._pendingShare) {
   </div>
   <div class="changelog-scroll" id="changelogScroll">
     <div class="changelog-version">
-      <span class="changelog-version-tag">v5.54</span>
+      <span class="changelog-version-tag">v5.55</span>
       <span class="changelog-date">Jun 2026</span>
       <ul>
         <li>Fix NZTCS button not appearing after fetch with QEII project active — searchAreaOverlapsNZ now handles array-format latlngs used by auto-added covenant polygons</li>

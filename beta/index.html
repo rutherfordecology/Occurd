@@ -45,7 +45,7 @@
       <img src="occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v5.55</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v5.56</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -1053,6 +1053,23 @@ let iucnCache = {};        // speciesKey → status string ('EN','LC',…) or nu
 let _iucnFetchAbort = false;
 let allMarkers = [];
 let commonNameCache = {}; // taxonKey → Array of { vernacularName, language, country } from GBIF species API
+
+// Persist vernacular names across sessions — reduces GBIF API call count significantly.
+// Format: localStorage key 'vn:{taxonKey}' → JSON { ts: epochMs, data: [...] }
+const VN_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
+function _vnLoad(key) {
+  try {
+    const raw = localStorage.getItem('vn:' + key);
+    if (!raw) return undefined;
+    const { ts, data } = JSON.parse(raw);
+    if (Date.now() - ts > VN_TTL_MS) { localStorage.removeItem('vn:' + key); return undefined; }
+    return data;
+  } catch(e) { return undefined; }
+}
+function _vnSave(key, data) {
+  try { localStorage.setItem('vn:' + key, JSON.stringify({ ts: Date.now(), data })); } catch(e) {}
+}
+
 
 // UI refs
 const runBtn         = document.getElementById('runBtn');
@@ -5676,7 +5693,7 @@ if (window._pendingShare) {
   </div>
   <div class="changelog-scroll" id="changelogScroll">
     <div class="changelog-version">
-      <span class="changelog-version-tag">v5.55</span>
+      <span class="changelog-version-tag">v5.56</span>
       <span class="changelog-date">Jun 2026</span>
       <ul>
         <li>Fix NZTCS button not appearing after fetch with QEII project active — searchAreaOverlapsNZ now handles array-format latlngs used by auto-added covenant polygons</li>
