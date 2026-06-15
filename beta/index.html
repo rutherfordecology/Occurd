@@ -2530,6 +2530,18 @@ function chooseNztcsSubsp(speciesName, optionIndex) {
   if (!chosen) return;
   nztcsConflictChoices.set(speciesName, chosen);
   buildChecklist(allRecords);
+  // Refresh any open popup that's currently showing this species
+  for (const [pid, state] of Object.entries(window._gbifPopupState || {})) {
+    const bodyEl = document.getElementById(pid + '-body');
+    if (!bodyEl) continue;
+    const rec = state.sorted?.[state.idx ?? 0];
+    if (!rec) continue;
+    if ((rec.species || rec.scientificName) === speciesName) {
+      const page = buildRecordPage(rec);
+      bodyEl.innerHTML = page.html;
+      setTimeout(() => loadPopupPhoto(page.photoId, rec.taxonKey, rec.scientificName), 30);
+    }
+  }
 }
 
 function updateNztcsBtn() {
@@ -3251,7 +3263,11 @@ function buildRecordPage(rec) {
     try {
       const nm = lookupNztcs(rec);
       if (nm && nm.conflict) {
-        nztcsPopupBadge = nztcsConflictBadgeHtml(rec.species || rec.scientificName || '');
+        const speciesName = rec.species || rec.scientificName || '';
+        const chosen = nztcsConflictChoices.get(speciesName);
+        nztcsPopupBadge = chosen
+          ? nztcsBadgeHtml(chosen, true)
+          : nztcsConflictBadgeHtml(speciesName);
       } else if (nm && nm.entry) {
         nztcsPopupBadge = nztcsBadgeHtml(nm.entry, nm.certain);
       }
