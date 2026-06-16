@@ -5205,7 +5205,7 @@ runBtn.addEventListener('click', async () => {
         statusBar.style.display = 'block';
         statusBar.innerHTML = '⚠️ ' + totalCount.toLocaleString() + ' records — too large for live search (limit ' + MAX_RECORDS.toLocaleString() + '). ' +
           'Try ① smaller polygon ② specific taxa ③ shorter date range, or use ' +
-          '<a href="' + _dlUrl + '" target="_blank" style="color:inherit;font-weight:700;text-decoration:underline;">Occurd Download ↗</a> for the full dataset.';
+          '<a href="' + _dlUrl + '" target="_blank" style="color:inherit;font-weight:700;text-decoration:underline;">Occurd Big Data ↗</a> for the full dataset.';
         setFetchMode(false); return;
       }
       json0.results.forEach(r => allFetched.push(_mapOccRecord(poly, r)));
@@ -5751,9 +5751,9 @@ if (window._pendingShare) {
       <span class="changelog-version-tag">v5.61</span>
       <span class="changelog-date">Jun 2026</span>
       <ul>
-        <li>Occurd Download — new companion page (<code>/download/</code>) for large datasets that exceed the 10,000 record live-search cap; uses GBIF's async download API (requires a free GBIF account); accepts polygon WKT, taxon filter, and date range as URL params so coming from Occurd pre-fills everything; polls until GBIF finishes, parses the zip, and produces a ready-to-download CSV with species list</li>
-        <li>Header link — "Download" link in the Occurd nav bar opens Occurd Download in a new tab</li>
-        <li>10k limit error — when the live search hits the cap, the status bar now includes a direct "Occurd Download ↗" link that pre-fills the current polygon and filters</li>
+        <li>Occurd Big Data — new companion page (<code>/download/</code>) for large datasets that exceed the 10,000 record live-search cap; uses GBIF's async download API (requires a free GBIF account); accepts polygon WKT, taxon filter, and date range as URL params so coming from Occurd pre-fills everything; polls until GBIF finishes, parses the zip, and produces a ready-to-download CSV with species list</li>
+        <li>Header link — "Download" link in the Occurd nav bar opens Occurd Big Data in a new tab</li>
+        <li>10k limit error — when the live search hits the cap, the status bar now includes a direct "Occurd Big Data ↗" link that pre-fills the current polygon and filters</li>
       </ul>
     </div>
     <div class="changelog-version">
