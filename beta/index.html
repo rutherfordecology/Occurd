@@ -46,7 +46,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:700;color:rgba(255,255,255,0.9);letter-spacing:0.01em;">big data</span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v5.82</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v5.83</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -5986,49 +5986,22 @@ function _wktEnsureCCW(wkt) {
   return wkt;
 }
 
-function _buildGbifDownloadPredicate() {
+function _buildGbifDownloadPredicate(simplifyTol) {
   const _geomPolys      = polygons.filter(p => p.type !== 'species');
   const _speciesEntries = polygons.filter(p => p.type === 'species');
   const wkts = [];
   for (const p of _geomPolys) {
-    const baseWkt = getQueryWKT(p);
     try {
       const coords = p.latlngs.map(ll => [ll.lng !== undefined ? ll.lng : ll[1], ll.lat !== undefined ? ll.lat : ll[0]]);
       const ring = [...coords];
       if (ring[0][0] !== ring[ring.length-1][0] || ring[0][1] !== ring[ring.length-1][1]) ring.push(ring[0]);
-      const turfPoly = turf.polygon([ring]);
-      const kinks = turf.kinks(turfPoly);
-      if (kinks.features.length > 0) {
-        // Split into valid sub-polygons via unkink
-        let resolved = false;
-        try {
-          const fixed = turf.unkinkPolygon(turfPoly);
-          if (fixed.features.length > 0) {
-            fixed.features.forEach(f => {
-              const r = f.geometry.coordinates[0];
-              wkts.push(_wktEnsureCCW('POLYGON((' + r.map(c => c[0].toFixed(6) + ' ' + c[1].toFixed(6)).join(',') + '))'));
-            });
-            resolved = true;
-          }
-        } catch(e) {}
-        if (!resolved) {
-          // Progressive simplification fallback
-          for (const tol of [0.0001, 0.0005, 0.001, 0.005, 0.01]) {
-            try {
-              const s = turf.simplify(turfPoly, { tolerance: tol, highQuality: true });
-              if (turf.kinks(s).features.length === 0) {
-                const r = s.geometry.coordinates[0];
-                wkts.push(_wktEnsureCCW('POLYGON((' + r.map(c => c[0].toFixed(6) + ' ' + c[1].toFixed(6)).join(',') + '))'));
-                resolved = true; break;
-              }
-            } catch(e) {}
-          }
-        }
-        if (!resolved) wkts.push(_wktEnsureCCW(baseWkt)); // last resort — GBIF may reject
-        continue;
-      }
+      let turfPoly = turf.polygon([ring]);
+      if (simplifyTol) turfPoly = turf.simplify(turfPoly, { tolerance: simplifyTol, highQuality: true });
+      const r = turfPoly.geometry.coordinates[0];
+      wkts.push(_wktEnsureCCW('POLYGON((' + r.map(c => c[0].toFixed(6) + ' ' + c[1].toFixed(6)).join(',') + '))'));
+      continue;
     } catch(e) {}
-    wkts.push(_wktEnsureCCW(baseWkt));
+    wkts.push(_wktEnsureCCW(getQueryWKT(p)));
   }
   if (!wkts.length) return null;
   let geomPredicate = null;
@@ -6060,28 +6033,42 @@ async function _runGbifDownload(user, pass) {
   taxonMenu.style.display = 'none';
   const auth = btoa(user + ':' + pass);
 
-  // Step 1: submit request
+  // Step 1: submit request — retry with increasing simplification if GBIF rejects the shape
   setStatus('Submitting download request to GBIF…', 'info');
   let downloadKey;
-  try {
-    const res = await fetch('https://api.gbif.org/v1/occurrence/download/request', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Basic ' + auth },
-      body: JSON.stringify({ creator: user, sendNotification: true, format: 'SIMPLE_CSV', predicate: (function(){ const p = _buildGbifDownloadPredicate(); if (!p) { setFetchMode(false); return null; } return p; })() })
-    });
+  const _simplifyTols = [null, 0.00005, 0.0001, 0.0005, 0.001, 0.005];
+  let _submitted = false;
+  for (const tol of _simplifyTols) {
+    const predicate = _buildGbifDownloadPredicate(tol);
+    if (!predicate) { setFetchMode(false); return; }
+    let res;
+    try {
+      res = await fetch('https://api.gbif.org/v1/occurrence/download/request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Basic ' + auth },
+        body: JSON.stringify({ creator: user, sendNotification: true, format: 'SIMPLE_CSV', predicate })
+      });
+    } catch(e) { setStatus('Download request failed: ' + e.message, 'error'); setFetchMode(false); return; }
     if (res.status === 401) {
-      // Clear the bad password so the user is prompted to re-enter
       sessionStorage.removeItem('gbif_pass'); localStorage.removeItem('gbif_pass');
       document.getElementById('gbifCredsPass').value = '';
       setStatus('Invalid GBIF credentials — check your password and try again.', 'error');
       setFetchMode(false); return;
     }
-    if (!res.ok) { const t = await res.text().catch(() => ''); throw new Error('HTTP ' + res.status + ': ' + t.slice(0, 200)); }
+    if (res.status === 400) {
+      const t = await res.text().catch(() => '');
+      if (t.includes('Invalid shape') || t.includes('WKT') || t.includes('clockwise')) {
+        if (tol !== null) setStatus('Simplifying polygon (tolerance ' + tol + ')…', 'info');
+        continue; // retry with next tolerance
+      }
+      setStatus('Download request failed: HTTP 400: ' + t.slice(0, 200), 'error'); setFetchMode(false); return;
+    }
+    if (!res.ok) { const t = await res.text().catch(() => ''); setStatus('Download request failed: HTTP ' + res.status + ': ' + t.slice(0, 200), 'error'); setFetchMode(false); return; }
     downloadKey = (await res.text()).replace(/"/g, '').trim();
-  } catch(e) {
-    setStatus('Download request failed: ' + e.message, 'error');
-    setFetchMode(false); return;
+    _submitted = true;
+    break;
   }
+  if (!_submitted) { setStatus('Could not submit — polygon could not be simplified to a valid shape. Try drawing a simpler boundary.', 'error'); setFetchMode(false); return; }
 
   // Step 2: done - fire and forget. GBIF emails the user when ready.
   const _keyMsg = "Request submitted (key: " + downloadKey + "). GBIF will email you when ready (can take 15+ minutes). "
@@ -6114,7 +6101,7 @@ if (window._pendingShare) {
   </div>
   <div class="changelog-scroll" id="changelogScroll">
     <div class="changelog-version">
-      <span class="changelog-version-tag">v5.82</span>
+      <span class="changelog-version-tag">v5.83</span>
       <span class="changelog-date">Jun 2026</span>
       <ul>
         <li>Big Data mode — add <code>?bigdata</code> to the URL to activate GBIF async download path on the same page; no 10,000 record cap; requires a free GBIF account (credentials stored in browser only, never sent anywhere except GBIF)</li>
