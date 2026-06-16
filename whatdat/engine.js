@@ -275,35 +275,32 @@ function getOptions(correct, pool) {
     return true;
   };
 
-  if (correctSet.size > 0) {
-    const others = shuffle(fullPool.filter(notCorrect));
-    const scored = others.length >= 3 ? scoreByAncestry(others, correctIds, correctSet) : [];
-    // only use candidates that share at least one ancestor (filters out cross-kingdom picks)
+  const others = shuffle(fullPool.filter(notCorrect));
+
+  if (correctSet.size > 0 && others.length >= 3) {
+    const scored = scoreByAncestry(others, correctIds, correctSet);
+    // prefer candidates that share at least one ancestor (same kingdom or closer)
     const related = scored.filter(s => s.depth >= 0);
-    if (related.length >= 3) {
-      const closest = related[0];
-      const rest    = shuffle(related.slice(1, Math.min(10, related.length)));
-      const picks   = [closest, ...rest.slice(0, 2)];
-      return shuffle([correct.name, ...picks.map(s => s.b.name)]);
-    }
+    const pool3 = related.length >= 3 ? related : scored; // fall back to full scored list if too few related
+    const closest = pool3[0];
+    const rest    = shuffle(pool3.slice(1, Math.min(10, pool3.length)));
+    const picks   = [closest, ...rest.slice(0, 2)];
+    if (picks.length >= 3) return shuffle([correct.name, ...picks.map(s => s.b.name)]);
   }
 
-  const others   = shuffle(fullPool.filter(notCorrect));
-  const genus    = correct.latin?.split(' ')[0] || '';
-  const corrOrder = correct.order || '';
+  // Small pool fallback — just pick closest by family/genus then fill randomly
+  const genus      = correct.latin?.split(' ')[0] || '';
   const corrFamily = correct.family || '';
-  // prefer same family → same order → same genus, never cross-kingdom if ancestorIds available
-  const sameFamily  = others.filter(b => corrFamily && b.family === corrFamily);
-  const sameOrder   = others.filter(b => corrOrder && b.order === corrOrder && b.family !== corrFamily);
-  const sameGenus   = others.filter(b => b.latin?.split(' ')[0] === genus && b.order !== corrOrder);
-  const rest        = others.filter(b => {
-    // if correct has ancestorIds, exclude anything with no overlap (cross-kingdom)
-    if (correctSet.size > 0 && (b.ancestorIds || []).length > 0) {
-      return (b.ancestorIds || []).some(id => correctSet.has(id));
-    }
-    return true;
-  });
-  return shuffle([correct.name, ...[...sameFamily, ...sameOrder, ...sameGenus, ...rest].slice(0, 3).map(b => b.name)]);
+  const corrOrder  = correct.order  || '';
+  const ranked = [
+    ...others.filter(b => corrFamily && b.family === corrFamily),
+    ...others.filter(b => corrOrder  && b.order  === corrOrder  && b.family !== corrFamily),
+    ...others.filter(b => b.latin?.split(' ')[0] === genus),
+    ...others,
+  ];
+  const seen = new Set(), deduped = [];
+  for (const b of ranked) { if (!seen.has(b.name)) { seen.add(b.name); deduped.push(b); } }
+  return shuffle([correct.name, ...deduped.slice(0, 3).map(b => b.name)]);
 }
 
 // ── State ─────────────────────────────────────────────────────────────────
