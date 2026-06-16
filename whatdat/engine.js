@@ -278,9 +278,11 @@ function getOptions(correct, pool) {
   if (correctSet.size > 0) {
     const others = shuffle(fullPool.filter(notCorrect));
     const scored = others.length >= 3 ? scoreByAncestry(others, correctIds, correctSet) : [];
-    if (scored.length >= 3) {
-      const closest = scored[0];
-      const rest    = shuffle(scored.slice(1, Math.min(10, scored.length)));
+    // only use candidates that share at least one ancestor (filters out cross-kingdom picks)
+    const related = scored.filter(s => s.depth >= 0);
+    if (related.length >= 3) {
+      const closest = related[0];
+      const rest    = shuffle(related.slice(1, Math.min(10, related.length)));
       const picks   = [closest, ...rest.slice(0, 2)];
       return shuffle([correct.name, ...picks.map(s => s.b.name)]);
     }
@@ -288,9 +290,20 @@ function getOptions(correct, pool) {
 
   const others   = shuffle(fullPool.filter(notCorrect));
   const genus    = correct.latin?.split(' ')[0] || '';
-  const sameGenus = others.filter(b => b.latin?.split(' ')[0] === genus);
-  const rest      = others.filter(b => b.latin?.split(' ')[0] !== genus);
-  return shuffle([correct.name, ...[...sameGenus, ...rest].slice(0, 3).map(b => b.name)]);
+  const corrOrder = correct.order || '';
+  const corrFamily = correct.family || '';
+  // prefer same family → same order → same genus, never cross-kingdom if ancestorIds available
+  const sameFamily  = others.filter(b => corrFamily && b.family === corrFamily);
+  const sameOrder   = others.filter(b => corrOrder && b.order === corrOrder && b.family !== corrFamily);
+  const sameGenus   = others.filter(b => b.latin?.split(' ')[0] === genus && b.order !== corrOrder);
+  const rest        = others.filter(b => {
+    // if correct has ancestorIds, exclude anything with no overlap (cross-kingdom)
+    if (correctSet.size > 0 && (b.ancestorIds || []).length > 0) {
+      return (b.ancestorIds || []).some(id => correctSet.has(id));
+    }
+    return true;
+  });
+  return shuffle([correct.name, ...[...sameFamily, ...sameOrder, ...sameGenus, ...rest].slice(0, 3).map(b => b.name)]);
 }
 
 // ── State ─────────────────────────────────────────────────────────────────
