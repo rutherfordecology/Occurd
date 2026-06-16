@@ -46,7 +46,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:700;color:rgba(255,255,255,0.9);letter-spacing:0.01em;">big data</span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v5.84</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v5.85</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -5992,7 +5992,19 @@ function _buildGbifDownloadPredicate(simplifyTol) {
   const wkts = [];
   for (const p of _geomPolys) {
     if (!simplifyTol) {
-      // First attempt — use the pre-built WKT which correctly includes holes
+      // First attempt — use pre-built WKT which correctly includes holes
+      wkts.push(getQueryWKT(p));
+      continue;
+    }
+    if (simplifyTol === 'no-holes') {
+      // Strip holes — outer ring only; any records in excluded areas come back but can be filtered
+      try {
+        const coords = p.latlngs.map(ll => [ll.lng !== undefined ? ll.lng : ll[1], ll.lat !== undefined ? ll.lat : ll[0]]);
+        const ring = [...coords];
+        if (ring[0][0] !== ring[ring.length-1][0] || ring[0][1] !== ring[ring.length-1][1]) ring.push(ring[0]);
+        wkts.push(_wktEnsureCCW('POLYGON((' + ring.map(c => c[0].toFixed(6) + ' ' + c[1].toFixed(6)).join(',') + '))'));
+        continue;
+      } catch(e) {}
       wkts.push(getQueryWKT(p));
       continue;
     }
@@ -6041,7 +6053,7 @@ async function _runGbifDownload(user, pass) {
   // Step 1: submit request — retry with increasing simplification if GBIF rejects the shape
   setStatus('Submitting download request to GBIF…', 'info');
   let downloadKey;
-  const _simplifyTols = [null, 0.00005, 0.0001, 0.0005, 0.001, 0.005];
+  const _simplifyTols = [null, 'no-holes', 0.00005, 0.0001, 0.0005, 0.001, 0.005];
   let _submitted = false;
   for (const tol of _simplifyTols) {
     const predicate = _buildGbifDownloadPredicate(tol);
@@ -6063,7 +6075,8 @@ async function _runGbifDownload(user, pass) {
     if (res.status === 400) {
       const t = await res.text().catch(() => '');
       if (t.includes('Invalid shape') || t.includes('WKT') || t.includes('clockwise')) {
-        if (tol !== null) setStatus('Simplifying polygon (tolerance ' + tol + ')…', 'info');
+        if (tol === 'no-holes') setStatus('Polygon has exclusion zones — retrying without holes…', 'info');
+        else if (tol !== null) setStatus('Simplifying polygon (tolerance ' + tol + ')…', 'info');
         continue; // retry with next tolerance
       }
       setStatus('Download request failed: HTTP 400: ' + t.slice(0, 200), 'error'); setFetchMode(false); return;
@@ -6106,7 +6119,7 @@ if (window._pendingShare) {
   </div>
   <div class="changelog-scroll" id="changelogScroll">
     <div class="changelog-version">
-      <span class="changelog-version-tag">v5.84</span>
+      <span class="changelog-version-tag">v5.85</span>
       <span class="changelog-date">Jun 2026</span>
       <ul>
         <li>Big Data mode — add <code>?bigdata</code> to the URL to activate GBIF async download path on the same page; no 10,000 record cap; requires a free GBIF account (credentials stored in browser only, never sent anywhere except GBIF)</li>
