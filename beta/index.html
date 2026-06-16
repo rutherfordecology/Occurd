@@ -46,7 +46,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:700;color:rgba(255,255,255,0.9);letter-spacing:0.01em;">big data</span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v5.80</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v5.81</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -5989,25 +5989,22 @@ function _wktEnsureCCW(wkt) {
 function _buildGbifDownloadPredicate() {
   const _geomPolys      = polygons.filter(p => p.type !== 'species');
   const _speciesEntries = polygons.filter(p => p.type === 'species');
-  const wkts = _geomPolys.map(p => {
-    const wkt = getQueryWKT(p);
+  const wkts = [];
+  for (const p of _geomPolys) {
     try {
       const coords = p.latlngs.map(ll => [ll.lng !== undefined ? ll.lng : ll[1], ll.lat !== undefined ? ll.lat : ll[0]]);
       const ring = [...coords];
       if (ring[0][0] !== ring[ring.length-1][0] || ring[0][1] !== ring[ring.length-1][1]) ring.push(ring[0]);
-      const turfPoly = turf.polygon([ring]);
-      // If kinked, use convex hull — always valid and encloses the original shape
-      const kinks = turf.kinks(turfPoly);
+      const kinks = turf.kinks(turf.polygon([ring]));
       if (kinks.features.length > 0) {
-        const hull = turf.convex(turf.explode(turfPoly));
-        if (hull) {
-          const r = hull.geometry.coordinates[0];
-          return _wktEnsureCCW('POLYGON((' + r.map(c => c[0].toFixed(6) + ' ' + c[1].toFixed(6)).join(',') + '))');
-        }
+        setStatus('Polygon "' + (p.label || 'unnamed') + '" crosses itself — GBIF cannot accept self-intersecting shapes. Please delete it and redraw without the lines crossing.', 'error');
+        setFetchMode(false);
+        return null;
       }
     } catch(e) {}
-    return _wktEnsureCCW(wkt);
-  }).filter(Boolean);
+    wkts.push(_wktEnsureCCW(getQueryWKT(p)));
+  }
+  if (!wkts.length) return null;
   let geomPredicate = null;
   if (wkts.length === 1)      geomPredicate = { type: 'within', geometry: wkts[0] };
   else if (wkts.length > 1)  geomPredicate = { type: 'or', predicates: wkts.map(g => ({ type: 'within', geometry: g })) };
@@ -6044,7 +6041,7 @@ async function _runGbifDownload(user, pass) {
     const res = await fetch('https://api.gbif.org/v1/occurrence/download/request', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': 'Basic ' + auth },
-      body: JSON.stringify({ creator: user, sendNotification: true, format: 'SIMPLE_CSV', predicate: _buildGbifDownloadPredicate() })
+      body: JSON.stringify({ creator: user, sendNotification: true, format: 'SIMPLE_CSV', predicate: (function(){ const p = _buildGbifDownloadPredicate(); if (!p) { setFetchMode(false); return null; } return p; })() })
     });
     if (res.status === 401) {
       // Clear the bad password so the user is prompted to re-enter
@@ -6091,7 +6088,7 @@ if (window._pendingShare) {
   </div>
   <div class="changelog-scroll" id="changelogScroll">
     <div class="changelog-version">
-      <span class="changelog-version-tag">v5.80</span>
+      <span class="changelog-version-tag">v5.81</span>
       <span class="changelog-date">Jun 2026</span>
       <ul>
         <li>Big Data mode — add <code>?bigdata</code> to the URL to activate GBIF async download path on the same page; no 10,000 record cap; requires a free GBIF account (credentials stored in browser only, never sent anywhere except GBIF)</li>
