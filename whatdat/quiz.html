@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>WhatDat?</title>
 <link rel="stylesheet" href="quiz.css">
+<script src="https://cdn.jsdelivr.net/npm/lz-string@1.5.0/libs/lz-string.min.js"></script>
 </head>
 <body>
 <script>
@@ -351,10 +352,15 @@ async function loadFromSpeciesList(names) {
 async function boot() {
   // ── Species list mode ─────────────────────────────────────────────────
   if (SPECIES_LIST_MODE) {
-    // 1. Try URL-encoded list first (shareable link)
+    // 1. Try URL-encoded list first (shareable link) — LZ-String compressed, or legacy base64
     let names = [];
     if (SPECIES_LIST_PARAM) {
-      try { names = atob(SPECIES_LIST_PARAM).split('\n').filter(Boolean); } catch(e) {}
+      try {
+        // Try LZ-String first (new format), fall back to plain base64 (old links)
+        const lz = typeof LZString !== 'undefined' && LZString.decompressFromEncodedURIComponent(SPECIES_LIST_PARAM);
+        if (lz) { names = lz.split('\n').filter(Boolean); }
+        else { names = atob(SPECIES_LIST_PARAM).split('\n').filter(Boolean); }
+      } catch(e) {}
     }
     // 2. localStorage (same-device launch from Occurd / But Is It Threatened / LookLike)
     if (!names.length) {
@@ -367,11 +373,13 @@ async function boot() {
       names = rawList ? JSON.parse(rawList) : [];
     }
 
-    // Build canonical share URL — encode the list into the URL so it's self-contained
+    // Build canonical share URL — LZ-String compressed for shorter URLs
     let shareUrl = null;
     if (names.length >= 4) {
       try {
-        const encoded = btoa(names.join('\n'));
+        const encoded = typeof LZString !== 'undefined'
+          ? LZString.compressToEncodedURIComponent(names.join('\n'))
+          : btoa(names.join('\n'));
         const u = new URL(window.location.href);
         u.searchParams.set('list', encoded);
         shareUrl = u.toString();

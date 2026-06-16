@@ -452,11 +452,17 @@ function renderIntro(app, header) {
 
   const bufferNote = state.buffer>0 ? `<p class="note-text">&#x1F4E1; Area expanded to ${state.buffer}km radius to find enough species</p>` : '';
 
+  const quizName = CFG.quizName || CFG.placeName;
   app.innerHTML = header + modeGrid + rarityNote + `
     <button class="btn-primary" onclick="startQuiz()">Let's Go! &#128640;</button>
     ${bufferNote}
     <div class="info-box" style="margin-top:12px;">
       <p>&#127919; Get your score to <strong>${STREAK_TARGET} to win!</strong> Each correct answer scores +1, wrong answers cost -2. Tricky species keep coming back.</p>
+    </div>
+    <div class="quiz-name-row">
+      <span class="quiz-name-label">Quiz name:</span>
+      <input class="quiz-name-input" id="quizNameInput" value="${quizName.replace(/"/g,'&quot;')}" placeholder="Name this quiz…">
+      <button class="quiz-name-save" onclick="saveQuizName()">&#10003;</button>
     </div>
     <button class="btn-secondary" onclick="setState({phase:'species'})">&#128203; Species List</button>
     ${CFG.shareUrl ? `<button class="btn-secondary" onclick="copyShareUrl(this)">&#128279; Share this quiz</button>` : ''}
@@ -485,9 +491,18 @@ function keepPlaying() {
   _advance();
 }
 
+function saveQuizName() {
+  const input = document.getElementById('quizNameInput');
+  if (!input) return;
+  CFG.quizName = input.value.trim() || CFG.placeName;
+  input.value = CFG.quizName;
+  const btn = input.nextElementSibling;
+  if (btn) { btn.textContent = '✓'; setTimeout(() => { btn.textContent = '✓'; }, 1000); }
+}
+
 function saveToLibrary(btn) {
   const url = CFG.shareUrl || window.location.href;
-  const defaultName = CFG.placeName || CFG.taxonName || 'My Quiz';
+  const defaultName = CFG.quizName || CFG.placeName || CFG.taxonName || 'My Quiz';
   const name = prompt('Name this quiz for the library:', defaultName);
   if (!name) return;
   const LIB_KEY = 'whatdat_library';
