@@ -45,7 +45,7 @@
       <img src="occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v5.60</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v5.61</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -58,6 +58,8 @@
         box-shadow:0 4px 18px rgba(0,0,0,0.16);z-index:99999;min-width:220px;overflow:hidden;">
       </div>
     </div>
+    <span style="opacity:0.3">|</span>
+    <a href="../download/" target="_blank" class="about-btn" style="color:rgba(255,255,255,0.75);" title="Fetch large datasets with no 10,000 record cap — requires a free GBIF account">&#11015; Download API</a>
     <span style="opacity:0.3">|</span>
     <button class="about-btn" id="aboutBtn">&#9432; About</button>
     <span style="opacity:0.3">|</span>
@@ -5191,11 +5193,19 @@ runBtn.addEventListener('click', async () => {
       }
       totalCount = json0.count;
       if (totalCount > MAX_RECORDS) {
-        setStatus(
-          '⚠️ ' + totalCount.toLocaleString() + ' records found — too large to load (limit is ' +
-          MAX_RECORDS.toLocaleString() + '). Try: ① smaller polygon  ② specific taxa  ③ shorter year range.',
-          'error'
-        );
+        const _dlParams = new URLSearchParams();
+        polygons.filter(p => p.type !== 'species' && p.wkt).forEach(p => _dlParams.append('wkt', p.wkt));
+        getSelectedTaxonKeys().forEach(k => _dlParams.append('taxon', k));
+        const _df = document.getElementById('dateFrom').value;
+        const _dt = document.getElementById('dateTo').value;
+        if (_df) _dlParams.set('dateFrom', _df);
+        if (_dt) _dlParams.set('dateTo', _dt);
+        const _dlUrl = '../download/?' + _dlParams.toString();
+        statusBar.className = 'status-bar error';
+        statusBar.style.display = 'block';
+        statusBar.innerHTML = '⚠️ ' + totalCount.toLocaleString() + ' records — too large for live search (limit ' + MAX_RECORDS.toLocaleString() + '). ' +
+          'Try ① smaller polygon ② specific taxa ③ shorter date range, or use ' +
+          '<a href="' + _dlUrl + '" target="_blank" style="color:inherit;font-weight:700;text-decoration:underline;">Occurd Download ↗</a> for the full dataset.';
         setFetchMode(false); return;
       }
       json0.results.forEach(r => allFetched.push(_mapOccRecord(poly, r)));
@@ -5737,6 +5747,15 @@ if (window._pendingShare) {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v5.61</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>Occurd Download — new companion page (<code>/download/</code>) for large datasets that exceed the 10,000 record live-search cap; uses GBIF's async download API (requires a free GBIF account); accepts polygon WKT, taxon filter, and date range as URL params so coming from Occurd pre-fills everything; polls until GBIF finishes, parses the zip, and produces a ready-to-download CSV with species list</li>
+        <li>Header link — "Download" link in the Occurd nav bar opens Occurd Download in a new tab</li>
+        <li>10k limit error — when the live search hits the cap, the status bar now includes a direct "Occurd Download ↗" link that pre-fills the current polygon and filters</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v5.60</span>
       <span class="changelog-date">Jun 2026</span>

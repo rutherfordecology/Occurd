@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Occurd Download · Rutherford Ecology</title>
+<meta name="description" content="Fetch complete GBIF occurrence datasets with no record cap. For large areas and broad queries that exceed Occurd's live search limit.">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<script src="https://unpkg.com/jszip@3.10.1/dist/jszip.min.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --green-dark: #2d6a4f;
+    --green-mid:  #40916c;
+    --green-bg:   #d8f3dc;
+    --text:       #1c1b18;
+    --text2:      #4a4945;
+    --text3:      #9b9890;
+    --border:     #dddbd3;
+    --bg:         #f8f7f3;
+    --card:       #ffffff;
+    --font: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  }
+
+  body {
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  header {
+    background: var(--green-dark);
+    padding: 0 24px;
+    height: 54px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+  }
+  .header-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #fff;
+    text-decoration: none;
+  }
+  .header-brand img { height: 36px; width: auto; filter: brightness(0) invert(1); opacity: 0.95; }
+  .header-brand .title {
+    font-size: 15px;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: -0.01em;
+  }
+  .header-brand .subtitle {
+    font-size: 11px;
+    color: rgba(255,255,255,0.55);
+    font-weight: 400;
+    margin-left: 2px;
+  }
+  .header-back {
+    font-size: 13px;
+    color: rgba(255,255,255,0.7);
+    text-decoration: none;
+    font-weight: 500;
+  }
+  .header-back:hover { color: #fff; }
+
+  main {
+    max-width: 680px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 36px 20px 60px;
+    flex: 1;
+  }
+
+  .explainer {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 24px 28px;
+    margin-bottom: 24px;
+  }
+  .explainer-icon { font-size: 2rem; margin-bottom: 10px; }
+  .explainer h1 {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: var(--text);
+    margin-bottom: 6px;
+    letter-spacing: -0.02em;
+  }
+  .explainer p {
+    font-size: 0.9rem;
+    color: var(--text2);
+    line-height: 1.65;
+    margin-bottom: 10px;
+  }
+  .explainer p:last-child { margin-bottom: 0; }
+  .explainer a { color: var(--green-dark); font-weight: 600; }
+
+  .notice {
+    background: #fffbeb;
+    border: 1px solid #f5d87e;
+    border-radius: 10px;
+    padding: 12px 16px;
+    font-size: 0.85rem;
+    color: #7a5c00;
+    line-height: 1.55;
+    margin-bottom: 24px;
+  }
+  .notice a { color: #5a4200; font-weight: 700; }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 24px 28px;
+    margin-bottom: 20px;
+  }
+  .card-title {
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--text3);
+    margin-bottom: 16px;
+  }
+
+  .field { margin-bottom: 14px; }
+  .field:last-child { margin-bottom: 0; }
+  .field label {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--text2);
+    margin-bottom: 5px;
+    letter-spacing: 0.03em;
+  }
+  .field input, .field textarea {
+    width: 100%;
+    padding: 9px 12px;
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    font-size: 0.88rem;
+    font-family: inherit;
+    color: var(--text);
+    background: #fff;
+    outline: none;
+    transition: border-color 0.15s;
+    resize: vertical;
+  }
+  .field input:focus, .field textarea:focus { border-color: var(--green-mid); }
+  .field textarea { font-family: monospace; font-size: 0.78rem; min-height: 70px; }
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  .query-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--green-bg);
+    color: var(--green-dark);
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    margin: 3px 4px 3px 0;
+  }
+  .query-pill .remove {
+    cursor: pointer;
+    opacity: 0.6;
+    font-size: 0.9em;
+    line-height: 1;
+    background: none;
+    border: none;
+    color: inherit;
+    padding: 0 0 0 2px;
+    font-family: inherit;
+  }
+  .query-pill .remove:hover { opacity: 1; }
+  #queryPills { margin-bottom: 10px; min-height: 28px; }
+
+  .submit-btn {
+    width: 100%;
+    padding: 13px;
+    background: var(--green-dark);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    font-size: 1rem;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background 0.15s;
+    margin-top: 4px;
+  }
+  .submit-btn:hover { background: var(--green-mid); }
+  .submit-btn:disabled { background: #aaa; cursor: not-allowed; }
+
+  .status-box {
+    display: none;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 28px;
+    margin-bottom: 20px;
+    text-align: center;
+  }
+  .status-icon { font-size: 2.2rem; margin-bottom: 10px; }
+  .status-title { font-size: 1rem; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+  .status-body  { font-size: 0.85rem; color: var(--text2); line-height: 1.6; margin-bottom: 10px; }
+  .status-key   { font-family: monospace; font-size: 0.75rem; color: var(--text3); background: var(--bg); padding: 5px 10px; border-radius: 6px; display: inline-block; }
+  .cancel-btn {
+    margin-top: 14px;
+    padding: 8px 20px;
+    background: none;
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+    color: var(--text2);
+  }
+
+  .results-box {
+    display: none;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 28px;
+    margin-bottom: 20px;
+  }
+  .results-stats {
+    display: flex;
+    gap: 24px;
+    margin-bottom: 20px;
+  }
+  .stat { text-align: center; }
+  .stat-val { font-size: 1.8rem; font-weight: 800; color: var(--green-dark); line-height: 1; }
+  .stat-lbl { font-size: 0.75rem; color: var(--text3); margin-top: 3px; }
+
+  .dl-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 11px 22px;
+    background: var(--green-dark);
+    color: #fff;
+    border: none;
+    border-radius: 9px;
+    font-size: 0.9rem;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+    text-decoration: none;
+    margin-bottom: 20px;
+  }
+  .dl-btn:hover { background: var(--green-mid); }
+
+  .species-list {
+    border-top: 1px solid var(--border);
+    padding-top: 16px;
+  }
+  .species-list h3 {
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text3);
+    margin-bottom: 10px;
+  }
+  .species-list ul {
+    list-style: none;
+    columns: 2;
+    column-gap: 20px;
+    font-size: 0.82rem;
+    color: var(--text2);
+    line-height: 1.9;
+    max-height: 320px;
+    overflow-y: auto;
+  }
+  .species-list ul li { break-inside: avoid; font-style: italic; }
+
+  .error-box {
+    display: none;
+    background: #fff5f5;
+    border: 1px solid #fcc;
+    border-radius: 10px;
+    padding: 14px 18px;
+    font-size: 0.85rem;
+    color: #c0392b;
+    line-height: 1.55;
+    margin-bottom: 16px;
+  }
+
+  @media (max-width: 500px) {
+    main { padding: 20px 14px 40px; }
+    .card, .explainer { padding: 18px; }
+    .field-row { grid-template-columns: 1fr; }
+    .species-list ul { columns: 1; }
+    .results-stats { gap: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <a class="header-brand" href="../">
+    <img src="../occurd-logo.png" alt="occurd.">
+    <div>
+      <span class="title">occurd. download</span>
+      <span class="subtitle">large datasets · no record cap</span>
+    </div>
+  </a>
+  <a class="header-back" href="../">← Back to Occurd</a>
+</header>
+
+<main>
+
+  <div class="explainer">
+    <div class="explainer-icon">⬇️</div>
+    <h1>For large datasets</h1>
+    <p>Occurd's live search fetches records instantly but caps at 10,000. Occurd Download uses GBIF's async download API — there's no cap, but GBIF prepares your file in the background (usually 1–5 minutes, sometimes longer for very large areas).</p>
+    <p>Results download as a CSV you can open in Excel, R, or anywhere else.</p>
+  </div>
+
+  <div class="notice">
+    <strong>Requires a free GBIF account.</strong> GBIF tracks downloads for dataset citation and usage reporting — every download is attributed to a user. It's free and takes under a minute to set up.<br>
+    <a href="https://www.gbif.org/en/user/profile" target="_blank">Create a free GBIF account at gbif.org ↗</a>
+  </div>
+
+  <!-- Query card -->
+  <div class="card">
+    <div class="card-title">Your query</div>
+
+    <div class="field">
+      <label>Polygon(s) — WKT <span style="font-weight:400;color:var(--text3)">(auto-filled when coming from Occurd)</span></label>
+      <div id="queryPills"></div>
+      <textarea id="wktInput" placeholder="POLYGON((lng lat, lng lat, ...))&#10;Paste a WKT polygon, or come here from Occurd and it will be filled automatically." rows="3"></textarea>
+      <button onclick="addWktFromInput()" style="margin-top:6px;padding:5px 14px;background:none;border:1.5px solid var(--border);border-radius:7px;font-size:0.8rem;font-weight:700;font-family:inherit;cursor:pointer;color:var(--text2);">+ Add polygon</button>
+    </div>
+
+    <div class="field-row">
+      <div class="field">
+        <label>Date from</label>
+        <input type="date" id="dateFrom">
+      </div>
+      <div class="field">
+        <label>Date to</label>
+        <input type="date" id="dateTo">
+      </div>
+    </div>
+
+    <div class="field" id="taxonDisplay" style="display:none">
+      <label>Taxon filter <span style="font-weight:400;color:var(--text3)">(inherited from Occurd)</span></label>
+      <div id="taxonPills"></div>
+    </div>
+  </div>
+
+  <!-- Credentials card -->
+  <div class="card">
+    <div class="card-title">GBIF credentials</div>
+    <div class="field">
+      <label>Username</label>
+      <input type="text" id="gbifUser" autocomplete="username" placeholder="your GBIF username">
+    </div>
+    <div class="field">
+      <label>Password</label>
+      <input type="password" id="gbifPass" autocomplete="current-password" placeholder="your GBIF password">
+    </div>
+    <p style="font-size:0.75rem;color:var(--text3);margin-top:10px;line-height:1.5;">Credentials are saved in your browser only (<code>localStorage</code>) and sent only to GBIF's API — never to Occurd's servers.</p>
+  </div>
+
+  <div class="error-box" id="errorBox"></div>
+
+  <button class="submit-btn" id="submitBtn" onclick="startDownload()">Request download from GBIF</button>
+
+  <!-- Progress -->
+  <div class="status-box" id="statusBox">
+    <div class="status-icon" id="statusIcon">⏳</div>
+    <div class="status-title" id="statusTitle">Waiting for GBIF…</div>
+    <div class="status-body"  id="statusBody">GBIF is preparing your download.</div>
+    <div class="status-key"   id="statusKey"  style="display:none"></div>
+    <br>
+    <button class="cancel-btn" onclick="cancelDownload()">Cancel</button>
+  </div>
+
+  <!-- Results -->
+  <div class="results-box" id="resultsBox">
+    <div class="results-stats">
+      <div class="stat"><div class="stat-val" id="resRecords">—</div><div class="stat-lbl">Records</div></div>
+      <div class="stat"><div class="stat-val" id="resSpecies">—</div><div class="stat-lbl">Species</div></div>
+    </div>
+    <a class="dl-btn" id="dlLink" href="#" download="gbif_occurrences.csv">⬇ Download CSV</a>
+    <div class="species-list" id="speciesList" style="display:none">
+      <h3>Species in this download</h3>
+      <ul id="speciesUl"></ul>
+    </div>
+  </div>
+
+</main>
+
+<script>
+// ── URL param ingestion ────────────────────────────────────────────────────
+const _params   = new URLSearchParams(location.search);
+const _wkts     = _params.getAll('wkt');
+const _taxons   = _params.getAll('taxon');
+const _dateFrom = _params.get('dateFrom') || '';
+const _dateTo   = _params.get('dateTo')   || '';
+
+const _todayStr = new Date().toISOString().slice(0, 10);
+document.getElementById('dateFrom').value = _dateFrom || new Date(Date.now() - 10 * 365.25 * 86400000).toISOString().slice(0, 10);
+document.getElementById('dateTo').value   = _dateTo   || _todayStr;
+
+// Restore saved credentials
+document.getElementById('gbifUser').value = localStorage.getItem('gbif_dl_user') || '';
+document.getElementById('gbifPass').value = localStorage.getItem('gbif_dl_pass') || '';
+
+// Polygon pills
+const _polyWkts = [..._wkts]; // mutable list of WKTs
+
+function renderPills() {
+  const el = document.getElementById('queryPills');
+  el.innerHTML = '';
+  _polyWkts.forEach((wkt, i) => {
+    const pill = document.createElement('span');
+    pill.className = 'query-pill';
+    pill.innerHTML = '&#128308; Polygon ' + (i + 1) +
+      ' <button class="remove" title="Remove" onclick="removePoly(' + i + ')">&#x2715;</button>';
+    el.appendChild(pill);
+  });
+}
+
+function removePoly(i) { _polyWkts.splice(i, 1); renderPills(); }
+
+function addWktFromInput() {
+  const raw = document.getElementById('wktInput').value.trim();
+  if (!raw) return;
+  raw.split(/\n+/).map(s => s.trim()).filter(Boolean).forEach(w => _polyWkts.push(w));
+  document.getElementById('wktInput').value = '';
+  renderPills();
+}
+
+renderPills();
+
+// Taxon label map (matches main Occurd checkbox values)
+const TAXON_LABELS = {
+  '212':'Aves','359':'Mammalia','reptilia':'Reptilia','131':'Amphibia','fish':'Fish',
+  '216':'Insecta','367':'Arachnida','crustacea':'Crustacea','52':'Mollusca',
+  '50':'Echinodermata','43':'Cnidaria','42':'Annelida','1':'Other Animalia',
+  'angiosperms':'Angiosperms','194':'Gymnosperms','7228684':'Ferns & allies','bryophytes':'Bryophytes',
+  'algae':'Algae','5':'Fungi'
+};
+
+if (_taxons.length > 0) {
+  document.getElementById('taxonDisplay').style.display = 'block';
+  const pillsEl = document.getElementById('taxonPills');
+  _taxons.forEach(t => {
+    const span = document.createElement('span');
+    span.className = 'query-pill';
+    span.textContent = TAXON_LABELS[t] || t;
+    pillsEl.appendChild(span);
+  });
+}
+
+// ── Taxon key expansion (mirrors main Occurd buildTaxonParams) ─────────────
+function buildTaxonKeys(taxonVals) {
+  if (taxonVals.length === 0) return [];
+  const keys = [];
+  taxonVals.forEach(k => {
+    if      (k === 'fish')        keys.push('44');
+    else if (k === 'reptilia')    keys.push('11592253','11418114','11493978','11569602');
+    else if (k === 'bryophytes')  keys.push('35','9','13');
+    else if (k === 'crustacea')   keys.push('229','203','281','353');
+    else if (k === 'angiosperms') keys.push('220','196');
+    else if (k === 'algae')       keys.push('36','106','98','7819616','68');
+    else if (k === '1')           keys.push('1');
+    else                          keys.push(k);
+  });
+  return [...new Set(keys)];
+}
+
+// ── Predicate builder ──────────────────────────────────────────────────────
+function buildPredicate() {
+  const wkts      = _polyWkts.filter(Boolean);
+  const dateFrom  = document.getElementById('dateFrom').value;
+  const dateTo    = document.getElementById('dateTo').value || _todayStr;
+  const taxonKeys = buildTaxonKeys(_taxons);
+
+  let geomPredicate = null;
+  if (wkts.length === 1) {
+    geomPredicate = { type: 'within', geometry: wkts[0] };
+  } else if (wkts.length > 1) {
+    geomPredicate = { type: 'or', predicates: wkts.map(g => ({ type: 'within', geometry: g })) };
+  }
+
+  let taxonPredicate = null;
+  if (taxonKeys.length === 1) {
+    taxonPredicate = { type: 'equals', key: 'TAXON_KEY', value: taxonKeys[0] };
+  } else if (taxonKeys.length > 1) {
+    taxonPredicate = { type: 'in', key: 'TAXON_KEY', values: taxonKeys };
+  }
+
+  const subs = [
+    ...(geomPredicate  ? [geomPredicate]  : []),
+    ...(taxonPredicate ? [taxonPredicate] : []),
+    ...(dateFrom ? [{ type: 'greaterThanOrEquals', key: 'YEAR', value: dateFrom.slice(0, 4) }] : []),
+    ...(dateTo   ? [{ type: 'lessThanOrEquals',    key: 'YEAR', value: dateTo.slice(0, 4)   }] : [])
+  ];
+
+  if (subs.length === 0) return { type: 'isNotNull', parameter: 'OCCURRENCE_ID' };
+  if (subs.length === 1) return subs[0];
+  return { type: 'and', predicates: subs };
+}
+
+// ── Download flow ──────────────────────────────────────────────────────────
+let _abortFlag = false;
+
+function setStatus(icon, title, body, key) {
+  document.getElementById('statusIcon').textContent  = icon;
+  document.getElementById('statusTitle').textContent = title;
+  document.getElementById('statusBody').textContent  = body;
+  const keyEl = document.getElementById('statusKey');
+  if (key) { keyEl.textContent = key; keyEl.style.display = 'inline-block'; }
+  else { keyEl.style.display = 'none'; }
+}
+
+function showError(msg) {
+  const el = document.getElementById('errorBox');
+  el.textContent = msg;
+  el.style.display = 'block';
+  el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function cancelDownload() {
+  _abortFlag = true;
+  document.getElementById('statusBox').style.display = 'none';
+  document.getElementById('submitBtn').disabled = false;
+}
+
+async function startDownload() {
+  const user = document.getElementById('gbifUser').value.trim();
+  const pass = document.getElementById('gbifPass').value;
+  document.getElementById('errorBox').style.display = 'none';
+
+  if (_polyWkts.length === 0) {
+    // Try textarea
+    const raw = document.getElementById('wktInput').value.trim();
+    if (raw) {
+      raw.split(/\n+/).map(s => s.trim()).filter(Boolean).forEach(w => _polyWkts.push(w));
+      renderPills();
+    }
+  }
+  if (_polyWkts.length === 0) { showError('Please add at least one polygon. Paste a WKT polygon in the box above and click + Add polygon, or come here from Occurd with a drawn polygon.'); return; }
+  if (!user) { showError('Please enter your GBIF username.'); document.getElementById('gbifUser').focus(); return; }
+  if (!pass) { showError('Please enter your GBIF password.');  document.getElementById('gbifPass').focus(); return; }
+
+  localStorage.setItem('gbif_dl_user', user);
+  localStorage.setItem('gbif_dl_pass', pass);
+
+  _abortFlag = false;
+  document.getElementById('submitBtn').disabled = true;
+  document.getElementById('resultsBox').style.display = 'none';
+  document.getElementById('statusBox').style.display = 'block';
+  setStatus('⏳', 'Submitting request…', 'Sending your polygon and filters to GBIF.');
+
+  const auth = btoa(user + ':' + pass);
+
+  // ── Step 1: POST ───────────────────────────────────────────────────────
+  let downloadKey;
+  try {
+    const res = await fetch('https://api.gbif.org/v1/occurrence/download/request', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Basic ' + auth },
+      body: JSON.stringify({ creator: user, sendNotification: false, format: 'SIMPLE_CSV', predicate: buildPredicate() })
+    });
+    if (res.status === 401) {
+      document.getElementById('statusBox').style.display = 'none';
+      document.getElementById('submitBtn').disabled = false;
+      showError('Invalid GBIF credentials — please check your username and password.');
+      return;
+    }
+    if (!res.ok) {
+      const txt = await res.text().catch(() => '');
+      throw new Error('GBIF returned HTTP ' + res.status + ': ' + txt.substring(0, 300));
+    }
+    downloadKey = (await res.text()).replace(/"/g, '').trim();
+  } catch(e) {
+    document.getElementById('statusBox').style.display = 'none';
+    document.getElementById('submitBtn').disabled = false;
+    showError('Request failed: ' + e.message);
+    return;
+  }
+
+  setStatus('⏳', 'Waiting for GBIF to prepare your download…',
+    'GBIF is processing your request. Large datasets can take several minutes — you can leave this tab open.',
+    'Download key: ' + downloadKey);
+
+  // ── Step 2: poll ───────────────────────────────────────────────────────
+  let status = 'PREPARING', polls = 0;
+  while (status !== 'SUCCEEDED' && status !== 'FAILED' && status !== 'CANCELLED' && status !== 'KILLED') {
+    if (_abortFlag) return;
+    await new Promise(r => setTimeout(r, 5000));
+    if (_abortFlag) return;
+    if (++polls > 240) {
+      document.getElementById('statusBox').style.display = 'none';
+      document.getElementById('submitBtn').disabled = false;
+      showError('Timed out after 20 minutes. Your download key is ' + downloadKey + ' — you can check the status at gbif.org/user/download.');
+      return;
+    }
+    try {
+      const poll = await fetch('https://api.gbif.org/v1/occurrence/download/' + downloadKey, { headers: { 'Authorization': 'Basic ' + auth } });
+      if (!poll.ok) continue;
+      const info = await poll.json();
+      status = info.status || status;
+      if (status === 'PREPARING' || status === 'RUNNING') {
+        const n = info.totalRecords != null ? info.totalRecords.toLocaleString() : '…';
+        setStatus('⏳', 'GBIF is preparing your download…',
+          status + ' — ' + n + ' records counted so far.',
+          'Download key: ' + downloadKey);
+      }
+    } catch(e) { /* network hiccup */ }
+  }
+
+  if (status !== 'SUCCEEDED') {
+    document.getElementById('statusBox').style.display = 'none';
+    document.getElementById('submitBtn').disabled = false;
+    showError('Download ' + status.toLowerCase() + '. Check your download history at gbif.org/user/download for details.');
+    return;
+  }
+
+  // ── Step 3: fetch zip ──────────────────────────────────────────────────
+  setStatus('📥', 'Downloading your records…', 'Fetching the file from GBIF. This may take a moment for large datasets.', 'Download key: ' + downloadKey);
+  let arrayBuffer;
+  try {
+    const dlRes = await fetch('https://api.gbif.org/v1/occurrence/download/request/' + downloadKey + '.zip', { headers: { 'Authorization': 'Basic ' + auth } });
+    if (!dlRes.ok) throw new Error('HTTP ' + dlRes.status);
+    arrayBuffer = await dlRes.arrayBuffer();
+  } catch(e) {
+    document.getElementById('statusBox').style.display = 'none';
+    document.getElementById('submitBtn').disabled = false;
+    showError('Failed to download the file: ' + e.message);
+    return;
+  }
+
+  // ── Step 4: parse zip ──────────────────────────────────────────────────
+  setStatus('🔍', 'Parsing records…', 'Reading the CSV from the archive.');
+  let tsvText;
+  try {
+    const zip     = await JSZip.loadAsync(arrayBuffer);
+    const csvFile = zip.file('occurrence.csv') ||
+                    Object.values(zip.files).find(f => !f.dir && f.name.endsWith('.csv'));
+    if (!csvFile) throw new Error('No occurrence.csv found in the zip.');
+    tsvText = await csvFile.async('text');
+  } catch(e) {
+    document.getElementById('statusBox').style.display = 'none';
+    document.getElementById('submitBtn').disabled = false;
+    showError('Failed to parse the download archive: ' + e.message);
+    return;
+  }
+
+  // ── Step 5: parse TSV + build CSV output ──────────────────────────────
+  const lines  = tsvText.split(/\r?\n/);
+  const header = lines[0] ? lines[0].split('\t') : [];
+
+  // Standard output fields matching main Occurd CSV export
+  const OUT_FIELDS = ['gbifID','eventDate','year','month','day','scientificName','kingdom','phylum',
+    'class','order','family','genus','species','decimalLatitude','decimalLongitude',
+    'coordinateUncertaintyInMeters','basisOfRecord','establishmentMeans','occurrenceID',
+    'taxonKey','speciesKey','datasetKey','institutionCode','countryCode','stateProvince',
+    'locality','recordedBy'];
+
+  const csvRows = [OUT_FIELDS.join(',')];
+  const speciesSet = new Set();
+  let recordCount = 0;
+
+  for (let i = 1; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line) continue;
+    const vals = lines[i].split('\t');
+    const row = {};
+    header.forEach((col, ci) => { row[col] = vals[ci] !== undefined ? vals[ci].trim() : ''; });
+    const sp = row['species'] || row['scientificName'];
+    if (sp) speciesSet.add(sp);
+    csvRows.push(OUT_FIELDS.map(f => {
+      const v = row[f] || '';
+      return v.includes(',') || v.includes('"') || v.includes('\n') ? '"' + v.replace(/"/g, '""') + '"' : v;
+    }).join(','));
+    recordCount++;
+  }
+
+  // Build downloadable CSV blob
+  const csvBlob = new Blob([csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+  const csvUrl  = URL.createObjectURL(csvBlob);
+  const fname   = 'gbif_download_' + downloadKey + '.csv';
+
+  document.getElementById('statusBox').style.display = 'none';
+  document.getElementById('submitBtn').disabled = false;
+
+  // Show results
+  document.getElementById('resRecords').textContent = recordCount.toLocaleString();
+  document.getElementById('resSpecies').textContent = speciesSet.size.toLocaleString();
+  const dlLink = document.getElementById('dlLink');
+  dlLink.href     = csvUrl;
+  dlLink.download = fname;
+  document.getElementById('resultsBox').style.display = 'block';
+  document.getElementById('resultsBox').scrollIntoView({ behavior: 'smooth' });
+
+  // Species list (sorted, capped at 500 for perf)
+  if (speciesSet.size > 0) {
+    const sorted = [...speciesSet].sort();
+    const ul = document.getElementById('speciesUl');
+    ul.innerHTML = '';
+    sorted.slice(0, 500).forEach(s => {
+      const li = document.createElement('li');
+      li.textContent = s;
+      ul.appendChild(li);
+    });
+    if (sorted.length > 500) {
+      const li = document.createElement('li');
+      li.style.fontStyle = 'normal';
+      li.style.color = 'var(--text3)';
+      li.textContent = '… and ' + (sorted.length - 500).toLocaleString() + ' more (see CSV)';
+      ul.appendChild(li);
+    }
+    document.getElementById('speciesList').style.display = 'block';
+  }
+}
+
+// Enter key on password field submits
+document.getElementById('gbifPass').addEventListener('keydown', e => {
+  if (e.key === 'Enter') startDownload();
+});
+</script>
+
+</body>
+</html>
