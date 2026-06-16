@@ -348,42 +348,72 @@ async function loadFromSpeciesList(names) {
   return results;
 }
 
+// ── Quiz store helpers (short local IDs) ──────────────────────────────────
+const QUIZ_STORE_PREFIX = 'whatdat_quiz_';
+function quizStoreKey(id) { return QUIZ_STORE_PREFIX + id; }
+function saveQuizStore(id, data) { try { localStorage.setItem(quizStoreKey(id), JSON.stringify(data)); } catch(e) {} }
+function loadQuizStore(id) { try { return JSON.parse(localStorage.getItem(quizStoreKey(id)) || 'null'); } catch(e) { return null; } }
+function newQuizId() { return Date.now().toString(36); }
+
+// Build a cross-device shareable URL (LZ-String compressed)
+function buildShareUrl(names, baseUrl) {
+  try {
+    const encoded = typeof LZString !== 'undefined'
+      ? LZString.compressToEncodedURIComponent(names.join('\n'))
+      : btoa(names.join('\n'));
+    const u = new URL(baseUrl);
+    u.searchParams.set('list', encoded);
+    u.searchParams.delete('q'); // remove short ID — share URL is self-contained
+    return u.toString();
+  } catch(e) { return null; }
+}
+
 // ── Boot ───────────────────────────────────────────────────────────────────
 async function boot() {
+  const SHORT_ID = params.get('q');
+
+  // ── Short local ID mode (?q=<id>) ─────────────────────────────────────
+  if (SHORT_ID) {
+    const stored = loadQuizStore(SHORT_ID);
+    if (!stored || !stored.names?.length) {
+      initEngine({ placeName: 'Quiz not found', backUrl: 'index.html', easyBirds: [] });
+      setState({ phase: 'error', loadError: 'This quiz link was created on another device or has expired. Ask the creator to share via the Share button instead.' });
+      return;
+    }
+    const { names, listName, extraNames } = stored;
+    if (extraNames) try { localStorage.setItem('whatdat_extra_names', JSON.stringify(extraNames)); } catch(e) {}
+    const shareUrl = buildShareUrl(names, window.location.href);
+    initEngine({ placeName: listName || 'Quiz', taxonName: TAXON_NAME, backUrl: 'index.html', easyBirds: [], shareUrl });
+    try {
+      const birds = await loadFromSpeciesList(names);
+      if (birds.length < 4) throw new Error(`Only ${birds.length} species resolved. Need at least 4.`);
+      setTiers(birds);
+      setState({ phase: 'intro' });
+    } catch(err) { setState({ phase: 'error', loadError: err.message }); }
+    return;
+  }
+
   // ── Species list mode ─────────────────────────────────────────────────
   if (SPECIES_LIST_MODE) {
-    // 1. Try URL-encoded list first (shareable link) — LZ-String compressed, or legacy base64
-    let names = [];
+    let names = [], listName = SPECIES_LIST_NAME;
+
+    // 1. LZ-String or base64 list in URL (legacy share links)
     if (SPECIES_LIST_PARAM) {
       try {
-        // Try LZ-String first (new format), fall back to plain base64 (old links)
         const lz = typeof LZString !== 'undefined' && LZString.decompressFromEncodedURIComponent(SPECIES_LIST_PARAM);
-        if (lz) { names = lz.split('\n').filter(Boolean); }
-        else { names = atob(SPECIES_LIST_PARAM).split('\n').filter(Boolean); }
+        if (lz) names = lz.split('\n').filter(Boolean);
+        else names = atob(SPECIES_LIST_PARAM).split('\n').filter(Boolean);
       } catch(e) {}
     }
-    // 2. localStorage (same-device launch from Occurd / But Is It Threatened / LookLike)
+    // 2. localStorage (launched from Occurd / But Is It Threatened / LookLike)
     if (!names.length) {
       const rawList = localStorage.getItem('whatdat_species_list');
       names = rawList ? JSON.parse(rawList) : [];
     }
-    // 3. sessionStorage fallback for any old links
+    // 3. sessionStorage fallback
     if (!names.length) {
       const rawList = sessionStorage.getItem('whatdat_species_list');
       names = rawList ? JSON.parse(rawList) : [];
-    }
-
-    // Build canonical share URL — LZ-String compressed for shorter URLs
-    let shareUrl = null;
-    if (names.length >= 4) {
-      try {
-        const encoded = typeof LZString !== 'undefined'
-          ? LZString.compressToEncodedURIComponent(names.join('\n'))
-          : btoa(names.join('\n'));
-        const u = new URL(window.location.href);
-        u.searchParams.set('list', encoded);
-        shareUrl = u.toString();
-      } catch(e) {}
     }
 
     if (names.length < 4) {
@@ -391,21 +421,28 @@ async function boot() {
       setState({ phase: 'error', loadError: 'Species list needs at least 4 entries. Go back and try again.' });
       return;
     }
-    initEngine({
-      placeName:  SPECIES_LIST_NAME,
-      taxonName:  TAXON_NAME,
-      backUrl:    'index.html',
-      easyBirds:  [],
-      shareUrl,
-    });
+
+    // Save quiz under a short local ID and rewrite the URL so it's tidy
+    let shareUrl = null;
+    if (!SPECIES_LIST_PARAM) {
+      // Launched from another app — create a short local URL
+      const id = newQuizId();
+      const extraNames = (() => { try { return JSON.parse(localStorage.getItem('whatdat_extra_names') || '{}'); } catch(e) { return {}; } })();
+      saveQuizStore(id, { names, listName, extraNames });
+      const shortUrl = new URL(window.location.href);
+      shortUrl.search = '?q=' + id;
+      history.replaceState(null, '', shortUrl.toString());
+    }
+    // Share URL always uses LZ-compressed encoding so it works cross-device
+    shareUrl = buildShareUrl(names, window.location.href);
+
+    initEngine({ placeName: listName, taxonName: TAXON_NAME, backUrl: 'index.html', easyBirds: [], shareUrl });
     try {
       const birds = await loadFromSpeciesList(names);
       if (birds.length < 4) throw new Error(`Only ${birds.length} species could be resolved with photos. Need at least 4.`);
       setTiers(birds);
       setState({ phase: 'intro' });
-    } catch (err) {
-      setState({ phase: 'error', loadError: err.message });
-    }
+    } catch(err) { setState({ phase: 'error', loadError: err.message }); }
     return;
   }
 
