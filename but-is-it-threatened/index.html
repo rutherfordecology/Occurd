@@ -407,12 +407,12 @@
     .results-table em { font-style:italic; }
     .results-table .cb-col { width:28px; text-align:center; }
     .batch-cb, #batch-sel-all { cursor:pointer; width:15px; height:15px; }
-    #batch-looklike {
+    #batch-looklike, #batch-whatdat {
       padding:.55rem 1.1rem; background:var(--accent); color:#0d1f0f;
       border:none; border-radius:8px; cursor:pointer; font-size:.9rem; font-weight:600;
       transition:opacity .15s;
     }
-    #batch-looklike:hover { opacity:.85; }
+    #batch-looklike:hover, #batch-whatdat:hover { opacity:.85; }
   </style>
 </head>
 <body>
@@ -454,6 +454,7 @@
       <button class="btn-secondary" id="batch-dl" onclick="downloadBatchCSV()" disabled>Download CSV</button>
       <button class="btn-secondary" id="batch-dl-nvs" onclick="downloadNVSTemplate()" disabled>Download template</button>
       <button id="batch-looklike" onclick="openInLooklike()" style="display:none">📷 LookLike?</button>
+      <button id="batch-whatdat" onclick="openInWhatDat()" style="display:none">🎯 Quiz</button>
       <span class="batch-count" id="batch-count"></span>
     </div>
     <div id="batch-results"></div>
@@ -1379,6 +1380,7 @@ function runBatch() {
   document.getElementById('batch-dl').disabled = matched === 0;
   document.getElementById('batch-dl-nvs').disabled = matched === 0;
   document.getElementById('batch-looklike').style.display = matched > 0 ? '' : 'none';
+  document.getElementById('batch-whatdat').style.display = matched > 0 ? '' : 'none';
   document.getElementById('batch-clear').style.display = '';
   const hasUnmatched = batchResults.some(r => !r.matched || r._ambiguous);
   const hideBtn = document.getElementById('batch-hide-unmatched');
@@ -1543,6 +1545,19 @@ function openInLooklike() {
     localStorage.setItem('looklike_names', JSON.stringify({ names, ts }));
   } catch(e) {}
   window.open('https://occurd.rutherfordecology.co.nz/looklike/?v=' + ts, '_blank');
+}
+
+function openInWhatDat() {
+  const seen = new Set(), names = [];
+  document.querySelectorAll('.batch-cb:checked').forEach(cb => {
+    const sci = cb.dataset.sci;
+    if (sci && !seen.has(sci)) { seen.add(sci); names.push(sci); }
+  });
+  if (!names.length) { alert('Tick at least one matched species first.'); return; }
+  sessionStorage.setItem('whatdat_species_list', JSON.stringify(names));
+  let url = '../whatdat/quiz.html?mode=species_list&list_name=' + encodeURIComponent('But Is It Threatened?');
+  try { url += '&list=' + btoa(names.join('\n')); } catch(e) {}
+  window.open(url, '_blank');
 }
 
 // ── Download CSV ──────────────────────────────────────────────────────────────

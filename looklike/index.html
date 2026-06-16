@@ -79,7 +79,7 @@
   }
   .sort-btn.active { border-color: var(--accent); color: var(--accent); }
   .sort-btn:hover { border-color: var(--accent); color: var(--accent); }
-  #back-btn {
+  #back-btn, #whatdat-btn {
     display: none;
     background: none;
     border: 1px solid var(--border);
@@ -91,7 +91,8 @@
     transition: border-color 0.15s, color 0.15s;
   }
   #back-btn.visible { display: block; }
-  #back-btn:hover { border-color: var(--accent); color: var(--accent); }
+  #whatdat-btn.visible { display: block; }
+  #back-btn:hover, #whatdat-btn:hover { border-color: var(--accent); color: var(--accent); }
   .re-link { text-decoration: none; }
   .version { color: var(--text-muted); font-size: 0.75rem; margin-left: 4px; opacity: 0.6; }
   .re-by { color: #7aad8a; font-weight: 400; }
@@ -445,6 +446,7 @@
     <button class="sort-btn" id="sort-tax" title="Taxonomic order">Taxonomic</button>
   </div>
   <button id="back-btn">← Edit list</button>
+  <button id="whatdat-btn" onclick="openInWhatDat()" style="display:none" title="Quiz these species in WhatDat?">🎯 Quiz</button>
 </header>
 
 <!-- Landing -->
@@ -503,16 +505,20 @@ const lbCaption    = document.getElementById('lb-caption');
 const lbClose      = document.getElementById('lb-close');
 
 // ─── Routing ─────────────────────────────────────────────────────
+const whatdatBtn = document.getElementById('whatdat-btn');
+
 function showGallery() {
   landing.style.display = 'none';
   gallery.classList.add('visible');
   backBtn.classList.add('visible');
+  whatdatBtn.classList.add('visible');
   filterWrap.classList.add('visible');
 }
 function showLanding() {
   landing.style.display = '';
   gallery.classList.remove('visible');
   backBtn.classList.remove('visible');
+  whatdatBtn.classList.remove('visible');
   filterWrap.classList.remove('visible');
   headerLabel.innerHTML = 'Visual species photo browser · <a href="https://www.rutherfordecology.co.nz/" target="_blank" rel="noopener" class="re-link"><span class="re-by">by </span><span class="re-name">Rutherford</span><span class="re-by"> ecology</span></a>';
 }
@@ -532,6 +538,15 @@ loadBtn.addEventListener('click', () => {
 });
 
 backBtn.addEventListener('click', showLanding);
+
+function openInWhatDat() {
+  const names = state?.names || [];
+  if (!names.length) { alert('No species loaded yet.'); return; }
+  sessionStorage.setItem('whatdat_species_list', JSON.stringify(names));
+  let url = '../whatdat/quiz.html?mode=species_list&list_name=' + encodeURIComponent('LookLike list');
+  try { url += '&list=' + btoa(names.join('\n')); } catch(e) {}
+  window.open(url, '_blank');
+}
 
 // ─── Filter ──────────────────────────────────────────────────────
 filterInput.addEventListener('input', () => {

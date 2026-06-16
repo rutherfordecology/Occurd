@@ -45,7 +45,7 @@
       <img src="occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v5.60</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v5.61</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -378,7 +378,7 @@
       <div class="cl-col-header" id="clColHeader">
         <span class="cl-col-species-label">Species</span>
         <span class="cl-looklike-wrap" id="clLooklikeWrap" style="display:none;">
-          <button class="cl-looklike-btn" id="clLooklikeBtn" onclick="openInLooklike()" title="Open selected species in LookLike">📷</button><input type="checkbox" id="clSelAllVisible" title="Select/deselect all visible species" style="accent-color:var(--green);cursor:pointer;">
+          <button class="cl-looklike-btn" id="clLooklikeBtn" onclick="openInLooklike()" title="Open selected species in LookLike">📷</button><button class="cl-looklike-btn" id="clWhatdatBtn" onclick="openInWhatDat()" title="Quiz these species in WhatDat?">🎯 Quiz</button><input type="checkbox" id="clSelAllVisible" title="Select/deselect all visible species" style="accent-color:var(--green);cursor:pointer;">
         </span>
         <span class="cl-count-header">#</span>
       </div>
@@ -4621,6 +4621,40 @@ function openInLooklike() {
   } catch(e) {}
 
   const url = 'https://occurd.rutherfordecology.co.nz/looklike/?v=' + ts;
+  window.open(url, '_blank');
+}
+
+// ── WhatDat? integration ─────────────────────────────────────────────────────
+function openInWhatDat() {
+  // Use checked species if any are ticked; otherwise use all visible rows
+  const checkedNames = [...document.querySelectorAll('.cl-row .cl-photo-cb:checked')]
+    .map(cb => cb.closest('.cl-row')?.dataset.species).filter(Boolean);
+  const allVisible = [...document.querySelectorAll('.cl-row')]
+    .filter(r => !r.classList.contains('hidden') && r.style.display !== 'none')
+    .map(r => r.dataset.species).filter(Boolean);
+  const names = [...new Set(checkedNames.length ? checkedNames : allVisible)];
+  if (!names.length) { alert('No species in the list yet.'); return; }
+
+  sessionStorage.setItem('whatdat_species_list', JSON.stringify(names));
+
+  let listName = 'Occurd list';
+  let url = './whatdat/quiz.html?mode=species_list';
+
+  // Pass current polygon location so WhatDat can place the quiz on the map
+  if (typeof polygons !== 'undefined' && polygons.length > 0) {
+    const allLats = polygons.flatMap(p => p.latlngs.map(ll => ll.lat ?? ll[0]));
+    const allLngs = polygons.flatMap(p => p.latlngs.map(ll => ll.lng ?? ll[1]));
+    const swlat = Math.min(...allLats).toFixed(5);
+    const nelat = Math.max(...allLats).toFixed(5);
+    const swlng = Math.min(...allLngs).toFixed(5);
+    const nelng = Math.max(...allLngs).toFixed(5);
+    listName = polygons[0].label || 'Occurd list';
+    url += `&swlat=${swlat}&nelat=${nelat}&swlng=${swlng}&nelng=${nelng}`;
+  }
+
+  url += `&list_name=${encodeURIComponent(listName)}`;
+  // Encode the list into the URL so the link is self-contained and shareable
+  try { url += `&list=${btoa(names.join('\n'))}`; } catch(e) {}
   window.open(url, '_blank');
 }
 

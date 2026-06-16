@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WhatDat? - Rutherford Ecology</title>
+<meta name="theme-color" content="#084430">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { min-height: 100vh; background: #f3f2ee; font-family: system-ui, -apple-system, sans-serif; color: #1c1b18; overflow-x: hidden; }
+
+  .topbar { background: #084430; padding: 10px 16px; display: flex; align-items: center; justify-content: space-between; width: 100%; }
+  .topbar-title { font-size: 1.05rem; font-weight: 900; color: #fff; }
+  .topbar-version { font-size: 0.65rem; font-weight: 400; color: rgba(255,255,255,0.35); margin-left: 8px; }
+  .topbar-re { font-size: 0.75rem; color: rgba(255,255,255,0.5); }
+  .topbar-re a { color: rgba(255,255,255,0.75); text-decoration: none; font-weight: 600; }
+  .topbar-re a:hover { color: #fff; }
+  @media (max-width: 380px) { .topbar-re { display: none; } }
+
+  .hero { text-align: center; padding: 36px 20px 24px; max-width: 600px; margin: 0 auto; }
+  .eyebrow { font-size: 0.68rem; letter-spacing: 0.2em; color: #2a7a58; font-weight: 800; margin-bottom: 10px; }
+  .hero h1 { font-size: 2.8rem; font-weight: 900; color: #1a5940; margin-bottom: 10px; line-height: 1.05; }
+  .hero p { font-size: 0.95rem; color: #6b6960; line-height: 1.6; max-width: 400px; margin: 0 auto; }
+
+  .action-area { max-width: 520px; margin: 0 auto; padding: 0 20px 48px; }
+
+  /* ── Taxon panel ─────────────────────────────────────────────────────────── */
+  .taxon-section { margin-bottom: 14px; }
+
+  .taxon-toggle { width: 100%; display: flex; align-items: center; justify-content: space-between; padding: 13px 16px; background: #fff; border: 1.5px solid #dddbd3; border-radius: 12px; cursor: pointer; font-family: inherit; font-size: 0.9rem; font-weight: 700; color: #1c1b18; transition: all 0.15s; }
+  .taxon-toggle:hover { border-color: #2a7a58; background: #f8fdf9; }
+  .taxon-toggle.has-selection { border-color: #2a7a58; background: #e8f4ef; color: #1a5940; }
+  .taxon-toggle.open { border-radius: 12px 12px 0 0; }
+  .taxon-toggle-icon { font-size: 1rem; transition: transform 0.2s; flex-shrink: 0; }
+  .taxon-toggle.open .taxon-toggle-icon { transform: rotate(180deg); }
+  .taxon-sel-pill { display: inline-flex; align-items: center; gap: 5px; background: #1a5940; color: #fff; border-radius: 20px; padding: 2px 10px 2px 8px; font-size: 0.72rem; font-weight: 800; }
+  .taxon-sel-pill button { background: none; border: none; color: rgba(255,255,255,0.7); cursor: pointer; font-size: 0.85rem; padding: 0; line-height: 1; }
+  .taxon-sel-pill button:hover { color: #fff; }
+
+  .taxon-panel { display: none; background: #fff; border: 1.5px solid #dddbd3; border-top: none; border-radius: 0 0 12px 12px; overflow: hidden; }
+  .taxon-panel.open { display: block; }
+
+  /* Popular groups */
+  .taxon-popular { padding: 12px 14px 10px; border-bottom: 1px solid #eeede8; }
+  .pop-label { font-size: 0.62rem; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: #9b9890; margin-bottom: 8px; }
+  .pop-grid { display: flex; flex-wrap: wrap; gap: 6px; }
+  .pop-btn { display: flex; align-items: center; gap: 5px; padding: 5px 12px 5px 8px; background: #f3f2ee; border: 1.5px solid #dddbd3; border-radius: 20px; cursor: pointer; font-family: inherit; font-size: 0.78rem; font-weight: 700; color: #1c1b18; transition: all 0.15s; white-space: nowrap; }
+  .pop-btn:hover { border-color: #2a7a58; background: #e8f4ef; color: #1a5940; }
+  .pop-btn.active { border-color: #1a5940; background: #1a5940; color: #fff; }
+
+  /* Browse tree */
+  .taxon-browse { }
+  .taxon-crumb { padding: 9px 14px 8px; font-size: 0.72rem; color: #9b9890; display: flex; align-items: center; gap: 4px; flex-wrap: wrap; border-bottom: 1px solid #eeede8; min-height: 36px; }
+  .bc-root, .bc-anc { cursor: pointer; color: #2a7a58; font-weight: 700; }
+  .bc-root:hover, .bc-anc:hover { text-decoration: underline; }
+  .bc-anc { font-style: italic; }
+  .bc-sep { color: #c8c6bc; }
+  .bc-cur { color: #1c1b18; font-weight: 700; font-style: italic; }
+
+  .taxon-search-row { padding: 8px 10px; border-bottom: 1px solid #eeede8; display: flex; gap: 6px; }
+  .taxon-search-row input { flex: 1; padding: 6px 10px; border: 1.5px solid #dddbd3; border-radius: 8px; font-size: 0.85rem; font-family: inherit; outline: none; }
+  .taxon-search-row input:focus { border-color: #2a7a58; }
+
+  .taxon-list { max-height: 220px; overflow-y: auto; }
+  .taxon-loading { padding: 14px; text-align: center; color: #9b9890; font-size: 0.8rem; font-style: italic; }
+  .taxon-empty { padding: 14px; text-align: center; color: #9b9890; font-size: 0.8rem; font-style: italic; }
+
+  .taxon-item { display: flex; align-items: center; justify-content: space-between; padding: 9px 14px; border-bottom: 1px solid #f3f2ee; cursor: pointer; transition: background 0.1s; gap: 8px; }
+  .taxon-item:last-child { border-bottom: none; }
+  .taxon-item:hover { background: #f8fdf9; }
+  .ti-left { flex: 1; min-width: 0; }
+  .ti-name { font-size: 0.86rem; font-weight: 700; color: #1c1b18; font-style: italic; }
+  .ti-rank { display: inline-block; font-size: 0.58rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: #9b9890; background: #f0efeb; border-radius: 8px; padding: 1px 5px; margin-top: 2px; }
+  .ti-arr { font-size: 0.8rem; color: #c8c6bc; flex-shrink: 0; }
+
+  .taxon-use-bar { padding: 10px 14px; border-top: 1px solid #eeede8; display: flex; align-items: center; gap: 8px; }
+  .taxon-use-name { flex: 1; font-size: 0.8rem; color: #6b6960; font-style: italic; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .taxon-use-btn { padding: 7px 14px; background: #1a5940; border: none; color: #fff; border-radius: 8px; font-size: 0.8rem; font-weight: 800; cursor: pointer; font-family: inherit; }
+  .taxon-use-btn:hover { background: #2a7a58; }
+  .taxon-clear-btn { padding: 7px 10px; background: none; border: 1.5px solid #dddbd3; color: #9b9890; border-radius: 8px; font-size: 0.8rem; cursor: pointer; font-family: inherit; }
+  .taxon-clear-btn:hover { border-color: #d47a7a; color: #8a2c2c; }
+
+  /* Location button */
+  .pick-btn { display: block; width: 100%; padding: 16px 24px; background: #1a5940; border: none; color: #fff; border-radius: 14px; font-size: 1.05rem; font-weight: 800; cursor: pointer; font-family: inherit; transition: all 0.15s; text-align: center; box-shadow: 0 4px 16px rgba(26,89,64,0.25); }
+  .pick-btn:hover { background: #226b4d; box-shadow: 0 6px 20px rgba(26,89,64,0.35); transform: translateY(-1px); }
+
+  .divider { display: flex; align-items: center; gap: 12px; margin: 18px 0; color: #c8c6bc; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.08em; }
+  .divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: #dddbd3; }
+
+  /* Species list */
+  .splist-toggle { width: 100%; display: flex; align-items: center; justify-content: space-between; padding: 13px 16px; background: #fff; border: 1.5px solid #dddbd3; border-radius: 12px; cursor: pointer; font-family: inherit; font-size: 0.88rem; font-weight: 700; color: #6b6960; transition: all 0.15s; }
+  .splist-toggle:hover, .splist-toggle.open { border-color: #2a7a58; color: #1a5940; }
+  .splist-toggle.open { border-radius: 12px 12px 0 0; }
+  .splist-panel { display: none; background: #fff; border: 1.5px solid #2a7a58; border-top: none; border-radius: 0 0 12px 12px; padding: 14px; }
+  .splist-panel.open { display: block; }
+  .splist-panel label { display: block; font-size: 0.72rem; font-weight: 800; color: #6b6960; margin-bottom: 5px; letter-spacing: 0.06em; text-transform: uppercase; }
+  .splist-panel input[type=text] { width: 100%; padding: 9px 12px; font-size: 0.88rem; font-family: inherit; border: 1.5px solid #dddbd3; border-radius: 8px; outline: none; margin-bottom: 12px; }
+  .splist-panel input[type=text]:focus { border-color: #2a7a58; }
+  .splist-panel textarea { width: 100%; height: 140px; padding: 10px 12px; font-size: 0.82rem; font-family: inherit; border: 1.5px solid #dddbd3; border-radius: 8px; resize: vertical; outline: none; }
+  .splist-panel textarea:focus { border-color: #2a7a58; }
+  .splist-panel textarea::placeholder { color: #c8c6bc; }
+  .splist-hint { font-size: 0.72rem; color: #9b9890; margin-top: 8px; line-height: 1.5; }
+  .splist-hint a { color: #2a7a58; }
+  .splist-start-btn { width: 100%; margin-top: 12px; padding: 13px; background: #2a7a58; border: none; color: #fff; border-radius: 10px; font-size: 0.95rem; font-weight: 800; cursor: pointer; font-family: inherit; transition: all 0.15s; }
+  .splist-start-btn:hover { background: #1a5940; }
+
+  /* Map modal */
+  .map-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 1000; align-items: center; justify-content: center; padding: 20px; }
+  .map-modal.open { display: flex; }
+  .map-box { background: #fff; border-radius: 16px; width: 100%; max-width: 700px; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.25); display: flex; flex-direction: column; max-height: 90vh; }
+  .map-header { padding: 14px 18px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #dddbd3; flex-shrink: 0; }
+  .map-header h2 { font-size: 1rem; font-weight: 800; color: #1a5940; }
+  .map-header-taxon { font-size: 0.75rem; color: #2a7a58; font-style: italic; }
+  .map-close { background: none; border: none; font-size: 1.4rem; cursor: pointer; color: #9b9890; }
+  .map-close:hover { color: #1c1b18; }
+  .map-search-row { padding: 8px 12px; border-bottom: 1px solid #dddbd3; display: flex; gap: 6px; flex-shrink: 0; }
+  .map-search-row input { flex: 1; padding: 7px 11px; border: 1px solid #ccc; border-radius: 8px; font-size: 0.88rem; font-family: inherit; outline: none; }
+  .map-search-row input:focus { border-color: #1a5940; }
+  .map-search-row button { padding: 7px 13px; background: #1a5940; color: #fff; border: none; border-radius: 8px; font-size: 0.85rem; font-weight: 700; cursor: pointer; }
+  .map-search-row button:hover { background: #226b4d; }
+  #pickMap { flex: 1; min-height: 280px; }
+  .map-status { padding: 10px 18px; font-size: 0.85rem; color: #6b6960; border-top: 1px solid #dddbd3; flex-shrink: 0; min-height: 44px; display: flex; align-items: center; }
+  .map-places { border-top: 1px solid #dddbd3; flex-shrink: 0; overflow-y: auto; max-height: 200px; }
+  .map-place-item { padding: 11px 18px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #f3f2ee; transition: background 0.1s; }
+  .map-place-item:last-child { border-bottom: none; }
+  .map-place-item:hover, .map-place-item.active { background: #e8f4ef; }
+  .map-place-name { font-size: 0.9rem; font-weight: 700; color: #1c1b18; }
+  .map-place-type { font-size: 0.72rem; color: #9b9890; margin-top: 1px; }
+  .map-place-go { font-size: 0.75rem; font-weight: 800; color: #2a7a58; white-space: nowrap; }
+
+  footer { text-align: center; padding: 20px 20px 40px; font-size: 0.78rem; color: #9b9890; border-top: 1px solid #dddbd3; }
+  footer a { color: #2a7a58; text-decoration: none; }
+  footer a:hover { text-decoration: underline; }
+</style>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+</head>
+<body>
+
+<div class="topbar">
+  <div>
+    <span class="topbar-title">WhatDat?</span>
+    <span class="topbar-version">v1.0</span>
+  </div>
+  <span class="topbar-re">by <a href="https://www.rutherfordecology.co.nz/" target="_blank"><strong>Rutherford</strong> ecology</a></span>
+</div>
+
+<div class="hero">
+  <div class="eyebrow">PHOTO ID QUIZ &mdash; ANY ORGANISM</div>
+  <h1>WhatDat?</h1>
+  <p>Pick a life group, choose a location, and see how many species you can identify.</p>
+</div>
+
+<div class="action-area">
+
+  <!-- ── Taxon filter ──────────────────────────────────────────────────────── -->
+  <div class="taxon-section">
+    <button class="taxon-toggle" id="taxonToggleBtn" onclick="toggleTaxonPanel()">
+      <span id="taxonToggleLabel">&#127807; Filter by life group <span style="font-size:0.75rem;color:#9b9890;font-weight:400;">(optional — all life by default)</span></span>
+      <span class="taxon-toggle-icon">&#8964;</span>
+    </button>
+    <div class="taxon-panel" id="taxonPanel">
+
+      <!-- Quick picks -->
+      <div class="taxon-popular">
+        <div class="pop-label">Quick picks</div>
+        <div class="pop-grid" id="popGrid"></div>
+      </div>
+
+      <!-- Browse tree -->
+      <div class="taxon-browse">
+        <div class="taxon-crumb" id="taxonCrumb">
+          <span style="font-style:italic;font-size:0.8rem;">Or browse the tree of life below</span>
+        </div>
+        <div class="taxon-list" id="taxonList"></div>
+      </div>
+
+      <!-- Confirm bar -->
+      <div class="taxon-use-bar" id="taxonUseBar" style="display:none">
+        <span class="taxon-use-name" id="taxonUseName"></span>
+        <button class="taxon-clear-btn" onclick="clearTaxon()">&#215; Clear</button>
+        <button class="taxon-use-btn" onclick="confirmTaxon()">&#10003; Use this</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Location button ───────────────────────────────────────────────────── -->
+  <button class="pick-btn" id="pickBtn" onclick="openMap()">&#127758; Choose a location to play</button>
+
+  <div class="divider">OR</div>
+
+  <!-- ── Species list ──────────────────────────────────────────────────────── -->
+  <div>
+    <button class="splist-toggle" id="splistToggleBtn" onclick="toggleSplist()">
+      <span>&#128203; Paste a species list</span>
+      <span style="font-size:0.85rem;">&#8964;</span>
+    </button>
+    <div class="splist-panel" id="splistPanel">
+      <label>Quiz name</label>
+      <input type="text" id="splistName" placeholder="e.g. NZ Threatened Species" value="Custom List">
+      <label>Species names &mdash; one per line</label>
+      <textarea id="splistInput" placeholder="Kiwi&#10;K&#257;k&#257;p&#333;&#10;Tuatara&#10;...&#10;&#10;Works with lists from But Is It Threatened? or LookLike."></textarea>
+      <p class="splist-hint">Common or scientific names both work. Each is looked up via GBIF and matched to iNaturalist photos. Great with lists from <a href="../but-is-it-threatened/" target="_blank">But Is It Threatened?</a> or <a href="../looklike/" target="_blank">LookLike</a>.</p>
+      <button class="splist-start-btn" onclick="startSpeciesListQuiz()">&#128640; Start Quiz</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- ── Map modal ─────────────────────────────────────────────────────────── -->
+<div class="map-modal" id="mapModal">
+  <div class="map-box">
+    <div class="map-header">
+      <div>
+        <h2>&#127758; Choose a location</h2>
+        <div class="map-header-taxon" id="mapHeaderTaxon"></div>
+      </div>
+      <button class="map-close" onclick="closeMap()">&#x2715;</button>
+    </div>
+    <div id="pickMap"></div>
+    <div class="map-search-row">
+      <input id="modalSearchInput" type="text" placeholder="Search for a place, park, or reserve…" onkeydown="if(event.key==='Enter')searchMap()">
+      <button onclick="searchMap()">Search</button>
+    </div>
+    <div class="map-status"><span id="mapStatusText">Click anywhere on the map to find a location.</span></div>
+    <div class="map-places" id="mapPlaces"></div>
+  </div>
+</div>
+
+<footer>
+  Photos: <a href="https://www.inaturalist.org" target="_blank">iNaturalist</a> (CC licensed) &mdash;
+  Occurrence data &amp; taxonomy: <a href="https://www.gbif.org" target="_blank">GBIF</a> &mdash;
+  <a href="https://www.rutherfordecology.co.nz/" target="_blank">Rutherford Ecology</a>
+  <br><br>
+  <a href="../but-is-it-threatened/" target="_blank" style="color:#2a7a58;font-weight:700;">&#128247; But Is It Threatened?</a> &nbsp;&mdash;&nbsp;
+  <a href="../looklike/" target="_blank" style="color:#2a7a58;font-weight:700;">&#128064; LookLike</a> &nbsp;&mdash;&nbsp;
+  <a href="https://rutherfordecology.github.io/WhatDatBird/" target="_blank" style="color:#2a7a58;font-weight:700;">&#128038; WhatDatBird?</a>
+</footer>
+
+<script>
+// ─────────────────────────────────────────────────────────────────────────────
+// Taxonomy browser — ported from Occurd/taxonomy.js
+// Key improvements over the previous simple version:
+//   • fetchTaxoChildren: paginated, ACCEPTED‖DOUBTFUL‖null status, localStorage cache
+//   • Fun loading phrases (from Occurd)
+//   • Handles mixed-rank children (sorts higher ranks first)
+// ─────────────────────────────────────────────────────────────────────────────
+
+const KINGDOMS = [
+  { key:1, name:'Animalia',  rank:'KINGDOM', label:'Animals'   },
+  { key:6, name:'Plantae',   rank:'KINGDOM', label:'Plants'    },
+  { key:5, name:'Fungi',     rank:'KINGDOM', label:'Fungi'     },
+  { key:4, name:'Chromista', rank:'KINGDOM', label:'Chromista' },
+  { key:7, name:'Protozoa',  rank:'KINGDOM', label:'Protozoa'  },
+  { key:3, name:'Bacteria',  rank:'KINGDOM', label:'Bacteria'  },
+];
+
+const RANK_LABELS = {
+  KINGDOM:'Kingdom', PHYLUM:'Phylum', SUBPHYLUM:'Subphylum', CLASS:'Class',
+  SUBCLASS:'Subclass', ORDER:'Order', SUBORDER:'Suborder', SUPERFAMILY:'Superfamily',
+  FAMILY:'Family', SUBFAMILY:'Subfamily', TRIBE:'Tribe', GENUS:'Genus', SUBGENUS:'Subgenus',
+};
+const VALID_RANKS = new Set(Object.keys(RANK_LABELS));
+const RANK_ORDER  = {
+  KINGDOM:0, PHYLUM:1, SUBPHYLUM:2, CLASS:3, SUBCLASS:4, ORDER:5,
+  SUBORDER:6, FAMILY:7, SUBFAMILY:8, TRIBE:9, GENUS:10, SUBGENUS:11,
+};
+
+// Popular group shortcuts — GBIF backbone keys (stable)
+const POPULAR_GROUPS = [
+  { key:212,  rank:'CLASS',   name:'Aves',            label:'Birds',          icon:'&#128038;' },
+  { key:359,  rank:'CLASS',   name:'Mammalia',        label:'Mammals',        icon:'&#128024;' },
+  { key:204,  rank:'CLASS',   name:'Actinopterygii',  label:'Fish',           icon:'&#128031;' },
+  { key:121,  rank:'CLASS',   name:'Elasmobranchii',  label:'Sharks & Rays',  icon:'&#129416;' },
+  { key:358,  rank:'CLASS',   name:'Reptilia',        label:'Reptiles',       icon:'&#128010;' },
+  { key:131,  rank:'CLASS',   name:'Amphibia',        label:'Amphibians',     icon:'&#128034;' },
+  { key:216,  rank:'CLASS',   name:'Insecta',         label:'Insects',        icon:'&#128027;' },
+  { key:367,  rank:'CLASS',   name:'Arachnida',       label:'Spiders & Mites',icon:'&#128375;' },
+  { key:6,    rank:'KINGDOM', name:'Plantae',         label:'Plants',         icon:'&#127807;' },
+  { key:5,    rank:'KINGDOM', name:'Fungi',           label:'Fungi',          icon:'&#129344;' },
+  { key:1,    rank:'KINGDOM', name:'Animalia',        label:'All Animals',    icon:'&#129436;' },
+];
+
+// ── Loading phrases (from Occurd) ────────────────────────────────────────────
+const LOADING_PHRASES = [
+  'Speciating your patience…', 'Loading at a taxonomic rate…',
+  'Please remain clade seated…', 'Genus takes time…',
+  'Kingdom come, it\'s loading…', 'Taxonomizing the situation…',
+  'Awaiting peer re-viewing…', 'Binomially processing…',
+  'Cladistically speaking, almost there…', 'Evolving your results naturally…',
+  'Running a quick phylo-check…', 'Organising life, one rank at a time…',
+  'Hold please — we\'re keying it out…', 'One does not simply define a species…',
+  'Updating names you just learned yesterday…', 'Synonymising aggressively…',
+  'Asking three taxonomists for four opinions…', 'This could have been a fern…',
+];
+
+let _phraseTimer = null;
+function showLoadingPhrase(el) {
+  if (!el) return;
+  const pick = () => {
+    el.textContent = LOADING_PHRASES[Math.floor(Math.random() * LOADING_PHRASES.length)];
+  };
+  pick();
+  _phraseTimer = setInterval(pick, 2200);
+}
+function hideLoadingPhrase() { clearInterval(_phraseTimer); _phraseTimer = null; }
+
+// ── localStorage cache (7-day TTL, same as Occurd) ───────────────────────────
+const LS_KEY = 'whatdat_taxoCache_v1';
+const LS_TTL = 7 * 24 * 60 * 60 * 1000;
+const taxoCache    = {};
+const taxoInFlight = {};
+
+(function loadCache() {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (!raw) return;
+    const { ts, data } = JSON.parse(raw);
+    if (!ts || Date.now() - ts > LS_TTL) { localStorage.removeItem(LS_KEY); return; }
+    Object.entries(data).forEach(([k, v]) => { taxoCache[k] = v; });
+  } catch(e) {}
+})();
+
+let _saveTimer = null;
+function saveCache() {
+  clearTimeout(_saveTimer);
+  _saveTimer = setTimeout(() => {
+    try { localStorage.setItem(LS_KEY, JSON.stringify({ ts: Date.now(), data: taxoCache })); } catch(e) {}
+  }, 600);
+}
+
+// Core fetch — paginated, ACCEPTED | DOUBTFUL | (no status) — same logic as Occurd.
+// onFirstPage(partial): called after page 1 when more pages remain, so UI can render immediately.
+function fetchTaxoChildren(parentKey, onFirstPage) {
+  if (taxoCache[parentKey] !== undefined) return Promise.resolve(taxoCache[parentKey]);
+  if (taxoInFlight[parentKey]) return taxoInFlight[parentKey];
+  const promise = (async () => {
+    try {
+      const all = [];
+      let offset = 0;
+      while (true) {
+        const res = await fetch(`https://api.gbif.org/v1/species/${parentKey}/children?limit=200&offset=${offset}`);
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const j = await res.json();
+        (j.results || []).forEach(x => {
+          if (x.rank && VALID_RANKS.has(x.rank) &&
+              (!x.taxonomicStatus || x.taxonomicStatus === 'ACCEPTED' || x.taxonomicStatus === 'DOUBTFUL'))
+            all.push(x);
+        });
+        // After page 1, surface partial results immediately if more pages remain
+        if (offset === 0 && !j.endOfRecords && onFirstPage && all.length > 0) {
+          const partial = [...all].sort((a, b) =>
+            (RANK_ORDER[a.rank] ?? 99) - (RANK_ORDER[b.rank] ?? 99) ||
+            (a.canonicalName || '').localeCompare(b.canonicalName || '')
+          );
+          onFirstPage(partial);
+        }
+        if (j.endOfRecords) break;
+        offset += 200;
+      }
+      all.sort((a, b) =>
+        (RANK_ORDER[a.rank] ?? 99) - (RANK_ORDER[b.rank] ?? 99) ||
+        (a.canonicalName || '').localeCompare(b.canonicalName || '')
+      );
+      taxoCache[parentKey] = all;
+      saveCache();
+    } catch(e) { /* don't cache failures */ }
+    delete taxoInFlight[parentKey];
+    return taxoCache[parentKey];
+  })();
+  taxoInFlight[parentKey] = promise;
+  return promise;
+}
+
+// ── UI state ──────────────────────────────────────────────────────────────────
+let taxonPath     = [];   // [{key, name, rank}]
+let pendingTaxon  = null; // {key, name, rank} — being browsed, not yet confirmed
+let confirmedTaxon = null; // locked in for quiz
+let panelOpen     = false;
+
+function toggleTaxonPanel() {
+  panelOpen = !panelOpen;
+  document.getElementById('taxonPanel').classList.toggle('open', panelOpen);
+  document.getElementById('taxonToggleBtn').classList.toggle('open', panelOpen);
+  if (panelOpen && taxonPath.length === 0) renderKingdoms();
+}
+
+function renderCrumb() {
+  const el = document.getElementById('taxonCrumb');
+  if (taxonPath.length === 0) {
+    el.innerHTML = '<span style="font-style:italic;font-size:0.8rem;">Or browse the tree of life below</span>';
+    return;
+  }
+  const parts = [`<span class="bc-root" onclick="renderKingdoms()">Life</span>`];
+  taxonPath.forEach((t, i) => {
+    parts.push('<span class="bc-sep">›</span>');
+    if (i === taxonPath.length - 1) {
+      parts.push(`<span class="bc-cur">${t.name}</span>`);
+    } else {
+      parts.push(`<span class="bc-anc" onclick="backTo(${i})">${t.name}</span>`);
+    }
+  });
+  el.innerHTML = parts.join('');
+}
+
+function renderKingdoms() {
+  taxonPath = [];
+  pendingTaxon = null;
+  renderCrumb();
+  showUseBar(null);
+  clearPopActive();
+  document.getElementById('taxonList').innerHTML = KINGDOMS.map(k =>
+    `<div class="taxon-item" onclick="drillInto(${k.key},${JSON.stringify(k.name)},'KINGDOM')">
+      <div class="ti-left">
+        <div class="ti-name">${k.name}</div>
+        <span class="ti-rank">Kingdom</span>
+      </div>
+      <span class="ti-arr">›</span>
+    </div>`
+  ).join('');
+}
+
+// Sequence counter — if user navigates away while a fetch is in-flight, stale renders are ignored
+let _drillSeq = 0;
+
+function renderTaxonList(children, listEl) {
+  if (!children || children.length === 0) return false;
+  // When results span multiple ranks (e.g. Animalia has phyla AND families AND genera
+  // as direct children due to incertae sedis placements), only show the highest rank
+  // present so the list stays navigable. Users can drill into phyla to reach lower ranks.
+  const minRankOrder = Math.min(...children.map(c => RANK_ORDER[c.rank] ?? 99));
+  const filtered = children.filter(c => (RANK_ORDER[c.rank] ?? 99) === minRankOrder);
+  const extra = children.length - filtered.length;
+
+  listEl.innerHTML = filtered.map(c => {
+    const cname = c.canonicalName || c.scientificName || '?';
+    const rlbl  = RANK_LABELS[c.rank] || c.rank;
+    return `<div class="taxon-item" onclick="drillInto(${c.key},${JSON.stringify(cname)},${JSON.stringify(c.rank)})">
+      <div class="ti-left">
+        <div class="ti-name">${cname}</div>
+        <span class="ti-rank">${rlbl}</span>
+      </div>
+      <span class="ti-arr">›</span>
+    </div>`;
+  }).join('') + (extra > 0 ? `<div class="taxon-empty" style="font-style:normal;color:#9b9890;font-size:0.72rem;padding:8px 14px;">${extra} lower-ranked taxa hidden — drill into a ${RANK_LABELS[filtered[0]?.rank]||'group'} to explore further.</div>` : '');
+  return true;
+}
+
+async function drillInto(key, name, rank) {
+  const mySeq = ++_drillSeq;
+  taxonPath.push({ key, name, rank });
+  renderCrumb();
+  pendingTaxon = { key, name, rank };
+  showUseBar(pendingTaxon);
+
+  const listEl = document.getElementById('taxonList');
+  listEl.innerHTML = `<div class="taxon-loading" id="txLoadMsg">Loading…</div>`;
+  showLoadingPhrase(document.getElementById('txLoadMsg'));
+
+  const children = await fetchTaxoChildren(key, partial => {
+    // Render first page immediately, continue loading in background
+    if (_drillSeq !== mySeq) return;
+    hideLoadingPhrase();
+    renderTaxonList(partial, listEl);
+  });
+  hideLoadingPhrase();
+  if (_drillSeq !== mySeq) return; // user navigated away
+
+  if (!renderTaxonList(children, listEl)) {
+    listEl.innerHTML = `<div class="taxon-empty"><em>${name}</em> is the finest group available here — click <strong>Use this</strong> to filter your quiz to ${name} only.</div>`;
+  }
+}
+
+async function backTo(idx) {
+  const target = taxonPath[idx];
+  taxonPath = taxonPath.slice(0, idx);
+  await drillInto(target.key, target.name, target.rank);
+}
+
+function quickPick(key, name, rank) {
+  clearPopActive();
+  const btn = document.getElementById('pop-' + key);
+  if (btn) btn.classList.add('active');
+  pendingTaxon = { key, name, rank };
+  taxonPath = [];
+  showUseBar(pendingTaxon);
+  drillInto(key, name, rank);
+}
+
+function clearPopActive() {
+  document.querySelectorAll('.pop-btn').forEach(b => b.classList.remove('active'));
+}
+
+function showUseBar(taxon) {
+  const bar  = document.getElementById('taxonUseBar');
+  const name = document.getElementById('taxonUseName');
+  if (taxon) {
+    name.textContent = (RANK_LABELS[taxon.rank] || taxon.rank) + ': ' + taxon.name;
+    bar.style.display = 'flex';
+  } else {
+    bar.style.display = 'none';
+  }
+}
+
+function confirmTaxon() {
+  if (!pendingTaxon) return;
+  confirmedTaxon = { ...pendingTaxon };
+  panelOpen = false;
+  document.getElementById('taxonPanel').classList.remove('open');
+  document.getElementById('taxonToggleBtn').classList.remove('open');
+  updateToggleLabel();
+}
+
+function clearTaxon() {
+  confirmedTaxon = null;
+  pendingTaxon   = null;
+  clearPopActive();
+  updateToggleLabel();
+  renderKingdoms();
+}
+
+function updateToggleLabel() {
+  const btn    = document.getElementById('taxonToggleBtn');
+  const lbl    = document.getElementById('taxonToggleLabel');
+  const pick   = document.getElementById('pickBtn');
+  const mapHdr = document.getElementById('mapHeaderTaxon');
+  if (confirmedTaxon) {
+    const rl = RANK_LABELS[confirmedTaxon.rank] || confirmedTaxon.rank;
+    btn.classList.add('has-selection');
+    lbl.innerHTML = `&#127807; ${rl}: <span class="taxon-sel-pill"><em>${confirmedTaxon.name}</em> <button onclick="event.stopPropagation();clearTaxon()" title="Remove">&#215;</button></span>`;
+    pick.textContent = `\u{1F30E} Choose a location — ${confirmedTaxon.name} only`;
+    if (mapHdr) mapHdr.textContent = 'Filtering: ' + confirmedTaxon.name;
+  } else {
+    btn.classList.remove('has-selection');
+    lbl.innerHTML = `&#127807; Filter by life group <span style="font-size:0.75rem;color:#9b9890;font-weight:400;">(optional — all life by default)</span>`;
+    pick.innerHTML = `&#127758; Choose a location to play`;
+    if (mapHdr) mapHdr.textContent = '';
+  }
+}
+
+function buildQuizUrl(base) {
+  if (confirmedTaxon)
+    base += `&taxon_key=${confirmedTaxon.key}&taxon_name=${encodeURIComponent(confirmedTaxon.name)}&taxon_rank=${confirmedTaxon.rank}`;
+  return base;
+}
+
+// Init popular buttons
+document.getElementById('popGrid').innerHTML = POPULAR_GROUPS.map(g =>
+  `<button class="pop-btn" id="pop-${g.key}" onclick="quickPick(${g.key},${JSON.stringify(g.name)},${JSON.stringify(g.rank)})">
+    <span>${g.icon}</span>${g.label}
+  </button>`
+).join('');
+
+// ── Species list mode ──────────────────────────────────────────────────────────
+function toggleSplist() {
+  const panel = document.getElementById('splistPanel');
+  const btn   = document.getElementById('splistToggleBtn');
+  const open  = panel.classList.toggle('open');
+  btn.classList.toggle('open', open);
+}
+
+function startSpeciesListQuiz() {
+  const raw  = document.getElementById('splistInput').value;
+  const name = document.getElementById('splistName').value.trim() || 'Custom List';
+  const names = raw.split('\n').map(s => s.trim()).filter(Boolean);
+  if (names.length < 4) { alert('Please enter at least 4 species names (one per line).'); return; }
+  sessionStorage.setItem('whatdat_species_list', JSON.stringify(names));
+  let url = `quiz.html?mode=species_list&list_name=${encodeURIComponent(name)}`;
+  if (confirmedTaxon) url += `&taxon_name=${encodeURIComponent(confirmedTaxon.name)}`;
+  window.location.href = url;
+}
+
+// ── Map picker ──────────────────────────────────────────────────────────────────
+let pickMap = null, pickMarker = null, boundaryLayer = null;
+const boundaryCache = {};
+let _nomResults = [], _pendingBbox = null;
+
+const TYPE_LABEL = {
+  2:'Country', 3:'State / Region', 4:'County / District', 5:'Town / City',
+  6:'Park / Reserve', 7:'Water Body', 9:'Open Space / Reserve', 11:'Village',
+  12:'Region', 14:'Island', 17:'Marine Reserve',
+};
+
+function openMap() {
+  document.getElementById('mapModal').classList.add('open');
+  if (!pickMap) {
+    pickMap = L.map('pickMap').setView([20, 0], 2);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; <a href="https://openstreetmap.org/copyright">OpenStreetMap</a>',
+      maxZoom: 18
+    }).addTo(pickMap);
+    pickMap.on('click', onMapClick);
+  }
+  setTimeout(() => pickMap.invalidateSize(), 80);
+}
+
+async function searchMap() {
+  const q = document.getElementById('modalSearchInput').value.trim();
+  if (!q) return;
+  statusEl().textContent = 'Searching…';
+  placesEl().innerHTML = '';
+  clearBoundary();
+  if (pickMarker) { pickMarker.remove(); pickMarker = null; }
+  _nomResults = [];
+  try {
+    const r = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=5&addressdetails=1&polygon_geojson=1`, { headers: { 'Accept-Language': 'en' } });
+    _nomResults = await r.json();
+    if (!_nomResults.length) { statusEl().textContent = 'No results found.'; return; }
+    statusEl().textContent = 'Select a location:';
+    placesEl().innerHTML = _nomResults.map((p, i) => `
+      <div class="map-place-item" onclick="selectNomResult(${i})">
+        <div>
+          <div class="map-place-name">${p.display_name.split(',').slice(0,2).join(',')}</div>
+          <div class="map-place-type">${p.type || p.class || ''}</div>
+        </div>
+        <span class="map-place-go">&#8594;</span>
+      </div>`).join('');
+  } catch { statusEl().textContent = 'Search failed — try again.'; }
+}
+
+function selectNomResult(i) {
+  const p = _nomResults[i];
+  if (!p) return;
+  const bb = p.boundingbox;
+  const s = +bb[0], n = +bb[1], w = +bb[2], e = +bb[3];
+  const lat = +p.lat, lon = +p.lon;
+  const cc = p.address?.country_code?.toUpperCase() || '';
+  clearBoundary();
+  if (pickMarker) pickMarker.remove();
+  pickMarker = L.marker([lat, lon]).addTo(pickMap);
+  if (p.geojson) {
+    boundaryLayer = L.geoJSON(p.geojson, { style: { color:'#1a5940', weight:2.5, fillColor:'#2a7a58', fillOpacity:0.15 } }).addTo(pickMap);
+  } else {
+    boundaryLayer = L.rectangle([[s,w],[n,e]], { color:'#1a5940', weight:2.5, fillColor:'#2a7a58', fillOpacity:0.15 }).addTo(pickMap);
+  }
+  try { pickMap.flyToBounds(boundaryLayer.getBounds(), { duration:0.6, maxZoom:13 }); } catch {}
+  const parts = p.display_name.split(',').map(s => s.trim());
+  const name = parts.length > 1 ? `${parts[0]}, ${parts[parts.length-1]}` : parts[0];
+  _pendingBbox = { s, n, w, e, name, cc };
+  statusEl().textContent = 'Ready:';
+  placesEl().innerHTML = `
+    <div class="map-place-item" onclick="goBbox()">
+      <div>
+        <div class="map-place-name">&#11088; ${parts.slice(0,2).join(', ')}${confirmedTaxon ? ' — '+confirmedTaxon.name+' only' : ''}</div>
+        <div class="map-place-type">${p.type || p.class || ''}</div>
+      </div>
+      <span class="map-place-go">Start Quiz &#8594;</span>
+    </div>`;
+}
+
+function goBbox() {
+  if (!_pendingBbox) return;
+  const { s, n, w, e, name, cc } = _pendingBbox;
+  let url = `quiz.html?swlat=${s}&nelat=${n}&swlng=${w}&nelng=${e}&place_name=${encodeURIComponent(name)}`;
+  if (cc) url += `&country_code=${cc}`;
+  closeMap(); window.location.href = buildQuizUrl(url);
+}
+
+function closeMap() {
+  document.getElementById('mapModal').classList.remove('open');
+  placesEl().innerHTML = '';
+  statusEl().textContent = 'Click anywhere on the map to find a location.';
+  document.getElementById('modalSearchInput').value = '';
+  clearBoundary();
+}
+function clearBoundary() { if (boundaryLayer) { boundaryLayer.remove(); boundaryLayer = null; } }
+function statusEl() { return document.getElementById('mapStatusText'); }
+function placesEl() { return document.getElementById('mapPlaces'); }
+
+async function fetchBoundary(id) {
+  if (boundaryCache[id] === null) return null;
+  if (boundaryCache[id]) return boundaryCache[id];
+  try {
+    const r = await fetch(`https://api.inaturalist.org/v1/places/${id}`);
+    const d = await r.json();
+    const pl = d.results?.[0];
+    boundaryCache[id] = pl?.geometry_geojson || pl?.bounding_box_geojson || null;
+    return boundaryCache[id];
+  } catch { return null; }
+}
+async function showBoundary(id) {
+  clearBoundary();
+  const geo = await fetchBoundary(id);
+  if (!geo || !pickMap) return;
+  boundaryLayer = L.geoJSON(geo, { style:{ color:'#1a5940', weight:2.5, fillColor:'#2a7a58', fillOpacity:0.15 } }).addTo(pickMap);
+  try { pickMap.flyToBounds(boundaryLayer.getBounds(), { duration:0.6, maxZoom:13 }); } catch {}
+}
+
+function renderPlaceList(places, coordOption) {
+  const adminHtml = places.map(p => `
+    <div class="map-place-item" data-id="${p.id}" data-name="${(p.display_name||'').replace(/'/g,"\\'")}">
+      <div>
+        <div class="map-place-name">${p.display_name}</div>
+        <div class="map-place-type">${TYPE_LABEL[p.place_type] || 'Place'}</div>
+      </div>
+      <span class="map-place-go">Let&#x2019;s Go &#8594;</span>
+    </div>`).join('');
+  const coordHtml = coordOption ? `
+    <div class="map-place-item map-place-coord" data-lat="${coordOption._lat}" data-lng="${coordOption._lng}" data-name="${coordOption.display_name}" data-cc="${coordOption._cc||''}">
+      <div>
+        <div class="map-place-name">&#x1F4CD; ${coordOption.display_name}</div>
+        <div class="map-place-type">Nearest species • expands if needed</div>
+      </div>
+      <span class="map-place-go">Let&#x2019;s Go &#8594;</span>
+    </div>` : '';
+  placesEl().innerHTML = coordHtml + adminHtml;
+  attachPlaceListeners();
+}
+
+function attachPlaceListeners() {
+  const firstNamed = placesEl().querySelector('.map-place-item:not(.map-place-coord)[data-id]');
+  placesEl().querySelectorAll('.map-place-item:not(.map-place-coord)').forEach(el => {
+    el.addEventListener('mouseenter', () => {
+      placesEl().querySelectorAll('.map-place-item').forEach(x => x.classList.remove('active'));
+      el.classList.add('active');
+      showBoundary(el.dataset.id);
+    });
+    el.addEventListener('mouseleave', () => { if (firstNamed && el !== firstNamed) showBoundary(firstNamed.dataset.id); });
+    el.addEventListener('click', () => goPlace(el.dataset.id, el.dataset.name));
+  });
+  placesEl().querySelectorAll('.map-place-coord').forEach(el => {
+    el.addEventListener('mouseenter', () => {
+      placesEl().querySelectorAll('.map-place-item').forEach(x => x.classList.remove('active'));
+      el.classList.add('active');
+      const clat = +el.dataset.lat, clng = +el.dataset.lng;
+      clearBoundary();
+      if (pickMap) {
+        const pad = 0.05;
+        boundaryLayer = L.rectangle([[clat-pad,clng-pad],[clat+pad,clng+pad]], {
+          color:'#1a5940',weight:2.5,fillColor:'#2a7a58',fillOpacity:0.15
+        }).addTo(pickMap);
+        try { pickMap.flyToBounds(boundaryLayer.getBounds(),{duration:0.6,maxZoom:13}); } catch {}
+      }
+    });
+    el.addEventListener('click', () => goCoords(+el.dataset.lat, +el.dataset.lng, el.dataset.name, el.dataset.cc));
+  });
+}
+
+function goPlace(id, name) {
+  closeMap();
+  window.location.href = buildQuizUrl(`quiz.html?place_id=${id}&place_name=${encodeURIComponent(name)}`);
+}
+function goCoords(lat, lng, name, cc) {
+  let url = `quiz.html?lat=${lat.toFixed(5)}&lng=${lng.toFixed(5)}&place_name=${encodeURIComponent(name)}`;
+  if (cc) url += `&country_code=${cc}`;
+  closeMap();
+  window.location.href = buildQuizUrl(url);
+}
+
+async function onMapClick(e) {
+  const { lat, lng } = e.latlng;
+  if (pickMarker) pickMarker.remove();
+  pickMarker = L.marker([lat, lng]).addTo(pickMap);
+  clearBoundary();
+  statusEl().textContent = 'Finding nearby locations…';
+  placesEl().innerHTML = '';
+  try {
+    const nomR = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`, { headers:{'Accept-Language':'en'} });
+    const nomD = await nomR.json();
+    const addr = nomD.address || {};
+    const cc   = addr.country_code?.toUpperCase() || null;
+    const near = addr.city || addr.town || addr.village || addr.hamlet || addr.suburb || nomD.name || 'this location';
+    const pad  = 0.05;
+    const nbR  = await fetch(`https://api.inaturalist.org/v1/places/nearby?nelat=${lat+pad}&nelng=${lng+pad}&swlat=${lat-pad}&swlng=${lng-pad}&per_page=30`);
+    const nbD  = await nbR.json();
+    const PRIORITY = {17:0,14:1,6:2,9:3,11:4,5:5,4:6,12:7,3:8,7:9,2:10};
+    const PARK_T   = new Set([6,9,14,17]);
+    const seen     = new Set();
+    const cands    = [...(nbD.results?.standard||[]), ...(nbD.results?.community||[]).filter(p=>PARK_T.has(p.place_type))];
+    const places   = cands
+      .filter(p => { if(!PRIORITY.hasOwnProperty(p.place_type)||p.place_type===1||seen.has(p.id)) return false; seen.add(p.id); return true; })
+      .sort((a,b)=>(PRIORITY[a.place_type]??99)-(PRIORITY[b.place_type]??99))
+      .slice(0,8);
+    statusEl().textContent = 'Hover a location to preview, then click to play:';
+    renderPlaceList(places, { display_name:`Species near ${near}`, _lat:lat, _lng:lng, _cc:cc });
+  } catch {
+    statusEl().textContent = 'Could not look up this location — try again.';
+  }
+}
+</script>
+</body>
+</html>
