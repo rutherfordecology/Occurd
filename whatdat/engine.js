@@ -488,26 +488,18 @@ function keepPlaying() {
 function renderResult(app, header) {
   const acc = state.totalSeen>0 ? Math.round((state.totalCorrect/state.totalSeen)*100) : 0;
   const stars = starsForScore(acc);
-  const msg = [
-    acc>=95?'Absolutely flawless! &#127942;':null,
-    acc>=85?'Brilliant work! &#127775;':null,
-    acc>=70?'Great job! &#127881;':null,
-    acc>=55?'Well done! Keep practising! &#128170;':null,
-    'You did it! Those tricky ones kept coming back until you nailed them! &#128522;',
-  ].find(m=>m!==null);
 
   app.innerHTML = header + `
     <div class="result">
-      <span class="trophy">&#127942;</span>
-      <h2>${STREAK_TARGET} points!</h2>
+      <span class="trophy">&#128214;</span>
+      <h2>You saw all the species!</h2>
       <div class="star-row">${stars}</div>
       <p class="stat">${state.totalCorrect} correct from ${state.totalSeen} attempts (${acc}%)</p>
-      <p class="msg">${msg}</p>
-      <button class="btn-primary" onclick="goIntro()">Play Again &#127919;</button>
+      <p class="msg">You didn't quite get ${STREAK_TARGET} in a row &mdash; but you worked through every species. Try again to beat it!</p>
+      <button class="btn-primary" onclick="goIntro()">Try Again &#127919;</button>
       ${CFG.shareUrl ? `<button class="btn-secondary" onclick="copyShareUrl(this)">&#128279; Share this quiz</button>` : ''}
       <button class="btn-back" onclick="window.location.href='${CFG.backUrl}'">&#8592; Back</button>
     </div>`;
-  launchConfetti();
 }
 
 function renderQuiz(app) {
@@ -888,7 +880,14 @@ function _advance() {
     wrongBin = wrongBin.filter(w => w !== pick);
   } else {
     next=queue.shift();
-    if(eligible.length>0&&Math.random()<0.4) {
+    if(!next) {
+      // queue exhausted but wrongBin still has items not yet eligible — pull oldest one anyway
+      if(wrongBin.length>0) {
+        const pick = wrongBin.reduce((a,b)=>a.wrongAt<b.wrongAt?a:b);
+        next = pick.bird;
+        wrongBin = wrongBin.filter(w=>w!==pick);
+      } else { setState({phase:'result'}); return; }
+    } else if(eligible.length>0&&Math.random()<0.4) {
       const pick = eligible[Math.floor(Math.random()*eligible.length)];
       wrongBin = wrongBin.filter(w => w !== pick);
       queue.splice(Math.min(Math.floor(Math.random()*4)+1,queue.length),0,pick.bird);
