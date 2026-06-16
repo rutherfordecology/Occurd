@@ -46,7 +46,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:700;color:rgba(255,255,255,0.9);letter-spacing:0.01em;">big data</span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v5.64</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v5.65</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -85,10 +85,10 @@
           <button id="kmzBadgeClearBtn" style="background:none;border:none;cursor:pointer;font-size:13px;color:var(--text3);padding:0 2px;line-height:1;flex-shrink:0;" title="Clear KMZ from memory">&#x2715;</button>
         </div>
         <div class="drop-zone" id="dropZone" style="padding:10px;">
-          <input type="file" id="fileInput" accept=".kml,.kmz" multiple>
+          <input type="file" id="fileInput" accept=".kml,.kmz,.csv" multiple>
           <div style="display:flex;align-items:center;gap:8px;justify-content:center;">
             <span style="font-size:18px;">&#128506;</span>
-            <span style="font-size:12px;color:var(--text2);">Drop <strong>KML/KMZ</strong> here, or <span style="color:var(--green);text-decoration:underline;cursor:pointer;">browse</span> — or draw on the map</span>
+            <span style="font-size:12px;color:var(--text2);">Drop <strong>KML/KMZ</strong> or <strong>GBIF CSV</strong> here, or <span style="color:var(--green);text-decoration:underline;cursor:pointer;">browse</span> — or draw on the map</span>
           </div>
         </div>
         <div class="poly-list" id="polyList">
@@ -459,6 +459,10 @@
         style="background:var(--green);color:#fff;border:none;border-radius:6px;padding:6px 14px;
                cursor:pointer;font-size:12px;font-weight:600;font-family:var(--font-sans);white-space:nowrap;"
         id="shareModalCopyBtn">Copy</button>
+    </div>
+    <div id="shareModalCsvRow" style="display:none;margin-top:0.75rem;padding-top:0.75rem;border-top:1px solid var(--border);">
+      <p style="font-size:12px;color:var(--text2);margin:0 0 0.5rem;">Download the current results as a CSV file.</p>
+      <button onclick="downloadCurrentCsv()" style="background:var(--green);color:#fff;border:none;border-radius:6px;padding:6px 14px;cursor:pointer;font-size:12px;font-weight:600;font-family:var(--font-sans);">&#8595; Download CSV</button>
     </div>
     <div style="text-align:right;margin-top:1rem;">
       <button onclick="document.getElementById('shareModal').classList.remove('open')"
@@ -1560,6 +1564,7 @@ function copyShareUrl() {
   const input = document.getElementById('shareUrlInput');
   const copyBtn = document.getElementById('shareModalCopyBtn');
   document.getElementById('shareModal').classList.add('open');
+  document.getElementById('shareModalCsvRow').style.display = csvData ? 'block' : 'none';
   if (input) { input.value = url; setTimeout(() => input.select(), 50); }
   if (copyBtn) { copyBtn.textContent = 'Copy'; copyBtn.style.background = 'var(--green)'; }
 
@@ -2053,7 +2058,8 @@ function handleFile(file) {
   const name = file.name.toLowerCase();
   if (name.endsWith('.kmz')) handleKMZ(file);
   else if (name.endsWith('.kml')) { const r = new FileReader(); r.onload = e => processKMLText(e.target.result, file.name); r.readAsText(file); }
-  else setStatus('Please upload .kml or .kmz files only.', 'error');
+  else if (name.endsWith('.csv')) { const r = new FileReader(); r.onload = e => handleGbifCsv(e.target.result, file.name); r.readAsText(file); }
+  else setStatus('Please upload .kml, .kmz, or GBIF .csv files.', 'error');
 }
 
 async function handleKMZ(file) {
@@ -5778,6 +5784,58 @@ document.getElementById('dlChecklistBtn').addEventListener('click', () => {
   }
 })();
 
+// ── GBIF CSV upload ───────────────────────────────────────────────────────
+
+async function handleGbifCsv(text, filename) {
+  const lines  = text.split(/\r?\n/);
+  const header = lines[0] ? lines[0].split('\t') : [];
+  if (!header.includes('gbifID') && !header.includes('decimalLatitude')) {
+    setStatus('That doesn\'t look like a GBIF occurrence CSV (expected tab-separated columns including gbifID).', 'error');
+    return;
+  }
+  setStatus('Parsing ' + filename + '…', 'info');
+  const rows = [];
+  for (let i = 1; i < lines.length; i++) {
+    if (!lines[i].trim()) continue;
+    const vals = lines[i].split('\t');
+    const row  = {};
+    header.forEach((col, ci) => { row[col] = vals[ci] !== undefined ? vals[ci] : ''; });
+    rows.push(_mapDwcRecord(null, row));
+  }
+  if (rows.length === 0) { setStatus('No records found in ' + filename, 'warning'); return; }
+
+  clearResults();
+  allRecords = rows;
+  document.getElementById('mRecords').textContent = rows.length.toLocaleString();
+  document.getElementById('mSpecies').textContent = new Set(rows.map(r => r.species || r.scientificName).filter(Boolean)).size.toLocaleString();
+  metricsGrid.style.display = 'grid';
+  setStatus('Looking up common names…', 'info');
+  await lookupCommonNames(rows);
+  buildFilterChips(rows);
+  buildChecklist(rows);
+  setTimeout(() => prefetchPhotos(rows), 800);
+  const _isMobile = window.innerWidth < 700;
+  if (!_isMobile) checklistPanel.classList.add('open');
+  _showChecklistHandle(true); _updateChecklistHandle(!_isMobile);
+  renderPoints(rows);
+  if (rows.some(r => r.decimalLatitude && r.decimalLongitude)) {
+    const lats = rows.map(r => r.decimalLatitude).filter(Boolean);
+    const lngs = rows.map(r => r.decimalLongitude).filter(Boolean);
+    map.fitBounds([[Math.min(...lats), Math.min(...lngs)], [Math.max(...lats), Math.max(...lngs)]], { padding: [40, 40] });
+  }
+  setTimeout(() => { map.invalidateSize(); }, 100);
+  csvData = buildCSV(rows);
+  outputSection.style.display = 'block'; nerdToolsSection.style.display = 'block';
+  setStatus(rows.length.toLocaleString() + ' records loaded from ' + filename + '.', 'success');
+}
+
+// ── Share modal CSV download ──────────────────────────────────────────────
+
+function downloadCurrentCsv() {
+  if (!csvData) return;
+  downloadBlob(csvData, 'gbif_occurrences_' + new Date().toISOString().split('T')[0] + '.csv', 'text/csv;charset=utf-8;');
+}
+
 // ── GBIF Big Data — credential check ─────────────────────────────────────
 
 async function _checkGbifCreds() {
@@ -6050,7 +6108,7 @@ if (window._pendingShare) {
   </div>
   <div class="changelog-scroll" id="changelogScroll">
     <div class="changelog-version">
-      <span class="changelog-version-tag">v5.64</span>
+      <span class="changelog-version-tag">v5.65</span>
       <span class="changelog-date">Jun 2026</span>
       <ul>
         <li>Big Data mode — add <code>?bigdata</code> to the URL to activate GBIF async download path on the same page; no 10,000 record cap; requires a free GBIF account (credentials stored in browser only, never sent anywhere except GBIF)</li>
@@ -6059,6 +6117,8 @@ if (window._pendingShare) {
         <li>Redirect — <code>/beta/bigdata/</code> redirects to <code>/beta/?bigdata</code> for bookmarkable URL</li>
         <li>Big Data header label — "big data" tag appears next to the occurd logo in the top-left when in Big Data mode</li>
         <li>Check credentials — "Check credentials" button in Big Data mode tests GBIF login via <code>/v1/user/login</code> and shows ✓ Valid / ✗ Invalid inline</li>
+        <li>GBIF CSV upload — drop zone now accepts GBIF occurrence CSV files; parses tab-separated rows with <code>_mapDwcRecord</code> and loads into the full Occurd interface (map, checklist, filters, timeline) with auto-fit to points</li>
+        <li>Share modal CSV download — "Download CSV" button appears in the share modal when results are loaded</li>
       </ul>
     </div>
     <div class="changelog-version">
