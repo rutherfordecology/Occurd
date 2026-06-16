@@ -1548,13 +1548,19 @@ function openInLooklike() {
 }
 
 function openInWhatDat() {
-  const seen = new Set(), names = [];
+  const seen = new Set(), names = [], extraNames = {};
   document.querySelectorAll('.batch-cb:checked').forEach(cb => {
     const sci = cb.dataset.sci;
-    if (sci && !seen.has(sci)) { seen.add(sci); names.push(sci); }
+    if (sci && !seen.has(sci)) {
+      seen.add(sci);
+      names.push(sci);
+      const r = batchResults.find(x => x.sci === sci);
+      if (r?.maori) extraNames[sci.toLowerCase()] = r.maori;
+    }
   });
   if (!names.length) { alert('Tick at least one matched species first.'); return; }
   localStorage.setItem('whatdat_species_list', JSON.stringify(names));
+  localStorage.setItem('whatdat_extra_names', JSON.stringify(extraNames));
   const url = '../whatdat/quiz.html?mode=species_list&list_name=' + encodeURIComponent('But Is It Threatened?');
   window.open(url, '_blank');
 }

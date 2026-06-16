@@ -120,6 +120,7 @@ body {
 .option { background:#fff; border:1.5px solid #dddbd3; color:#1c1b18; border-radius:10px; padding:14px 10px; font-size:0.8rem; font-weight:700; font-family:system-ui,-apple-system,sans-serif; cursor:pointer; transition:all 0.15s; text-align:center; line-height:1.3; display:flex; flex-direction:column; align-items:center; gap:3px; }
 .opt-english    { font-size:0.82rem; font-weight:800; line-height:1.3; }
 .opt-indigenous { font-size:0.82rem; font-weight:800; color:#8a6020; line-height:1.3; }
+.opt-local-name { font-size:0.72rem; font-weight:600; color:#7a5c1a; line-height:1.2; }
 .opt-latin-small{ font-size:0.62rem; font-weight:400; opacity:0.5; font-style:italic; line-height:1.2; }
 .option:not(:disabled):hover { border-color:#2a7a58; background:#e8f4ef; }
 .option:disabled { cursor:default; }

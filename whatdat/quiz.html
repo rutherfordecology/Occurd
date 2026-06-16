@@ -284,10 +284,25 @@ async function loadFromInat(bufferKm = 0) {
 }
 
 // ── Species list mode ─────────────────────────────────────────────────────
+let _samoaNames = null;
+async function getSamoaNames() {
+  if (_samoaNames) return _samoaNames;
+  try {
+    const r = await fetch('../samoa_names.json');
+    _samoaNames = r.ok ? await r.json() : {};
+  } catch { _samoaNames = {}; }
+  return _samoaNames;
+}
+
 async function loadFromSpeciesList(names) {
   const results = [];
   let done = 0;
   updateLoadingProgress(`Resolving ${names.length} species (0/${names.length})...`);
+
+  const [samoaNames, extraNames] = await Promise.all([
+    getSamoaNames(),
+    Promise.resolve(JSON.parse(localStorage.getItem('whatdat_extra_names') || '{}')),
+  ]);
 
   await Promise.all(names.map(async rawName => {
     const name = rawName.trim();
@@ -298,17 +313,22 @@ async function loadFromSpeciesList(names) {
       const gd = await gr.json();
       if (gd.matchType === 'NONE' || gd.rank !== 'SPECIES') return;
       const latin = gd.canonicalName || name;
+      const latinLower = latin.toLowerCase();
 
       // iNat for photo and common name
       const ir = await fetch(`https://api.inaturalist.org/v1/taxa?q=${encodeURIComponent(latin)}&rank=species&per_page=5`);
       const id = await ir.json();
-      const taxon = id.results?.find(t => t.name.toLowerCase() === latin.toLowerCase()) || id.results?.[0];
+      const taxon = id.results?.find(t => t.name.toLowerCase() === latinLower) || id.results?.[0];
 
       const commonName = gd.vernacularName || taxon?.preferred_common_name || latin;
+      const samoan = samoaNames[latinLower]?.samoan || null;
+      const maori  = extraNames[latinLower] || extraNames[name.toLowerCase()] || null;
 
       results.push({
         name:        commonName,
         latin,
+        samoan,
+        maori,
         gbifKey:     gd.usageKey || null,
         ancestorIds: [gd.classKey, gd.orderKey, gd.familyKey, gd.genusKey].filter(Boolean),
         family:      gd.family || '',

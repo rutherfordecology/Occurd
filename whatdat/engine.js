@@ -554,8 +554,10 @@ function renderQuiz(app) {
     if(state.selected){if(opt===bird.name)cls+=' correct';else if(opt===state.selected)cls+=' wrong';else cls+=' dimmed';}
     const safe=opt.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
     const matchBird=optBirds[i];
+    const localName = matchBird?.samoan || matchBird?.maori || '';
+    const localLabel = localName ? `<span class="opt-local-name">${localName}</span>` : '';
     const latinLabel = showLatin && matchBird?.latin ? `<span class="opt-latin-small">${matchBird.latin}</span>` : '';
-    return `<button class="${cls}" ${state.selected?'disabled':''} onclick="selectAnswer('${safe}',event)"><span class="opt-english">${opt}</span>${latinLabel}</button>`;
+    return `<button class="${cls}" ${state.selected?'disabled':''} onclick="selectAnswer('${safe}',event)"><span class="opt-english">${opt}</span>${localLabel}${latinLabel}</button>`;
   }).join('');
 
   let fieldNote='';
