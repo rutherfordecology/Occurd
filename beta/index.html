@@ -46,7 +46,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:700;color:rgba(255,255,255,0.9);letter-spacing:0.01em;">big data</span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v5.75</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v5.76</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -398,7 +398,7 @@
       <div class="cl-col-header" id="clColHeader">
         <span class="cl-col-species-label">Species</span>
         <span class="cl-looklike-wrap" id="clLooklikeWrap" style="display:none;">
-          <button class="cl-looklike-btn" id="clLooklikeBtn" onclick="openInLooklike()" title="Open selected species in LookLike">📷</button><input type="checkbox" id="clSelAllVisible" title="Select/deselect all visible species" style="accent-color:var(--green);cursor:pointer;">
+          <button class="cl-looklike-btn" id="clWhatdatBtn" onclick="openInWhatDat()" title="Quiz these species in WhatDat?">🎯 Quiz</button><button class="cl-looklike-btn" id="clLooklikeBtn" onclick="openInLooklike()" title="Open selected species in LookLike">📷 Photos</button><input type="checkbox" id="clSelAllVisible" title="Select/deselect all visible species" style="accent-color:var(--green);cursor:pointer;">
         </span>
         <span class="cl-count-header">#</span>
       </div>
@@ -4637,6 +4637,35 @@ function _updateLooklikeBtn() {
   if (btn) { btn.textContent = '📷'; btn.title = n ? `Open ${n} selected species in LookLike` : 'Open selected species in LookLike'; }
 }
 
+// ── WhatDat? integration ─────────────────────────────────────────────────────
+function openInWhatDat() {
+  const checkedNames = [...document.querySelectorAll('.cl-row .cl-photo-cb:checked')]
+    .map(cb => cb.closest('.cl-row')?.dataset.species).filter(Boolean);
+  const allVisible = [...document.querySelectorAll('.cl-row')]
+    .filter(r => !r.classList.contains('hidden') && r.style.display !== 'none')
+    .map(r => r.dataset.species).filter(Boolean);
+  const names = [...new Set(checkedNames.length ? checkedNames : allVisible)];
+  if (!names.length) { alert('No species in the list yet.'); return; }
+
+  let listName = 'Occurd list';
+  let url = './whatdat/quiz.html?mode=species_list';
+
+  if (typeof polygons !== 'undefined' && polygons.length > 0) {
+    const allLats = polygons.flatMap(p => p.latlngs.map(ll => ll.lat ?? ll[0]));
+    const allLngs = polygons.flatMap(p => p.latlngs.map(ll => ll.lng ?? ll[1]));
+    const swlat = Math.min(...allLats).toFixed(5);
+    const nelat = Math.max(...allLats).toFixed(5);
+    const swlng = Math.min(...allLngs).toFixed(5);
+    const nelng = Math.max(...allLngs).toFixed(5);
+    listName = polygons[0].label || 'Occurd list';
+    url += '&swlat=' + swlat + '&nelat=' + nelat + '&swlng=' + swlng + '&nelng=' + nelng;
+  }
+
+  url += '&list_name=' + encodeURIComponent(listName);
+  localStorage.setItem('whatdat_species_list', JSON.stringify(names));
+  window.open(url, '_blank');
+}
+
 function openInLooklike() {
   const selected = [];
   document.querySelectorAll('.cl-row .cl-photo-cb:checked').forEach(cb => {
@@ -6025,7 +6054,7 @@ if (window._pendingShare) {
   </div>
   <div class="changelog-scroll" id="changelogScroll">
     <div class="changelog-version">
-      <span class="changelog-version-tag">v5.75</span>
+      <span class="changelog-version-tag">v5.76</span>
       <span class="changelog-date">Jun 2026</span>
       <ul>
         <li>Big Data mode — add <code>?bigdata</code> to the URL to activate GBIF async download path on the same page; no 10,000 record cap; requires a free GBIF account (credentials stored in browser only, never sent anywhere except GBIF)</li>
