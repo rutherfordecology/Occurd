@@ -46,7 +46,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:700;color:rgba(255,255,255,0.9);letter-spacing:0.01em;">big data</span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v5.63</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v5.64</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -204,9 +204,13 @@
             style="width:100%;padding:7px 10px;border:1.5px solid #dddbd3;border-radius:7px;font-size:0.82rem;font-family:inherit;outline:none;margin-bottom:6px;box-sizing:border-box;">
           <input id="gbifCredsPass" type="password" autocomplete="current-password" placeholder="GBIF password"
             style="width:100%;padding:7px 10px;border:1.5px solid #dddbd3;border-radius:7px;font-size:0.82rem;font-family:inherit;outline:none;margin-bottom:8px;box-sizing:border-box;">
-          <label style="display:flex;align-items:center;gap:6px;font-size:0.75rem;color:#6b6960;cursor:pointer;margin-bottom:6px;">
-            <input type="checkbox" id="gbifRemember"> Remember me on this device
-          </label>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+            <label style="display:flex;align-items:center;gap:6px;font-size:0.75rem;color:#6b6960;cursor:pointer;flex:1;">
+              <input type="checkbox" id="gbifRemember"> Remember me on this device
+            </label>
+            <button id="gbifCheckBtn" type="button" onclick="_checkGbifCreds()" style="padding:4px 10px;font-size:0.72rem;font-family:inherit;background:#fff;border:1.5px solid #dddbd3;border-radius:6px;cursor:pointer;color:#6b6960;white-space:nowrap;">Check credentials</button>
+            <span id="gbifCheckStatus" style="font-size:0.78rem;display:none;"></span>
+          </div>
           <p style="font-size:0.72rem;color:#9b9890;margin:0;line-height:1.45;">Stored in your browser only — never sent anywhere except GBIF. <a href="https://www.gbif.org/en/user/profile" target="_blank" style="color:var(--green-dark);">Create free account ↗</a></p>
         </div>
         <button class="run-btn" id="runBtn" disabled>Fetch occurrences from GBIF</button>
@@ -5774,6 +5778,46 @@ document.getElementById('dlChecklistBtn').addEventListener('click', () => {
   }
 })();
 
+// ── GBIF Big Data — credential check ─────────────────────────────────────
+
+async function _checkGbifCreds() {
+  const user = document.getElementById('gbifCredsUser').value.trim();
+  const pass = document.getElementById('gbifCredsPass').value;
+  const btn  = document.getElementById('gbifCheckBtn');
+  const stat = document.getElementById('gbifCheckStatus');
+  if (!user || !pass) {
+    stat.style.display = 'inline';
+    stat.textContent = '⚠ Enter username and password first.';
+    stat.style.color = '#b07a00';
+    return;
+  }
+  btn.disabled = true;
+  btn.textContent = 'Checking…';
+  stat.style.display = 'none';
+  try {
+    const res = await fetch('https://api.gbif.org/v1/user/login', {
+      headers: { 'Authorization': 'Basic ' + btoa(user + ':' + pass) }
+    });
+    stat.style.display = 'inline';
+    if (res.ok) {
+      stat.textContent = '✓ Valid';
+      stat.style.color = '#2e7d32';
+    } else if (res.status === 401) {
+      stat.textContent = '✗ Invalid username or password';
+      stat.style.color = '#c0392b';
+    } else {
+      stat.textContent = '⚠ GBIF returned ' + res.status;
+      stat.style.color = '#b07a00';
+    }
+  } catch(e) {
+    stat.style.display = 'inline';
+    stat.textContent = '⚠ Network error — check your connection';
+    stat.style.color = '#b07a00';
+  }
+  btn.disabled = false;
+  btn.textContent = 'Check credentials';
+}
+
 // ── GBIF Big Data — download functions ───────────────────────────────────
 
 function _mapDwcRecord(poly, row) {
@@ -6006,7 +6050,7 @@ if (window._pendingShare) {
   </div>
   <div class="changelog-scroll" id="changelogScroll">
     <div class="changelog-version">
-      <span class="changelog-version-tag">v5.63</span>
+      <span class="changelog-version-tag">v5.64</span>
       <span class="changelog-date">Jun 2026</span>
       <ul>
         <li>Big Data mode — add <code>?bigdata</code> to the URL to activate GBIF async download path on the same page; no 10,000 record cap; requires a free GBIF account (credentials stored in browser only, never sent anywhere except GBIF)</li>
@@ -6014,6 +6058,7 @@ if (window._pendingShare) {
         <li>Header "Big Data" link and 10k-error nudge now point to <code>./?bigdata</code> on the same page, pre-filling polygon and filters</li>
         <li>Redirect — <code>/beta/bigdata/</code> redirects to <code>/beta/?bigdata</code> for bookmarkable URL</li>
         <li>Big Data header label — "big data" tag appears next to the occurd logo in the top-left when in Big Data mode</li>
+        <li>Check credentials — "Check credentials" button in Big Data mode tests GBIF login via <code>/v1/user/login</code> and shows ✓ Valid / ✗ Invalid inline</li>
       </ul>
     </div>
     <div class="changelog-version">
