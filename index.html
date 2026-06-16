@@ -45,7 +45,7 @@
       <img src="occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v5.70</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v5.71</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -486,6 +486,33 @@
 
     <div class="modal-btns" style="margin-top:1.2rem;">
       <button class="modal-btn primary" id="aboutClose">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Too-large fetch explainer modal -->
+<div class="modal-overlay" id="tooLargeModal" style="z-index:10001;display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);align-items:center;justify-content:center;padding:20px;">
+  <div class="modal" style="max-width:520px;width:92%;padding:1.75rem;border-radius:16px;background:#fff;box-shadow:0 20px 60px rgba(0,0,0,0.2);">
+    <div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:1rem;">
+      <span style="font-size:2rem;line-height:1;">&#128308;</span>
+      <div>
+        <h2 style="margin:0 0 4px;font-size:1.1rem;color:#1c1b18;" id="tooLargeTitle">That area is too large</h2>
+        <p style="margin:0;font-size:0.8rem;color:#9b9890;" id="tooLargeSubtitle"></p>
+      </div>
+    </div>
+    <p style="margin:0 0 1rem;font-size:0.88rem;color:#4a4945;line-height:1.6;" id="tooLargeBody"></p>
+    <div style="background:#f3f2ee;border-radius:10px;padding:12px 14px;margin-bottom:1.2rem;">
+      <p style="margin:0 0 6px;font-size:0.78rem;font-weight:800;color:#6b6960;letter-spacing:0.06em;text-transform:uppercase;">Try one of these</p>
+      <ul style="margin:0;padding-left:16px;font-size:0.85rem;color:#4a4945;line-height:1.8;">
+        <li><strong>Smaller area</strong> — draw a tighter polygon around a park, bay, or reserve</li>
+        <li><strong>Filter by taxon</strong> — choose Birds, Plants, Fish etc. before fetching</li>
+        <li><strong>Shorter date range</strong> — narrow the year range in the date filter</li>
+        <li><strong>GBIF Download</strong> — for large datasets, use the <a href="https://www.gbif.org/occurrence/download" target="_blank" style="color:var(--green-dark);font-weight:700;">GBIF Download API</a> to export a full Darwin Core Archive, then load it here <em>(coming soon in Occurd)</em></li>
+      </ul>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;">
+      <button onclick="document.getElementById('tooLargeModal').style.display='none'" style="padding:9px 18px;background:none;border:1.5px solid #dddbd3;border-radius:8px;font-size:0.88rem;font-weight:700;cursor:pointer;font-family:inherit;color:#6b6960;">Dismiss</button>
+      <button onclick="document.getElementById('tooLargeModal').style.display='none';document.getElementById('runBtn').click()" style="padding:9px 18px;background:var(--green-dark);border:none;border-radius:8px;font-size:0.88rem;font-weight:700;cursor:pointer;font-family:inherit;color:#fff;">Try again</button>
     </div>
   </div>
 </div>
@@ -1296,6 +1323,13 @@ function setFetchMode(fetching) {
     hideOccLoadingPhrase();
   }
 }
+function showTooLargeModal(title, subtitle, body) {
+  document.getElementById('tooLargeTitle').textContent   = title;
+  document.getElementById('tooLargeSubtitle').textContent = subtitle || '';
+  document.getElementById('tooLargeBody').textContent    = body;
+  document.getElementById('tooLargeModal').style.display = 'flex';
+}
+
 function setStatus(msg, type, withCancel) {
   statusBar.className = 'status-bar ' + type;
   statusBar.style.display = 'block';
@@ -5233,11 +5267,12 @@ runBtn.addEventListener('click', async () => {
       }
       totalCount = json0.count;
       if (totalCount > MAX_RECORDS) {
-        setStatus(
-          '⚠️ ' + totalCount.toLocaleString() + ' records found — too large to load (limit is ' +
-          MAX_RECORDS.toLocaleString() + '). Try: ① smaller polygon  ② specific taxa  ③ shorter year range.',
-          'error'
+        showTooLargeModal(
+          'That area has too many records',
+          totalCount.toLocaleString() + ' records found — GBIF limits live queries to ' + MAX_RECORDS.toLocaleString(),
+          'GBIF\'s live search API isn\'t designed for very large datasets — it works best for focused queries on a specific place, taxon group, or time window. Your current area returned more records than it can deliver in one go.'
         );
+        setStatus('⚠️ ' + totalCount.toLocaleString() + ' records — too large. See the popup for suggestions.', 'error');
         setFetchMode(false); return;
       }
       json0.results.forEach(r => allFetched.push(_mapOccRecord(poly, r)));
@@ -5264,8 +5299,12 @@ runBtn.addEventListener('click', async () => {
                 totalCount.toLocaleString() + ' records fetched (network error). Results below may be incomplete — refetch to try again.';
               break;
             }
-            setStatus('Fetch failed after 5 attempts. If it keeps failing: ① smaller polygon  ② specific taxa  ③ shorter year range.', 'error');
-            statusBar.innerHTML += ' <button onclick="document.getElementById(\'runBtn\').click()" style="margin-left:8px;background:none;border:1px solid currentColor;border-radius:3px;padding:2px 8px;cursor:pointer;font-size:11px;font-family:var(--font-sans);color:inherit;font-weight:600;">Try again</button>';
+            showTooLargeModal(
+              'Fetch failed',
+              'GBIF stopped responding after 5 attempts',
+              'This usually means the request is too large or complex for GBIF\'s live API to handle. Large areas, broad taxon filters, and wide date ranges all increase the chance of a timeout.'
+            );
+            setStatus('Fetch failed after 5 attempts.', 'error');
             setFetchMode(false); return;
           }
           batchJsons.forEach(json => json.results.forEach(r => allFetched.push(_mapOccRecord(poly, r))));
