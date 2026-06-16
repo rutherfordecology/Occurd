@@ -46,7 +46,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:700;color:rgba(255,255,255,0.9);letter-spacing:0.01em;">big data</span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v5.85</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v5.86</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -5986,6 +5986,14 @@ function _wktEnsureCCW(wkt) {
   return wkt;
 }
 
+function _buildPredicateFromWkts(wkts) {
+  if (!wkts.length) return null;
+  const geomPredicate = wkts.length === 1
+    ? { type: 'within', geometry: wkts[0] }
+    : { type: 'or', predicates: wkts.map(g => ({ type: 'within', geometry: g })) };
+  return geomPredicate;
+}
+
 function _buildGbifDownloadPredicate(simplifyTol) {
   const _geomPolys      = polygons.filter(p => p.type !== 'species');
   const _speciesEntries = polygons.filter(p => p.type === 'species');
@@ -6015,10 +6023,12 @@ function _buildGbifDownloadPredicate(simplifyTol) {
       if (ring[0][0] !== ring[ring.length-1][0] || ring[0][1] !== ring[ring.length-1][1]) ring.push(ring[0]);
       const simplified = turf.simplify(turf.polygon([ring]), { tolerance: simplifyTol, highQuality: true });
       const r = simplified.geometry.coordinates[0];
-      wkts.push(_wktEnsureCCW('POLYGON((' + r.map(c => c[0].toFixed(6) + ' ' + c[1].toFixed(6)).join(',') + '))'));
-      continue;
+      if (r.length >= 4) { // need at least 3 unique points + closing point
+        wkts.push(_wktEnsureCCW('POLYGON((' + r.map(c => c[0].toFixed(6) + ' ' + c[1].toFixed(6)).join(',') + '))'));
+        continue;
+      }
     } catch(e) {}
-    wkts.push(getQueryWKT(p));
+    // Polygon too small to simplify — skip this tolerance, try next
   }
   if (!wkts.length) return null;
   let geomPredicate = null;
@@ -6086,7 +6096,29 @@ async function _runGbifDownload(user, pass) {
     _submitted = true;
     break;
   }
-  if (!_submitted) { setStatus('Could not submit — polygon could not be simplified to a valid shape. Try drawing a simpler boundary.', 'error'); setFetchMode(false); return; }
+  if (!_submitted) {
+    // Last resort — bounding box of all polygons
+    setStatus('Retrying with bounding box (records outside exact boundary may be included)…', 'info');
+    try {
+      const _fallbackPolys = polygons.filter(p => p.type !== 'species');
+      const allLats = _fallbackPolys.flatMap(p => p.latlngs.map(ll => ll.lat !== undefined ? ll.lat : ll[0]));
+      const allLngs = _fallbackPolys.flatMap(p => p.latlngs.map(ll => ll.lng !== undefined ? ll.lng : ll[1]));
+      const minLng = Math.min(...allLngs).toFixed(6), maxLng = Math.max(...allLngs).toFixed(6);
+      const minLat = Math.min(...allLats).toFixed(6), maxLat = Math.max(...allLats).toFixed(6);
+      const bboxWkt = "POLYGON((" + minLng + " " + minLat + "," + maxLng + " " + minLat + "," + maxLng + " " + maxLat + "," + minLng + " " + maxLat + "," + minLng + " " + minLat + "))";
+      const bboxPred = _buildPredicateFromWkts([bboxWkt]);
+      const res = await fetch('https://api.gbif.org/v1/occurrence/download/request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Basic ' + auth },
+        body: JSON.stringify({ creator: user, sendNotification: true, format: 'SIMPLE_CSV', predicate: bboxPred })
+      });
+      if (res.ok) {
+        downloadKey = (await res.text()).replace(/"/g, '').trim();
+        _submitted = true;
+      }
+    } catch(e) {}
+    if (!_submitted) { setStatus('Could not submit — polygon geometry could not be sent to GBIF.', 'error'); setFetchMode(false); return; }
+  }
 
   // Step 2: done - fire and forget. GBIF emails the user when ready.
   const _keyMsg = "Request submitted (key: " + downloadKey + "). GBIF will email you when ready (can take 15+ minutes). "
@@ -6119,7 +6151,7 @@ if (window._pendingShare) {
   </div>
   <div class="changelog-scroll" id="changelogScroll">
     <div class="changelog-version">
-      <span class="changelog-version-tag">v5.85</span>
+      <span class="changelog-version-tag">v5.86</span>
       <span class="changelog-date">Jun 2026</span>
       <ul>
         <li>Big Data mode — add <code>?bigdata</code> to the URL to activate GBIF async download path on the same page; no 10,000 record cap; requires a free GBIF account (credentials stored in browser only, never sent anywhere except GBIF)</li>
