@@ -44,8 +44,9 @@
     <div style="overflow:hidden;width:100px;height:44px;flex-shrink:0;margin-top:4px;">
       <img src="occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
+    <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:700;color:rgba(255,255,255,0.9);letter-spacing:0.01em;">big data</span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v5.62</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v5.63</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -1066,6 +1067,7 @@ let polygons = [], refLayers = [], clipTurfPolygons = null, allRecords = [], act
 const BIGDATA_MODE = new URLSearchParams(location.search).has('bigdata');
 if (BIGDATA_MODE) {
   document.title = 'occurd. big data · Rutherford Ecology';
+  document.getElementById('bigdataHeaderLabel').style.display = 'inline';
   document.getElementById('bigdataCreds').style.display = 'block';
   // Pre-fill credentials: sessionStorage first, then localStorage (if remember-me was used)
   const _su = sessionStorage.getItem('gbif_user') || localStorage.getItem('gbif_user') || '';
@@ -6004,13 +6006,14 @@ if (window._pendingShare) {
   </div>
   <div class="changelog-scroll" id="changelogScroll">
     <div class="changelog-version">
-      <span class="changelog-version-tag">v5.62</span>
+      <span class="changelog-version-tag">v5.63</span>
       <span class="changelog-date">Jun 2026</span>
       <ul>
         <li>Big Data mode — add <code>?bigdata</code> to the URL to activate GBIF async download path on the same page; no 10,000 record cap; requires a free GBIF account (credentials stored in browser only, never sent anywhere except GBIF)</li>
         <li>Credentials UI — username/password fields appear in Big Data mode with optional "Remember me" (sessionStorage default, localStorage opt-in)</li>
         <li>Header "Big Data" link and 10k-error nudge now point to <code>./?bigdata</code> on the same page, pre-filling polygon and filters</li>
         <li>Redirect — <code>/beta/bigdata/</code> redirects to <code>/beta/?bigdata</code> for bookmarkable URL</li>
+        <li>Big Data header label — "big data" tag appears next to the occurd logo in the top-left when in Big Data mode</li>
       </ul>
     </div>
     <div class="changelog-version">
