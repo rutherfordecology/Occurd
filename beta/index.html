@@ -46,7 +46,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:700;color:rgba(255,255,255,0.9);letter-spacing:0.01em;">big data</span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v5.73</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v5.74</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -85,10 +85,10 @@
           <button id="kmzBadgeClearBtn" style="background:none;border:none;cursor:pointer;font-size:13px;color:var(--text3);padding:0 2px;line-height:1;flex-shrink:0;" title="Clear KMZ from memory">&#x2715;</button>
         </div>
         <div class="drop-zone" id="dropZone" style="padding:10px;">
-          <input type="file" id="fileInput" accept=".kml,.kmz,.csv" multiple>
+          <input type="file" id="fileInput" accept=".kml,.kmz,.csv,.zip" multiple>
           <div style="display:flex;align-items:center;gap:8px;justify-content:center;">
             <span style="font-size:18px;">&#128506;</span>
-            <span style="font-size:12px;color:var(--text2);">Drop <strong>KML/KMZ</strong> or <strong>GBIF CSV</strong> here, or <span style="color:var(--green);text-decoration:underline;cursor:pointer;">browse</span> — or draw on the map</span>
+            <span id="dropZoneLabel" style="font-size:12px;color:var(--text2);">Drop <strong>KML/KMZ</strong> or <strong>GBIF CSV/ZIP</strong> here, or <span style="color:var(--green);text-decoration:underline;cursor:pointer;">browse</span> — or draw on the map</span>
           </div>
         </div>
         <div class="poly-list" id="polyList">
@@ -212,7 +212,7 @@
             <span id="gbifCheckStatus" style="font-size:0.78rem;display:none;"></span>
           </div>
           <p style="font-size:0.72rem;color:#9b9890;margin:0 0 4px;line-height:1.45;">Stored in your browser only — never sent anywhere except GBIF. <a href="https://www.gbif.org/en/user/profile" target="_blank" style="color:var(--green-dark);">Create free account ↗</a></p>
-          <p style="font-size:0.72rem;color:#9b9890;margin:0;line-height:1.45;">GBIF will email you when your download is ready — handy if something goes wrong on this end.</p>
+          <p style="font-size:0.72rem;color:#9b9890;margin:0;line-height:1.45;">GBIF will email you when your download is ready. Download the zip and drop it into the upload zone above.</p>
         </div>
         <button class="run-btn" id="runBtn" disabled>Fetch occurrences from GBIF</button>
         <div class="status-bar" id="statusBar"></div>
@@ -2061,7 +2061,19 @@ function handleFile(file) {
   if (name.endsWith('.kmz')) handleKMZ(file);
   else if (name.endsWith('.kml')) { const r = new FileReader(); r.onload = e => processKMLText(e.target.result, file.name); r.readAsText(file); }
   else if (name.endsWith('.csv')) { const r = new FileReader(); r.onload = e => handleGbifCsv(e.target.result, file.name); r.readAsText(file); }
-  else setStatus('Please upload .kml, .kmz, or GBIF .csv files.', 'error');
+  else if (name.endsWith('.zip')) handleGbifZip(file);
+  else setStatus('Please upload .kml, .kmz, .zip or GBIF .csv files.', 'error');
+}
+
+async function handleGbifZip(file) {
+  setStatus('Reading ' + file.name + '…', 'info');
+  try {
+    const zip = await JSZip.loadAsync(file);
+    const f = zip.file('occurrence.csv') || Object.values(zip.files).find(f => !f.dir && f.name.endsWith('.csv'));
+    if (!f) { setStatus('No occurrence.csv found inside ' + file.name + '. Is this a GBIF download zip?', 'error'); return; }
+    const text = await f.async('text');
+    handleGbifCsv(text, file.name);
+  } catch(e) { setStatus('Could not read zip: ' + e.message, 'error'); }
 }
 
 async function handleKMZ(file) {
@@ -5982,119 +5994,13 @@ async function _runGbifDownload(user, pass) {
     setFetchMode(false); return;
   }
 
-  // Step 2: poll until ready
-  const _gbifDlPageLink = ' <a href="https://www.gbif.org/user/download" target="_blank" style="color:var(--green-dark);">Monitor on GBIF ↗</a>';
-  setStatus('Waiting for GBIF to prepare your download… It’s in a queue that can take 15 minutes or more.' + _gbifDlPageLink, 'info', true);
-  setProgress(5, 'GBIF is preparing your download (key: ' + downloadKey + ')');
-  let status = 'PREPARING', polls = 0, downloadLink = null, totalRecords = null;
-  while (status !== 'SUCCEEDED' && status !== 'FAILED' && status !== 'CANCELLED' && status !== 'KILLED') {
-    if (fetchAbortFlag) { setStatus('Download cancelled.', 'warning'); setFetchMode(false); return; }
-    await new Promise(r => setTimeout(r, 5000));
-    if (fetchAbortFlag) { setStatus('Download cancelled.', 'warning'); setFetchMode(false); return; }
-    if (++polls > 240) { setStatus('Timed out after 20 minutes.' + _gbifDlPageLink, 'error'); setFetchMode(false); return; }
-    try {
-      const poll = await fetch('https://api.gbif.org/v1/occurrence/download/' + downloadKey, { headers: { 'Authorization': 'Basic ' + auth } });
-      if (!poll.ok) continue;
-      const info = await poll.json();
-      status = info.status || status;
-      if (info.downloadLink) downloadLink = info.downloadLink;
-      if (info.totalRecords != null) totalRecords = info.totalRecords;
-      const n = totalRecords != null ? ' — ' + totalRecords.toLocaleString() + ' records so far' : '';
-      setProgress(10, status + n + ' (key: ' + downloadKey + ')');
-    } catch(e) { /* network hiccup, keep polling */ }
-  }
-  if (status !== 'SUCCEEDED') { setStatus('Download ' + status.toLowerCase() + '.' + _gbifDlPageLink, 'error'); setFetchMode(false); return; }
-
-  // Step 3: fetch zip — always use api.gbif.org (download.gbif.org blocks CORS)
-  const zipUrl = 'https://api.gbif.org/v1/occurrence/download/request/' + downloadKey + '.zip';
-  setStatus('Fetching your records from GBIF…', 'info');
-  setProgress(30, 'Downloading from GBIF…');
-  let arrayBuffer;
-  try {
-    const dlRes = await fetch(zipUrl, { headers: { 'Authorization': 'Basic ' + auth } });
-    if (!dlRes.ok) throw new Error('HTTP ' + dlRes.status);
-    arrayBuffer = await dlRes.arrayBuffer();
-  } catch(e) {
-    const gbifLink = (downloadLink || ('https://www.gbif.org/occurrence/download/' + downloadKey));
-    setStatus(
-      'GBIF\'s download server blocks direct browser access (CORS). ' +
-      '<a href="' + gbifLink + '" target="_blank" style="color:var(--green-dark);font-weight:600;">Download the zip from GBIF ↗</a>' +
-      ', extract the <code>occurrence.csv</code> inside, then drop it into the upload zone on the left.',
-      'warning'
-    );
-    setFetchMode(false); return;
-  }
-
-  // Step 4: parse zip
-  setStatus('Parsing records…', 'info');
-  setProgress(65, 'Parsing the download archive…');
-  let tsvText;
-  try {
-    const zip = await JSZip.loadAsync(arrayBuffer);
-    const f = zip.file('occurrence.csv') || Object.values(zip.files).find(f => !f.dir && f.name.endsWith('.csv'));
-    if (!f) throw new Error('No occurrence.csv in the zip.');
-    tsvText = await f.async('text');
-  } catch(e) { setStatus('Failed to parse download: ' + e.message, 'error'); setFetchMode(false); return; }
-
-  // Step 5: map rows → internal records
-  setProgress(80, 'Mapping records…');
-  const lines  = tsvText.split(/\r?\n/);
-  const header = lines[0] ? lines[0].split('\t') : [];
-  const _geomPolys  = polygons.filter(p => p.type !== 'species');
-  const _turfPolys  = _geomPolys.map(p => {
-    try { return { poly: p, tp: turf.polygon([closeRingCoords(p.latlngs.map(llToGeoJSON))]) }; } catch(e) { return { poly: p, tp: null }; }
-  });
-  const allFetched = [];
-  for (let i = 1; i < lines.length; i++) {
-    if (!lines[i].trim()) continue;
-    const vals = lines[i].split('\t');
-    const row  = {};
-    header.forEach((col, ci) => { row[col] = vals[ci] !== undefined ? vals[ci] : ''; });
-    let assignedPoly = _geomPolys[0] || null;
-    const lat = parseFloat(row['decimalLatitude']), lng = parseFloat(row['decimalLongitude']);
-    if (!isNaN(lat) && !isNaN(lng) && _turfPolys.length > 1) {
-      const pt = turf.point([lng, lat]);
-      const m  = _turfPolys.find(tp => { if (!tp.tp) return false; try { return turf.booleanPointInPolygon(pt, tp.tp); } catch(e) { return false; } });
-      if (m) assignedPoly = m.poly;
-    }
-    allFetched.push(_mapDwcRecord(assignedPoly, row));
-  }
-  if (allFetched.length === 0) { setStatus('No records found for this area and filters.', 'warning'); setFetchMode(false); return; }
-
-  // Step 6: post-filter + render (same pipeline as live search)
-  const taxonKeys       = getSelectedTaxonKeys();
-  const _speciesEntries = polygons.filter(p => p.type === 'species');
-  const requestedGroups = (_speciesEntries.length === 0 && taxonKeys.length > 0)
-    ? new Set(taxonKeys.map(k => CB_TO_GROUP[k]).filter(Boolean)) : null;
-  const displayRecords  = requestedGroups ? allFetched.filter(r => requestedGroups.has(getTaxonGroup(r))) : allFetched;
-
-  allRecords = displayRecords;
-  document.getElementById('mRecords').textContent = displayRecords.length.toLocaleString();
-  document.getElementById('mSpecies').textContent = new Set(displayRecords.map(r => r.species || r.scientificName).filter(Boolean)).size.toLocaleString();
-  metricsGrid.style.display = 'grid';
-  maybeActivateNztcs();
-  const _iucnBtn = document.getElementById('clIucnBtn');
-  if (_iucnBtn) { _iucnBtn.style.display = ''; updateIucnBtn(); }
-  displayRecords.forEach(r => {
-    const key = r.speciesKey || r.taxonKey;
-    if (key && r.iucnRedListCategory && iucnCache[key] === undefined) iucnCache[key] = iucnShortCode(r.iucnRedListCategory) || null;
-  });
-  setStatus('Looking up common names…', 'info');
-  await lookupCommonNames(displayRecords);
-  buildFilterChips(displayRecords);
-  buildChecklist(displayRecords);
-  setTimeout(() => prefetchPhotos(displayRecords), 800);
-  const _isMobile = window.innerWidth < 700;
-  if (!_isMobile) checklistPanel.classList.add('open');
-  _showChecklistHandle(true); _updateChecklistHandle(!_isMobile);
-  renderPoints(displayRecords);
-  setTimeout(() => { map.invalidateSize(); }, 100);
-  csvData = buildCSV(displayRecords);
-  outputSection.style.display = 'block'; nerdToolsSection.style.display = 'block';
-  showQualityFlags(allFetched);
-  setProgress(100, 'Done');
-  const filtered = allFetched.length - displayRecords.length;
-  setStatus(displayRecords.length.toLocaleString() + ' records loaded via GBIF Download' + (filtered > 0 ? ' (' + filtered.toLocaleString() + ' filtered by taxon group)' : '') + '.', 'success');
+  // Step 2: done — fire and forget. GBIF emails the user when ready.
+  setStatus(
+    ‘Request submitted (key: ‘ + downloadKey + ‘). GBIF will email you when it\’s ready — this can take 15+ minutes. ‘ +
+    ‘<a href="https://www.gbif.org/user/download" target="_blank" style="color:var(--green-dark);">Check progress on GBIF ↗</a>’ +
+    ‘<br>When the zip arrives, drop it into the upload zone on the left to load your records.’,
+    ‘success’
+  );
   setFetchMode(false);
 }
 
@@ -6121,7 +6027,7 @@ if (window._pendingShare) {
   </div>
   <div class="changelog-scroll" id="changelogScroll">
     <div class="changelog-version">
-      <span class="changelog-version-tag">v5.73</span>
+      <span class="changelog-version-tag">v5.74</span>
       <span class="changelog-date">Jun 2026</span>
       <ul>
         <li>Big Data mode — add <code>?bigdata</code> to the URL to activate GBIF async download path on the same page; no 10,000 record cap; requires a free GBIF account (credentials stored in browser only, never sent anywhere except GBIF)</li>
