@@ -131,6 +131,19 @@
   footer { text-align: center; padding: 20px 20px 40px; font-size: 0.78rem; color: #9b9890; border-top: 1px solid #dddbd3; }
   footer a { color: #2a7a58; text-decoration: none; }
   footer a:hover { text-decoration: underline; }
+
+  /* ── Library ─────────────────────────────────────────────────────────────── */
+  .library-section { max-width: 520px; margin: 0 auto 48px; padding: 0 20px; }
+  .library-heading { font-size: 0.68rem; letter-spacing: 0.15em; font-weight: 800; color: #9b9890; text-transform: uppercase; margin-bottom: 12px; }
+  .library-empty { font-size: 0.85rem; color: #c8c6bc; font-style: italic; padding: 10px 0; }
+  .lib-card { background: #fff; border: 1.5px solid #dddbd3; border-radius: 12px; padding: 13px 15px; margin-bottom: 10px; display: flex; align-items: center; gap: 12px; }
+  .lib-card-info { flex: 1; min-width: 0; }
+  .lib-card-name { font-size: 0.9rem; font-weight: 800; color: #1c1b18; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .lib-card-meta { font-size: 0.72rem; color: #9b9890; margin-top: 2px; }
+  .lib-card-play { padding: 8px 16px; background: #1a5940; border: none; color: #fff; border-radius: 8px; font-size: 0.82rem; font-weight: 800; cursor: pointer; font-family: inherit; white-space: nowrap; }
+  .lib-card-play:hover { background: #2a7a58; }
+  .lib-card-del { background: none; border: none; color: #c8c6bc; font-size: 1rem; cursor: pointer; padding: 4px; line-height: 1; }
+  .lib-card-del:hover { color: #8a2c2c; }
 </style>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -205,6 +218,12 @@
     </div>
   </div>
 
+</div>
+
+<!-- ── Library ───────────────────────────────────────────────────────────── -->
+<div class="library-section" id="librarySection" style="display:none">
+  <div class="library-heading">&#128218; Saved Quizzes</div>
+  <div id="libraryList"></div>
 </div>
 
 <!-- ── Map modal ─────────────────────────────────────────────────────────── -->
@@ -777,6 +796,50 @@ async function onMapClick(e) {
     statusEl().textContent = 'Could not look up this location — try again.';
   }
 }
+
+// ── Quiz Library ──────────────────────────────────────────────────────────────
+const LIB_KEY = 'whatdat_library';
+
+function loadLibrary() {
+  try { return JSON.parse(localStorage.getItem(LIB_KEY) || '[]'); } catch { return []; }
+}
+
+function saveLibrary(items) {
+  localStorage.setItem(LIB_KEY, JSON.stringify(items));
+}
+
+function renderLibrary() {
+  const items = loadLibrary();
+  const section = document.getElementById('librarySection');
+  const list = document.getElementById('libraryList');
+  if (!items.length) { section.style.display = 'none'; return; }
+  section.style.display = '';
+  list.innerHTML = items.map((q, i) => `
+    <div class="lib-card">
+      <div class="lib-card-info">
+        <div class="lib-card-name">${q.name}</div>
+        <div class="lib-card-meta">${q.count} species &mdash; saved ${new Date(q.date).toLocaleDateString()}</div>
+      </div>
+      <button class="lib-card-play" onclick="playLibraryQuiz(${i})">Play &#9658;</button>
+      <button class="lib-card-del" onclick="deleteLibraryQuiz(${i})" title="Remove">&#10005;</button>
+    </div>`).join('');
+}
+
+function playLibraryQuiz(idx) {
+  const items = loadLibrary();
+  const q = items[idx];
+  if (!q) return;
+  window.open(q.url, '_blank');
+}
+
+function deleteLibraryQuiz(idx) {
+  const items = loadLibrary();
+  items.splice(idx, 1);
+  saveLibrary(items);
+  renderLibrary();
+}
+
+renderLibrary();
 </script>
 </body>
 </html>

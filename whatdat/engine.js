@@ -485,6 +485,20 @@ function keepPlaying() {
   _advance();
 }
 
+function saveToLibrary(btn) {
+  const url = CFG.shareUrl || window.location.href;
+  const defaultName = CFG.placeName || CFG.taxonName || 'My Quiz';
+  const name = prompt('Name this quiz for the library:', defaultName);
+  if (!name) return;
+  const LIB_KEY = 'whatdat_library';
+  let items = [];
+  try { items = JSON.parse(localStorage.getItem(LIB_KEY) || '[]'); } catch {}
+  items.unshift({ name: name.trim(), url, count: CFG.completeBirds?.length || CFG.easyBirds?.length || 0, date: Date.now() });
+  localStorage.setItem(LIB_KEY, JSON.stringify(items));
+  btn.textContent = '&#10003; Saved!';
+  btn.disabled = true;
+}
+
 function renderResult(app, header) {
   const acc = state.totalSeen>0 ? Math.round((state.totalCorrect/state.totalSeen)*100) : 0;
   const stars = starsForScore(acc);
@@ -497,6 +511,7 @@ function renderResult(app, header) {
       <p class="stat">${state.totalCorrect} correct from ${state.totalSeen} attempts (${acc}%)</p>
       <p class="msg">You didn't quite get ${STREAK_TARGET} in a row &mdash; but you worked through every species. Try again to beat it!</p>
       <button class="btn-primary" onclick="goIntro()">Try Again &#127919;</button>
+      <button class="btn-secondary" onclick="saveToLibrary(this)">&#128218; Save quiz to library</button>
       ${CFG.shareUrl ? `<button class="btn-secondary" onclick="copyShareUrl(this)">&#128279; Share this quiz</button>` : ''}
       <button class="btn-back" onclick="window.location.href='${CFG.backUrl}'">&#8592; Back</button>
     </div>`;
