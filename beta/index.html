@@ -46,7 +46,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:700;color:rgba(255,255,255,0.9);letter-spacing:0.01em;">big data</span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v5.76</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v5.77</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -5970,7 +5970,7 @@ function _mapDwcRecord(poly, row) {
 function _buildGbifDownloadPredicate() {
   const _geomPolys      = polygons.filter(p => p.type !== 'species');
   const _speciesEntries = polygons.filter(p => p.type === 'species');
-  const wkts = _geomPolys.map(p => p.wkt).filter(Boolean);
+  const wkts = _geomPolys.map(p => getQueryWKT(p)).filter(Boolean);
   let geomPredicate = null;
   if (wkts.length === 1)      geomPredicate = { type: 'within', geometry: wkts[0] };
   else if (wkts.length > 1)  geomPredicate = { type: 'or', predicates: wkts.map(g => ({ type: 'within', geometry: g })) };
@@ -6054,7 +6054,7 @@ if (window._pendingShare) {
   </div>
   <div class="changelog-scroll" id="changelogScroll">
     <div class="changelog-version">
-      <span class="changelog-version-tag">v5.76</span>
+      <span class="changelog-version-tag">v5.77</span>
       <span class="changelog-date">Jun 2026</span>
       <ul>
         <li>Big Data mode — add <code>?bigdata</code> to the URL to activate GBIF async download path on the same page; no 10,000 record cap; requires a free GBIF account (credentials stored in browser only, never sent anywhere except GBIF)</li>
