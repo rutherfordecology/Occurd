@@ -45,7 +45,7 @@
       <img src="occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v5.62</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v5.63</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -4635,8 +4635,6 @@ function openInWhatDat() {
   const names = [...new Set(checkedNames.length ? checkedNames : allVisible)];
   if (!names.length) { alert('No species in the list yet.'); return; }
 
-  sessionStorage.setItem('whatdat_species_list', JSON.stringify(names));
-
   let listName = 'Occurd list';
   let url = './whatdat/quiz.html?mode=species_list';
 
@@ -4653,8 +4651,7 @@ function openInWhatDat() {
   }
 
   url += `&list_name=${encodeURIComponent(listName)}`;
-  // Encode the list into the URL so the link is self-contained and shareable
-  try { url += `&list=${btoa(names.join('\n'))}`; } catch(e) {}
+  localStorage.setItem('whatdat_species_list', JSON.stringify(names));
   window.open(url, '_blank');
 }
 

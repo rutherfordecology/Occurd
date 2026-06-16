@@ -542,9 +542,8 @@ backBtn.addEventListener('click', showLanding);
 function openInWhatDat() {
   const names = state?.names || [];
   if (!names.length) { alert('No species loaded yet.'); return; }
-  sessionStorage.setItem('whatdat_species_list', JSON.stringify(names));
-  let url = '../whatdat/quiz.html?mode=species_list&list_name=' + encodeURIComponent('LookLike list');
-  try { url += '&list=' + btoa(names.join('\n')); } catch(e) {}
+  localStorage.setItem('whatdat_species_list', JSON.stringify(names));
+  const url = '../whatdat/quiz.html?mode=species_list&list_name=' + encodeURIComponent('LookLike list');
   window.open(url, '_blank');
 }
 

@@ -336,7 +336,12 @@ async function boot() {
     if (SPECIES_LIST_PARAM) {
       try { names = atob(SPECIES_LIST_PARAM).split('\n').filter(Boolean); } catch(e) {}
     }
-    // 2. Fall back to sessionStorage (same-browser launch)
+    // 2. localStorage (same-device launch from Occurd / But Is It Threatened / LookLike)
+    if (!names.length) {
+      const rawList = localStorage.getItem('whatdat_species_list');
+      names = rawList ? JSON.parse(rawList) : [];
+    }
+    // 3. sessionStorage fallback for any old links
     if (!names.length) {
       const rawList = sessionStorage.getItem('whatdat_species_list');
       names = rawList ? JSON.parse(rawList) : [];

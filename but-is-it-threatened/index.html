@@ -1554,9 +1554,8 @@ function openInWhatDat() {
     if (sci && !seen.has(sci)) { seen.add(sci); names.push(sci); }
   });
   if (!names.length) { alert('Tick at least one matched species first.'); return; }
-  sessionStorage.setItem('whatdat_species_list', JSON.stringify(names));
-  let url = '../whatdat/quiz.html?mode=species_list&list_name=' + encodeURIComponent('But Is It Threatened?');
-  try { url += '&list=' + btoa(names.join('\n')); } catch(e) {}
+  localStorage.setItem('whatdat_species_list', JSON.stringify(names));
+  const url = '../whatdat/quiz.html?mode=species_list&list_name=' + encodeURIComponent('But Is It Threatened?');
   window.open(url, '_blank');
 }
 
