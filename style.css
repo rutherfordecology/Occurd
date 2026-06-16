@@ -171,6 +171,13 @@ header { background: var(--green-dark); color: white; padding: 0 1.5rem; display
 .cl-footer { padding: 7px 10px; font-size: 10px; color: var(--text3); border-top: 0.5px solid var(--border); background: var(--surface2); flex-shrink: 0; line-height: 1.5; }
 .cl-group-header { padding: 5px 10px; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; background: var(--surface2); color: var(--text2); position: sticky; top: 0; z-index: 1; border-bottom: 0.5px solid var(--border); transition: background 0.1s; user-select: none; }
 .cl-group-header:hover { background: var(--border); }
+.cl-col-header { display: flex; align-items: center; padding: 5px 10px; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text3); border-bottom: 1px solid var(--border); background: var(--surface2); flex-shrink: 0; gap: 0; }
+.cl-col-species-label { flex: 1; }
+.cl-looklike-wrap { display: flex; align-items: center; border: 1px solid var(--border); border-radius: 5px; overflow: hidden; flex-shrink: 0; }
+.cl-looklike-btn { background: none; border: none; border-right: 1px solid var(--border); padding: 2px 5px; font-size: 13px; cursor: pointer; line-height: 1; color: var(--text2); }
+.cl-looklike-btn:hover { background: var(--green-light); }
+.cl-looklike-wrap input[type="checkbox"] { margin: 0 5px; }
+.cl-count-header { color: var(--text3); font-size: 10px; font-weight: 600; flex-shrink: 0; width: 20px; text-align: right; }
 .cl-row { display: flex; flex-direction: column; padding: 7px 10px; font-size: 12px; border-bottom: 0.5px solid var(--border); cursor: pointer; transition: background 0.1s; }
 .cl-row:hover { background: var(--green-light); }
 .cl-row.selected { background: var(--green-light); border-left: 3px solid var(--green); padding-left: 7px; }
