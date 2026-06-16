@@ -45,7 +45,7 @@
       <img src="occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v5.67</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v5.68</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -4670,13 +4670,24 @@ clScroll.addEventListener('change', function(e) {
     _syncSelAllVisible();
   } else if (e.target.classList.contains('cl-group-cb')) {
     const checked = e.target.checked;
-    let el = e.target.closest('.cl-group-header').nextElementSibling;
+    const header = e.target.closest('.cl-group-header');
+    const g = header?.dataset.group;
+    // Toggle photo-selection on child rows
+    let el = header.nextElementSibling;
     while (el && !el.classList.contains('cl-group-header')) {
       if (!el.classList.contains('hidden') && el.style.display !== 'none') {
         const cb = el.querySelector('.cl-photo-cb');
         if (cb) cb.checked = checked;
       }
       el = el.nextElementSibling;
+    }
+    // Also update map visibility to match
+    if (g) {
+      if (checked) activeFilters.add(g);
+      else activeFilters.delete(g);
+      if (viewMode === 'heat') renderHeatmap(allRecords);
+      else { renderPoints(allRecords); applyTimelineFilter(); }
+      filterChecklistByTaxon();
     }
     _updateLooklikeBtn();
     _syncSelAllVisible();
