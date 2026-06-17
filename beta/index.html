@@ -46,7 +46,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v6.00</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v6.01</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -405,13 +405,7 @@
       <div class="cl-nztcs-filters" id="clNztcsFilters" style="display:none;">
         <span class="filter-row-label">NZTCS</span>
         <button class="nztcs-fc active" data-f="all">All</button>
-        <button class="nztcs-fc" data-f="th">All Threatened</button>
-        <button class="nztcs-fc" data-f="nc">NC</button>
-        <button class="nztcs-fc" data-f="ne">NE</button>
-        <button class="nztcs-fc" data-f="nv">NV</button>
-        <button class="nztcs-fc" data-f="ar">At Risk</button>
-        <button class="nztcs-fc" data-f="rc">Recovering</button>
-        <button class="nztcs-fc" data-f="ex">Extinct</button>
+        <!-- dynamic per-status chips rendered by updateNztcsChipCounts -->
       </div>
       <div class="cl-iucn-filters" id="clIucnFilters" style="display:none;">
         <span class="filter-row-label">IUCN Red List</span>
@@ -2501,14 +2495,22 @@ const NZTCS_STATUS_CFG = {
   'Vagrant':                    { cls:'oi', label:'Va'  },
 };
 const NZTCS_FILTER_GROUPS = {
-  'th':  ['Nationally Critical', 'Nationally Endangered', 'Nationally Vulnerable', 'Nationally Increasing', 'Declining', 'Naturally Uncommon', 'Relict', 'Gradual Decline', 'Serious Decline', 'Uncommon', 'Recovering', 'Extinct'],
-  'nc':  ['Nationally Critical'],
-  'ne':  ['Nationally Endangered'],
-  'nv':  ['Nationally Vulnerable'],
-  'ar':  ['Declining', 'Naturally Uncommon', 'Relict', 'Gradual Decline', 'Serious Decline', 'Uncommon'],
-  'rc':  ['Recovering', 'Nationally Increasing'],
-  'ex':  ['Extinct'],
+  'th': ['Nationally Critical', 'Nationally Endangered', 'Nationally Vulnerable', 'Nationally Increasing', 'Declining', 'Naturally Uncommon', 'Relict', 'Gradual Decline', 'Serious Decline', 'Uncommon', 'Recovering', 'Extinct'],
+  'nc': ['Nationally Critical'],
+  'ne': ['Nationally Endangered'],
+  'nv': ['Nationally Vulnerable'],
+  'de': ['Declining'],
+  'nu': ['Naturally Uncommon'],
+  're': ['Relict'],
+  'gd': ['Gradual Decline'],
+  'sd': ['Serious Decline'],
+  'un': ['Uncommon'],
+  'rc': ['Recovering'],
+  'ni': ['Nationally Increasing'],
+  'ex': ['Extinct'],
 };
+const NZTCS_FILTER_LABELS = { th:'All Threatened', nc:'NC', ne:'NE', nv:'NV', de:'De', nu:'NU', re:'Re', gd:'GD', sd:'SD', un:'Un', rc:'Rc', ni:'NI', ex:'Ex' };
+const NZTCS_FILTER_ORDER  = ['th','nc','ne','nv','de','nu','re','gd','sd','un','rc','ni','ex'];
 
 function nztcsNormKey(s) {
   if (!s) return null;
@@ -2653,22 +2655,30 @@ function updateIucnBtn() {
 }
 
 function updateNztcsChipCounts() {
-  const counts = { all: 0, nc: 0, ne: 0, nv: 0, ar: 0, rc: 0, ex: 0 };
+  const counts = {};
+  NZTCS_FILTER_ORDER.forEach(k => { counts[k] = 0; });
   document.querySelectorAll('#clScroll .cl-row').forEach(row => {
-    counts.all++;
     const status = row.dataset.nztcs;
-    if (status) {
-      for (const [key, statuses] of Object.entries(NZTCS_FILTER_GROUPS)) {
-        if (statuses.includes(status)) { counts[key]++; break; }
-      }
-    }
+    if (!status) return;
+    NZTCS_FILTER_ORDER.forEach(k => {
+      if (NZTCS_FILTER_GROUPS[k].includes(status)) counts[k]++;
+    });
   });
-  document.querySelectorAll('.nztcs-fc[data-f]').forEach(btn => {
-    const f = btn.dataset.f;
-    if (!btn.dataset.baseLabel) btn.dataset.baseLabel = btn.textContent.replace(/\s*\(\d+\)$/, '');
-    const c = counts[f] !== undefined ? counts[f] : 0;
-    btn.textContent = (f !== 'all' && c > 0) ? btn.dataset.baseLabel + ' (' + c + ')' : btn.dataset.baseLabel;
+  const container = document.getElementById('clNztcsFilters');
+  // Remove all dynamic chips (everything except 'all' and the label span)
+  container.querySelectorAll('.nztcs-fc:not([data-f="all"])').forEach(b => b.remove());
+  // Re-add chips for statuses present in the data, in defined order
+  NZTCS_FILTER_ORDER.forEach(k => {
+    if (counts[k] === 0) return;
+    const btn = document.createElement('button');
+    btn.className = 'nztcs-fc';
+    btn.dataset.f = k;
+    btn.textContent = NZTCS_FILTER_LABELS[k] + (k !== 'th' ? ' (' + counts[k] + ')' : '');
+    if (currentNztcsFilter === k) btn.classList.add('active');
+    container.appendChild(btn);
   });
+  // Keep 'all' active state correct
+  container.querySelector('.nztcs-fc[data-f="all"]').classList.toggle('active', currentNztcsFilter === 'all');
 }
 
 
@@ -6219,9 +6229,10 @@ if (window._pendingShare) {
   </div>
   <div class="changelog-scroll" id="changelogScroll">
     <div class="changelog-version">
-      <span class="changelog-version-tag">v6.00</span>
+      <span class="changelog-version-tag">v6.01</span>
       <span class="changelog-date">Jun 2026</span>
       <ul>
+        <li>NZTCS filter chips — now dynamic: one chip per status actually present in the results (NC, NE, NV, De, NU, Re, GD, SD, Un, Rc, NI, Ex); chips not present in the data are hidden; All Threatened covers all listed statuses</li>
         <li>NZTCS button — now appears whenever records are loaded, not just for NZ polygon searches</li>
         <li>Checklist redesign — removed confusing group-level checkbox; collapsing a group now directly hides those species from the map, quiz, and photos; individual species checkboxes control all three (map dots, quiz, LookLike); everything checked by default; state persists across NZTCS/IUCN rebuilds</li>
         <li>Nav link — "go to Big Data Mode" now uses the same bold/italic logo font treatment</li>
