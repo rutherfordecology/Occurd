@@ -46,7 +46,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v5.97</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v5.98</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -4546,39 +4546,45 @@ function buildChecklist(records) {
       '<label class="cl-group-selall" onclick="event.stopPropagation()" style="justify-self:center;">' +
         '<input type="checkbox" class="cl-group-cb" data-group="' + g + '" checked>' +
       '</label>';
+    // Chevron / label click = collapse/expand only (no effect on hiddenSpecies)
     let _lastFire = 0;
-    function handleGroupToggle(e) {
+    function handleGroupCollapse(e) {
+      if (e.target.closest('.cl-group-selall')) return; // let checkbox handle itself
       e.preventDefault();
       const now = Date.now();
       if (now - _lastFire < 300) return;
       _lastFire = now;
       if (selectedSpecies) clearSpeciesSelection();
-      const collapsing = activeFilters.has(g);
-      if (collapsing) activeFilters.delete(g);
+      if (activeFilters.has(g)) activeFilters.delete(g);
       else activeFilters.add(g);
-      // Sync group checkbox visual state
-      const _gcb = gh.querySelector('.cl-group-cb');
-      if (_gcb) _gcb.checked = !collapsing;
-      // Sync hiddenSpecies with the rows in this group
-      let _el = gh.nextElementSibling;
-      while (_el && !_el.classList.contains('cl-group-header')) {
-        if (_el.classList.contains('cl-row')) {
-          const _name = _el.dataset.species;
-          const _cb = _el.querySelector('.cl-photo-cb');
-          if (collapsing) { hiddenSpecies.add(_name); if (_cb) _cb.checked = false; }
-          else { hiddenSpecies.delete(_name); if (_cb) _cb.checked = true; }
-        }
-        _el = _el.nextElementSibling;
-      }
       if (viewMode === 'heat') renderHeatmap(allRecords);
       else { renderPoints(allRecords); applyTimelineFilter(); }
       filterChecklistByTaxon();
       csvData = buildCSV(allRecords.filter(passesFilters));
     }
-    gh.addEventListener('click', handleGroupToggle);
-    gh.addEventListener('touchstart', handleGroupToggle, { passive: false });
+    gh.addEventListener('click', handleGroupCollapse);
+    gh.addEventListener('touchstart', handleGroupCollapse, { passive: false });
+    // Checkbox = select/deselect all species in this group (no collapse)
     const _gcbEl = gh.querySelector('.cl-group-cb');
-    if (_gcbEl) _gcbEl.addEventListener('change', e => { e.stopPropagation(); handleGroupToggle(e); });
+    if (_gcbEl) _gcbEl.addEventListener('change', e => {
+      e.stopPropagation();
+      const selecting = e.target.checked;
+      let _el = gh.nextElementSibling;
+      while (_el && !_el.classList.contains('cl-group-header')) {
+        if (_el.classList.contains('cl-row')) {
+          const _name = _el.dataset.species;
+          const _cb = _el.querySelector('.cl-photo-cb');
+          if (selecting) { hiddenSpecies.delete(_name); if (_cb) _cb.checked = true; }
+          else { hiddenSpecies.add(_name); if (_cb) _cb.checked = false; }
+        }
+        _el = _el.nextElementSibling;
+      }
+      if (viewMode === 'heat') renderHeatmap(allRecords);
+      else { renderPoints(allRecords); applyTimelineFilter(); }
+      document.getElementById('mShown').textContent = allRecords.filter(passesFilters).length.toLocaleString();
+      _updateLooklikeBtn();
+      csvData = buildCSV(allRecords.filter(passesFilters));
+    });
     clScroll.appendChild(gh);
     Object.entries(byGroup[g]).sort((a,b) => a[0].localeCompare(b[0])).forEach(([name, info]) => {
       const row = document.createElement('div'); row.className = 'cl-row';
@@ -6211,7 +6217,7 @@ if (window._pendingShare) {
   </div>
   <div class="changelog-scroll" id="changelogScroll">
     <div class="changelog-version">
-      <span class="changelog-version-tag">v5.97</span>
+      <span class="changelog-version-tag">v5.98</span>
       <span class="changelog-date">Jun 2026</span>
       <ul>
         <li>NZTCS button — now appears whenever records are loaded, not just for NZ polygon searches</li>
