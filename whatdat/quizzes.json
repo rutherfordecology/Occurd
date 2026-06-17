@@ -25,6 +25,20 @@
       "lat": -13.80546,
       "lng": 187.92663499999998,
       "added": "2026-06-17"
+    },
+    {
+      "name": "Samoa Lepidoptera (butterflies and stuff)",
+      "continent": "Other",
+      "country": "Samoa Lepidoptera (butterflies and stuff)",
+      "description": "Samoa Lepidoptera (butterflies and stuff)",
+      "type": "list",
+      "url": "https://occurd.rutherfordecology.co.nz/whatdat/quiz.html?list=IIYwFghgphAEBWEB2EAuEBQwDmAnAlgPbYA2AngA7qxRJIwir4DOGAwrhALYBG%2BAJtAwARZBACuzWBRJQAHvgoVJIwrObgIJEvjh9mWpvygYAouJmEYsLdhhnxuKFzhgoICDxMAJSmvxcKFLITCSEFD5%2BOoEQUjz%2BKBgAMhAgUJywSISM%2BDqEyWQetHAQuHZITIkAsqXiHrAAbvionOgYVdkssABmuOLYWiwYAHKpEPziPHD8ZOGYw4Wozul6EiQqAPJcRMZS-PjLKDqsG3Kzu7AauIR8IOIkaJgAClAtUA-WqIS8-bTMQ09cq9siseutGOJBqwAMoRfBOfiEJC6WA3DSOTCwtTjaxOO64BpQjAAFXh4hcD1gkBcbWJBGwSMIFzSFDALBMAFUlqg3Cw4MoSOB3mEBFBWAA1CB4ZBSKDYFjoIA",
+      "coord_lat": -13.803975000000001,
+      "coord_lng": 187.95547499999998,
+      "photo_taxon": null,
+      "lat": -13.803975000000001,
+      "lng": 187.95547499999998,
+      "added": "2026-06-17"
     }
   ]
 }
