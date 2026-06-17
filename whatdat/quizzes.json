@@ -11,6 +11,20 @@
       "lng": 188.24807,
       "photo_taxon": "Chaetodon auriga",
       "added": "2026-06-17"
+    },
+    {
+      "name": "Butterfly fish of Samoa",
+      "continent": "Other",
+      "country": "Butterfly fish of Samoa",
+      "description": "Butterfly fish of Samoa",
+      "type": "list",
+      "url": "https://occurd.rutherfordecology.co.nz/whatdat/quiz.html?list=MICwhgpgLg9gJjAdgAjAVwE4EsDmYBQoksCKAxllNohADa1oDOh408SyEADiFl11jQBbFsXYoGiNLQJE2pZJOlgoTUfI5C6YRIhirmckhxgZEKrI0ZYhao%2BOQYwAM2e0I1rOuMpGELVhI3g5UWM5gjBRgtJbBCtJY0BCI1oasPsgAbmB4AEZoiHBqABLJgWQgTMgVGACejDCMsLaMQA",
+      "coord_lat": -13.80546,
+      "coord_lng": 187.92663499999998,
+      "photo_taxon": null,
+      "lat": -13.80546,
+      "lng": 187.92663499999998,
+      "added": "2026-06-17"
     }
   ]
 }
