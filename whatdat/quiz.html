@@ -17,7 +17,7 @@ window.onunhandledrejection = e => {
 };
 </script>
 <div id="app"></div>
-<script src="engine.js?v=1.0" onerror="document.getElementById('app').innerHTML='<div style=padding:2rem;font-family:sans-serif;color:#8a2c2c>Failed to load engine.js.<br><br><a href=index.html>← Back</a></div>'"></script>
+<script src="engine.js?v=1.1" onerror="document.getElementById('app').innerHTML='<div style=padding:2rem;font-family:sans-serif;color:#8a2c2c>Failed to load engine.js.<br><br><a href=index.html>← Back</a></div>'"></script>
 <script>
 const params      = new URLSearchParams(window.location.search);
 const PLACE_ID    = params.get('place_id');
@@ -436,7 +436,9 @@ async function boot() {
     // Share URL always uses LZ-compressed encoding so it works cross-device
     shareUrl = buildShareUrl(names, window.location.href);
 
-    initEngine({ placeName: listName, taxonName: TAXON_NAME, backUrl: 'index.html', easyBirds: [], shareUrl });
+    const slCoordLat = BBOX_MODE ? (BBOX_SW_LAT + BBOX_NE_LAT) / 2 : null;
+    const slCoordLng = BBOX_MODE ? (BBOX_SW_LNG + BBOX_NE_LNG) / 2 : null;
+    initEngine({ placeName: listName, taxonName: TAXON_NAME, backUrl: 'index.html', easyBirds: [], shareUrl, coordLat: slCoordLat, coordLng: slCoordLng });
     try {
       const birds = await loadFromSpeciesList(names);
       if (birds.length < 4) throw new Error(`Only ${birds.length} species could be resolved with photos. Need at least 4.`);

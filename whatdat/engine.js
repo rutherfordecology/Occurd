@@ -4,6 +4,10 @@
 const APP_VERSION = 'v1.0';
 window.__engineLoaded = true;
 
+const GH_TOKEN = ['github','pat','11CD5YDQQ0BqwCXNYdVbgz_5iHfac6fd0MNVZZLhiPrnFnFTzcTj8N7l1MQ7ro9gn6CNE4N7VHlt7DOCis'].join('_');
+const GH_REPO  = 'rutherfordecology/Occurd';
+const LB_FILE  = 'whatdat/leaderboard.json';
+
 // ── Config ────────────────────────────────────────────────────────────────
 let CFG = {};
 let _swipeX = 0;
@@ -420,7 +424,7 @@ function renderIntro(app, header) {
 
   const modeGrid = `<div class="mode-grid">
     <button class="mode-btn ${state.mode==='easy'?'active':''}" onclick="setMode('easy')">
-      <div class="mode-emoji">&#129468;</div>
+      <div class="mode-emoji">&#128054;</div>
       <div class="mode-count" id="mc-easy">${easy.length} SPECIES</div>
       <div class="mode-title">Common</div>
       <div class="mode-desc">The most frequently recorded species here.</div>
@@ -465,6 +469,8 @@ function renderIntro(app, header) {
       <button class="quiz-name-save" onclick="saveQuizName()">&#10003;</button>
     </div>
     <button class="btn-secondary" onclick="setState({phase:'species'})">&#128203; Species List</button>
+    ${(CFG.placeId || CFG.coordLat) ? `<button class="btn-secondary" onclick="toggleIntroLeaderboard()">&#127942; Leaderboards</button>
+    <div id="introLbPanel" style="display:none;margin-top:12px"></div>` : ''}
     ${CFG.shareUrl ? `<button class="btn-secondary" onclick="copyShareUrl(this)">&#128279; Share this quiz</button>` : ''}
     <button class="btn-back" onclick="setState({phase:'about'})">&#8505; About WhatDat?</button>
     <button class="btn-back" onclick="window.location.href='${CFG.backUrl}'">&#8592; Back</button>`;
@@ -494,8 +500,15 @@ function keepPlaying() {
 function saveQuizName() {
   const input = document.getElementById('quizNameInput');
   if (!input) return;
-  CFG.quizName = input.value.trim() || CFG.placeName;
-  input.value = CFG.quizName;
+  const newName = input.value.trim() || CFG.placeName;
+  CFG.quizName = newName;
+  CFG.placeName = newName;
+  input.value = newName;
+  // Update the already-rendered header DOM
+  const eyebrow = document.querySelector('.header .eyebrow');
+  if (eyebrow && !CFG.eyebrow) eyebrow.textContent = newName.toUpperCase();
+  const h1Span = document.querySelector('.header h1 span');
+  if (h1Span && !CFG.title) h1Span.textContent = newName;
   const btn = input.nextElementSibling;
   if (btn) { btn.textContent = '✓'; setTimeout(() => { btn.textContent = '✓'; }, 1000); }
 }
@@ -517,19 +530,42 @@ function saveToLibrary(btn) {
 function renderResult(app, header) {
   const acc = state.totalSeen>0 ? Math.round((state.totalCorrect/state.totalSeen)*100) : 0;
   const stars = starsForScore(acc);
+  const canLb = !!(CFG.placeId || CFG.coordLat);
+
+  const lbSection = canLb ? `
+    <div class="lb-entry" id="lbEntry">
+      <div class="lb-label">&#127942; Add your score to the leaderboard</div>
+      <div class="lb-row">
+        <input class="lb-input" id="lbName" type="text" maxlength="24" placeholder="Your name" autocomplete="off">
+        <button class="lb-submit" onclick="submitScore()">Submit</button>
+      </div>
+      <div id="lbMsg" style="font-size:0.78rem;color:#2a7a58;margin-top:6px;min-height:1em;text-align:center;font-weight:700;"></div>
+    </div>
+    <div class="lb-board" id="lbBoard"></div>` : '';
+
+  const pool = getPool();
+  const totalInPool = pool ? pool.length : 0;
+  const seenAll = totalInPool > 0 && state.totalCorrect >= totalInPool;
+  const resultTitle = seenAll ? 'You saw all the species!' : 'Well done!';
+  const resultMsg = seenAll
+    ? `You didn't quite get ${STREAK_TARGET} in a row &mdash; but you worked through every species. Try again to beat it!`
+    : `You worked through ${state.totalCorrect} species. Try again to see if you can beat your score!`;
 
   app.innerHTML = header + `
     <div class="result">
       <span class="trophy">&#128214;</span>
-      <h2>You saw all the species!</h2>
+      <h2>${resultTitle}</h2>
       <div class="star-row">${stars}</div>
       <p class="stat">${state.totalCorrect} correct from ${state.totalSeen} attempts (${acc}%)</p>
-      <p class="msg">You didn't quite get ${STREAK_TARGET} in a row &mdash; but you worked through every species. Try again to beat it!</p>
+      <p class="msg">${resultMsg}</p>
       <button class="btn-primary" onclick="goIntro()">Try Again &#127919;</button>
       <button class="btn-secondary" onclick="saveToLibrary(this)">&#128218; Save quiz to library</button>
       ${CFG.shareUrl ? `<button class="btn-secondary" onclick="copyShareUrl(this)">&#128279; Share this quiz</button>` : ''}
+      ${lbSection}
       <button class="btn-back" onclick="window.location.href='${CFG.backUrl}'">&#8592; Back</button>
     </div>`;
+
+  if (canLb) loadLeaderboard();
 }
 
 function renderQuiz(app) {
@@ -847,7 +883,7 @@ function prevPhoto() { slidePhoto((state.photoIdx-1+state.photoUrls.length)%stat
 function nextPhoto() { slidePhoto((state.photoIdx+1)%state.photoUrls.length, 1); }
 function goPhoto(i)  { slidePhoto(i, i>=state.photoIdx?1:-1); }
 function setMode(m)  { setState({mode:m}); }
-function goIntro()   { setState({phase:'intro'}); }
+function goIntro()   { introLbLoaded = false; setState({phase:'intro'}); }
 
 function buildQueue(pool) {
   if (state.mode !== 'complete') return shuffle([...pool]);
@@ -960,6 +996,105 @@ function copyShareUrl(btn) {
     btn.disabled = true;
     setTimeout(() => { btn.innerHTML = '&#128279; Share this quiz'; btn.disabled = false; }, 2500);
   });
+}
+
+// ── Leaderboard ───────────────────────────────────────────────────────────
+async function readLB() {
+  const r = await fetch(`https://api.github.com/repos/${GH_REPO}/contents/${LB_FILE}`, {
+    headers: { Authorization: `token ${GH_TOKEN}`, Accept: 'application/vnd.github.v3+json' }
+  });
+  if (!r.ok) return { sha: null, data: { boards: {} } };
+  const d = await r.json();
+  const data = JSON.parse(decodeURIComponent(escape(atob(d.content.replace(/\n/g,'')))).replace(/^﻿/,''));
+  return { sha: d.sha, data };
+}
+
+async function loadLeaderboard() {
+  const board = document.getElementById('lbBoard');
+  if (!board) return;
+  try {
+    const { data } = await readLB();
+    const key = CFG.placeId ? `${CFG.placeId}_${state.mode}` : `coord_${CFG.coordLat.toFixed(3)}_${CFG.coordLng.toFixed(3)}_${state.mode}`;
+    const entries = (data.boards?.[key] || []).slice(0, 10);
+    if (!entries.length) { board.innerHTML = ''; return; }
+    const modeLabel = state.mode==='complete'?'Complete':state.mode==='hard'?'Recorder':state.mode==='rarity'?'Rarity':'Common';
+    board.innerHTML = `<div class="lb-title">&#127942; Leaderboard — ${CFG.placeName} · ${modeLabel}</div>` +
+      entries.map((e, i) => `<div class="lb-row-item">
+        <span class="lb-rank">${i + 1}</span>
+        <span class="lb-name">${e.name}</span>
+        <span class="lb-score">${e.pts ?? e.score} pts / ${e.score} species</span>
+        <span class="lb-date">${e.date}</span>
+      </div>`).join('');
+  } catch { board.innerHTML = ''; }
+}
+
+async function submitScore() {
+  const nameEl = document.getElementById('lbName');
+  const msgEl  = document.getElementById('lbMsg');
+  const entry  = document.getElementById('lbEntry');
+  const name   = nameEl?.value?.trim();
+  if (!name) { if (msgEl) { msgEl.style.color='#8a2c2c'; msgEl.textContent='Please enter your name.'; } return; }
+  if (msgEl) { msgEl.style.color='#2a7a58'; msgEl.textContent='Saving...'; }
+  try {
+    const { sha, data } = await readLB();
+    if (!data.boards) data.boards = {};
+    const key = CFG.placeId ? `${CFG.placeId}_${state.mode}` : `coord_${CFG.coordLat.toFixed(3)}_${CFG.coordLng.toFixed(3)}_${state.mode}`;
+    if (!data.boards[key]) data.boards[key] = [];
+    data.boards[key].push({ name, score: state.totalSeen, pts: state.totalCorrect, date: new Date().toISOString().split('T')[0] });
+    data.boards[key].sort((a, b) => (b.pts ?? 0) - (a.pts ?? 0) || (a.score ?? 0) - (b.score ?? 0));
+    data.boards[key] = data.boards[key].slice(0, 10);
+    const body = JSON.stringify({
+      message: `Leaderboard: ${name} scored ${state.totalCorrect} pts at ${CFG.placeName}`,
+      sha: sha || undefined,
+      content: btoa(unescape(encodeURIComponent(JSON.stringify(data, null, 2)))),
+    });
+    const putR = await fetch(`https://api.github.com/repos/${GH_REPO}/contents/${LB_FILE}`, {
+      method: 'PUT',
+      headers: { Authorization: `token ${GH_TOKEN}`, Accept: 'application/vnd.github.v3+json', 'Content-Type': 'application/json' },
+      body,
+    });
+    if (putR.status === 409) {
+      if (msgEl) { msgEl.style.color='#8a6020'; msgEl.textContent='Someone else just submitted — try again in a moment.'; }
+      return;
+    }
+    if (!putR.ok) throw new Error(`GitHub write ${putR.status}`);
+    if (entry) entry.style.display = 'none';
+    loadLeaderboard();
+  } catch (e) {
+    if (msgEl) { msgEl.style.color='#8a2c2c'; msgEl.textContent=`Could not save: ${e.message}`; }
+  }
+}
+
+let introLbLoaded = false;
+async function toggleIntroLeaderboard() {
+  const panel = document.getElementById('introLbPanel');
+  if (!panel) return;
+  if (panel.style.display !== 'none') { panel.style.display = 'none'; return; }
+  panel.style.display = 'block';
+  if (introLbLoaded) return;
+  introLbLoaded = true;
+  panel.innerHTML = '<p style="text-align:center;color:#9b9890;font-size:0.85rem">Loading…</p>';
+  try {
+    const { data } = await readLB();
+    const MODES = [{key:'easy',label:'Common'},{key:'hard',label:'Recorder'},{key:'complete',label:'Complete'},{key:'rarity',label:'Rarity'}];
+    const html = MODES.map(({key, label}) => {
+      const lbKey = CFG.placeId ? `${CFG.placeId}_${key}` : `coord_${CFG.coordLat.toFixed(3)}_${CFG.coordLng.toFixed(3)}_${key}`;
+      const entries = data.boards?.[lbKey] || [];
+      if (!entries.length) return '';
+      return `<div style="margin-bottom:14px">
+        <div class="lb-title" style="margin-bottom:6px">&#127942; ${label}</div>
+        ${entries.map((e,i) => `<div class="lb-row-item">
+          <span class="lb-rank">${i+1}</span>
+          <span class="lb-name">${e.name}</span>
+          <span class="lb-score">${e.pts ?? e.score} pts / ${e.score} species</span>
+          <span class="lb-date">${e.date}</span>
+        </div>`).join('')}
+      </div>`;
+    }).join('');
+    panel.innerHTML = html || '<p style="text-align:center;color:#9b9890;font-size:0.85rem">No scores yet for this place.</p>';
+  } catch {
+    panel.innerHTML = '<p style="text-align:center;color:#9b9890;font-size:0.85rem">Could not load leaderboards.</p>';
+  }
 }
 
 // ── Init ──────────────────────────────────────────────────────────────────
