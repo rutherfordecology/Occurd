@@ -39,7 +39,7 @@ const TAXON_NAME  = params.get('taxon_name') ? decodeURIComponent(params.get('ta
 const TAXON_RANK  = params.get('taxon_rank') || null;
 
 // Species list mode — names come from ?list= (shareable base64) or sessionStorage fallback
-const SPECIES_LIST_MODE = params.get('mode') === 'species_list';
+const SPECIES_LIST_MODE = params.get('mode') === 'species_list' || !!params.get('list');
 const SPECIES_LIST_NAME = params.get('list_name') ? decodeURIComponent(params.get('list_name')) : 'Custom List';
 const SPECIES_LIST_PARAM = params.get('list'); // base64-encoded list for sharing
 
@@ -448,8 +448,8 @@ async function boot() {
     // Share URL always uses LZ-compressed encoding so it works cross-device
     shareUrl = buildShareUrl(names, window.location.href);
 
-    const slCoordLat = BBOX_MODE ? (BBOX_SW_LAT + BBOX_NE_LAT) / 2 : null;
-    const slCoordLng = BBOX_MODE ? (BBOX_SW_LNG + BBOX_NE_LNG) / 2 : null;
+    const slCoordLat = BBOX_MODE ? (BBOX_SW_LAT + BBOX_NE_LAT) / 2 : (COORD_LAT ?? null);
+    const slCoordLng = BBOX_MODE ? (BBOX_SW_LNG + BBOX_NE_LNG) / 2 : (COORD_LNG ?? null);
     initEngine({ placeName: listName, taxonName: TAXON_NAME, backUrl: 'index.html', easyBirds: [], shareUrl, coordLat: slCoordLat, coordLng: slCoordLng });
     try {
       const birds = await loadFromSpeciesList(names);
