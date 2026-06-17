@@ -4669,24 +4669,31 @@ function openInWhatDat() {
   const names = [...new Set(checkedNames.length ? checkedNames : allVisible)];
   if (!names.length) { alert('No species in the list yet.'); return; }
 
-  let listName = 'Occurd list';
-  let url = './whatdat/quiz.html?mode=species_list';
+  try {
+    let listName = 'Occurd list';
+    let url = './whatdat/quiz.html?mode=species_list';
 
-  // Pass current polygon location so WhatDat can place the quiz on the map
-  if (typeof polygons !== 'undefined' && polygons.length > 0) {
-    const allLats = polygons.flatMap(p => p.latlngs.map(ll => ll.lat ?? ll[0]));
-    const allLngs = polygons.flatMap(p => p.latlngs.map(ll => ll.lng ?? ll[1]));
-    const swlat = Math.min(...allLats).toFixed(5);
-    const nelat = Math.max(...allLats).toFixed(5);
-    const swlng = Math.min(...allLngs).toFixed(5);
-    const nelng = Math.max(...allLngs).toFixed(5);
-    listName = polygons[0].label || 'Occurd list';
-    url += `&swlat=${swlat}&nelat=${nelat}&swlng=${swlng}&nelng=${nelng}`;
+    // Pass current polygon location so WhatDat can place the quiz on the map
+    if (typeof polygons !== 'undefined' && polygons.length > 0) {
+      const allLats = polygons.flatMap(p => (p.latlngs || []).map(ll => ll.lat ?? ll[0]));
+      const allLngs = polygons.flatMap(p => (p.latlngs || []).map(ll => ll.lng ?? ll[1]));
+      if (allLats.length) {
+        const swlat = Math.min(...allLats).toFixed(5);
+        const nelat = Math.max(...allLats).toFixed(5);
+        const swlng = Math.min(...allLngs).toFixed(5);
+        const nelng = Math.max(...allLngs).toFixed(5);
+        url += `&swlat=${swlat}&nelat=${nelat}&swlng=${swlng}&nelng=${nelng}`;
+      }
+      listName = polygons[0].label || 'Occurd list';
+    }
+
+    url += `&list_name=${encodeURIComponent(listName)}`;
+    localStorage.setItem('whatdat_species_list', JSON.stringify(names));
+    const w = window.open(url, '_blank');
+    if (!w) alert('Quiz blocked by popup blocker — please allow popups for this site and try again.');
+  } catch(err) {
+    alert('Could not open quiz: ' + err.message);
   }
-
-  url += `&list_name=${encodeURIComponent(listName)}`;
-  localStorage.setItem('whatdat_species_list', JSON.stringify(names));
-  window.open(url, '_blank');
 }
 
 // Delegated checkbox handling on clScroll
@@ -5818,6 +5825,13 @@ if (window._pendingShare) {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v5.61</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>Quiz button — fixed silent failure when popup blocker prevents WhatDat opening; now shows a clear message asking user to allow popups; also guards against JS errors in polygon bbox calculation</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v5.60</span>
       <span class="changelog-date">Jun 2026</span>
