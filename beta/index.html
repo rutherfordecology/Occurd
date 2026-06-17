@@ -46,7 +46,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v6.02</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v6.03</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -5699,7 +5699,29 @@ const GEOPRIVACY_DISCLAIMER =
 document.getElementById('dlCsvBtn').addEventListener('click', () => {
   const filtered = allRecords.filter(passesFilters);
   let fields = window.innerWidth < 768 ? CSV_FIELDS_MOBILE : CSV_FIELDS;
-  let rows = filtered;
+  // Build turf polygons once for polygon_name assignment
+  const _dlGeomPolys = polygons.filter(p => p.type !== 'species' && p.latlngs && p.latlngs.length > 0);
+  const _dlTurfPolys = _dlGeomPolys.map(p => {
+    try {
+      const coords = p.latlngs.map(ll => [ll.lng !== undefined ? ll.lng : ll[1], ll.lat !== undefined ? ll.lat : ll[0]]);
+      const ring = [...coords];
+      if (ring[0][0] !== ring[ring.length-1][0] || ring[0][1] !== ring[ring.length-1][1]) ring.push(ring[0]);
+      return turf.polygon([ring]);
+    } catch(e) { return null; }
+  });
+  let rows = filtered.map(r => {
+    if (r.polygon_name) return r; // already set
+    if (!_dlTurfPolys.length) return r;
+    const lat = parseFloat(r.decimalLatitude), lng = parseFloat(r.decimalLongitude);
+    if (isNaN(lat) || isNaN(lng)) return r;
+    const pt = turf.point([lng, lat]);
+    for (let _i = 0; _i < _dlTurfPolys.length; _i++) {
+      if (!_dlTurfPolys[_i]) continue;
+      try { if (turf.booleanPointInPolygon(pt, _dlTurfPolys[_i])) return Object.assign({}, r, { polygon_name: _dlGeomPolys[_i].label || '' }); }
+      catch(e) {}
+    }
+    return r;
+  });
   if (nztcsUnlocked && nztcsData) {
     fields = [...fields, 'nztcs_status', 'nztcs_category', 'nztcs_year'];
     rows = filtered.map(r => {
@@ -6237,7 +6259,7 @@ if (window._pendingShare) {
   </div>
   <div class="changelog-scroll" id="changelogScroll">
     <div class="changelog-version">
-      <span class="changelog-version-tag">v6.02</span>
+      <span class="changelog-version-tag">v6.03</span>
       <span class="changelog-date">Jun 2026</span>
       <ul>
         <li>NZTCS filter chips — now dynamic: one chip per status actually present in the results (NC, NE, NV, De, NU, Re, GD, SD, Un, Rc, NI, Ex); chips not present in the data are hidden; All Threatened covers all listed statuses</li>
