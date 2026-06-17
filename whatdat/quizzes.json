@@ -1,3 +1,30 @@
 {
-  "quizzes": []
+  "quizzes": [
+    {
+      "name": "Palolo Deep Reef Marine Reserve",
+      "continent": "Oceania",
+      "country": "Samoa",
+      "description": "Palolo Deep Reef Marine Reserve",
+      "type": "list",
+      "url": "quiz.html?mode=species_list&swlat=-13.83441&nelat=-13.81524&swlng=188.23597&nelng=188.26017&list_name=Drawn+polygon+1&list=AoewxglgNlIA4gE4EMAEATZBbCYkDsIBnAKFEhniTQDcBTRRAVzyOTKQgBc6jVnSAYRB18IAEbc0zAOYgiTUgHEUcBXx74muAV2RdFJAKJgAFhDFY6XFKiz7TyOhBIAZC2ADWENFCc0IGX12AGUuXFN4RVQzWEQQMQNSAEFxJnQ6ADN0JkzUIjoAD0zkIkh9Q2SwZHwuUyYBVBsIeR4ZSqxxKABPOUlouEc-UXZkrEGIOEQW-Ds6PzE4QwAhZChiPSW+JnwcvySSQRq6wNKeRHyQBfRpw8drEHQE1GQG07unLkfnyGb8eaghkE9y+T1mdAmcDgECYWA+DzBqEBWn2QJB31mVgWiTRnwx-GQmUyUF4EBcwLxiIKVhm8NBzyY62soiIxDp+JoyCCaV2aOc6y0215qKEpn5LVQFgYOFFcQa0SI0MBAjuiG6rLg5zQeiYCCYhyQ3TqIAidXVqHu9i+moYQM04BBCuaFVIABFSmBujBoshmDVDK6WojTOrmoUSAAJNYRESIXgWpAGBaGKPrMyx+PNexgRkuyOiFpmaJmNVEVogLCGVzWUzTQUW33ITwkACy3WmUw2xFQASuyDAdHYwF9utEdGi4l94gYFkMw+YcDH0Qs6Fwc5Hi-+0UrUHCJTKPgOwH2yEKTWcKDIJLAX0Q5nwRb4AS4eiP5xNT6uUnwpAASve6GqWp6j4ftGUHA4QjWX0fD4fdykg6pGhAAIBzUEgQjwWA1G7ZoBQg0JTnrRVZ1IMI6CCIgeD4QgZGmIDSAAFSGUoy3sBtEHQAB3XBPDoEgAC0ajAQE+DwRAtAOAS6HEFA2LQMp4FKQSZLkitaHmCBMltOFXDWEl7F2Go0HwZAAiCH8SAAOXVGExLWOgwR8fiWwSawYLQGoUUMAB5G8ojE7oakHIA",
+      "lat": -13.82483,
+      "lng": 188.24807,
+      "photo_taxon": "Chaetodon auriga",
+      "added": "2026-06-17"
+    },
+    {
+      "name": "Butterfly fish of Samoa",
+      "continent": "Other",
+      "country": "Butterfly fish of Samoa",
+      "description": "Butterfly fish of Samoa",
+      "type": "list",
+      "url": "https://occurd.rutherfordecology.co.nz/whatdat/quiz.html?list=MICwhgpgLg9gJjAdgAjAVwE4EsDmYBQoksCKAxllNohADa1oDOh408SyEADiFl11jQBbFsXYoGiNLQJE2pZJOlgoTUfI5C6YRIhirmckhxgZEKrI0ZYhao%2BOQYwAM2e0I1rOuMpGELVhI3g5UWM5gjBRgtJbBCtJY0BCI1oasPsgAbmB4AEZoiHBqABLJgWQgTMgVGACejDCMsLaMQA",
+      "coord_lat": -13.80546,
+      "coord_lng": 187.92663499999998,
+      "photo_taxon": null,
+      "lat": -13.80546,
+      "lng": 187.92663499999998,
+      "added": "2026-06-17"
+    }
+  ]
 }
