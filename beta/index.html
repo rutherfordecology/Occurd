@@ -46,7 +46,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:700;color:rgba(255,255,255,0.9);letter-spacing:0.01em;">big data</span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v5.87</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v5.88</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -2067,14 +2067,18 @@ function handleFile(file) {
 }
 
 async function handleGbifZip(file) {
-  setStatus('Reading ' + file.name + '…', 'info');
+  setStatus('Loading ' + file.name + ' — this may take a while for large files…', 'info');
+  progressWrap.style.display = 'block';
+  progressLabel.textContent = 'Reading zip…';
+  await new Promise(r => setTimeout(r, 30)); // let the status render before blocking parse
   try {
     const zip = await JSZip.loadAsync(file);
     const f = zip.file('occurrence.csv') || Object.values(zip.files).find(f => !f.dir && f.name.endsWith('.csv'));
-    if (!f) { setStatus('No occurrence.csv found inside ' + file.name + '. Is this a GBIF download zip?', 'error'); return; }
+    if (!f) { setStatus('No occurrence.csv found inside ' + file.name + '. Is this a GBIF download zip?', 'error'); progressWrap.style.display = 'none'; return; }
+    progressLabel.textContent = 'Extracting CSV…';
     const text = await f.async('text');
     handleGbifCsv(text, file.name);
-  } catch(e) { setStatus('Could not read zip: ' + e.message, 'error'); }
+  } catch(e) { setStatus('Could not read zip: ' + e.message, 'error'); progressWrap.style.display = 'none'; }
 }
 
 async function handleKMZ(file) {
@@ -5838,6 +5842,8 @@ async function handleGbifCsv(text, filename) {
     return;
   }
   setStatus('Parsing ' + filename + '…', 'info');
+  progressLabel.textContent = 'Parsing records…';
+  await new Promise(r => setTimeout(r, 30));
   const rows = [];
   for (let i = 1; i < lines.length; i++) {
     if (!lines[i].trim()) continue;
@@ -5848,29 +5854,58 @@ async function handleGbifCsv(text, filename) {
   }
   if (rows.length === 0) { setStatus('No records found in ' + filename, 'warning'); return; }
 
+  // If polygons are loaded, filter to records within them
+  const _geomPolys = polygons.filter(p => p.type !== 'species');
+  let displayRows = rows;
+  if (_geomPolys.length > 0) {
+    setStatus('Filtering to drawn polygons…', 'info');
+    progressLabel.textContent = 'Filtering to polygons…';
+    await new Promise(r => setTimeout(r, 30));
+    const turfPolys = _geomPolys.map(p => {
+      try {
+        const coords = p.latlngs.map(ll => [ll.lng !== undefined ? ll.lng : ll[1], ll.lat !== undefined ? ll.lat : ll[0]]);
+        const ring = [...coords];
+        if (ring[0][0] !== ring[ring.length-1][0] || ring[0][1] !== ring[ring.length-1][1]) ring.push(ring[0]);
+        return turf.polygon([ring]);
+      } catch(e) { return null; }
+    }).filter(Boolean);
+    if (turfPolys.length > 0) {
+      displayRows = rows.filter(r => {
+        const lat = parseFloat(r.decimalLatitude), lng = parseFloat(r.decimalLongitude);
+        if (isNaN(lat) || isNaN(lng)) return false;
+        const pt = turf.point([lng, lat]);
+        return turfPolys.some(tp => { try { return turf.booleanPointInPolygon(pt, tp); } catch(e) { return false; } });
+      });
+    }
+  }
+  if (displayRows.length === 0) { setStatus('No records fell within the drawn polygons.', 'warning'); return; }
+
   clearResults();
-  allRecords = rows;
-  document.getElementById('mRecords').textContent = rows.length.toLocaleString();
-  document.getElementById('mSpecies').textContent = new Set(rows.map(r => r.species || r.scientificName).filter(Boolean)).size.toLocaleString();
+  allRecords = displayRows;
+  document.getElementById('mRecords').textContent = displayRows.length.toLocaleString();
+  document.getElementById('mSpecies').textContent = new Set(displayRows.map(r => r.species || r.scientificName).filter(Boolean)).size.toLocaleString();
   metricsGrid.style.display = 'grid';
+  maybeActivateNztcs();
   setStatus('Looking up common names…', 'info');
-  await lookupCommonNames(rows);
-  buildFilterChips(rows);
-  buildChecklist(rows);
-  setTimeout(() => prefetchPhotos(rows), 800);
+  progressLabel.textContent = 'Looking up common names…';
+  await lookupCommonNames(displayRows);
+  buildFilterChips(displayRows);
+  buildChecklist(displayRows);
+  setTimeout(() => prefetchPhotos(displayRows), 800);
   const _isMobile = window.innerWidth < 700;
   if (!_isMobile) checklistPanel.classList.add('open');
   _showChecklistHandle(true); _updateChecklistHandle(!_isMobile);
-  renderPoints(rows);
-  if (rows.some(r => r.decimalLatitude && r.decimalLongitude)) {
-    const lats = rows.map(r => r.decimalLatitude).filter(Boolean);
-    const lngs = rows.map(r => r.decimalLongitude).filter(Boolean);
+  renderPoints(displayRows);
+  if (!_geomPolys.length && displayRows.some(r => r.decimalLatitude && r.decimalLongitude)) {
+    const lats = displayRows.map(r => r.decimalLatitude).filter(Boolean);
+    const lngs = displayRows.map(r => r.decimalLongitude).filter(Boolean);
     map.fitBounds([[Math.min(...lats), Math.min(...lngs)], [Math.max(...lats), Math.max(...lngs)]], { padding: [40, 40] });
   }
   setTimeout(() => { map.invalidateSize(); }, 100);
-  csvData = buildCSV(rows);
+  csvData = buildCSV(displayRows);
   outputSection.style.display = 'block'; nerdToolsSection.style.display = 'block';
-  setStatus(rows.length.toLocaleString() + ' records loaded from ' + filename + '.', 'success');
+  const filtered = rows.length - displayRows.length;
+  setStatus(displayRows.length.toLocaleString() + ' records loaded from ' + filename + (filtered > 0 ? ' (' + filtered.toLocaleString() + ' outside polygons removed)' : '') + '.', 'success');
 }
 
 // ── Share modal CSV download ──────────────────────────────────────────────
@@ -6151,6 +6186,14 @@ if (window._pendingShare) {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v5.88</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>Big Data zip upload — dropping a GBIF download zip now immediately shows a progress indicator; records are filtered to any drawn polygons using point-in-polygon; records outside polygons are excluded and the count is shown in the status bar</li>
+        <li>NZTCS button — now activates correctly after loading a GBIF zip file</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v5.87</span>
       <span class="changelog-date">Jun 2026</span>
