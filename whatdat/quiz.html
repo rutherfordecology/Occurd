@@ -309,19 +309,31 @@ async function loadFromSpeciesList(names) {
     const name = rawName.trim();
     if (!name) return;
     try {
-      // GBIF species match
+      // GBIF species match (good for scientific names)
       const gr = await fetch(`https://api.gbif.org/v1/species/match?name=${encodeURIComponent(name)}&strict=false`);
       const gd = await gr.json();
-      if (gd.matchType === 'NONE' || gd.rank !== 'SPECIES') return;
-      const latin = gd.canonicalName || name;
-      const latinLower = latin.toLowerCase();
 
-      // iNat for photo and common name
-      const ir = await fetch(`https://api.inaturalist.org/v1/taxa?q=${encodeURIComponent(latin)}&rank=species&per_page=5`);
-      const id = await ir.json();
-      const taxon = id.results?.find(t => t.name.toLowerCase() === latinLower) || id.results?.[0];
+      let latin, latinLower, taxon, gbifData = gd;
 
-      const commonName = gd.vernacularName || taxon?.preferred_common_name || latin;
+      if (gd.matchType !== 'NONE' && gd.rank === 'SPECIES') {
+        // GBIF matched — use it as primary, iNat for photo
+        latin = gd.canonicalName || name;
+        latinLower = latin.toLowerCase();
+        const ir = await fetch(`https://api.inaturalist.org/v1/taxa?q=${encodeURIComponent(latin)}&rank=species&per_page=5`);
+        const id = await ir.json();
+        taxon = id.results?.find(t => t.name.toLowerCase() === latinLower) || id.results?.[0];
+      } else {
+        // GBIF couldn't match — try iNat directly (handles common names much better)
+        const ir = await fetch(`https://api.inaturalist.org/v1/taxa?q=${encodeURIComponent(name)}&rank=species&per_page=5`);
+        const id = await ir.json();
+        taxon = id.results?.[0];
+        if (!taxon) return;
+        latin = taxon.name;
+        latinLower = latin.toLowerCase();
+        gbifData = {}; // no GBIF data available
+      }
+
+      const commonName = gbifData.vernacularName || taxon?.preferred_common_name || latin;
       const samoan = samoaNames[latinLower]?.samoan || null;
       const maori  = extraNames[latinLower] || extraNames[name.toLowerCase()] || null;
 

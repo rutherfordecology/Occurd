@@ -484,6 +484,14 @@
     <h3>Feedback</h3>
     <p>Found a bug or have a suggestion? <a href="mailto:rutherfordecology@gmail.com" style="color:var(--green);">rutherfordecology@gmail.com</a></p>
 
+    <h3>Check out these other apps</h3>
+    <ul style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:0.5rem;">
+      <li><a href="https://rutherfordecology.github.io/Occurd/looklike/" target="_blank" style="color:var(--green);font-weight:500;">LookLike</a> — identify species from photos</li>
+      <li><a href="https://rutherfordecology.github.io/Occurd/whatdat/" target="_blank" style="color:var(--green);font-weight:500;">WhatDat</a> — species identification quiz</li>
+      <li><a href="https://rutherfordecology.github.io/WhatDatBird/" target="_blank" style="color:var(--green);font-weight:500;">WhatDatBird</a> — bird identification challenge</li>
+      <li style="font-size:0.85em;color:var(--text3);">&#127757; For New Zealand users: <a href="https://rutherfordecology.github.io/Occurd/but-is-it-threatened/" target="_blank" style="color:var(--green);font-weight:500;">But Is It Threatened?</a> — check NZ threat status</li>
+    </ul>
+
     <div class="modal-btns" style="margin-top:1.2rem;">
       <button class="modal-btn primary" id="aboutClose">Close</button>
     </div>
@@ -5825,6 +5833,15 @@ if (window._pendingShare) {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v5.74</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>About modal — "Check out these other apps" section added: links to LookLike, WhatDat, WhatDatBird, and But Is It Threatened? (NZ users)</li>
+        <li>WhatDat species list — fixed bug where pasting a new list was ignored if a previous list from another app was cached in localStorage; also added iNaturalist fallback for species names that GBIF can't resolve</li>
+        <li>WhatDat leaderboard — renewed GitHub token</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v5.73</span>
       <span class="changelog-date">Jun 2026</span>

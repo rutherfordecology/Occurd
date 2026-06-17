@@ -583,7 +583,7 @@ function startSpeciesListQuiz() {
   const name = document.getElementById('splistName').value.trim() || 'Custom List';
   const names = raw.split('\n').map(s => s.trim()).filter(Boolean);
   if (names.length < 4) { alert('Please enter at least 4 species names (one per line).'); return; }
-  sessionStorage.setItem('whatdat_species_list', JSON.stringify(names));
+  localStorage.setItem('whatdat_species_list', JSON.stringify(names));
   let url = `quiz.html?mode=species_list&list_name=${encodeURIComponent(name)}`;
   if (confirmedTaxon) url += `&taxon_name=${encodeURIComponent(confirmedTaxon.name)}`;
   window.location.href = url;

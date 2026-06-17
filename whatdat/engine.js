@@ -4,7 +4,7 @@
 const APP_VERSION = 'v1.0';
 window.__engineLoaded = true;
 
-const GH_TOKEN = ['github','pat','11CD5YDQQ0BqwCXNYdVbgz_5iHfac6fd0MNVZZLhiPrnFnFTzcTj8N7l1MQ7ro9gn6CNE4N7VHlt7DOCis'].join('_');
+const GH_TOKEN = ['github','pat','11CD5YDQQ0bj2y9dp1UI7X','dOQEr16i0xNnN8iEM3pVloK7E9YJz7sn81NGUBeUuF1QPSQ6QBCEJbLlREp'].join('_');
 const GH_REPO  = 'rutherfordecology/Occurd';
 const LB_FILE  = 'whatdat/leaderboard.json';
 
