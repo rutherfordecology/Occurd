@@ -25,6 +25,20 @@
       "lat": -13.80546,
       "lng": 187.92663499999998,
       "added": "2026-06-17"
+    },
+    {
+      "name": "Drawn polygon 1",
+      "continent": "Other",
+      "country": "Drawn polygon 1",
+      "description": "Drawn polygon 1",
+      "type": "list",
+      "url": "https://occurd.rutherfordecology.co.nz/whatdat/quiz.html?mode=species_list&swlat=-13.83441&nelat=-13.81524&swlng=188.23597&nelng=188.26017&list_name=Drawn+polygon+1&list=AoewxglgNlIA4gE4EMAEATZBbCYkDsIBnAKFEhniTQDcBTRRAVzyOTKQgBc6jVnSAYRB18IAEbc0zAOYgiTUgHEUcBXx74muAV2RdFJAKJgAFhDFY6XFKiz7TyOhBIAZC2ADWENFCc0IGX12AGUuXFN4RVQzWEQQMQNSAEFxJnQ6ADN0JkzUIjoAD0zkIkh9Q2SwZHwuUyYBVBsIeR4ZSqxxKABPOUlouEc-UXZkrEGIOEQW-Ds6PzE4QwAhZChiPSW%2BJnwcvySSQRq6wNKeRHyQBfRpw8drEHQE1GQG07unLkfnyGb8eaghkE9y%2BT1mdAmcDgECYWA%2BDzBqEBWn2QJB31mVgWiTRnwx-GQmUyUF4EBcwLxiIKVhm8NBzyY62soiIxDp%2BJoyCCaV2aOc6y0215qKEpn5LVQFgYOFFcQa0SI0MBAjuiG6rLg5zQeiYCCYhyQ3TqIAidXVqHu9i%2BmoYQM04BBCuaFVIABFSmBujBoshmDVDK6WojTOrmoUSAAJNYRESIXgWpAGBaGKPrMyx%2BPNexgRkuyOiFpmaJmNVEVogLCGVzWUzTQUW33ITwkACy3WmUw2xFQASuyDAdHYwF9utEdGi4l94gYFkMw%2BYcDH0Qs6Fwc5Hi-%2B0UrUHCJTKPgOwH2yEKTWcKDIJLAX0Q5nwRb4AS4eiP5xNT6uUnwpAASve6GqWp6j4ftGUHA4QjWX0fD4fdykg6pGhAAIBzUEgQjwWA1G7ZoBQg0JTnrRVZ1IMI6CCIgeD4QgZGmIDSAAFSGUoy3sBtEHQAB3XBPDoEgAC0ajAQE%2BDwRAtAOAS6HEFA2LQMp4FKQSZLkitaHmCBMltOFXDWEl7F2Go0HwZAAiCH8SAAOXVGExLWOgwR8fiWwSawYLQGoUUMAB5G8ojE7oakHIA",
+      "coord_lat": -13.824825,
+      "coord_lng": 188.24806999999998,
+      "photo_taxon": null,
+      "lat": -13.824825,
+      "lng": 188.24806999999998,
+      "added": "2026-06-17"
     }
   ]
 }
