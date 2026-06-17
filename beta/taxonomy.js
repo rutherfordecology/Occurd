@@ -797,8 +797,17 @@
       const dk = r.gbifKey ? String(r.gbifKey) : ('nzor_' + r.display);
       if (!seen.has(dk)) { seen.add(dk); results.push(r); }
     }
+    // Second-pass: deduplicate by display name (case-insensitive), keeping the entry
+    // with a gbifKey (which carries rank) over a rank-less local entry.
+    const byName = new Map();
+    for (const r of results) {
+      const nl = r.display.toLowerCase();
+      const prev = byName.get(nl);
+      if (!prev || (!prev.gbifKey && r.gbifKey)) byName.set(nl, r);
+    }
+    const deduped = results.filter(r => byName.get(r.display.toLowerCase()) === r);
     const ql = q.toLowerCase();
-    results.sort((a, b) => {
+    deduped.sort((a, b) => {
       const adl = a.display.toLowerCase();
       const bdl = b.display.toLowerCase();
       const aExact = adl === ql ? 0 : 1;
@@ -811,7 +820,7 @@
       const bStart = bdl.startsWith(ql) ? 0 : 1;
       return aStart - bStart;
     });
-    return results;
+    return deduped;
   }
 
   async function doMillerSearch(q) {
