@@ -133,17 +133,26 @@
   footer a:hover { text-decoration: underline; }
 
   /* ── Library ─────────────────────────────────────────────────────────────── */
-  .library-section { max-width: 520px; margin: 0 auto 48px; padding: 0 20px; }
-  .library-heading { font-size: 0.68rem; letter-spacing: 0.15em; font-weight: 800; color: #9b9890; text-transform: uppercase; margin-bottom: 12px; }
-  .library-empty { font-size: 0.85rem; color: #c8c6bc; font-style: italic; padding: 10px 0; }
-  .lib-card { background: #fff; border: 1.5px solid #dddbd3; border-radius: 12px; padding: 13px 15px; margin-bottom: 10px; display: flex; align-items: center; gap: 12px; }
-  .lib-card-info { flex: 1; min-width: 0; }
-  .lib-card-name { font-size: 0.9rem; font-weight: 800; color: #1c1b18; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .lib-card-meta { font-size: 0.72rem; color: #9b9890; margin-top: 2px; }
-  .lib-card-play { padding: 8px 16px; background: #1a5940; border: none; color: #fff; border-radius: 8px; font-size: 0.82rem; font-weight: 800; cursor: pointer; font-family: inherit; white-space: nowrap; }
-  .lib-card-play:hover { background: #2a7a58; }
-  .lib-card-del { background: none; border: none; color: #c8c6bc; font-size: 1rem; cursor: pointer; padding: 4px; line-height: 1; }
-  .lib-card-del:hover { color: #8a2c2c; }
+  .lib-map-toggle { display:inline-block; margin:0 auto 16px; padding:9px 18px; background:#fff; border:1.5px solid #dddbd3; color:#1a5940; border-radius:10px; font-weight:800; font-size:0.78rem; cursor:pointer; font-family:inherit; transition:all 0.15s; }
+  .lib-map-toggle:hover { border-color:#2a7a58; background:#e8f4ef; }
+  .lib-map { display:none; max-width:900px; height:340px; margin:0 auto 28px; border-radius:14px; overflow:hidden; border:1px solid #dddbd3; }
+  .lib-map.open { display:block; }
+  .section-label { max-width:900px; margin:0 auto 14px; padding:0 20px; font-size:0.68rem; font-weight:800; letter-spacing:0.12em; text-transform:uppercase; color:#9b9890; }
+  .cards-grid { max-width:900px; margin:0 auto 32px; padding:0 20px; display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:14px; }
+  .place-card { background:#fff; border:1.5px solid #dddbd3; border-radius:14px; overflow:hidden; text-decoration:none; color:inherit; transition:all 0.2s; display:block; box-shadow:0 2px 8px rgba(0,0,0,0.04); }
+  .place-card:hover { border-color:#2a7a58; transform:translateY(-3px); box-shadow:0 8px 24px rgba(42,122,88,0.13); }
+  .card-img { height:140px; background:#eeede8; overflow:hidden; display:flex; align-items:center; justify-content:center; }
+  .card-img img { width:100%; height:100%; object-fit:cover; object-position:center top; }
+  .card-img-ph { font-size:3rem; color:#c8c6bc; }
+  .card-body { padding:12px 14px; position:relative; }
+  .card-name { font-size:0.95rem; font-weight:900; color:#1a5940; margin-bottom:3px; }
+  .card-sub { font-size:0.75rem; color:#6b6960; margin-bottom:8px; line-height:1.4; }
+  .card-meta { display:flex; align-items:center; gap:8px; flex-wrap:wrap; padding-right:28px; }
+  .card-count { font-size:0.72rem; font-weight:700; color:#2a7a58; }
+  .card-share { position:absolute; bottom:10px; right:10px; background:none; border:none; padding:4px; cursor:pointer; color:#c8c6bc; line-height:1; border-radius:6px; transition:color 0.15s; }
+  .card-share:hover { color:#2a7a58; }
+  .card-share svg { display:block; width:16px; height:16px; }
+  .share-toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:#1a5940; color:#fff; padding:10px 20px; border-radius:10px; font-size:0.85rem; font-weight:700; pointer-events:none; opacity:0; transition:opacity 0.2s; z-index:9999; }
 </style>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -221,10 +230,12 @@
 </div>
 
 <!-- ── Library ───────────────────────────────────────────────────────────── -->
-<div class="library-section" id="librarySection" style="display:none">
-  <div class="library-heading">&#128218; Saved Quizzes</div>
-  <div id="libraryList"></div>
+<div style="text-align:center;margin-bottom:8px;">
+  <button class="lib-map-toggle" id="libMapToggle" onclick="toggleLibraryMap()" style="display:none;">&#128506; View quiz map</button>
 </div>
+<div id="libraryMap" class="lib-map"></div>
+<div id="quizLibrary"><div class="section-label">Loading quiz library...</div></div>
+<div class="share-toast" id="shareToast"></div>
 
 <!-- ── Map modal ─────────────────────────────────────────────────────────── -->
 <div class="map-modal" id="mapModal">
@@ -798,48 +809,143 @@ async function onMapClick(e) {
 }
 
 // ── Quiz Library ──────────────────────────────────────────────────────────────
-const LIB_KEY = 'whatdat_library';
+const CONTINENT_ORDER = ['Africa','Antarctica','Asia','Europe','North America','Oceania','South America','Other'];
+let _libraryQuizzes = [];
+let _libraryMap = null;
 
-function loadLibrary() {
-  try { return JSON.parse(localStorage.getItem(LIB_KEY) || '[]'); } catch { return []; }
+function quizCoords(q) {
+  const lat = q.lat ?? q.coord_lat ?? null;
+  const lng = q.lng ?? q.coord_lng ?? null;
+  return (lat != null && lng != null) ? { lat, lng } : null;
 }
 
-function saveLibrary(items) {
-  localStorage.setItem(LIB_KEY, JSON.stringify(items));
+async function resolveQuizCoords(q) {
+  const c = quizCoords(q);
+  if (c) return c;
+  if (!q.place_id) return null;
+  try {
+    const r = await fetch(`https://api.inaturalist.org/v1/places/${q.place_id}`);
+    if (!r.ok) return null;
+    const d = await r.json();
+    const loc = d.results?.[0]?.location;
+    if (!loc) return null;
+    const [lat, lng] = loc.split(',').map(Number);
+    return isNaN(lat) ? null : { lat, lng };
+  } catch { return null; }
 }
 
-function renderLibrary() {
-  const items = loadLibrary();
-  const section = document.getElementById('librarySection');
-  const list = document.getElementById('libraryList');
-  if (!items.length) { section.style.display = 'none'; return; }
-  section.style.display = '';
-  list.innerHTML = items.map((q, i) => `
-    <div class="lib-card">
-      <div class="lib-card-info">
-        <div class="lib-card-name">${q.name}</div>
-        <div class="lib-card-meta">${q.count} species &mdash; saved ${new Date(q.date).toLocaleDateString()}</div>
-      </div>
-      <button class="lib-card-play" onclick="playLibraryQuiz(${i})">Play &#9658;</button>
-      <button class="lib-card-del" onclick="deleteLibraryQuiz(${i})" title="Remove">&#10005;</button>
-    </div>`).join('');
+async function toggleLibraryMap() {
+  const box = document.getElementById('libraryMap');
+  const open = box.classList.toggle('open');
+  document.getElementById('libMapToggle').textContent = open ? '&#10005; Hide quiz map' : '&#128506; View quiz map';
+  if (open) {
+    if (!_libraryMap) {
+      _libraryMap = L.map('libraryMap');
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://openstreetmap.org/copyright">OpenStreetMap</a>',
+        maxZoom: 18
+      }).addTo(_libraryMap);
+      _libraryMap.setView([20, 0], 2);
+      setTimeout(() => _libraryMap.invalidateSize(), 80);
+      const pts = [];
+      for (const q of _libraryQuizzes) {
+        const c = await resolveQuizCoords(q);
+        if (!c) continue;
+        pts.push([c.lat, c.lng]);
+        const absUrl = q.url.startsWith('http') ? q.url : `https://occurd.rutherfordecology.co.nz/whatdat/${q.url}`;
+        L.marker([c.lat, c.lng]).addTo(_libraryMap)
+          .bindPopup(`<div style="font-family:system-ui;text-align:center"><div style="font-weight:700">${q.description||q.name}</div><a href="${absUrl}" style="color:#1a5940;font-weight:800;text-decoration:none">Play &#8594;</a></div>`);
+      }
+      if (pts.length > 1) _libraryMap.fitBounds(pts, { padding: [30,30], maxZoom: 6 });
+      else if (pts.length === 1) _libraryMap.setView(pts[0], 8);
+    } else {
+      setTimeout(() => _libraryMap.invalidateSize(), 80);
+    }
+  }
 }
 
-function playLibraryQuiz(idx) {
-  const items = loadLibrary();
-  const q = items[idx];
-  if (!q) return;
-  window.open(q.url, '_blank');
+function cardHtml(q) {
+  const absUrl = q.url.startsWith('http') ? q.url : `https://occurd.rutherfordecology.co.nz/whatdat/${q.url}`;
+  const imgId  = `card-img-${(q.place_id || q.url).toString().replace(/\W/g,'')}`;
+  const shareIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>`;
+  return `<a class="place-card" href="${absUrl}">
+    <div class="card-img" id="${imgId}"><div class="card-img-ph">&#127807;</div></div>
+    <div class="card-body">
+      <div class="card-name">${q.name}</div>
+      <div class="card-sub">${q.description||''}</div>
+      <div class="card-meta">${q.species ? `<span class="card-count">${q.species} species</span>` : ''}</div>
+      <button class="card-share" onclick="shareQuiz(event,'${absUrl.replace(/'/g,"\\'")}','${q.name.replace(/'/g,"\\'")}');" title="Share">${shareIcon}</button>
+    </div>
+  </a>`;
 }
 
-function deleteLibraryQuiz(idx) {
-  const items = loadLibrary();
-  items.splice(idx, 1);
-  saveLibrary(items);
-  renderLibrary();
+async function loadTaxonPhoto(taxon, el) {
+  try {
+    const r = await fetch(`https://api.inaturalist.org/v1/observations?taxon_name=${encodeURIComponent(taxon)}&photos=true&per_page=10&quality_grade=research&order_by=faves`);
+    if (!r.ok) return;
+    const d = await r.json();
+    const src = d.results?.find(o => o.photos?.[0]?.url)?.photos?.[0]?.url?.replace('/square.','/medium.');
+    if (src) el.innerHTML = `<img src="${src}" loading="lazy" onerror="this.parentElement.innerHTML='<div class=card-img-ph>&#127807;</div>'">`;
+  } catch {}
 }
 
-renderLibrary();
+async function loadPlacePhoto(placeId, el) {
+  try {
+    const r = await fetch(`https://api.inaturalist.org/v1/observations/species_counts?place_id=${placeId}&quality_grade=research&per_page=1&order_by=observations_count&order=desc`);
+    if (!r.ok) return;
+    const d = await r.json();
+    const taxon = d.results?.[0]?.taxon?.name;
+    if (taxon) loadTaxonPhoto(taxon, el);
+  } catch {}
+}
+
+function shareQuiz(e, url, name) {
+  e.preventDefault(); e.stopPropagation();
+  if (navigator.share) { navigator.share({ title: name, url }); return; }
+  navigator.clipboard.writeText(url).then(() => {
+    const toast = document.getElementById('shareToast');
+    toast.textContent = 'Link copied!';
+    toast.style.opacity = '1';
+    setTimeout(() => { toast.style.opacity = '0'; }, 2000);
+  });
+}
+
+async function loadLibrary() {
+  try {
+    const r = await fetch(`quizzes.json?_=${Date.now()}`);
+    const d = await r.json();
+    const quizzes = d.quizzes || [];
+    const groups = {};
+    for (const q of quizzes) {
+      const c = q.continent || 'Other';
+      if (!groups[c]) groups[c] = [];
+      groups[c].push(q);
+    }
+    const lib = document.getElementById('quizLibrary');
+    let html = '';
+    const continents = CONTINENT_ORDER.filter(c => groups[c]);
+    for (const continent of continents) {
+      html += `<div class="section-label">${continent}</div><div class="cards-grid">`;
+      for (const q of groups[continent]) html += cardHtml(q);
+      html += `</div>`;
+    }
+    lib.innerHTML = html || '<div class="section-label">No quizzes saved yet — finish a quiz and add it to the library!</div>';
+    _libraryQuizzes = quizzes;
+    const mapToggle = document.getElementById('libMapToggle');
+    if (mapToggle && quizzes.length) mapToggle.style.display = 'inline-block';
+    for (const q of quizzes) {
+      const imgId = `card-img-${(q.place_id || q.url).toString().replace(/\W/g,'')}`;
+      const el = document.getElementById(imgId);
+      if (!el) continue;
+      if (q.photo_taxon) loadTaxonPhoto(q.photo_taxon, el);
+      else if (q.place_id) loadPlacePhoto(q.place_id, el);
+    }
+  } catch(e) {
+    document.getElementById('quizLibrary').innerHTML = '<div class="section-label" style="color:#d47a7a">Could not load quiz library.</div>';
+  }
+}
+
+loadLibrary();
 </script>
 </body>
 </html>

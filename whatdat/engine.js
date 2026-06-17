@@ -7,6 +7,39 @@ window.__engineLoaded = true;
 const GH_TOKEN = ['github','pat','11CD5YDQQ0bj2y9dp1UI7X','dOQEr16i0xNnN8iEM3pVloK7E9YJz7sn81NGUBeUuF1QPSQ6QBCEJbLlREp'].join('_');
 const GH_REPO  = 'rutherfordecology/Occurd';
 const LB_FILE  = 'whatdat/leaderboard.json';
+const GH_FILE  = 'whatdat/quizzes.json';
+
+const ISO_TO_COUNTRY = {
+  'AF':'Afghanistan','AL':'Albania','DZ':'Algeria','AO':'Angola','AR':'Argentina',
+  'AU':'Australia','AT':'Austria','BD':'Bangladesh','BE':'Belgium','BO':'Bolivia',
+  'BW':'Botswana','BR':'Brazil','BG':'Bulgaria','CA':'Canada','CL':'Chile',
+  'CN':'China','CO':'Colombia','CR':'Costa Rica','HR':'Croatia','CU':'Cuba',
+  'CZ':'Czech Republic','DK':'Denmark','DO':'Dominican Republic','EC':'Ecuador',
+  'EG':'Egypt','SV':'El Salvador','ET':'Ethiopia','FI':'Finland','FR':'France',
+  'DE':'Germany','GH':'Ghana','GR':'Greece','GT':'Guatemala','HT':'Haiti',
+  'HN':'Honduras','HU':'Hungary','IS':'Iceland','IN':'India','ID':'Indonesia',
+  'IE':'Ireland','IT':'Italy','JP':'Japan','KE':'Kenya','MY':'Malaysia',
+  'MG':'Madagascar','MX':'Mexico','MN':'Mongolia','MA':'Morocco','MZ':'Mozambique',
+  'MM':'Myanmar','NP':'Nepal','NL':'Netherlands','NZ':'New Zealand','NI':'Nicaragua',
+  'NG':'Nigeria','NO':'Norway','PK':'Pakistan','PA':'Panama','PY':'Paraguay',
+  'PE':'Peru','PH':'Philippines','PL':'Poland','PT':'Portugal','RO':'Romania',
+  'RU':'Russia','WS':'Samoa','SN':'Senegal','RS':'Serbia','SG':'Singapore',
+  'ZA':'South Africa','KR':'South Korea','ES':'Spain','LK':'Sri Lanka',
+  'SE':'Sweden','CH':'Switzerland','TW':'Taiwan','TZ':'Tanzania','TH':'Thailand',
+  'TT':'Trinidad and Tobago','UG':'Uganda','UA':'Ukraine','GB':'United Kingdom',
+  'US':'United States','UY':'Uruguay','VE':'Venezuela','VN':'Vietnam','ZM':'Zambia',
+  'ZW':'Zimbabwe','FJ':'Fiji','PG':'Papua New Guinea','SB':'Solomon Islands',
+  'TO':'Tonga','VU':'Vanuatu','WS':'Samoa','KI':'Kiribati',
+};
+
+const COUNTRY_CONTINENT = {
+  'United States':'North America','Canada':'North America','Mexico':'North America','Guatemala':'North America','Cuba':'North America','Costa Rica':'North America','Panama':'North America','Honduras':'North America','Nicaragua':'North America','El Salvador':'North America','Dominican Republic':'North America','Haiti':'North America','Trinidad and Tobago':'North America',
+  'Brazil':'South America','Argentina':'South America','Colombia':'South America','Peru':'South America','Venezuela':'South America','Chile':'South America','Ecuador':'South America','Bolivia':'South America','Paraguay':'South America','Uruguay':'South America','Guyana':'South America',
+  'United Kingdom':'Europe','France':'Europe','Germany':'Europe','Spain':'Europe','Italy':'Europe','Portugal':'Europe','Netherlands':'Europe','Belgium':'Europe','Switzerland':'Europe','Austria':'Europe','Sweden':'Europe','Norway':'Europe','Denmark':'Europe','Finland':'Europe','Poland':'Europe','Czech Republic':'Europe','Hungary':'Europe','Romania':'Europe','Greece':'Europe','Ireland':'Europe','Croatia':'Europe','Bulgaria':'Europe','Serbia':'Europe','Russia':'Europe','Ukraine':'Europe','Iceland':'Europe',
+  'Australia':'Oceania','New Zealand':'Oceania','Papua New Guinea':'Oceania','Fiji':'Oceania','Samoa':'Oceania','Tonga':'Oceania','Vanuatu':'Oceania','Solomon Islands':'Oceania','New Caledonia':'Oceania','French Polynesia':'Oceania','Kiribati':'Oceania',
+  'China':'Asia','Japan':'Asia','India':'Asia','Indonesia':'Asia','Philippines':'Asia','Vietnam':'Asia','Thailand':'Asia','Malaysia':'Asia','South Korea':'Asia','Taiwan':'Asia','Myanmar':'Asia','Cambodia':'Asia','Nepal':'Asia','Sri Lanka':'Asia','Singapore':'Asia','Bangladesh':'Asia','Pakistan':'Asia','Mongolia':'Asia',
+  'South Africa':'Africa','Kenya':'Africa','Tanzania':'Africa','Ethiopia':'Africa','Uganda':'Africa','Ghana':'Africa','Nigeria':'Africa','Cameroon':'Africa','Senegal':'Africa','Madagascar':'Africa','Zambia':'Africa','Zimbabwe':'Africa','Botswana':'Africa','Mozambique':'Africa','Morocco':'Africa','Egypt':'Africa','Rwanda':'Africa','Malawi':'Africa',
+};
 
 // ── Config ────────────────────────────────────────────────────────────────
 let CFG = {};
@@ -513,33 +546,155 @@ function saveQuizName() {
   if (btn) { btn.textContent = '✓'; setTimeout(() => { btn.textContent = '✓'; }, 1000); }
 }
 
-function saveToLibrary(btn) {
-  const url = CFG.shareUrl || window.location.href;
-  const defaultName = CFG.quizName || CFG.placeName || CFG.taxonName || 'My Quiz';
-  const name = prompt('Name this quiz for the library:', defaultName);
-  if (!name) return;
-  const LIB_KEY = 'whatdat_library';
-  let items = [];
-  try { items = JSON.parse(localStorage.getItem(LIB_KEY) || '[]'); } catch {}
-  items.unshift({ name: name.trim(), url, count: CFG.completeBirds?.length || CFG.easyBirds?.length || 0, date: Date.now() });
-  localStorage.setItem(LIB_KEY, JSON.stringify(items));
-  btn.textContent = '&#10003; Saved!';
-  btn.disabled = true;
+async function saveToLibrary() {
+  const msg = document.getElementById('saveLibMsg');
+  const nameInput = document.getElementById('saveLibName');
+  const quizLabel = nameInput ? nameInput.value.trim() || CFG.placeName : CFG.placeName;
+  const saveBtn = document.querySelector('#saveLibRename button');
+  if (saveBtn) saveBtn.disabled = true;
+  msg.style.color = '#2a7a58';
+  msg.textContent = 'Reading library...';
+
+  let sha, data;
+  try {
+    const r = await fetch(`https://api.github.com/repos/${GH_REPO}/contents/${GH_FILE}`, {
+      headers: { Authorization: `token ${GH_TOKEN}`, Accept: 'application/vnd.github.v3+json' }
+    });
+    if (!r.ok) throw new Error(`GitHub read ${r.status}`);
+    const d = await r.json();
+    sha  = d.sha;
+    data = JSON.parse(decodeURIComponent(escape(atob(d.content.replace(/\n/g, '')))).replace(/^﻿/, ''));
+  } catch (e) {
+    msg.style.color = '#8a2c2c';
+    msg.textContent = `Read failed: ${e.message}`;
+    if (saveBtn) saveBtn.disabled = false;
+    return;
+  }
+
+  const alreadySaved = CFG.placeId
+    ? data.quizzes.some(q => String(q.place_id) === String(CFG.placeId))
+    : data.quizzes.some(q => q.coord_lat && Math.abs(q.coord_lat - CFG.coordLat) < 0.001 && Math.abs(q.coord_lng - CFG.coordLng) < 0.001);
+  if (alreadySaved) { msg.textContent = 'Already in the library!'; return; }
+
+  msg.textContent = 'Fetching location info...';
+  let continent = 'Other', country = CFG.placeName, photoTaxon = null, lat = null, lng = null;
+
+  if (CFG.shareUrl && !CFG.placeId) {
+    // Species list mode — use coord if available
+    lat = CFG.coordLat || null;
+    lng = CFG.coordLng || null;
+    if (CFG.coordCC && ISO_TO_COUNTRY[CFG.coordCC]) country = ISO_TO_COUNTRY[CFG.coordCC];
+    continent = COUNTRY_CONTINENT[country] || 'Other';
+    if (lat) {
+      try {
+        const spR = await fetch(`https://api.inaturalist.org/v1/observations/species_counts?lat=${lat}&lng=${lng}&radius=25&quality_grade=research&per_page=1&order_by=observations_count&order=desc`);
+        const spD = await spR.json();
+        photoTaxon = spD.results?.[0]?.taxon?.name || null;
+      } catch {}
+    }
+  } else if (CFG.coordLat && !CFG.placeId) {
+    lat = CFG.coordLat; lng = CFG.coordLng;
+    if (CFG.coordCC && ISO_TO_COUNTRY[CFG.coordCC]) country = ISO_TO_COUNTRY[CFG.coordCC];
+    continent = COUNTRY_CONTINENT[country] || 'Other';
+    try {
+      const spR = await fetch(`https://api.inaturalist.org/v1/observations/species_counts?lat=${lat}&lng=${lng}&radius=25&quality_grade=research&per_page=1&order_by=observations_count&order=desc`);
+      const spD = await spR.json();
+      photoTaxon = spD.results?.[0]?.taxon?.name || null;
+    } catch {}
+  } else if (CFG.placeId) {
+    try {
+      const placeR = await fetch(`https://api.inaturalist.org/v1/places/${CFG.placeId}`);
+      const placeD = await placeR.json();
+      const place  = placeD.results?.[0];
+      if (place?.location) { const [pLat,pLng]=place.location.split(',').map(Number); if(!isNaN(pLat)){lat=pLat;lng=pLng;} }
+      const ancestorIds = (place?.ancestor_place_ids||[]).join(',');
+      if (ancestorIds) {
+        const ancR = await fetch(`https://api.inaturalist.org/v1/places?id=${ancestorIds}&per_page=100`);
+        const ancD = await ancR.json();
+        const ancs = ancD.results||[];
+        continent = ancs.find(a=>a.place_type===29)?.display_name || '';
+        country   = ancs.find(a=>a.place_type===12)?.display_name || ancs.find(a=>a.place_type===2)?.display_name || CFG.placeName;
+        if (!continent) continent = COUNTRY_CONTINENT[country] || 'Other';
+      }
+      const spR = await fetch(`https://api.inaturalist.org/v1/observations/species_counts?place_id=${CFG.placeId}&quality_grade=research&per_page=1&order_by=observations_count&order=desc`);
+      const spD = await spR.json();
+      photoTaxon = spD.results?.[0]?.taxon?.name || null;
+    } catch(e) { console.warn('iNat metadata fetch failed:', e.message); }
+  }
+
+  msg.textContent = 'Saving...';
+  const quizUrl = CFG.shareUrl || (CFG.placeId
+    ? `quiz.html?place_id=${CFG.placeId}&place_name=${encodeURIComponent(CFG.placeName)}`
+    : `quiz.html?lat=${CFG.coordLat}&lng=${CFG.coordLng}&place_name=${encodeURIComponent(CFG.placeName)}${CFG.coordCC?'&country_code='+CFG.coordCC:''}`);
+
+  const quizEntry = {
+    name: quizLabel, continent, country, description: quizLabel,
+    type: CFG.shareUrl ? 'list' : 'dynamic',
+    url: quizUrl,
+    ...(CFG.placeId ? { place_id: Number(CFG.placeId) } : {}),
+    ...(CFG.coordLat ? { coord_lat: CFG.coordLat, coord_lng: CFG.coordLng } : {}),
+    photo_taxon: photoTaxon, lat, lng,
+    added: new Date().toISOString().split('T')[0],
+  };
+  data.quizzes.push(quizEntry);
+
+  try {
+    const body = JSON.stringify({
+      message: `Add ${quizLabel} to WhatDat quiz library`,
+      sha,
+      content: btoa(unescape(encodeURIComponent(JSON.stringify(data, null, 2)))),
+    });
+    const putR = await fetch(`https://api.github.com/repos/${GH_REPO}/contents/${GH_FILE}`, {
+      method: 'PUT',
+      headers: { Authorization: `token ${GH_TOKEN}`, Accept: 'application/vnd.github.v3+json', 'Content-Type': 'application/json' },
+      body,
+    });
+    if (!putR.ok) throw new Error(`GitHub write ${putR.status}`);
+    msg.textContent = '&#10003; Added to library! Will appear in ~1 minute.';
+    const section = document.getElementById('saveLibSection');
+    if (section) section.style.display = 'none';
+    unlockLeaderboard();
+  } catch (e) {
+    msg.style.color = '#8a2c2c';
+    msg.textContent = `Save failed: ${e.message}`;
+    if (saveBtn) saveBtn.disabled = false;
+  }
 }
 
 function renderResult(app, header) {
   const acc = state.totalSeen>0 ? Math.round((state.totalCorrect/state.totalSeen)*100) : 0;
   const stars = starsForScore(acc);
-  const canLb = !!(CFG.placeId || CFG.coordLat);
+  const canSave = !!(CFG.placeId || CFG.coordLat || CFG.shareUrl);
+  const canLb   = !!(CFG.placeId || CFG.coordLat);
+  const defaultQuizName = CFG.placeName || 'My Quiz';
+
+  const saveSection = canSave ? `
+    <div id="saveLibSection">
+      <button class="btn-secondary" id="saveLibBtn" onclick="showRenameForm()">&#128218; Add to Quiz Library</button>
+      <div id="saveLibRename" style="display:none;margin-top:10px;">
+        <div style="font-size:0.8rem;color:#6b6960;margin-bottom:6px;text-align:center;">Name this quiz in the library:</div>
+        <div style="display:flex;gap:8px;max-width:380px;margin:0 auto;">
+          <input id="saveLibName" type="text" maxlength="60" value="${defaultQuizName.replace(/"/g,'&quot;')}"
+            style="flex:1;padding:8px 12px;font-size:0.88rem;border:1.5px solid #dddbd3;border-radius:8px;outline:none;font-family:inherit;"
+            onfocus="this.style.borderColor='#2a7a58'" onblur="this.style.borderColor='#dddbd3'">
+          <button onclick="saveToLibrary()" style="padding:8px 16px;background:#1a5940;color:#fff;border:none;border-radius:8px;font-weight:800;cursor:pointer;font-family:inherit;font-size:0.88rem;">Save</button>
+          <button onclick="hideRenameForm()" style="padding:8px 12px;background:none;border:1.5px solid #dddbd3;border-radius:8px;cursor:pointer;font-family:inherit;font-size:0.88rem;color:#6b6960;">&#10005;</button>
+        </div>
+      </div>
+      <div id="saveLibMsg" style="font-size:0.8rem;color:#2a7a58;margin-top:8px;min-height:1.2em;text-align:center;font-weight:700;"></div>
+    </div>` : '';
 
   const lbSection = canLb ? `
     <div class="lb-entry" id="lbEntry">
-      <div class="lb-label">&#127942; Add your score to the leaderboard</div>
-      <div class="lb-row">
-        <input class="lb-input" id="lbName" type="text" maxlength="24" placeholder="Your name" autocomplete="off">
-        <button class="lb-submit" onclick="submitScore()">Submit</button>
+      <div id="lbLocked" style="text-align:center;color:#9b9890;font-size:0.85rem;padding:8px 0">&#128274; Add this quiz to the library to unlock the leaderboard</div>
+      <div id="lbUnlocked" style="display:none">
+        <div class="lb-label">&#127942; Add your score to the leaderboard</div>
+        <div class="lb-row">
+          <input class="lb-input" id="lbName" type="text" maxlength="24" placeholder="Your name" autocomplete="off">
+          <button class="lb-submit" onclick="submitScore()">Submit</button>
+        </div>
+        <div id="lbMsg" style="font-size:0.78rem;color:#2a7a58;margin-top:6px;min-height:1em;text-align:center;font-weight:700;"></div>
       </div>
-      <div id="lbMsg" style="font-size:0.78rem;color:#2a7a58;margin-top:6px;min-height:1em;text-align:center;font-weight:700;"></div>
     </div>
     <div class="lb-board" id="lbBoard"></div>` : '';
 
@@ -559,13 +714,51 @@ function renderResult(app, header) {
       <p class="stat">${state.totalCorrect} correct from ${state.totalSeen} attempts (${acc}%)</p>
       <p class="msg">${resultMsg}</p>
       <button class="btn-primary" onclick="goIntro()">Try Again &#127919;</button>
-      <button class="btn-secondary" onclick="saveToLibrary(this)">&#128218; Save quiz to library</button>
+      ${saveSection}
       ${CFG.shareUrl ? `<button class="btn-secondary" onclick="copyShareUrl(this)">&#128279; Share this quiz</button>` : ''}
       ${lbSection}
       <button class="btn-back" onclick="window.location.href='${CFG.backUrl}'">&#8592; Back</button>
     </div>`;
 
-  if (canLb) loadLeaderboard();
+  if (canLb) { loadLeaderboard(); checkInLibrary(); }
+}
+
+function showRenameForm() {
+  document.getElementById('saveLibBtn').style.display = 'none';
+  document.getElementById('saveLibRename').style.display = 'block';
+  document.getElementById('saveLibName').focus();
+  document.getElementById('saveLibName').select();
+}
+function hideRenameForm() {
+  document.getElementById('saveLibBtn').style.display = '';
+  document.getElementById('saveLibRename').style.display = 'none';
+}
+function unlockLeaderboard() {
+  const locked   = document.getElementById('lbLocked');
+  const unlocked = document.getElementById('lbUnlocked');
+  if (locked)   locked.style.display   = 'none';
+  if (unlocked) unlocked.style.display = 'block';
+}
+
+async function checkInLibrary() {
+  try {
+    const r = await fetch(`https://api.github.com/repos/${GH_REPO}/contents/${GH_FILE}`, {
+      headers: { Authorization: `token ${GH_TOKEN}`, Accept: 'application/vnd.github.v3+json' }
+    });
+    if (!r.ok) return;
+    const d = await r.json();
+    const data = JSON.parse(decodeURIComponent(escape(atob(d.content.replace(/\n/g, '')))).replace(/^﻿/, ''));
+    const alreadyIn = CFG.placeId
+      ? data.quizzes.some(q => String(q.place_id) === String(CFG.placeId))
+      : data.quizzes.some(q => q.coord_lat && Math.abs(q.coord_lat - CFG.coordLat) < 0.001 && Math.abs(q.coord_lng - CFG.coordLng) < 0.001);
+    if (alreadyIn) {
+      const btn = document.getElementById('saveLibBtn');
+      const msg = document.getElementById('saveLibMsg');
+      if (btn) btn.style.display = 'none';
+      if (msg) msg.style.display = 'none';
+      unlockLeaderboard();
+    }
+  } catch {}
 }
 
 function renderQuiz(app) {
