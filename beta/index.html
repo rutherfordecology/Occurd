@@ -46,7 +46,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v5.95</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v5.96</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -1071,7 +1071,7 @@ map.on(L.Draw.Event.CREATED, e => {
 
 
 // State
-let polygons = [], refLayers = [], clipTurfPolygons = null, allRecords = [], activeFilters = new Set();
+let polygons = [], refLayers = [], clipTurfPolygons = null, allRecords = [], activeFilters = new Set(), hiddenSpecies = new Set();
 
 const BIGDATA_MODE = new URLSearchParams(location.search).has('bigdata');
 if (BIGDATA_MODE) {
@@ -1496,6 +1496,8 @@ function isEdnaRecord(r) {
 
 function passesFilters(r) {
   if (!activeFilters.has(getTaxonGroup(r))) return false;
+  const _rName = r.species || r.scientificName || '';
+  if (_rName && hiddenSpecies.has(_rName)) return false;
   if (nztcsUnlocked && currentNztcsFilter !== 'all') {
     const allowed = NZTCS_FILTER_GROUPS[currentNztcsFilter] || [];
     const match = lookupNztcs(r);
@@ -1707,7 +1709,7 @@ function applyPostFetchShareState(s) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 function clearResults() {
-  allRecords = []; activeFilters.clear(); csvData = null; selectedSpecies = null; allMarkers = []; commonNameCache = {};
+  allRecords = []; activeFilters.clear(); hiddenSpecies.clear(); csvData = null; selectedSpecies = null; allMarkers = []; commonNameCache = {};
   effortByYear = null; tlEffortMode = false; _effortFetchParams = []; _effortTaxonKeys = []; _syncEffortBtn();
   _clearGhostLayer();
   _photoPrefetchAbort = true;
@@ -4532,33 +4534,36 @@ function buildChecklist(records) {
     gh.dataset.group = g;
     gh.title = 'Click to show/hide ' + label + ' records';
     gh.style.cursor = 'pointer';
-    gh.style.display = 'flex';
-    gh.style.alignItems = 'center';
-    gh.style.justifyContent = 'space-between';
     gh.style.display = 'grid';
-    gh.style.gridTemplateColumns = '1fr 28px 32px';
+    gh.style.gridTemplateColumns = '1fr';
     gh.style.alignItems = 'center';
     gh.innerHTML =
       '<span style="display:flex;align-items:center;gap:6px;">' +
         '<span class="cl-chevron" style="font-size:10px;color:var(--text3);transition:transform 0.15s;display:inline-block;">&#9660;</span>' +
         '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:' + colour + ';flex-shrink:0;"></span>' +
         label +
-      '</span>' +
-      '<label class="cl-group-selall" title="Select all ' + label + '" onclick="event.stopPropagation()" style="justify-self:center;">' +
-        '<input type="checkbox" class="cl-group-cb" data-group="' + g + '">' +
-      '</label>' +
-      '<span></span>';
+      '</span>';
     let _lastFire = 0;
     function handleGroupToggle(e) {
       e.preventDefault();
       const now = Date.now();
       if (now - _lastFire < 300) return;
       _lastFire = now;
-      // Clear any species selection so renderPoints shows all groups, not just the selected one
       if (selectedSpecies) clearSpeciesSelection();
-      if (activeFilters.has(g)) activeFilters.delete(g);
+      const collapsing = activeFilters.has(g);
+      if (collapsing) activeFilters.delete(g);
       else activeFilters.add(g);
-      // Update map directly — don't rely on _filterRefresh indirection
+      // Sync hiddenSpecies with the rows in this group
+      let _el = gh.nextElementSibling;
+      while (_el && !_el.classList.contains('cl-group-header')) {
+        if (_el.classList.contains('cl-row')) {
+          const _name = _el.dataset.species;
+          const _cb = _el.querySelector('.cl-photo-cb');
+          if (collapsing) { hiddenSpecies.add(_name); if (_cb) _cb.checked = false; }
+          else { hiddenSpecies.delete(_name); if (_cb) _cb.checked = true; }
+        }
+        _el = _el.nextElementSibling;
+      }
       if (viewMode === 'heat') renderHeatmap(allRecords);
       else { renderPoints(allRecords); applyTimelineFilter(); }
       filterChecklistByTaxon();
@@ -4599,14 +4604,25 @@ function buildChecklist(records) {
       const iucnBadge = iucnUnlocked ? iucnBadgeHtml(iucnStatus) : '';
       const tkBadge = _tkSpeciesNames.has(name)
         ? '<span class="tk-badge" title="Traditional Knowledge / Biocultural label — Local Contexts">🏷️</span>' : '';
+      const _checked = !hiddenSpecies.has(name);
       row.innerHTML =
         '<div class="cl-row-top">' +
           '<span class="cl-name">' + name + nztcsBadge + iucnBadge + tkBadge + '</span>' +
-          '<input type="checkbox" class="cl-photo-cb" title="Select for LookLike" onclick="event.stopPropagation()">' +
+          '<input type="checkbox" class="cl-photo-cb" title="Include in map, quiz &amp; photos"' + (_checked ? ' checked' : '') + ' onclick="event.stopPropagation()">' +
           '<span class="cl-count">' + info.count + '</span>' +
         '</div>' +
         nztcsPickerDiv +
         (info.common ? '<div class="cl-common">' + info.common + '</div>' : '');
+      row.querySelector('.cl-photo-cb').addEventListener('change', e => {
+        e.stopPropagation();
+        if (e.target.checked) hiddenSpecies.delete(name);
+        else hiddenSpecies.add(name);
+        if (viewMode === 'heat') renderHeatmap(allRecords);
+        else { renderPoints(allRecords); applyTimelineFilter(); }
+        _updateLooklikeBtn();
+        document.getElementById('mShown').textContent = allRecords.filter(passesFilters).length.toLocaleString();
+        csvData = buildCSV(allRecords.filter(passesFilters));
+      });
       row.addEventListener('click', () => {
         if (selectedSpecies === name) clearSpeciesSelection();
         else selectSpecies(name);
@@ -4783,8 +4799,9 @@ function buildFilterChips(records) {
   records.forEach(r => { const g = getTaxonGroup(r); groups[g] = (groups[g] || 0) + 1; });
   const allGroupKeys = Object.keys(groups).sort();
 
-  // Initialise all groups as active
+  // Initialise all groups as active, all species visible
   activeFilters.clear();
+  hiddenSpecies.clear();
   allGroupKeys.forEach(g => activeFilters.add(g));
 
   function refreshGroupHeaders() {
@@ -6186,10 +6203,11 @@ if (window._pendingShare) {
   </div>
   <div class="changelog-scroll" id="changelogScroll">
     <div class="changelog-version">
-      <span class="changelog-version-tag">v5.95</span>
+      <span class="changelog-version-tag">v5.96</span>
       <span class="changelog-date">Jun 2026</span>
       <ul>
         <li>NZTCS button — now appears whenever records are loaded, not just for NZ polygon searches</li>
+        <li>Checklist redesign — removed confusing group-level checkbox; collapsing a group now directly hides those species from the map, quiz, and photos; individual species checkboxes control all three (map dots, quiz, LookLike); everything checked by default; state persists across NZTCS/IUCN rebuilds</li>
         <li>Nav link — "go to Big Data Mode" now uses the same bold/italic logo font treatment</li>
       </ul>
     </div>
