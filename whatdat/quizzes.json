@@ -39,6 +39,20 @@
       "lat": -13.803975000000001,
       "lng": 187.95547499999998,
       "added": "2026-06-17"
+    },
+    {
+      "name": "Tuahine Point, New Zealand",
+      "continent": "Other",
+      "country": "Tuahine Point",
+      "description": "Tuahine Point, New Zealand",
+      "type": "list",
+      "url": "https://occurd.rutherfordecology.co.nz/whatdat/quiz.html?list=IIBwlgrgtgBCBOB7AzgF3gQ1dAUMdYIANgKYAecSamqGOAwogilBjPCSCQHbI4DiiRABMeYNpmFgAxhl44ACmCglSbZtSx0AyhiiIiEZO048%2B2niWlhEMIhgjY%2BjQ1ABGbImABu4nAFEAcw5UWhhuRG8MEgALA3tuKWicAAlo1lQmIxgIbhkDRHhUsHhc4VtuEkQyHjoFGIx7aSRpQowKKPhIPgAVDHL4bjZOsBJArTxpVDA8tlRLNyo6AElkDCmZ8RgDH3WSOmBqFEzSGGRZRbp-CHKyRGkYsEzucMQ3MC9kIA",
+      "coord_lat": -38.70889,
+      "coord_lng": 178.067435,
+      "photo_taxon": "Hemiphaga novaeseelandiae",
+      "lat": -38.70889,
+      "lng": 178.067435,
+      "added": "2026-06-19"
     }
   ]
 }
