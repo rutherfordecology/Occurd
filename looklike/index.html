@@ -690,7 +690,7 @@ async function loadCard(idx) {
     } else {
       const gbifFallback = await fetchGBIF(card.name);
       if (gbifFallback.length) {
-        renderPhoto(inatSlot, gbifFallback[0].url, `${card.name} — GBIF`, card.name, commonName);
+        renderPhoto(inatSlot, gbifThumb(gbifFallback[0].url, 500), `${card.name} — GBIF`, card.name, commonName, gbifThumb(gbifFallback[0].url, 1600));
       } else {
         renderNoPhoto(inatSlot);
       }
@@ -699,7 +699,7 @@ async function loadCard(idx) {
     el.querySelector('.common-name').textContent = '—';
     const gbifFallback = await fetchGBIF(card.name);
     if (gbifFallback.length) {
-      renderPhoto(inatSlot, gbifFallback[0].url, `${card.name} — GBIF`, card.name, '');
+      renderPhoto(inatSlot, gbifThumb(gbifFallback[0].url, 500), `${card.name} — GBIF`, card.name, '', gbifThumb(gbifFallback[0].url, 1600));
     } else {
       renderNoPhoto(inatSlot);
     }
@@ -720,7 +720,7 @@ async function loadCard(idx) {
 }
 
 // ─── Render helpers ──────────────────────────────────────────────
-function renderPhoto(slot, url, alt, sciName, commonName) {
+function renderPhoto(slot, url, alt, sciName, commonName, fullUrl) {
   slot.innerHTML = '';
   const img = document.createElement('img');
   img.src = url;
@@ -735,7 +735,7 @@ function renderPhoto(slot, url, alt, sciName, commonName) {
   img.addEventListener('error', () => renderNoPhoto(slot));
   img.addEventListener('click', (e) => {
     e.stopPropagation();
-    openLightbox(url, sciName, commonName);
+    openLightbox(fullUrl || url, sciName, commonName);
   });
   slot.insertBefore(img, slot.firstChild);
 }
@@ -747,7 +747,7 @@ function renderGBIFSlot(card, slot) {
   slot.innerHTML = '';
 
   const img = document.createElement('img');
-  img.src = photo.url;
+  img.src = gbifThumb(photo.url, 500);
   img.alt = card.name + ' — GBIF';
   img.loading = 'lazy';
   img.addEventListener('error', () => {
@@ -760,7 +760,7 @@ function renderGBIFSlot(card, slot) {
   });
   img.addEventListener('click', (e) => {
     e.stopPropagation();
-    openLightbox(photo.url, card.name, card.commonName);
+    openLightbox(gbifThumb(photo.url, 1600), card.name, card.commonName);
   });
   slot.insertBefore(img, slot.firstChild);
 
@@ -1007,6 +1007,13 @@ function sourceLink(rec) {
 function fixInatUrl(url) {
   if (!url) return null;
   return url.endsWith('.') ? url + 'jpeg' : url;
+}
+
+// GBIF source images are often full-resolution originals (several MB) — proxy through
+// GBIF's own image resize service for grid thumbnails so they load fast
+function gbifThumb(url, width) {
+  if (!url) return url;
+  return 'https://api.gbif.org/v1/image/unsafe/' + width + 'x/' + url;
 }
 
 // Match epithets that differ only by Latin gender ending (e.g. spectabile / spectabilis)
