@@ -45,7 +45,7 @@
       <img src="occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v5.76</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v5.77</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -6075,6 +6075,15 @@ if (window._pendingShare) {
         <li>Buffer "obscured only" option — a checkbox next to the buffer distance buttons; when ticked the resulting buffer polygon fetches only records with coordinate uncertainty ≥ 10 km from GBIF (catching iNat-obscured records near the polygon edge without pulling in thousands of precise records)</li>
         <li>0.2° buffer option — new buffer button sized to match the iNaturalist obscured-record grid square; hover tooltip explains its use; works with the "iNat obscured records" checkbox</li>
         <li>iNat obscured records mode — when ticked on a buffer polygon, skips GBIF entirely and queries the iNaturalist API directly with geoprivacy=obscured; only obscured iNat observations within the buffer are returned, keeping record counts manageable; markers shown with orange ring</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v4.72</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>WhatDat — leaderboard added (scores saved to GitHub, keyed by place + mode, top 10 per board); leaderboard toggle on intro screen; submit form on result screen</li>
+        <li>WhatDat — quiz name edit now updates the header and eyebrow in real time</li>
+        <li>WhatDat — Common mode icon changed to 🐕</li>
       </ul>
     </div>
     <div class="changelog-version">
