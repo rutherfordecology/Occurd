@@ -1,7 +1,7 @@
 // WhatDat? Quiz Engine v1.1
 // Shared engine for all quiz pages.
 // Each page calls: initEngine(config)
-const APP_VERSION = 'v1.3';
+const APP_VERSION = 'v1.4';
 window.__engineLoaded = true;
 
 const GH_TOKEN = ['github','pat','11CD5YDQQ0bj2y9dp1UI7X','dOQEr16i0xNnN8iEM3pVloK7E9YJz7sn81NGUBeUuF1QPSQ6QBCEJbLlREp'].join('_');
@@ -590,13 +590,27 @@ async function saveToLibrary() {
   let continent = 'Other', country = CFG.placeName, photoTaxon = null, lat = null, lng = null;
 
   if (CFG.shareUrl && !CFG.placeId) {
-    // Species list mode — use coord if available
+    // Species list mode — use coord if available, otherwise geocode the place name
     lat = CFG.coordLat || null;
     lng = CFG.coordLng || null;
+    if (!lat) {
+      try {
+        const geoR = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(CFG.placeName)}&format=json&limit=1`);
+        const geoD = await geoR.json();
+        if (geoD?.[0]) { lat = parseFloat(geoD[0].lat); lng = parseFloat(geoD[0].lon); }
+      } catch {}
+    }
     if (CFG.coordCC && ISO_TO_COUNTRY[CFG.coordCC]) country = ISO_TO_COUNTRY[CFG.coordCC];
     continent = COUNTRY_CONTINENT[country] || 'Other';
     if (lat) {
       try {
+        // Reverse geocode to get proper country/continent when no coordCC
+        if (!CFG.coordCC) {
+          const revR = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`);
+          const revD = await revR.json();
+          const cc = revD?.address?.country_code?.toUpperCase();
+          if (cc && ISO_TO_COUNTRY[cc]) { country = ISO_TO_COUNTRY[cc]; continent = COUNTRY_CONTINENT[country] || 'Other'; }
+        }
         const spR = await fetch(`https://api.inaturalist.org/v1/observations/species_counts?lat=${lat}&lng=${lng}&radius=25&quality_grade=research&per_page=1&order_by=observations_count&order=desc`);
         const spD = await spR.json();
         photoTaxon = spD.results?.[0]?.taxon?.name || null;
@@ -630,6 +644,12 @@ async function saveToLibrary() {
       const spD = await spR.json();
       photoTaxon = spD.results?.[0]?.taxon?.name || null;
     } catch(e) { console.warn('iNat metadata fetch failed:', e.message); }
+  }
+
+  // Fallback photo: use most common species from the loaded pool
+  if (!photoTaxon) {
+    const pool = CFG.completeBirds || CFG.hardBirds || CFG.easyBirds || [];
+    photoTaxon = pool[0]?.latin || pool[0]?.name || null;
   }
 
   msg.textContent = 'Saving...';
