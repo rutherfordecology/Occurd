@@ -19,6 +19,14 @@ window.onunhandledrejection = e => {
 <div id="app"></div>
 <script src="engine.js?v=1.1" onerror="document.getElementById('app').innerHTML='<div style=padding:2rem;font-family:sans-serif;color:#8a2c2c>Failed to load engine.js.<br><br><a href=index.html>← Back</a></div>'"></script>
 <script>
+// Common name overrides keyed by lowercase latin name
+const NAME_OVERRIDES = {
+  'larus dominicanus': 'Southern Black-backed Gull',
+};
+function applyNameOverride(latin, name) {
+  return NAME_OVERRIDES[(latin || '').toLowerCase()] || name;
+}
+
 const params      = new URLSearchParams(window.location.search);
 const PLACE_ID    = params.get('place_id');
 const PLACE_NAME  = decodeURIComponent(params.get('place_name') || 'Unknown Place');
@@ -135,7 +143,7 @@ async function processBatch(speciesItems) {
         return null;
       }).catch(() => null) : null;
 
-      const name = gd.vernacularName || inat?.preferred_common_name || null;
+      const name = applyNameOverride(latin, gd.vernacularName || inat?.preferred_common_name || null);
       if (!name) return null;
 
       return {
@@ -273,7 +281,7 @@ async function loadFromInat(bufferKm = 0) {
   return (d.results || [])
     .filter(item => item.taxon?.preferred_common_name && item.taxon?.rank === 'species')
     .map(item => ({
-      name:        item.taxon.preferred_common_name,
+      name:        applyNameOverride(item.taxon.name, item.taxon.preferred_common_name),
       latin:       item.taxon.name,
       inatId:      item.taxon.id,
       ancestorIds: item.taxon.ancestor_ids || [],
@@ -333,7 +341,7 @@ async function loadFromSpeciesList(names) {
         gbifData = {}; // no GBIF data available
       }
 
-      const commonName = gbifData.vernacularName || taxon?.preferred_common_name || latin;
+      const commonName = applyNameOverride(latin, gbifData.vernacularName || taxon?.preferred_common_name || latin);
       const samoan = samoaNames[latinLower]?.samoan || null;
       const maori  = extraNames[latinLower] || extraNames[name.toLowerCase()] || null;
 
