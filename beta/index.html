@@ -46,7 +46,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v6.03</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v6.04</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -331,6 +331,10 @@
     <div id="map"></div>
     <!-- Timeline panel -->
     <div id="timelinePanel">
+      <button id="tlCloseBtn" onclick="setViewMode('points')" title="Close timeline"
+        style="position:absolute;top:6px;right:10px;z-index:5;background:none;border:none;cursor:pointer;
+               font-size:13px;color:var(--text3);font-family:var(--font-sans);padding:2px 6px;border-radius:3px;"
+        onmouseover="this.style.color='var(--green)'" onmouseout="this.style.color='var(--text3)'">&#x2715; Close</button>
       <div id="timelineChartWrap" style="position:relative;">
         <svg id="timelineChart" width="100%" height="170"></svg>
         <!-- Sliders overlaid on chart — position set by JS after each render -->
@@ -3245,6 +3249,13 @@ function _expandBtn(url, caption) {
     'onmouseover="this.style.background=\'rgba(0,0,0,0.75)\'" onmouseout="this.style.background=\'rgba(0,0,0,0.45)\'">&#x26F6;</button>';
 }
 
+// GBIF source images are often full-resolution originals (several MB) — proxy through
+// GBIF's own image resize service for small inline previews so they load fast
+function gbifThumb(url, width) {
+  if (!url) return url;
+  return 'https://api.gbif.org/v1/image/unsafe/' + width + 'x/' + url;
+}
+
 function licenceBadge(licenceUrl) {
   if (!licenceUrl) return '';
   const lower = licenceUrl.toLowerCase();
@@ -3495,11 +3506,11 @@ window._gbifShowRecordPhoto = function(slotId, photoKey) {
   slot.dataset.showingRecord = '1';
   slot.innerHTML =
     '<div style="position:relative;">' +
-      '<img src="' + photo.url + '" alt="" ' +
+      '<img src="' + gbifThumb(photo.url, 400) + '" alt="" ' +
       'style="width:100%;height:' + imgH + ';object-fit:cover;border-radius:4px;display:block;" ' +
       'onload="if(this.naturalHeight>this.naturalWidth){this.style.width=\'auto\';this.style.maxWidth=\'100%\';this.style.objectFit=\'contain\';this.style.margin=\'0 auto\';}" ' +
       'onerror="this.parentElement.parentElement.innerHTML=\'\'"> ' +
-      _expandBtn(photo.url, photo.photographer || '') +
+      _expandBtn(gbifThumb(photo.url, 1600), photo.photographer || '') +
     '</div>' +
     '<div style="font-size:9px;color:#9b9890;margin-top:2px;line-height:1.3;">' +
     licenceBadge(photo.licence) + (photo.photographer || '') + '</div>';
@@ -4344,13 +4355,6 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       _tlUpdateTrack();
       if (allRecords.length > 0) {
-        // Auto-enable rainbow when slider is narrowed
-        if (viewMode === 'timeline' && !tlRainbow) {
-          const slMin2 = document.getElementById('tlSliderMin');
-          const slMax2 = document.getElementById('tlSliderMax');
-          const isFullRange = parseInt(slMin2.value) === 0 && parseInt(slMax2.value) === _tlYears.length - 1;
-          if (!isFullRange) { tlRainbow = true; _syncRainbowBtn(); }
-        }
         applyTimelineFilter();
         if (viewMode === 'timeline') renderTimeline(allRecords);
         requestAnimationFrame(applyRainbowToMarkers);
@@ -4754,7 +4758,7 @@ function openInLooklike() {
     localStorage.setItem('looklike_names', JSON.stringify({ ts, names: speciesData.map(s => s.name) }));
   } catch(e) {}
 
-  const url = 'https://occurd.rutherfordecology.co.nz/looklike/?v=' + ts;
+  const url = 'looklike/?v=' + ts;
   window.open(url, '_blank');
 }
 
@@ -4775,7 +4779,7 @@ clScroll.addEventListener('change', function(e) {
     const checked = e.target.checked;
     let el = e.target.closest('.cl-group-header').nextElementSibling;
     while (el && !el.classList.contains('cl-group-header')) {
-      if (!el.classList.contains('hidden') && el.style.display !== 'none') {
+      if (_rowIsActive(el)) {
         const cb = el.querySelector('.cl-photo-cb');
         if (cb) cb.checked = checked;
       }
@@ -4786,18 +4790,21 @@ clScroll.addEventListener('change', function(e) {
   }
 });
 
+// A row is eligible for "select all" if it isn't search/taxon-filtered out (hidden/display:none)
+// and isn't dimmed by the timeline year filter (opacity 0.25, set by applyTimelineChecklist)
+function _rowIsActive(row) {
+  return !row.classList.contains('hidden') && row.style.display !== 'none' && row.style.opacity !== '0.25';
+}
+
 document.getElementById('clSelAllVisible').addEventListener('change', function() {
   const checked = this.checked;
   document.querySelectorAll('.cl-row').forEach(row => {
-    if (!row.classList.contains('hidden') && row.style.display !== 'none') {
+    if (_rowIsActive(row)) {
       const cb = row.querySelector('.cl-photo-cb');
       if (cb) cb.checked = checked;
     }
   });
-  document.querySelectorAll('.cl-group-cb').forEach(gcb => {
-    gcb.checked = checked;
-    gcb.indeterminate = false;
-  });
+  document.querySelectorAll('.cl-group-header').forEach(header => _syncGroupCb(header));
   _updateLooklikeBtn();
 });
 
@@ -4807,7 +4814,7 @@ function _syncGroupCb(header) {
   let total = 0, checked = 0;
   let el = header.nextElementSibling;
   while (el && !el.classList.contains('cl-group-header')) {
-    if (!el.classList.contains('hidden') && el.style.display !== 'none') {
+    if (_rowIsActive(el)) {
       total++;
       if (el.querySelector('.cl-photo-cb')?.checked) checked++;
     }
@@ -4818,12 +4825,12 @@ function _syncGroupCb(header) {
 }
 
 function _syncSelAllVisible() {
-  const all = document.querySelectorAll('.cl-row:not(.hidden) .cl-photo-cb');
-  const checkedCount = document.querySelectorAll('.cl-row:not(.hidden) .cl-photo-cb:checked').length;
+  const rows = [...document.querySelectorAll('.cl-row')].filter(_rowIsActive);
+  const checkedCount = rows.filter(row => row.querySelector('.cl-photo-cb')?.checked).length;
   const cb = document.getElementById('clSelAllVisible');
   if (!cb) return;
-  cb.checked = checkedCount > 0 && checkedCount === all.length;
-  cb.indeterminate = checkedCount > 0 && checkedCount < all.length;
+  cb.checked = checkedCount > 0 && checkedCount === rows.length;
+  cb.indeterminate = checkedCount > 0 && checkedCount < rows.length;
 }
 
 // Filter — group headers in checklist act as toggles (chips removed)
@@ -6265,6 +6272,17 @@ if (window._pendingShare) {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v6.04</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>LookLike "Photos" handoff — fix: now uses a relative link instead of a hardcoded domain, so selected species transfer correctly regardless of which Occurd URL (github.io or custom domain) you're browsing on</li>
+        <li>Record/GBIF photos (popup camera button and LookLike grid) now load through GBIF's image-resize proxy instead of full-resolution originals — much faster loading, especially for camera trap and museum specimen images</li>
+        <li>Timeline — fix: dragging the slider no longer auto-enables "Colour by year" (this was never meant to happen automatically)</li>
+        <li>Timeline — added a Close button so you can exit timeline view without hunting for the Points/Heat buttons elsewhere in the sidebar</li>
+        <li>Species checklist — fix: "select all" (and per-group select-all) no longer select species that are minimised/filtered out or greyed out by the timeline year filter</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v6.03</span>
       <span class="changelog-date">Jun 2026</span>
