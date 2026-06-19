@@ -1,7 +1,7 @@
 // WhatDat? Quiz Engine v1.1
 // Shared engine for all quiz pages.
 // Each page calls: initEngine(config)
-const APP_VERSION = 'v1.5';
+const APP_VERSION = 'v1.6';
 window.__engineLoaded = true;
 
 const GH_TOKEN = ['github','pat','11CD5YDQQ0bj2y9dp1UI7X','dOQEr16i0xNnN8iEM3pVloK7E9YJz7sn81NGUBeUuF1QPSQ6QBCEJbLlREp'].join('_');
@@ -761,7 +761,7 @@ async function saveToLibrary() {
       body,
     });
     if (!putR.ok) throw new Error(`GitHub write ${putR.status}`);
-    msg.textContent = '&#10003; Added to library! Will appear in ~1 minute.';
+    msg.innerHTML = '&#10003; Added to library! Will appear in ~1 minute.';
     if (saveBtn) saveBtn.style.display = 'none';
     lockQuizName();
     unlockLeaderboard();
