@@ -154,7 +154,7 @@
 <div class="topbar">
   <div>
     <span class="topbar-title">WhatDat?</span>
-    <span class="topbar-version">v1.4</span>
+    <span class="topbar-version">v1.5</span>
   </div>
   <span class="topbar-re">by <a href="https://www.rutherfordecology.co.nz/" target="_blank"><strong>Rutherford</strong> ecology</a></span>
 </div>
@@ -338,9 +338,10 @@ function quickPick(key, name, rank) {
   const btn = document.getElementById('pop-' + key);
   if (btn) btn.classList.add('active');
   pendingTaxon = { key, name, rank };
-  taxonPath = [];
-  showUseBar(pendingTaxon);
-  drillInto(key, name, rank);
+  const inp = document.getElementById('taxonSearchInput');
+  if (inp) inp.value = name;
+  document.getElementById('taxonSearchResults').innerHTML = '';
+  confirmTaxon();
 }
 
 function clearPopActive() {
