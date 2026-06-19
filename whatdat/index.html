@@ -162,7 +162,7 @@
 <div class="topbar">
   <div>
     <span class="topbar-title">WhatDat?</span>
-    <span class="topbar-version">v1.2</span>
+    <span class="topbar-version">v1.3</span>
   </div>
   <span class="topbar-re">by <a href="https://www.rutherfordecology.co.nz/" target="_blank"><strong>Rutherford</strong> ecology</a></span>
 </div>
@@ -879,13 +879,16 @@ function cardHtml(q) {
   </a>`;
 }
 
+const _usedPhotoUrls = new Set();
+
 async function loadTaxonPhoto(taxon, el) {
   try {
     const r = await fetch(`https://api.inaturalist.org/v1/observations?taxon_name=${encodeURIComponent(taxon)}&photos=true&per_page=10&quality_grade=research&order_by=faves`);
     if (!r.ok) return;
     const d = await r.json();
-    const src = d.results?.find(o => o.photos?.[0]?.url)?.photos?.[0]?.url?.replace('/square.','/medium.');
-    if (src) el.innerHTML = `<img src="${src}" loading="lazy" onerror="this.parentElement.innerHTML='<div class=card-img-ph>&#127807;</div>'">`;
+    const candidates = (d.results || []).map(o => o.photos?.[0]?.url?.replace('/square.','/medium.')).filter(Boolean);
+    const src = candidates.find(u => !_usedPhotoUrls.has(u)) || candidates[0];
+    if (src) { _usedPhotoUrls.add(src); el.innerHTML = `<img src="${src}" loading="lazy" onerror="this.parentElement.innerHTML='<div class=card-img-ph>&#127807;</div>'">`; }
   } catch {}
 }
 
