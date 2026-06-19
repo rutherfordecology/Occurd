@@ -46,7 +46,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v6.05</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v6.06</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -304,6 +304,14 @@
             </button>
           </div>
           <p class="note" style="margin-top:6px;">Effort normalisation fetches total GBIF records in your polygon per year (same class as your species, e.g. Aves for birds) and divides your species' counts — so the chart shows % of all records, not raw counts. Requires yearly view.</p>
+        </div>
+        <div style="margin-top:0.7rem;">
+          <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.07em;color:var(--text3);margin-bottom:4px;">Technical search</div>
+          <input type="text" id="techInstitutionCode" placeholder="Institution code (e.g. MNHN)" style="width:100%;margin-bottom:4px;">
+          <input type="text" id="techRecordedBy" placeholder="Recorded by (collector)" style="width:100%;margin-bottom:4px;">
+          <input type="text" id="techIdentifiedBy" placeholder="Identified by" style="width:100%;margin-bottom:4px;">
+          <input type="text" id="techTypeStatus" placeholder="Type status (e.g. HOLOTYPE)" style="width:100%;">
+          <p class="note" style="margin-top:6px;">Sent straight to GBIF as exact-match filters — these need to match the value exactly as GBIF has it (no partial/fuzzy matching), so check a record's CSV export if unsure of the exact spelling. Applies on next search.</p>
         </div>
       </div>
     </div>
@@ -655,7 +663,7 @@ const TAXON_COLOURS = {
   'Fungi':           { colour: '#D97706', label: 'Fungi' },
   'Other':           { colour: '#6B7280', label: 'Other' }
 };
-const CSV_FIELDS = ['gbifID','eventDate','year','month','day','scientificName','vernacularName','kingdom','phylum','class','order','family','genus','species','decimalLatitude','decimalLongitude','coordinateUncertaintyInMeters','hasGeospatialIssues','basisOfRecord','establishmentMeans','occurrenceID','taxonKey','datasetName','country','stateProvince','locality','recordedBy','polygon_name'];
+const CSV_FIELDS = ['gbifID','eventDate','year','month','day','scientificName','vernacularName','kingdom','phylum','class','order','family','genus','species','decimalLatitude','decimalLongitude','coordinateUncertaintyInMeters','hasGeospatialIssues','basisOfRecord','establishmentMeans','occurrenceID','taxonKey','datasetName','institutionCode','country','stateProvince','locality','recordedBy','identifiedBy','typeStatus','polygon_name'];
 
 // Maps taxon checkbox values to the getTaxonGroup() strings they correspond to.
 // Used to post-filter downloaded records so non-target taxa don't slip through.
@@ -5038,6 +5046,8 @@ function _mapOccRecord(poly, r) {
     stateProvince:                 r.stateProvince || null,
     locality:                      r.locality      || null,
     recordedBy:                    Array.isArray(r.recordedBy) ? r.recordedBy.join('; ') : (r.recordedBy || null),
+    identifiedBy:                  Array.isArray(r.identifiedBy) ? r.identifiedBy.join('; ') : (r.identifiedBy || null),
+    typeStatus:                    Array.isArray(r.typeStatus) ? r.typeStatus.join('; ') : (r.typeStatus || null),
     establishmentMeans:            r.establishmentMeans || null,
     dynamicProperties:             r.dynamicProperties || null,
     iucnRedListCategory:           r.iucnRedListCategory || null,
@@ -5273,6 +5283,17 @@ runBtn.addEventListener('click', async () => {
     const baseParams = [['geometry', getQueryWKT(geomPoly)], ['hasCoordinate', 'true'], ['limit', '300']];
     if (dateFrom && dateTo) baseParams.push(['eventDate', dateFrom + ',' + dateTo]);
     if (document.getElementById('excludeLowPrecision').checked) baseParams.push(['coordinateUncertaintyInMeters', '*,1499']);
+    // Technical search — exact-match GBIF filters (Nerd tools)
+    const _techMap = {
+      techInstitutionCode: 'institutionCode',
+      techRecordedBy:       'recordedBy',
+      techIdentifiedBy:     'identifiedBy',
+      techTypeStatus:       'typeStatus',
+    };
+    Object.entries(_techMap).forEach(([id, param]) => {
+      const v = document.getElementById(id)?.value.trim();
+      if (v) baseParams.push([param, v]);
+    });
     const _basisMap = {
       inclObservations: ['HUMAN_OBSERVATION','MACHINE_OBSERVATION','OCCURRENCE'],
       inclPreserved:    ['PRESERVED_SPECIMEN','LIVING_SPECIMEN','MATERIAL_CITATION'],
@@ -6284,6 +6305,14 @@ if (window._pendingShare) {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v6.06</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>Nerd tools — new "Technical search" filters: Institution code, Recorded by, Identified by, Type status. These are sent to GBIF as exact-match server-side filters (no partial/fuzzy matching), so the search area is narrowed before records are even fetched</li>
+        <li>identifiedBy and typeStatus now captured on records and included in the CSV export</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v6.05</span>
       <span class="changelog-date">Jun 2026</span>
