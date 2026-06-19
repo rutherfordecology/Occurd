@@ -690,7 +690,7 @@ async function loadCard(idx) {
     } else {
       const gbifFallback = await fetchGBIF(card.name);
       if (gbifFallback.length) {
-        renderPhoto(inatSlot, gbifThumb(gbifFallback[0].url, 500), `${card.name} — GBIF`, card.name, commonName, gbifThumb(gbifFallback[0].url, 1600));
+        renderPhoto(inatSlot, gbifThumb(gbifFallback[0].url, 500), `${card.name} — GBIF`, card.name, commonName, gbifFallback[0].url);
       } else {
         renderNoPhoto(inatSlot);
       }
@@ -699,7 +699,7 @@ async function loadCard(idx) {
     el.querySelector('.common-name').textContent = '—';
     const gbifFallback = await fetchGBIF(card.name);
     if (gbifFallback.length) {
-      renderPhoto(inatSlot, gbifThumb(gbifFallback[0].url, 500), `${card.name} — GBIF`, card.name, '', gbifThumb(gbifFallback[0].url, 1600));
+      renderPhoto(inatSlot, gbifThumb(gbifFallback[0].url, 500), `${card.name} — GBIF`, card.name, '', gbifFallback[0].url);
     } else {
       renderNoPhoto(inatSlot);
     }
@@ -732,7 +732,11 @@ function renderPhoto(slot, url, alt, sciName, commonName, fullUrl) {
       slot.style.background = '#111';
     }
   });
-  img.addEventListener('error', () => renderNoPhoto(slot));
+  img.addEventListener('error', () => {
+    // Some institutions block GBIF's resize proxy with bot protection — retry the original once
+    if (fullUrl && img.src !== fullUrl) img.src = fullUrl;
+    else renderNoPhoto(slot);
+  });
   img.addEventListener('click', (e) => {
     e.stopPropagation();
     openLightbox(fullUrl || url, sciName, commonName);
@@ -751,6 +755,8 @@ function renderGBIFSlot(card, slot) {
   img.alt = card.name + ' — GBIF';
   img.loading = 'lazy';
   img.addEventListener('error', () => {
+    // Some institutions block GBIF's resize proxy with bot protection — retry the original once
+    if (img.src !== photo.url) { img.src = photo.url; return; }
     if (card.gbifIdx < card.gbifPhotos.length - 1) {
       card.gbifIdx++;
       renderGBIFSlot(card, slot);
@@ -760,7 +766,7 @@ function renderGBIFSlot(card, slot) {
   });
   img.addEventListener('click', (e) => {
     e.stopPropagation();
-    openLightbox(gbifThumb(photo.url, 1600), card.name, card.commonName);
+    openLightbox(photo.url, card.name, card.commonName);
   });
   slot.insertBefore(img, slot.firstChild);
 
