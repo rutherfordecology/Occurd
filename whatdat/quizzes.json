@@ -67,6 +67,20 @@
       "lat": -38.67386,
       "lng": 177.95938,
       "added": "2026-06-19"
+    },
+    {
+      "name": "Plants of Whenua Hou",
+      "continent": "Oceania",
+      "country": "New Zealand",
+      "description": "Plants of Whenua Hou",
+      "type": "list",
+      "url": "https://occurd.rutherfordecology.co.nz/whatdat/quiz.html?list=IIBw9gTmDOAuCeAbAltABAI2QMzCghgFDBwCmBa2E%2BA5tQHbTEBek5i%2Bai8%2BiKyhAELUAxgAt4NRGFixUaKLACu9ACY48yIgGFe%2BVaXpa046VDhId%2BCKQAeaWBBzJVO8gFtUxgG6kIGfGgRDQJCbTAQc3dOSIjkegBHJR1IeAD0MAxpeholJm1qaBBSdU4oDDzYIgARQ1Vy5CV3ExUjHLF8TwFq0QiJPiauMByQxvdCHpg-Tix6fCqJiHh3MHx6WDE8yg5vPMIAUWt4znwlZXc5lCZDpzm0dyURKDmFgHFAxzBSlvo2mg6uoRXoY5Gt2JxoPhbDAiAAJXiQWjyPykEQLWF4ERbDgvPaw%2BDgcT4PzyajqETzIgASUQpBgCEQW08TzWGz2ABl8OI5nR6fJOissER2UpmEonLQYtZvDgzEQALJcqC0o4nHKVUYK0ifaAuPwwNBNDDghYAeRVErQ1gwbCChiYppsmTwW2KaOOyiYAAUQVyxMN6jEmsgOIQvWJaTRok5xVtvEc9l7kO5yKRONxePww7B9SB%2BhwFFzSCtIdn9RYrlbxcgsRwFgAlU4Aa1OEOTIFptkIAGVxKRsNhadQ0OoaMgqgsACpicjLcfDkQ8ehpwjT2eeRycDqwcTIZBAA",
+      "coord_lat": -46.773075,
+      "coord_lng": 167.619605,
+      "photo_taxon": "Gentianella saxosa",
+      "lat": -46.773075,
+      "lng": 167.619605,
+      "added": "2026-06-19"
     }
   ]
 }
