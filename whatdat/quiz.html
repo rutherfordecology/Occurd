@@ -271,9 +271,10 @@ async function loadFromGBIF() {
 // ── iNat fallback ─────────────────────────────────────────────────────────
 async function loadFromInat(bufferKm = 0) {
   if (bufferKm > 0 && PLACE_LAT === null) await fetchPlaceMeta(PLACE_ID);
+  const taxonFilter = TAXON_NAME ? `&taxon_name=${encodeURIComponent(TAXON_NAME)}` : '';
   const baseUrl = (bufferKm > 0 && PLACE_LAT !== null)
-    ? `https://api.inaturalist.org/v1/observations/species_counts?lat=${PLACE_LAT}&lng=${PLACE_LNG}&radius=${bufferKm}&quality_grade=research&per_page=200&order_by=observations_count&order=desc&d1=${YEAR_FROM}-01-01`
-    : `https://api.inaturalist.org/v1/observations/species_counts?place_id=${PLACE_ID}&quality_grade=research&per_page=200&order_by=observations_count&order=desc&d1=${YEAR_FROM}-01-01`;
+    ? `https://api.inaturalist.org/v1/observations/species_counts?lat=${PLACE_LAT}&lng=${PLACE_LNG}&radius=${bufferKm}&quality_grade=research&per_page=200&order_by=observations_count&order=desc&d1=${YEAR_FROM}-01-01${taxonFilter}`
+    : `https://api.inaturalist.org/v1/observations/species_counts?place_id=${PLACE_ID}&quality_grade=research&per_page=200&order_by=observations_count&order=desc&d1=${YEAR_FROM}-01-01${taxonFilter}`;
 
   const r = await fetch(baseUrl);
   if (!r.ok) throw new Error('iNat API error');
