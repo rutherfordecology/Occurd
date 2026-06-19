@@ -45,7 +45,7 @@
       <img src="occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v5.79</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v5.80</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -311,6 +311,10 @@
     <div id="map"></div>
     <!-- Timeline panel -->
     <div id="timelinePanel">
+      <button id="tlCloseBtn" onclick="setViewMode('points')" title="Close timeline"
+        style="position:absolute;top:6px;right:10px;z-index:5;background:none;border:none;cursor:pointer;
+               font-size:13px;color:var(--text3);font-family:var(--font-sans);padding:2px 6px;border-radius:3px;"
+        onmouseover="this.style.color='var(--green)'" onmouseout="this.style.color='var(--text3)'">&#x2715; Close</button>
       <div id="timelineChartWrap" style="position:relative;">
         <svg id="timelineChart" width="100%" height="170"></svg>
         <!-- Sliders overlaid on chart — position set by JS after each render -->
@@ -4323,13 +4327,6 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       _tlUpdateTrack();
       if (allRecords.length > 0) {
-        // Auto-enable rainbow when slider is narrowed
-        if (viewMode === 'timeline' && !tlRainbow) {
-          const slMin2 = document.getElementById('tlSliderMin');
-          const slMax2 = document.getElementById('tlSliderMax');
-          const isFullRange = parseInt(slMin2.value) === 0 && parseInt(slMax2.value) === _tlYears.length - 1;
-          if (!isFullRange) { tlRainbow = true; _syncRainbowBtn(); }
-        }
         applyTimelineFilter();
         if (viewMode === 'timeline') renderTimeline(allRecords);
         requestAnimationFrame(applyRainbowToMarkers);
@@ -5840,6 +5837,14 @@ if (window._pendingShare) {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v5.80</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>Timeline — fix: dragging the slider no longer auto-enables "Colour by year" (this was never meant to happen automatically)</li>
+        <li>Timeline — added a Close button so you can exit timeline view without hunting for the Points/Heat buttons elsewhere in the sidebar</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v5.79</span>
       <span class="changelog-date">Jun 2026</span>
