@@ -154,7 +154,7 @@
 <div class="topbar">
   <div>
     <span class="topbar-title">WhatDat?</span>
-    <span class="topbar-version">v1.6</span>
+    <span class="topbar-version">v1.7</span>
   </div>
   <span class="topbar-re">by <a href="https://www.rutherfordecology.co.nz/" target="_blank"><strong>Rutherford</strong> ecology</a></span>
 </div>
@@ -214,6 +214,13 @@
     <div class="splist-panel" id="splistPanel">
       <label>Quiz name</label>
       <input type="text" id="splistName" placeholder="e.g. NZ Threatened Species" value="Custom List">
+      <label>Fill from a taxon group</label>
+      <div style="display:flex;gap:6px;margin-bottom:8px;">
+        <input type="text" id="taxonFillInput" placeholder="e.g. Ratitae, Lepidoptera, Felidae…" style="margin-bottom:0;flex:1;" oninput="onTaxonFillSearch(this.value)" autocomplete="off">
+        <button id="taxonFillBtn" onclick="fillFromTaxon()" style="padding:9px 14px;background:#1a5940;color:#fff;border:none;border-radius:8px;font-weight:800;cursor:pointer;font-family:inherit;font-size:0.85rem;white-space:nowrap;">Load</button>
+      </div>
+      <div id="taxonFillResults"></div>
+      <div id="taxonFillMsg" style="font-size:0.75rem;color:#9b9890;margin-bottom:8px;min-height:1em;"></div>
       <label>Species names &mdash; one per line</label>
       <textarea id="splistInput" placeholder="Kiwi&#10;K&#257;k&#257;p&#333;&#10;Tuatara&#10;...&#10;&#10;Works with lists from But Is It Threatened? or LookLike."></textarea>
       <p class="splist-hint">Common or scientific names both work. Each is looked up via GBIF and matched to iNaturalist photos. Great with lists from <a href="../but-is-it-threatened/" target="_blank">But Is It Threatened?</a> or <a href="../looklike/" target="_blank">LookLike</a>.</p>
@@ -417,6 +424,73 @@ function toggleSplist() {
   const btn   = document.getElementById('splistToggleBtn');
   const open  = panel.classList.toggle('open');
   btn.classList.toggle('open', open);
+}
+
+let _fillSearchTimer = null;
+let _fillSearchSeq   = 0;
+let _fillTaxon       = null;
+
+function onTaxonFillSearch(q) {
+  const res = document.getElementById('taxonFillResults');
+  q = q.trim();
+  if (!q) { res.innerHTML = ''; _fillTaxon = null; return; }
+  clearTimeout(_fillSearchTimer);
+  _fillSearchTimer = setTimeout(async () => {
+    const seq = ++_fillSearchSeq;
+    try {
+      const r = await fetch(`https://api.gbif.org/v1/species/suggest?q=${encodeURIComponent(q)}&limit=6`);
+      if (seq !== _fillSearchSeq) return;
+      const hits = (await r.json()).filter(h => h.rank && RANK_LABELS[h.rank] && h.key);
+      if (!hits.length) { res.innerHTML = ''; return; }
+      res.innerHTML = hits.map(h => {
+        const name = h.canonicalName || h.scientificName;
+        const rank = RANK_LABELS[h.rank] || h.rank;
+        return `<div class="taxon-item" style="cursor:pointer;padding:6px 12px;border-bottom:1px solid #f0efeb;display:flex;align-items:center;justify-content:space-between;"
+          onclick="selectFillTaxon(${h.key},${JSON.stringify(name)},${JSON.stringify(h.rank)},this.parentElement)">
+          <div><div style="font-size:0.85rem;font-weight:700;">${name}</div><span class="ti-rank">${rank}</span></div>
+          <span style="font-size:0.78rem;color:#2a7a58;font-weight:700;">Select ›</span>
+        </div>`;
+      }).join('');
+    } catch { res.innerHTML = ''; }
+  }, 300);
+}
+
+function selectFillTaxon(key, name, rank, resultsEl) {
+  _fillTaxon = { key, name, rank };
+  resultsEl.innerHTML = '';
+  document.getElementById('taxonFillInput').value = name;
+  document.getElementById('taxonFillMsg').textContent = `${RANK_LABELS[rank] || rank}: ${name} selected — click Load`;
+}
+
+async function fillFromTaxon() {
+  if (!_fillTaxon) {
+    document.getElementById('taxonFillMsg').textContent = 'Type a group name and select it first.';
+    return;
+  }
+  const msg = document.getElementById('taxonFillMsg');
+  const btn = document.getElementById('taxonFillBtn');
+  btn.disabled = true;
+  msg.textContent = 'Loading species…';
+  try {
+    const r = await fetch(`https://api.inaturalist.org/v1/observations/species_counts?taxon_name=${encodeURIComponent(_fillTaxon.name)}&quality_grade=research&per_page=100&order_by=observations_count&order=desc`);
+    if (!r.ok) throw new Error('iNat error');
+    const d = await r.json();
+    const species = (d.results || []).filter(s => s.taxon?.rank === 'species' && s.taxon?.name);
+    if (!species.length) { msg.textContent = 'No species found for this group.'; btn.disabled = false; return; }
+    const names = species.map(s => s.taxon.name);
+    document.getElementById('splistInput').value = names.join('\n');
+    document.getElementById('splistName').value = _fillTaxon.name;
+    const total = d.total_results || '?';
+    const capped = total > 100;
+    msg.style.color = '#2a7a58';
+    msg.textContent = capped
+      ? `Loaded top 100 most-observed species (${Number(total).toLocaleString()} total in ${_fillTaxon.name}).`
+      : `Loaded all ${names.length} species in ${_fillTaxon.name}.`;
+  } catch(e) {
+    msg.style.color = '#8a2c2c';
+    msg.textContent = 'Failed to load species: ' + e.message;
+  }
+  btn.disabled = false;
 }
 
 function startSpeciesListQuiz() {
