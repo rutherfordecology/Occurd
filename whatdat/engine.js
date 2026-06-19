@@ -1,7 +1,7 @@
-// WhatDat? Quiz Engine v1.0
+// WhatDat? Quiz Engine v1.1
 // Shared engine for all quiz pages.
 // Each page calls: initEngine(config)
-const APP_VERSION = 'v1.2';
+const APP_VERSION = 'v1.3';
 window.__engineLoaded = true;
 
 const GH_TOKEN = ['github','pat','11CD5YDQQ0bj2y9dp1UI7X','dOQEr16i0xNnN8iEM3pVloK7E9YJz7sn81NGUBeUuF1QPSQ6QBCEJbLlREp'].join('_');
@@ -317,9 +317,16 @@ function getOptions(correct, pool) {
 
   if (correctSet.size > 0 && others.length >= 3) {
     const scored = scoreByAncestry(others, correctIds, correctSet);
-    // prefer candidates that share at least one ancestor (same kingdom or closer)
-    const related = scored.filter(s => s.depth >= 0);
-    const pool3 = related.length >= 3 ? related : scored; // fall back to full scored list if too few related
+    // Restrict to same order if possible, then same class, then any related
+    const corrOrder   = correct.order || '';
+    const corrClassId = correct.ancestorIds?.[0] || 0;
+    const sameOrder = corrOrder   ? scored.filter(s => s.b.order === corrOrder) : [];
+    const sameClass = corrClassId ? scored.filter(s => s.b.ancestorIds?.[0] === corrClassId) : [];
+    const related   = scored.filter(s => s.depth >= 0);
+    const pool3 = sameOrder.length >= 3 ? sameOrder
+                : sameClass.length >= 3 ? sameClass
+                : related.length  >= 3 ? related
+                : scored;
     const closest = pool3[0];
     const rest    = shuffle(pool3.slice(1, Math.min(10, pool3.length)));
     const picks   = [closest, ...rest.slice(0, 2)];
