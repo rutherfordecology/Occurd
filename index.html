@@ -45,7 +45,7 @@
       <img src="occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v5.84</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v5.85</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -258,28 +258,28 @@
       <div class="filter-chips" id="filterChips"></div>
     </div>
 
-    <div class="sidebar-section" id="nerdToolsSection" style="display:none;">
+    <div class="sidebar-section" id="nerdToolsSection">
       <div class="section-label collapsible" data-section="sNerd" style="margin-bottom:0;">🔬 Tech tools <span class="section-chevron">▾</span></div>
       <div class="section-body" id="sNerd">
         <div style="margin-bottom:0.5rem;">
           <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.07em;color:var(--text3);margin-bottom:4px;">Timeline view</div>
-          <button class="tool-btn" id="btnTimeline" onclick="setViewMode('timeline')" style="width:100%;justify-content:center;">Timeline</button>
+          <button class="tool-btn" id="btnTimeline" onclick="setViewMode('timeline')" disabled style="width:100%;justify-content:center;opacity:0.4;cursor:not-allowed;pointer-events:none;">Timeline</button>
         </div>
         <div>
           <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.07em;color:var(--text3);margin-bottom:4px;">Timeline options</div>
           <div style="display:flex;gap:6px;flex-wrap:wrap;">
-            <button id="btnTlRainbowSb" onclick="toggleTlRainbow()"
+            <button id="btnTlRainbowSb" onclick="toggleTlRainbow()" disabled
               title="Colour points by year gradient"
-              style="background:none;border:1px solid var(--border);border-radius:12px;cursor:pointer;
+              style="background:none;border:1px solid var(--border);border-radius:12px;cursor:not-allowed;
                      font-size:11px;font-weight:600;font-family:var(--font-sans);padding:3px 10px;
-                     color:var(--text3);transition:all 0.15s;">
+                     color:var(--text3);transition:all 0.15s;opacity:0.4;pointer-events:none;">
               Colour by year
             </button>
-            <button id="btnTlEffortSb" onclick="toggleTlEffort()"
+            <button id="btnTlEffortSb" onclick="toggleTlEffort()" disabled
               title="Normalise bars by total observer effort (all taxa, same area &amp; years) — shows % of all records rather than raw counts"
-              style="background:none;border:1px solid var(--border);border-radius:12px;cursor:pointer;
+              style="background:none;border:1px solid var(--border);border-radius:12px;cursor:not-allowed;
                      font-size:11px;font-weight:600;font-family:var(--font-sans);padding:3px 10px;
-                     color:var(--text3);transition:all 0.15s;">
+                     color:var(--text3);transition:all 0.15s;opacity:0.4;pointer-events:none;">
               Normalise by effort
             </button>
           </div>
@@ -1746,7 +1746,8 @@ function clearResults() {
   const _ib = document.getElementById('clIucnBtn');
   if (_ib) { _ib.style.display = 'none'; _ib.classList.remove('unlocked'); _ib.textContent = 'IUCN'; }
   metricsGrid.style.display = 'none'; filterSection.style.display = 'none';
-  legend.style.display = 'none'; outputSection.style.display = 'none'; nerdToolsSection.style.display = 'none';
+  legend.style.display = 'none'; outputSection.style.display = 'none';
+  _setNerdToolsResultsEnabled(false);
   if (qualityBoxEl)  qualityBoxEl.style.display  = 'none';
   if (richnessBoxEl) richnessBoxEl.style.display = 'none';
   statusBar.style.display = 'none'; progressWrap.style.display = 'none';
@@ -3915,6 +3916,20 @@ function _restoreTaxonColours() {
   });
 }
 
+// Timeline view + Colour by year + Normalise by effort all need fetched records to mean
+// anything — grey them out until results exist, but leave Technical search always usable
+// (it's a search filter, not a results view)
+function _setNerdToolsResultsEnabled(enabled) {
+  ['btnTimeline', 'btnTlRainbowSb', 'btnTlEffortSb'].forEach(id => {
+    const btn = document.getElementById(id);
+    if (!btn) return;
+    btn.disabled = !enabled;
+    btn.style.opacity = enabled ? '' : '0.4';
+    btn.style.cursor = enabled ? 'pointer' : 'not-allowed';
+    btn.style.pointerEvents = enabled ? '' : 'none';
+  });
+}
+
 function toggleTlRainbow() {
   tlRainbow = !tlRainbow;
   _syncRainbowBtn();
@@ -5622,7 +5637,8 @@ runBtn.addEventListener('click', async () => {
   renderPoints(displayRecords);
   setTimeout(() => { map.invalidateSize(); }, 100);
   csvData = buildCSV(displayRecords);
-  outputSection.style.display = 'block'; nerdToolsSection.style.display = 'block';
+  outputSection.style.display = 'block';
+  _setNerdToolsResultsEnabled(true);
 
   // Show quality flags and richness summary
   showQualityFlags(allFetched);
@@ -5873,6 +5889,13 @@ if (window._pendingShare) {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v5.85</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>Nerd tools — section is now always visible (so Technical search filters can be set up before you run a search) instead of only appearing after results load; Timeline and Colour by year / Normalise by effort are greyed out until there are results, since they need data to act on</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v5.84</span>
       <span class="changelog-date">Jun 2026</span>
