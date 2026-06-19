@@ -53,6 +53,20 @@
       "lat": -38.70889,
       "lng": 178.067435,
       "added": "2026-06-19"
+    },
+    {
+      "name": "Sisterson Lagoon, Gisborne New Zealand",
+      "continent": "Oceania",
+      "country": "New Zealand",
+      "description": "Sisterson Lagoon, Gisborne New Zealand",
+      "type": "list",
+      "url": "https://occurd.rutherfordecology.co.nz/whatdat/quiz.html?list=MIewTgJgngNglgOwKYAICGBXAzgFzG%2BLAKAAkkYQsBjONCODAWxQRHoDMKwmiAZJAA45KApGEZMU1EALRgGjIgFlycKjNQ4xCNDjREACnBzCsA8JKr4sWOOxDweBmGgDmtBDgAW2FPQBucmq62EQAglZwECDeYkhYKHhwuMnhLhgQaOhg-kgItsRhOgmu%2BDSE4cUovIg6SNgANCgAjADsAKwAHJVoCQIuOFBgXlAIVF6UPQlYGKJg5XCU%2BsByEBiqCVSr6xXAXlzJKOMHxMBw875oAgJgIAAecIxo%2BUSgMEwARlnw-rSvUK4EJc8CFiABRUpIExZViBJATGAuBD0NBIIhgxgfMRwABeWRoSWQiP0ADF5Ah3MSjiByEgPsQAOJiAEgZAoOCuXT6BlQRisYaILI4OAfNR5UhIRhwAReNwwkBwrBIcjPFFokjnDDIkAsJD3PL6XhyXzRKUIYJA4hKNS3LZgD46xgq1gwerqYgAOUQ9xYCtRSudasMvSVYD8ICdKSooQMspcVhA6nwdyOcgdhjjaATSbQKZmMBot1w8mIsYIWdt4FzKEC8hjstsz186gLXjUMfAMqGixQTqRMRjRdiTwgYnliuVSKDBm4RJcvbYGBcJaIACU2wIohh8Ch2EuOd6sPoAMqyHBLrLDUbjGKpU9wCiieD4tvIfJ3vCCYRP2goIt60pkiQE9zzAS0ayXTkVwAFTocAdBrIIkE5PQiGgthzjQRgZV8I8xnPYhoO3NYEidbgXDQ4jfBlB8I3ISYADVnnId5SIfeIiAALUoLRbgEBIBjHCowm3dtl1-JNkH0Ios32cBDhmB1xnweQ0CAA",
+      "coord_lat": -38.67386,
+      "coord_lng": 177.95938,
+      "photo_taxon": "Hemiphaga novaeseelandiae",
+      "lat": -38.67386,
+      "lng": 177.95938,
+      "added": "2026-06-19"
     }
   ]
 }
