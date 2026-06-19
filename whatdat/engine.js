@@ -1,7 +1,7 @@
 // WhatDat? Quiz Engine v1.1
 // Shared engine for all quiz pages.
 // Each page calls: initEngine(config)
-const APP_VERSION = 'v1.6';
+const APP_VERSION = 'v1.7';
 window.__engineLoaded = true;
 
 const GH_TOKEN = ['github','pat','11CD5YDQQ0bj2y9dp1UI7X','dOQEr16i0xNnN8iEM3pVloK7E9YJz7sn81NGUBeUuF1QPSQ6QBCEJbLlREp'].join('_');
@@ -461,7 +461,7 @@ function renderIntro(app, header) {
   const rarity   = CFG.rarityBirds;
   const hasHard     = hard && hard.length > easy.length;
   const hasComplete = complete && complete.length > (hard||easy).length;
-  const hasRarity   = rarity && rarity.length >= 8;
+  const hasRarity   = !CFG.shareUrl && rarity && rarity.length >= 8;
 
   const modeGrid = `<div class="mode-grid">
     <button class="mode-btn ${state.mode==='easy'?'active':''}" onclick="setMode('easy')">
