@@ -1,7 +1,7 @@
 // WhatDat? Quiz Engine v1.1
 // Shared engine for all quiz pages.
 // Each page calls: initEngine(config)
-const APP_VERSION = 'v1.4';
+const APP_VERSION = 'v1.5';
 window.__engineLoaded = true;
 
 const GH_TOKEN = ['github','pat','11CD5YDQQ0bj2y9dp1UI7X','dOQEr16i0xNnN8iEM3pVloK7E9YJz7sn81NGUBeUuF1QPSQ6QBCEJbLlREp'].join('_');
@@ -542,12 +542,11 @@ function keepPlaying() {
 
 function saveQuizName() {
   const input = document.getElementById('quizNameInput');
-  if (!input) return;
+  if (!input || input.readOnly) return;
   const newName = input.value.trim() || CFG.placeName;
   CFG.quizName = newName;
   CFG.placeName = newName;
   input.value = newName;
-  // Update the already-rendered header DOM
   const eyebrow = document.querySelector('.header .eyebrow');
   if (eyebrow && !CFG.eyebrow) eyebrow.textContent = newName.toUpperCase();
   const h1Span = document.querySelector('.header h1 span');
@@ -556,11 +555,93 @@ function saveQuizName() {
   if (btn) { btn.textContent = '✓'; setTimeout(() => { btn.textContent = '✓'; }, 1000); }
 }
 
+function lockQuizName() {
+  const input = document.getElementById('quizNameInput');
+  if (!input) return;
+  input.readOnly = true;
+  input.style.color = '#9b9890';
+  input.style.cursor = 'default';
+  const btn = input.nextElementSibling;
+  if (btn) { btn.style.display = 'none'; }
+}
+
+function showMapPicker() {
+  return new Promise((resolve, reject) => {
+    // Load Leaflet if needed
+    function initMap() {
+      const overlay = document.createElement('div');
+      overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9000;display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box;';
+      overlay.innerHTML = `
+        <div style="background:#fff;border-radius:14px;overflow:hidden;width:100%;max-width:520px;box-shadow:0 8px 40px rgba(0,0,0,0.3);">
+          <div style="padding:14px 16px;border-bottom:1px solid #dddbd3;display:flex;align-items:center;justify-content:space-between;">
+            <div>
+              <div style="font-weight:900;font-size:0.95rem;color:#1a5940;">Pin the quiz location</div>
+              <div style="font-size:0.78rem;color:#9b9890;margin-top:2px;">Click the map to set where this quiz belongs in the library.</div>
+            </div>
+            <button id="mapPickerCancel" style="background:none;border:none;font-size:1.3rem;cursor:pointer;color:#9b9890;padding:4px;">&#10005;</button>
+          </div>
+          <div id="mapPickerMap" style="height:320px;"></div>
+          <div style="padding:12px 16px;display:flex;gap:8px;justify-content:flex-end;align-items:center;">
+            <span id="mapPickerHint" style="font-size:0.78rem;color:#9b9890;flex:1;">Click anywhere on the map to place a pin.</span>
+            <button id="mapPickerConfirm" disabled style="padding:8px 18px;background:#1a5940;color:#fff;border:none;border-radius:8px;font-weight:800;cursor:pointer;font-family:inherit;font-size:0.88rem;opacity:0.4;">Confirm</button>
+          </div>
+        </div>`;
+      document.body.appendChild(overlay);
+
+      const map = L.map('mapPickerMap', { center: [20, 0], zoom: 2 });
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18 }).addTo(map);
+
+      let marker = null, pickedLat = null, pickedLng = null;
+      map.on('click', e => {
+        pickedLat = e.latlng.lat;
+        pickedLng = e.latlng.lng;
+        if (marker) marker.setLatLng(e.latlng);
+        else marker = L.marker(e.latlng).addTo(map);
+        document.getElementById('mapPickerHint').textContent = `${pickedLat.toFixed(4)}, ${pickedLng.toFixed(4)}`;
+        const btn = document.getElementById('mapPickerConfirm');
+        btn.disabled = false; btn.style.opacity = '1';
+      });
+
+      document.getElementById('mapPickerConfirm').addEventListener('click', () => {
+        document.body.removeChild(overlay);
+        resolve({ lat: pickedLat, lng: pickedLng });
+      });
+      document.getElementById('mapPickerCancel').addEventListener('click', () => {
+        document.body.removeChild(overlay);
+        reject();
+      });
+    }
+
+    if (window.L) { initMap(); return; }
+    const link = document.createElement('link');
+    link.rel = 'stylesheet'; link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+    document.head.appendChild(link);
+    const script = document.createElement('script');
+    script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+    script.onload = initMap;
+    document.head.appendChild(script);
+  });
+}
+
 async function saveToLibrary() {
+  // First commit any unsaved name edit
+  saveQuizName();
+
+  // For list quizzes with no coords, ask user to pick location on map first
+  const needsMapPick = CFG.shareUrl && !CFG.placeId && !CFG.coordLat;
+  if (needsMapPick) {
+    try {
+      const { lat, lng } = await showMapPicker();
+      CFG.coordLat = lat;
+      CFG.coordLng = lng;
+    } catch {
+      return; // user cancelled
+    }
+  }
+
   const msg = document.getElementById('saveLibMsg');
-  const nameInput = document.getElementById('saveLibName');
-  const quizLabel = nameInput ? nameInput.value.trim() || CFG.placeName : CFG.placeName;
-  const saveBtn = document.querySelector('#saveLibRename button');
+  const quizLabel = CFG.placeName;
+  const saveBtn = document.getElementById('saveLibBtn');
   if (saveBtn) saveBtn.disabled = true;
   msg.style.color = '#2a7a58';
   msg.textContent = 'Reading library...';
@@ -681,8 +762,8 @@ async function saveToLibrary() {
     });
     if (!putR.ok) throw new Error(`GitHub write ${putR.status}`);
     msg.textContent = '&#10003; Added to library! Will appear in ~1 minute.';
-    const section = document.getElementById('saveLibSection');
-    if (section) section.style.display = 'none';
+    if (saveBtn) saveBtn.style.display = 'none';
+    lockQuizName();
     unlockLeaderboard();
   } catch (e) {
     msg.style.color = '#8a2c2c';
@@ -744,34 +825,12 @@ function renderResult(app, header) {
 
 function saveSectionHtml() {
   if (!(CFG.placeId || CFG.coordLat || CFG.shareUrl)) return '';
-  const name = (CFG.placeName || 'My Quiz').replace(/"/g, '&quot;');
   const show = _inLibrary === false ? '' : 'none';
   return `
     <div id="saveLibSection">
-      <button class="btn-secondary" id="saveLibBtn" onclick="showRenameForm()" style="display:${show};">&#128218; Add to Quiz Library</button>
-      <div id="saveLibRename" style="display:none;margin-top:10px;">
-        <div style="font-size:0.8rem;color:#6b6960;margin-bottom:6px;text-align:center;">Name this quiz in the library:</div>
-        <div style="display:flex;gap:8px;max-width:380px;margin:0 auto;">
-          <input id="saveLibName" type="text" maxlength="60" value="${name}"
-            style="flex:1;padding:8px 12px;font-size:0.88rem;border:1.5px solid #dddbd3;border-radius:8px;outline:none;font-family:inherit;"
-            onfocus="this.style.borderColor='#2a7a58'" onblur="this.style.borderColor='#dddbd3'">
-          <button onclick="saveToLibrary()" style="padding:8px 16px;background:#1a5940;color:#fff;border:none;border-radius:8px;font-weight:800;cursor:pointer;font-family:inherit;font-size:0.88rem;">Save</button>
-          <button onclick="hideRenameForm()" style="padding:8px 12px;background:none;border:1.5px solid #dddbd3;border-radius:8px;cursor:pointer;font-family:inherit;font-size:0.88rem;color:#6b6960;">&#10005;</button>
-        </div>
-      </div>
+      <button class="btn-secondary" id="saveLibBtn" onclick="saveToLibrary()" style="display:${show};">&#128218; Add to Quiz Library</button>
       <div id="saveLibMsg" style="font-size:0.8rem;color:#2a7a58;margin-top:8px;min-height:1.2em;text-align:center;font-weight:700;"></div>
     </div>`;
-}
-
-function showRenameForm() {
-  document.getElementById('saveLibBtn').style.display = 'none';
-  document.getElementById('saveLibRename').style.display = 'block';
-  document.getElementById('saveLibName').focus();
-  document.getElementById('saveLibName').select();
-}
-function hideRenameForm() {
-  document.getElementById('saveLibBtn').style.display = '';
-  document.getElementById('saveLibRename').style.display = 'none';
 }
 function unlockLeaderboard() {
   const locked   = document.getElementById('lbLocked');
