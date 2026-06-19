@@ -48,14 +48,6 @@
   .pop-btn:hover { border-color: #2a7a58; background: #e8f4ef; color: #1a5940; }
   .pop-btn.active { border-color: #1a5940; background: #1a5940; color: #fff; }
 
-  /* Browse tree */
-  .taxon-browse { }
-  .taxon-crumb { padding: 9px 14px 8px; font-size: 0.72rem; color: #9b9890; display: flex; align-items: center; gap: 4px; flex-wrap: wrap; border-bottom: 1px solid #eeede8; min-height: 36px; }
-  .bc-root, .bc-anc { cursor: pointer; color: #2a7a58; font-weight: 700; }
-  .bc-root:hover, .bc-anc:hover { text-decoration: underline; }
-  .bc-anc { font-style: italic; }
-  .bc-sep { color: #c8c6bc; }
-  .bc-cur { color: #1c1b18; font-weight: 700; font-style: italic; }
 
   .taxon-search-row { padding: 8px 10px; border-bottom: 1px solid #eeede8; display: flex; gap: 6px; }
   .taxon-search-row input { flex: 1; padding: 6px 10px; border: 1.5px solid #dddbd3; border-radius: 8px; font-size: 0.85rem; font-family: inherit; outline: none; }
@@ -162,7 +154,7 @@
 <div class="topbar">
   <div>
     <span class="topbar-title">WhatDat?</span>
-    <span class="topbar-version">v1.3</span>
+    <span class="topbar-version">v1.4</span>
   </div>
   <span class="topbar-re">by <a href="https://www.rutherfordecology.co.nz/" target="_blank"><strong>Rutherford</strong> ecology</a></span>
 </div>
@@ -189,13 +181,15 @@
         <div class="pop-grid" id="popGrid"></div>
       </div>
 
-      <!-- Browse tree -->
-      <div class="taxon-browse">
-        <div class="taxon-crumb" id="taxonCrumb">
-          <span style="font-style:italic;font-size:0.8rem;">Or browse the tree of life below</span>
-        </div>
-        <div class="taxon-list" id="taxonList"></div>
+      <!-- Taxon text search -->
+      <div style="padding:8px 12px 4px;">
+        <input id="taxonSearchInput" type="text" placeholder="Or type any group… (e.g. Aves, Coleoptera, Rosaceae)"
+          autocomplete="off"
+          style="width:100%;box-sizing:border-box;padding:8px 12px;font-size:0.85rem;border:1.5px solid #dddbd3;border-radius:8px;outline:none;font-family:inherit;"
+          oninput="onTaxonSearch(this.value)"
+          onfocus="this.style.borderColor='#2a7a58'" onblur="this.style.borderColor='#dddbd3'">
       </div>
+      <div id="taxonSearchResults"></div>
 
       <!-- Confirm bar -->
       <div class="taxon-use-bar" id="taxonUseBar" style="display:none">
@@ -268,32 +262,10 @@
 </footer>
 
 <script>
-// ─────────────────────────────────────────────────────────────────────────────
-// Taxonomy browser — ported from Occurd/taxonomy.js
-// Key improvements over the previous simple version:
-//   • fetchTaxoChildren: paginated, ACCEPTED‖DOUBTFUL‖null status, localStorage cache
-//   • Fun loading phrases (from Occurd)
-//   • Handles mixed-rank children (sorts higher ranks first)
-// ─────────────────────────────────────────────────────────────────────────────
-
-const KINGDOMS = [
-  { key:1, name:'Animalia',  rank:'KINGDOM', label:'Animals'   },
-  { key:6, name:'Plantae',   rank:'KINGDOM', label:'Plants'    },
-  { key:5, name:'Fungi',     rank:'KINGDOM', label:'Fungi'     },
-  { key:4, name:'Chromista', rank:'KINGDOM', label:'Chromista' },
-  { key:7, name:'Protozoa',  rank:'KINGDOM', label:'Protozoa'  },
-  { key:3, name:'Bacteria',  rank:'KINGDOM', label:'Bacteria'  },
-];
-
 const RANK_LABELS = {
   KINGDOM:'Kingdom', PHYLUM:'Phylum', SUBPHYLUM:'Subphylum', CLASS:'Class',
   SUBCLASS:'Subclass', ORDER:'Order', SUBORDER:'Suborder', SUPERFAMILY:'Superfamily',
   FAMILY:'Family', SUBFAMILY:'Subfamily', TRIBE:'Tribe', GENUS:'Genus', SUBGENUS:'Subgenus',
-};
-const VALID_RANKS = new Set(Object.keys(RANK_LABELS));
-const RANK_ORDER  = {
-  KINGDOM:0, PHYLUM:1, SUBPHYLUM:2, CLASS:3, SUBCLASS:4, ORDER:5,
-  SUBORDER:6, FAMILY:7, SUBFAMILY:8, TRIBE:9, GENUS:10, SUBGENUS:11,
 };
 
 // Popular group shortcuts — GBIF backbone keys (stable)
@@ -311,200 +283,54 @@ const POPULAR_GROUPS = [
   { key:1,    rank:'KINGDOM', name:'Animalia',        label:'All Animals',    icon:'&#129436;' },
 ];
 
-// ── Loading phrases (from Occurd) ────────────────────────────────────────────
-const LOADING_PHRASES = [
-  'Speciating your patience…', 'Loading at a taxonomic rate…',
-  'Please remain clade seated…', 'Genus takes time…',
-  'Kingdom come, it\'s loading…', 'Taxonomizing the situation…',
-  'Awaiting peer re-viewing…', 'Binomially processing…',
-  'Cladistically speaking, almost there…', 'Evolving your results naturally…',
-  'Running a quick phylo-check…', 'Organising life, one rank at a time…',
-  'Hold please — we\'re keying it out…', 'One does not simply define a species…',
-  'Updating names you just learned yesterday…', 'Synonymising aggressively…',
-  'Asking three taxonomists for four opinions…', 'This could have been a fern…',
-];
-
-let _phraseTimer = null;
-function showLoadingPhrase(el) {
-  if (!el) return;
-  const pick = () => {
-    el.textContent = LOADING_PHRASES[Math.floor(Math.random() * LOADING_PHRASES.length)];
-  };
-  pick();
-  _phraseTimer = setInterval(pick, 2200);
-}
-function hideLoadingPhrase() { clearInterval(_phraseTimer); _phraseTimer = null; }
-
-// ── localStorage cache (7-day TTL, same as Occurd) ───────────────────────────
-const LS_KEY = 'whatdat_taxoCache_v1';
-const LS_TTL = 7 * 24 * 60 * 60 * 1000;
-const taxoCache    = {};
-const taxoInFlight = {};
-
-(function loadCache() {
-  try {
-    const raw = localStorage.getItem(LS_KEY);
-    if (!raw) return;
-    const { ts, data } = JSON.parse(raw);
-    if (!ts || Date.now() - ts > LS_TTL) { localStorage.removeItem(LS_KEY); return; }
-    Object.entries(data).forEach(([k, v]) => { taxoCache[k] = v; });
-  } catch(e) {}
-})();
-
-let _saveTimer = null;
-function saveCache() {
-  clearTimeout(_saveTimer);
-  _saveTimer = setTimeout(() => {
-    try { localStorage.setItem(LS_KEY, JSON.stringify({ ts: Date.now(), data: taxoCache })); } catch(e) {}
-  }, 600);
-}
-
-// Core fetch — paginated, ACCEPTED | DOUBTFUL | (no status) — same logic as Occurd.
-// onFirstPage(partial): called after page 1 when more pages remain, so UI can render immediately.
-function fetchTaxoChildren(parentKey, onFirstPage) {
-  if (taxoCache[parentKey] !== undefined) return Promise.resolve(taxoCache[parentKey]);
-  if (taxoInFlight[parentKey]) return taxoInFlight[parentKey];
-  const promise = (async () => {
-    try {
-      const all = [];
-      let offset = 0;
-      while (true) {
-        const res = await fetch(`https://api.gbif.org/v1/species/${parentKey}/children?limit=200&offset=${offset}`);
-        if (!res.ok) throw new Error('HTTP ' + res.status);
-        const j = await res.json();
-        (j.results || []).forEach(x => {
-          if (x.rank && VALID_RANKS.has(x.rank) &&
-              (!x.taxonomicStatus || x.taxonomicStatus === 'ACCEPTED' || x.taxonomicStatus === 'DOUBTFUL'))
-            all.push(x);
-        });
-        // After page 1, surface partial results immediately if more pages remain
-        if (offset === 0 && !j.endOfRecords && onFirstPage && all.length > 0) {
-          const partial = [...all].sort((a, b) =>
-            (RANK_ORDER[a.rank] ?? 99) - (RANK_ORDER[b.rank] ?? 99) ||
-            (a.canonicalName || '').localeCompare(b.canonicalName || '')
-          );
-          onFirstPage(partial);
-        }
-        if (j.endOfRecords) break;
-        offset += 200;
-      }
-      all.sort((a, b) =>
-        (RANK_ORDER[a.rank] ?? 99) - (RANK_ORDER[b.rank] ?? 99) ||
-        (a.canonicalName || '').localeCompare(b.canonicalName || '')
-      );
-      taxoCache[parentKey] = all;
-      saveCache();
-    } catch(e) { /* don't cache failures */ }
-    delete taxoInFlight[parentKey];
-    return taxoCache[parentKey];
-  })();
-  taxoInFlight[parentKey] = promise;
-  return promise;
-}
-
 // ── UI state ──────────────────────────────────────────────────────────────────
-let taxonPath     = [];   // [{key, name, rank}]
-let pendingTaxon  = null; // {key, name, rank} — being browsed, not yet confirmed
-let confirmedTaxon = null; // locked in for quiz
-let panelOpen     = false;
+let pendingTaxon   = null;
+let confirmedTaxon = null;
+let panelOpen      = false;
 
 function toggleTaxonPanel() {
   panelOpen = !panelOpen;
   document.getElementById('taxonPanel').classList.toggle('open', panelOpen);
   document.getElementById('taxonToggleBtn').classList.toggle('open', panelOpen);
-  if (panelOpen && taxonPath.length === 0) renderKingdoms();
+  if (panelOpen) setTimeout(() => document.getElementById('taxonSearchInput')?.focus(), 50);
 }
 
-function renderCrumb() {
-  const el = document.getElementById('taxonCrumb');
-  if (taxonPath.length === 0) {
-    el.innerHTML = '<span style="font-style:italic;font-size:0.8rem;">Or browse the tree of life below</span>';
-    return;
-  }
-  const parts = [`<span class="bc-root" onclick="renderKingdoms()">Life</span>`];
-  taxonPath.forEach((t, i) => {
-    parts.push('<span class="bc-sep">›</span>');
-    if (i === taxonPath.length - 1) {
-      parts.push(`<span class="bc-cur">${t.name}</span>`);
-    } else {
-      parts.push(`<span class="bc-anc" onclick="backTo(${i})">${t.name}</span>`);
-    }
-  });
-  el.innerHTML = parts.join('');
+// ── Taxon text search ─────────────────────────────────────────────────────────
+let _searchTimer = null;
+let _searchSeq   = 0;
+
+async function onTaxonSearch(q) {
+  const results = document.getElementById('taxonSearchResults');
+  q = q.trim();
+  if (!q) { results.innerHTML = ''; showUseBar(null); return; }
+  clearTimeout(_searchTimer);
+  _searchTimer = setTimeout(async () => {
+    const seq = ++_searchSeq;
+    results.innerHTML = `<div style="padding:8px 14px;font-size:0.8rem;color:#9b9890;font-style:italic;">Searching…</div>`;
+    try {
+      const r = await fetch(`https://api.gbif.org/v1/species/suggest?q=${encodeURIComponent(q)}&limit=8`);
+      if (seq !== _searchSeq) return;
+      const hits = (await r.json()).filter(h => h.rank && RANK_LABELS[h.rank] && h.key);
+      if (!hits.length) { results.innerHTML = `<div style="padding:8px 14px;font-size:0.8rem;color:#9b9890;font-style:italic;">No groups found</div>`; return; }
+      results.innerHTML = hits.map(h => {
+        const name = h.canonicalName || h.scientificName || h.matchedName;
+        const rank = RANK_LABELS[h.rank] || h.rank;
+        return `<div class="taxon-item" style="cursor:pointer;padding:8px 14px;border-bottom:1px solid #f0efeb;display:flex;align-items:center;justify-content:space-between;"
+          onclick="pickSearchResult(${h.key},${JSON.stringify(name)},${JSON.stringify(h.rank)})">
+          <div><div style="font-size:0.88rem;font-weight:700;">${name}</div><span class="ti-rank">${rank}</span></div>
+          <span style="font-size:0.8rem;color:#2a7a58;font-weight:700;">Use ›</span>
+        </div>`;
+      }).join('');
+    } catch { results.innerHTML = ''; }
+  }, 300);
 }
 
-function renderKingdoms() {
-  taxonPath = [];
-  pendingTaxon = null;
-  renderCrumb();
-  showUseBar(null);
-  clearPopActive();
-  document.getElementById('taxonList').innerHTML = KINGDOMS.map(k =>
-    `<div class="taxon-item" onclick="drillInto(${k.key},${JSON.stringify(k.name)},'KINGDOM')">
-      <div class="ti-left">
-        <div class="ti-name">${k.name}</div>
-        <span class="ti-rank">Kingdom</span>
-      </div>
-      <span class="ti-arr">›</span>
-    </div>`
-  ).join('');
-}
-
-// Sequence counter — if user navigates away while a fetch is in-flight, stale renders are ignored
-let _drillSeq = 0;
-
-function renderTaxonList(children, listEl) {
-  if (!children || children.length === 0) return false;
-  // When results span multiple ranks (e.g. Animalia has phyla AND families AND genera
-  // as direct children due to incertae sedis placements), only show the highest rank
-  // present so the list stays navigable. Users can drill into phyla to reach lower ranks.
-  const minRankOrder = Math.min(...children.map(c => RANK_ORDER[c.rank] ?? 99));
-  const filtered = children.filter(c => (RANK_ORDER[c.rank] ?? 99) === minRankOrder);
-  const extra = children.length - filtered.length;
-
-  listEl.innerHTML = filtered.map(c => {
-    const cname = c.canonicalName || c.scientificName || '?';
-    const rlbl  = RANK_LABELS[c.rank] || c.rank;
-    return `<div class="taxon-item" onclick="drillInto(${c.key},${JSON.stringify(cname)},${JSON.stringify(c.rank)})">
-      <div class="ti-left">
-        <div class="ti-name">${cname}</div>
-        <span class="ti-rank">${rlbl}</span>
-      </div>
-      <span class="ti-arr">›</span>
-    </div>`;
-  }).join('') + (extra > 0 ? `<div class="taxon-empty" style="font-style:normal;color:#9b9890;font-size:0.72rem;padding:8px 14px;">${extra} lower-ranked taxa hidden — drill into a ${RANK_LABELS[filtered[0]?.rank]||'group'} to explore further.</div>` : '');
-  return true;
-}
-
-async function drillInto(key, name, rank) {
-  const mySeq = ++_drillSeq;
-  taxonPath.push({ key, name, rank });
-  renderCrumb();
+function pickSearchResult(key, name, rank) {
+  document.getElementById('taxonSearchResults').innerHTML = '';
   pendingTaxon = { key, name, rank };
+  clearPopActive();
   showUseBar(pendingTaxon);
-
-  const listEl = document.getElementById('taxonList');
-  listEl.innerHTML = `<div class="taxon-loading" id="txLoadMsg">Loading…</div>`;
-  showLoadingPhrase(document.getElementById('txLoadMsg'));
-
-  const children = await fetchTaxoChildren(key, partial => {
-    // Render first page immediately, continue loading in background
-    if (_drillSeq !== mySeq) return;
-    hideLoadingPhrase();
-    renderTaxonList(partial, listEl);
-  });
-  hideLoadingPhrase();
-  if (_drillSeq !== mySeq) return; // user navigated away
-
-  if (!renderTaxonList(children, listEl)) {
-    listEl.innerHTML = `<div class="taxon-empty"><em>${name}</em> is the finest group available here — click <strong>Use this</strong> to filter your quiz to ${name} only.</div>`;
-  }
-}
-
-async function backTo(idx) {
-  const target = taxonPath[idx];
-  taxonPath = taxonPath.slice(0, idx);
-  await drillInto(target.key, target.name, target.rank);
+  confirmTaxon();
 }
 
 function quickPick(key, name, rank) {
@@ -545,8 +371,11 @@ function clearTaxon() {
   confirmedTaxon = null;
   pendingTaxon   = null;
   clearPopActive();
+  const inp = document.getElementById('taxonSearchInput');
+  if (inp) inp.value = '';
+  document.getElementById('taxonSearchResults').innerHTML = '';
+  showUseBar(null);
   updateToggleLabel();
-  renderKingdoms();
 }
 
 function updateToggleLabel() {
