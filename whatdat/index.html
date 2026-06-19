@@ -154,7 +154,7 @@
 <div class="topbar">
   <div>
     <span class="topbar-title">WhatDat?</span>
-    <span class="topbar-version">v1.5</span>
+    <span class="topbar-version">v1.6</span>
   </div>
   <span class="topbar-re">by <a href="https://www.rutherfordecology.co.nz/" target="_blank"><strong>Rutherford</strong> ecology</a></span>
 </div>
@@ -302,7 +302,7 @@ let _searchSeq   = 0;
 async function onTaxonSearch(q) {
   const results = document.getElementById('taxonSearchResults');
   q = q.trim();
-  if (!q) { results.innerHTML = ''; showUseBar(null); return; }
+  if (!q) { results.innerHTML = ''; return; }
   clearTimeout(_searchTimer);
   _searchTimer = setTimeout(async () => {
     const seq = ++_searchSeq;
