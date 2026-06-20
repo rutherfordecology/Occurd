@@ -45,7 +45,7 @@
       <img src="occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v5.85</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v5.86</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -258,40 +258,32 @@
       <div class="filter-chips" id="filterChips"></div>
     </div>
 
-    <div class="sidebar-section" id="nerdToolsSection">
+    <div class="sidebar-section" id="nerdToolsSection" style="display:none;">
       <div class="section-label collapsible" data-section="sNerd" style="margin-bottom:0;">🔬 Tech tools <span class="section-chevron">▾</span></div>
       <div class="section-body" id="sNerd">
         <div style="margin-bottom:0.5rem;">
           <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.07em;color:var(--text3);margin-bottom:4px;">Timeline view</div>
-          <button class="tool-btn" id="btnTimeline" onclick="setViewMode('timeline')" disabled style="width:100%;justify-content:center;opacity:0.4;cursor:not-allowed;pointer-events:none;">Timeline</button>
+          <button class="tool-btn" id="btnTimeline" onclick="setViewMode('timeline')" style="width:100%;justify-content:center;">Timeline</button>
         </div>
         <div>
           <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.07em;color:var(--text3);margin-bottom:4px;">Timeline options</div>
           <div style="display:flex;gap:6px;flex-wrap:wrap;">
-            <button id="btnTlRainbowSb" onclick="toggleTlRainbow()" disabled
+            <button id="btnTlRainbowSb" onclick="toggleTlRainbow()"
               title="Colour points by year gradient"
-              style="background:none;border:1px solid var(--border);border-radius:12px;cursor:not-allowed;
+              style="background:none;border:1px solid var(--border);border-radius:12px;cursor:pointer;
                      font-size:11px;font-weight:600;font-family:var(--font-sans);padding:3px 10px;
-                     color:var(--text3);transition:all 0.15s;opacity:0.4;pointer-events:none;">
+                     color:var(--text3);transition:all 0.15s;">
               Colour by year
             </button>
-            <button id="btnTlEffortSb" onclick="toggleTlEffort()" disabled
+            <button id="btnTlEffortSb" onclick="toggleTlEffort()"
               title="Normalise bars by total observer effort (all taxa, same area &amp; years) — shows % of all records rather than raw counts"
-              style="background:none;border:1px solid var(--border);border-radius:12px;cursor:not-allowed;
+              style="background:none;border:1px solid var(--border);border-radius:12px;cursor:pointer;
                      font-size:11px;font-weight:600;font-family:var(--font-sans);padding:3px 10px;
-                     color:var(--text3);transition:all 0.15s;opacity:0.4;pointer-events:none;">
+                     color:var(--text3);transition:all 0.15s;">
               Normalise by effort
             </button>
           </div>
           <p class="note" style="margin-top:6px;">Effort normalisation fetches total GBIF records in your polygon per year (same class as your species, e.g. Aves for birds) and divides your species' counts — so the chart shows % of all records, not raw counts. Requires yearly view.</p>
-        </div>
-        <div style="margin-top:0.7rem;">
-          <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.07em;color:var(--text3);margin-bottom:4px;">Technical search</div>
-          <input type="text" id="techInstitutionCode" placeholder="Institution code (e.g. MNHN)" style="width:100%;margin-bottom:4px;">
-          <input type="text" id="techRecordedBy" placeholder="Recorded by (collector)" style="width:100%;margin-bottom:4px;">
-          <input type="text" id="techIdentifiedBy" placeholder="Identified by" style="width:100%;margin-bottom:4px;">
-          <input type="text" id="techTypeStatus" placeholder="Type status (e.g. HOLOTYPE)" style="width:100%;">
-          <p class="note" style="margin-top:6px;">Sent straight to GBIF as exact-match filters — these need to match the value exactly as GBIF has it (no partial/fuzzy matching), so check a record's CSV export if unsure of the exact spelling. Applies on next search.</p>
         </div>
       </div>
     </div>
@@ -679,7 +671,7 @@ const TAXON_COLOURS = {
   'Fungi':           { colour: '#D97706', label: 'Fungi' },
   'Other':           { colour: '#6B7280', label: 'Other' }
 };
-const CSV_FIELDS = ['gbifID','eventDate','year','month','day','scientificName','vernacularName','kingdom','phylum','class','order','family','genus','species','decimalLatitude','decimalLongitude','coordinateUncertaintyInMeters','hasGeospatialIssues','basisOfRecord','establishmentMeans','occurrenceID','taxonKey','datasetName','institutionCode','country','stateProvince','locality','recordedBy','identifiedBy','typeStatus','polygon_name'];
+const CSV_FIELDS = ['gbifID','eventDate','year','month','day','scientificName','vernacularName','kingdom','phylum','class','order','family','genus','species','decimalLatitude','decimalLongitude','coordinateUncertaintyInMeters','hasGeospatialIssues','basisOfRecord','establishmentMeans','occurrenceID','taxonKey','datasetName','country','stateProvince','locality','recordedBy','polygon_name'];
 
 // Maps taxon checkbox values to the getTaxonGroup() strings they correspond to.
 // Used to post-filter downloaded records so non-target taxa don't slip through.
@@ -1746,8 +1738,7 @@ function clearResults() {
   const _ib = document.getElementById('clIucnBtn');
   if (_ib) { _ib.style.display = 'none'; _ib.classList.remove('unlocked'); _ib.textContent = 'IUCN'; }
   metricsGrid.style.display = 'none'; filterSection.style.display = 'none';
-  legend.style.display = 'none'; outputSection.style.display = 'none';
-  _setNerdToolsResultsEnabled(false);
+  legend.style.display = 'none'; outputSection.style.display = 'none'; nerdToolsSection.style.display = 'none';
   if (qualityBoxEl)  qualityBoxEl.style.display  = 'none';
   if (richnessBoxEl) richnessBoxEl.style.display = 'none';
   statusBar.style.display = 'none'; progressWrap.style.display = 'none';
@@ -3916,20 +3907,6 @@ function _restoreTaxonColours() {
   });
 }
 
-// Timeline view + Colour by year + Normalise by effort all need fetched records to mean
-// anything — grey them out until results exist, but leave Technical search always usable
-// (it's a search filter, not a results view)
-function _setNerdToolsResultsEnabled(enabled) {
-  ['btnTimeline', 'btnTlRainbowSb', 'btnTlEffortSb'].forEach(id => {
-    const btn = document.getElementById(id);
-    if (!btn) return;
-    btn.disabled = !enabled;
-    btn.style.opacity = enabled ? '' : '0.4';
-    btn.style.cursor = enabled ? 'pointer' : 'not-allowed';
-    btn.style.pointerEvents = enabled ? '' : 'none';
-  });
-}
-
 function toggleTlRainbow() {
   tlRainbow = !tlRainbow;
   _syncRainbowBtn();
@@ -5017,8 +4994,6 @@ function _mapOccRecord(poly, r) {
     stateProvince:                 r.stateProvince || null,
     locality:                      r.locality      || null,
     recordedBy:                    Array.isArray(r.recordedBy) ? r.recordedBy.join('; ') : (r.recordedBy || null),
-    identifiedBy:                  Array.isArray(r.identifiedBy) ? r.identifiedBy.join('; ') : (r.identifiedBy || null),
-    typeStatus:                    Array.isArray(r.typeStatus) ? r.typeStatus.join('; ') : (r.typeStatus || null),
     establishmentMeans:            r.establishmentMeans || null,
     dynamicProperties:             r.dynamicProperties || null,
     iucnRedListCategory:           r.iucnRedListCategory || null,
@@ -5231,17 +5206,6 @@ runBtn.addEventListener('click', async () => {
     const baseParams = [['geometry', getQueryWKT(geomPoly)], ['hasCoordinate', 'true'], ['limit', '300']];
     if (dateFrom && dateTo) baseParams.push(['eventDate', dateFrom + ',' + dateTo]);
     if (document.getElementById('excludeLowPrecision').checked) baseParams.push(['coordinateUncertaintyInMeters', '*,1499']);
-    // Technical search — exact-match GBIF filters (Nerd tools)
-    const _techMap = {
-      techInstitutionCode: 'institutionCode',
-      techRecordedBy:       'recordedBy',
-      techIdentifiedBy:     'identifiedBy',
-      techTypeStatus:       'typeStatus',
-    };
-    Object.entries(_techMap).forEach(([id, param]) => {
-      const v = document.getElementById(id)?.value.trim();
-      if (v) baseParams.push([param, v]);
-    });
     const _basisMap = {
       inclObservations: ['HUMAN_OBSERVATION','MACHINE_OBSERVATION','OCCURRENCE'],
       inclPreserved:    ['PRESERVED_SPECIMEN','LIVING_SPECIMEN','MATERIAL_CITATION'],
@@ -5637,8 +5601,7 @@ runBtn.addEventListener('click', async () => {
   renderPoints(displayRecords);
   setTimeout(() => { map.invalidateSize(); }, 100);
   csvData = buildCSV(displayRecords);
-  outputSection.style.display = 'block';
-  _setNerdToolsResultsEnabled(true);
+  outputSection.style.display = 'block'; nerdToolsSection.style.display = 'block';
 
   // Show quality flags and richness summary
   showQualityFlags(allFetched);
@@ -5890,18 +5853,10 @@ if (window._pendingShare) {
   </div>
   <div class="changelog-scroll" id="changelogScroll">
     <div class="changelog-version">
-      <span class="changelog-version-tag">v5.85</span>
+      <span class="changelog-version-tag">v5.86</span>
       <span class="changelog-date">Jun 2026</span>
       <ul>
-        <li>Nerd tools — section is now always visible (so Technical search filters can be set up before you run a search) instead of only appearing after results load; Timeline and Colour by year / Normalise by effort are greyed out until there are results, since they need data to act on</li>
-      </ul>
-    </div>
-    <div class="changelog-version">
-      <span class="changelog-version-tag">v5.84</span>
-      <span class="changelog-date">Jun 2026</span>
-      <ul>
-        <li>Nerd tools — new "Technical search" filters: Institution code, Recorded by, Identified by, Type status. These are sent to GBIF as exact-match server-side filters (no partial/fuzzy matching), so the search area is narrowed before records are even fetched</li>
-        <li>identifiedBy and typeStatus now captured on records and included in the CSV export</li>
+        <li>Removed the "Technical search" filters (institution code, recordedBy, identifiedBy, typeStatus) — GBIF's own search covers this better. Nerd tools section is hidden until results exist again</li>
       </ul>
     </div>
     <div class="changelog-version">
