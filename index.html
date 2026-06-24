@@ -45,7 +45,7 @@
       <img src="occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v5.88</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v5.90</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -685,6 +685,23 @@ const CB_TO_GROUP = {
   'algae': 'Algae', '5': 'Fungi',
 };
 
+// "Other Animalia" checkbox — GBIF has no "kingdom minus these classes" predicate, so
+// instead of querying kingdomKey=1 (every animal, then filtering ~90% away client-side)
+// we query the explicit complement: every Animalia phylum/class NOT covered by its own
+// checkbox (Aves, Mammalia, Reptilia, Amphibia, Fish, Insecta, Arachnida, Crustacea,
+// Mollusca, Echinodermata, Cnidaria, Annelida). Keys from GBIF backbone, taxonKey 1.
+const OTHER_ANIMALIA_KEYS = [
+  // Phyla with no dedicated checkbox
+  '67','110','53','55','51','45','7663989','8173593','22','77','75','5959089',
+  '5967457','5967454','5967481','64','63','62','5967456','19','76','108','105',
+  '5963150','91','74','14','7190138',
+  // Arthropoda classes outside Insecta/Arachnida/Crustacea
+  '235','360','10713444','361','11374670','351','143','11377931','354','236',
+  '7742773','11699831','9273948','696',
+  // Chordata classes outside the Fish/tetrapod buckets (sea squirts, lancelets)
+  '356','207','1441','7375758',
+];
+
 // Map
 const map = L.map('map').setView([-41.5, 172.5], 5);
 // Custom pane for QEII covenants — sits below the standard overlay (400) and marker (600) panes
@@ -1086,7 +1103,7 @@ map.on(L.Draw.Event.CREATED, e => {
 
 
 // State
-let polygons = [], refLayers = [], clipTurfPolygons = null, allRecords = [], activeFilters = new Set();
+let polygons = [], refLayers = [], clipTurfPolygons = null, allRecords = [], activeFilters = new Set(), hiddenSpecies = new Set();
 let viewMode = 'points', selectedSpecies = null, nextPolyId = 0, csvData = null, pendingLoad = null;
 let tlFilterMin = null, tlFilterMax = null; // timeline year filter (null = no filter)
 let tlRainbow = false; // colour points by year gradient when in timeline mode
@@ -1503,6 +1520,8 @@ function isEdnaRecord(r) {
 
 function passesFilters(r) {
   if (!activeFilters.has(getTaxonGroup(r))) return false;
+  const _rName = r.species || r.scientificName || '';
+  if (_rName && hiddenSpecies.has(_rName)) return false;
   if (nztcsUnlocked && currentNztcsFilter !== 'all') {
     const allowed = NZTCS_FILTER_GROUPS[currentNztcsFilter] || [];
     const match = lookupNztcs(r);
@@ -1713,7 +1732,7 @@ function applyPostFetchShareState(s) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 function clearResults() {
-  allRecords = []; activeFilters.clear(); csvData = null; selectedSpecies = null; allMarkers = []; commonNameCache = {};
+  allRecords = []; activeFilters.clear(); hiddenSpecies.clear(); csvData = null; selectedSpecies = null; allMarkers = []; commonNameCache = {};
   effortByYear = null; tlEffortMode = false; _effortFetchParams = []; _effortTaxonKeys = []; _syncEffortBtn();
   _clearGhostLayer();
   _photoPrefetchAbort = true;
@@ -4547,11 +4566,12 @@ function buildChecklist(records) {
         label +
       '</span>' +
       '<label class="cl-group-selall" title="Select all ' + label + '" onclick="event.stopPropagation()" style="justify-self:center;">' +
-        '<input type="checkbox" class="cl-group-cb" data-group="' + g + '">' +
+        '<input type="checkbox" class="cl-group-cb" data-group="' + g + '" checked>' +
       '</label>' +
       '<span></span>';
     let _lastFire = 0;
     function handleGroupToggle(e) {
+      if (e.target.closest('.cl-group-selall')) return; // let checkbox handle itself
       e.preventDefault();
       const now = Date.now();
       if (now - _lastFire < 300) return;
@@ -4568,6 +4588,27 @@ function buildChecklist(records) {
     }
     gh.addEventListener('click', handleGroupToggle);
     gh.addEventListener('touchstart', handleGroupToggle, { passive: false });
+    // Checkbox = select/deselect all species in this group (no collapse)
+    const _gcbEl = gh.querySelector('.cl-group-cb');
+    if (_gcbEl) _gcbEl.addEventListener('change', e => {
+      e.stopPropagation();
+      const selecting = e.target.checked;
+      let _el = gh.nextElementSibling;
+      while (_el && !_el.classList.contains('cl-group-header')) {
+        if (_el.classList.contains('cl-row')) {
+          const _name = _el.dataset.species;
+          const _cb = _el.querySelector('.cl-photo-cb');
+          if (selecting) { hiddenSpecies.delete(_name); if (_cb) _cb.checked = true; }
+          else { hiddenSpecies.add(_name); if (_cb) _cb.checked = false; }
+        }
+        _el = _el.nextElementSibling;
+      }
+      if (viewMode === 'heat') renderHeatmap(allRecords);
+      else { renderPoints(allRecords); applyTimelineFilter(); }
+      document.getElementById('mShown').textContent = allRecords.filter(passesFilters).length.toLocaleString();
+      _updateLooklikeBtn();
+      csvData = buildCSV(allRecords.filter(passesFilters));
+    });
     clScroll.appendChild(gh);
     Object.entries(byGroup[g]).sort((a,b) => a[0].localeCompare(b[0])).forEach(([name, info]) => {
       const row = document.createElement('div'); row.className = 'cl-row';
@@ -4601,14 +4642,25 @@ function buildChecklist(records) {
       const iucnBadge = iucnUnlocked ? iucnBadgeHtml(iucnStatus) : '';
       const tkBadge = _tkSpeciesNames.has(name)
         ? '<span class="tk-badge" title="Traditional Knowledge / Biocultural label — Local Contexts">🏷️</span>' : '';
+      const _checked = !hiddenSpecies.has(name);
       row.innerHTML =
         '<div class="cl-row-top">' +
           '<span class="cl-name">' + name + nztcsBadge + iucnBadge + tkBadge + '</span>' +
-          '<input type="checkbox" class="cl-photo-cb" title="Select for LookLike" onclick="event.stopPropagation()">' +
+          '<input type="checkbox" class="cl-photo-cb" title="Include in map, quiz &amp; photos"' + (_checked ? ' checked' : '') + ' onclick="event.stopPropagation()">' +
           '<span class="cl-count">' + info.count + '</span>' +
         '</div>' +
         nztcsPickerDiv +
         (info.common ? '<div class="cl-common">' + info.common + '</div>' : '');
+      row.querySelector('.cl-photo-cb').addEventListener('change', e => {
+        e.stopPropagation();
+        if (e.target.checked) hiddenSpecies.delete(name);
+        else hiddenSpecies.add(name);
+        if (viewMode === 'heat') renderHeatmap(allRecords);
+        else { renderPoints(allRecords); applyTimelineFilter(); }
+        _updateLooklikeBtn();
+        document.getElementById('mShown').textContent = allRecords.filter(passesFilters).length.toLocaleString();
+        csvData = buildCSV(allRecords.filter(passesFilters));
+      });
       row.addEventListener('click', () => {
         if (selectedSpecies === name) clearSpeciesSelection();
         else selectSpecies(name);
@@ -4906,7 +4958,7 @@ function buildTaxonParams(keys) {
     else if (key === 'crustacea')   { ['229','203','281','353'].forEach(k => params.push(['taxonKey', k])); } // Malacostraca, Maxillopoda, Branchiopoda, Ostracoda
     else if (key === 'angiosperms') { ['220','196'].forEach(k => params.push(['taxonKey', k])); } // Magnoliopsida (dicots), Liliopsida (monocots)
     else if (key === 'algae')       { ['36','106','98','7819616','68'].forEach(k => params.push(['taxonKey', k])); } // Chlorophyta, Rhodophyta, Ochrophyta, Charophyta, Cyanobacteria
-    else if (key === '1')           { params.push(['kingdomKey', '1']); }
+    else if (key === '1')           { OTHER_ANIMALIA_KEYS.forEach(k => params.push(['taxonKey', k])); }
     else                            { params.push(['taxonKey', key]); }
   });
   return params;
@@ -5852,6 +5904,20 @@ if (window._pendingShare) {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v5.90</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>"Other Animalia" now queries GBIF for the exact complement of taxa (every Animalia phylum/class not already covered by its own checkbox) instead of fetching the whole animal kingdom and filtering ~90% of it away afterward — fewer wasted requests, faster fetch</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v5.89</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>Species checklist checkboxes now default to all-selected and actually drive the map, heatmap, and timeline — unticking a species hides it everywhere, not just from the Quiz/Photos hand-off as before</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v5.88</span>
       <span class="changelog-date">Jun 2026</span>

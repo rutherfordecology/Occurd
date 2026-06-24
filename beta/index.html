@@ -46,7 +46,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v6.08</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v6.09</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -668,6 +668,23 @@ const CB_TO_GROUP = {
   'angiosperms': 'Angiosperms', '194': 'Gymnosperms', '7228684': 'Ferns', 'bryophytes': 'Bryophytes',
   'algae': 'Algae', '5': 'Fungi',
 };
+
+// "Other Animalia" checkbox — GBIF has no "kingdom minus these classes" predicate, so
+// instead of querying kingdomKey=1 (every animal, then filtering ~90% away client-side)
+// we query the explicit complement: every Animalia phylum/class NOT covered by its own
+// checkbox (Aves, Mammalia, Reptilia, Amphibia, Fish, Insecta, Arachnida, Crustacea,
+// Mollusca, Echinodermata, Cnidaria, Annelida). Keys from GBIF backbone, taxonKey 1.
+const OTHER_ANIMALIA_KEYS = [
+  // Phyla with no dedicated checkbox
+  '67','110','53','55','51','45','7663989','8173593','22','77','75','5959089',
+  '5967457','5967454','5967481','64','63','62','5967456','19','76','108','105',
+  '5963150','91','74','14','7190138',
+  // Arthropoda classes outside Insecta/Arachnida/Crustacea
+  '235','360','10713444','361','11374670','351','143','11377931','354','236',
+  '7742773','11699831','9273948','696',
+  // Chordata classes outside the Fish/tetrapod buckets (sea squirts, lancelets)
+  '356','207','1441','7375758',
+];
 
 // Map
 const map = L.map('map').setView([-41.5, 172.5], 5);
@@ -4950,7 +4967,7 @@ function buildTaxonParams(keys) {
     else if (key === 'crustacea')   { ['229','203','281','353'].forEach(k => params.push(['taxonKey', k])); } // Malacostraca, Maxillopoda, Branchiopoda, Ostracoda
     else if (key === 'angiosperms') { ['220','196'].forEach(k => params.push(['taxonKey', k])); } // Magnoliopsida (dicots), Liliopsida (monocots)
     else if (key === 'algae')       { ['36','106','98','7819616','68'].forEach(k => params.push(['taxonKey', k])); } // Chlorophyta, Rhodophyta, Ochrophyta, Charophyta, Cyanobacteria
-    else if (key === '1')           { params.push(['kingdomKey', '1']); }
+    else if (key === '1')           { OTHER_ANIMALIA_KEYS.forEach(k => params.push(['taxonKey', k])); }
     else                            { params.push(['taxonKey', key]); }
   });
   return params;
@@ -6284,6 +6301,13 @@ if (window._pendingShare) {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v6.09</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>"Other Animalia" now queries GBIF for the exact complement of taxa (every Animalia phylum/class not already covered by its own checkbox) instead of fetching the whole animal kingdom and filtering ~90% of it away afterward — fewer wasted requests, faster fetch</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v6.08</span>
       <span class="changelog-date">Jun 2026</span>
