@@ -44,8 +44,9 @@
     <div style="overflow:hidden;width:100px;height:44px;flex-shrink:0;margin-top:4px;">
       <img src="occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
+    <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v5.91</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v5.92</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -58,6 +59,8 @@
         box-shadow:0 4px 18px rgba(0,0,0,0.16);z-index:99999;min-width:220px;overflow:hidden;">
       </div>
     </div>
+    <span style="opacity:0.3">|</span>
+    <a id="bigdataNavLink" href="./?bigdata" target="_blank" class="about-btn" style="color:rgba(255,255,255,0.75);" title="Fetch large datasets with no 10,000 record cap — requires a free GBIF account">go to <strong>Big Data Mode</strong></a>
     <span style="opacity:0.3">|</span>
     <button class="about-btn" id="aboutBtn">&#9432; About</button>
     <span style="opacity:0.3">|</span>
@@ -82,10 +85,10 @@
           <button id="kmzBadgeClearBtn" style="background:none;border:none;cursor:pointer;font-size:13px;color:var(--text3);padding:0 2px;line-height:1;flex-shrink:0;" title="Clear KMZ from memory">&#x2715;</button>
         </div>
         <div class="drop-zone" id="dropZone" style="padding:10px;">
-          <input type="file" id="fileInput" accept=".kml,.kmz" multiple>
+          <input type="file" id="fileInput" accept=".kml,.kmz,.csv,.zip" multiple>
           <div style="display:flex;align-items:center;gap:8px;justify-content:center;">
             <span style="font-size:18px;">&#128506;</span>
-            <span style="font-size:12px;color:var(--text2);">Drop <strong>KML/KMZ</strong> here, or <span style="color:var(--green);text-decoration:underline;cursor:pointer;">browse</span> — or draw on the map</span>
+            <span style="font-size:12px;color:var(--text2);">Drop <strong>KML/KMZ</strong> or a <strong>GBIF download .zip/.csv</strong> here, or <span style="color:var(--green);text-decoration:underline;cursor:pointer;">browse</span> — or draw on the map</span>
           </div>
         </div>
         <div class="poly-list" id="polyList">
@@ -194,6 +197,23 @@
     <div class="sidebar-section">
       <div class="section-label collapsible" data-section="s3">3 · Fetch data <span class="section-chevron">▾</span></div>
       <div class="section-body" id="s3">
+        <!-- Shown only in Big Data mode (?bigdata param) -->
+        <div id="bigdataCreds" style="display:none;margin-bottom:10px;padding:10px 12px;background:#f3f2ee;border-radius:10px;">
+          <p style="font-size:0.72rem;font-weight:800;color:#6b6960;letter-spacing:0.06em;text-transform:uppercase;margin:0 0 8px;">GBIF credentials</p>
+          <input id="gbifCredsUser" type="text" autocomplete="username" placeholder="GBIF username"
+            style="width:100%;padding:7px 10px;border:1.5px solid #dddbd3;border-radius:7px;font-size:0.82rem;font-family:inherit;outline:none;margin-bottom:6px;box-sizing:border-box;">
+          <input id="gbifCredsPass" type="password" autocomplete="current-password" placeholder="GBIF password"
+            style="width:100%;padding:7px 10px;border:1.5px solid #dddbd3;border-radius:7px;font-size:0.82rem;font-family:inherit;outline:none;margin-bottom:8px;box-sizing:border-box;">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+            <label style="display:flex;align-items:center;gap:6px;font-size:0.75rem;color:#6b6960;cursor:pointer;flex:1;">
+              <input type="checkbox" id="gbifRemember"> Remember me on this device
+            </label>
+            <button id="gbifCheckBtn" type="button" onclick="_checkGbifCreds()" style="padding:4px 10px;font-size:0.72rem;font-family:inherit;background:#fff;border:1.5px solid #dddbd3;border-radius:6px;cursor:pointer;color:#6b6960;white-space:nowrap;">Check credentials</button>
+            <span id="gbifCheckStatus" style="font-size:0.78rem;display:none;"></span>
+          </div>
+          <p style="font-size:0.72rem;color:#9b9890;margin:0 0 4px;line-height:1.45;">Stored in your browser only — never sent anywhere except GBIF. <a href="https://www.gbif.org/en/user/profile" target="_blank" style="color:var(--green-dark);">Create free account ↗</a></p>
+          <p style="font-size:0.72rem;color:#9b9890;margin:0;line-height:1.45;">GBIF will email you when your download is ready. Download the zip and drop it into the upload zone above.</p>
+        </div>
         <button class="run-btn" id="runBtn" disabled>Fetch occurrences from GBIF</button>
         <div class="status-bar" id="statusBar"></div>
         <div class="progress-wrap" id="progressWrap">
@@ -519,7 +539,7 @@
         <li><strong>Smaller area</strong> — draw a tighter polygon around a park, bay, or reserve</li>
         <li><strong>Filter by taxon</strong> — choose Birds, Plants, Fish etc. before fetching</li>
         <li><strong>Shorter date range</strong> — narrow the year range in the date filter</li>
-        <li><strong>GBIF Download</strong> — for large datasets, use the <a href="https://www.gbif.org/occurrence/download" target="_blank" style="color:var(--green-dark);font-weight:700;">GBIF Download API</a> to export a full Darwin Core Archive, then load it here <em>(coming soon in Occurd)</em></li>
+        <li><strong>Occurd Big Data</strong> — for large datasets with no 10,000-record cap, use <a id="tooLargeBigDataLink" href="./?bigdata" target="_blank" style="color:var(--green-dark);font-weight:700;">Big Data Mode ↗</a> (requires a free GBIF account; download the zip it emails you and drop it into the upload zone here)</li>
       </ul>
     </div>
     <div style="display:flex;gap:10px;justify-content:flex-end;">
@@ -1104,6 +1124,21 @@ map.on(L.Draw.Event.CREATED, e => {
 
 // State
 let polygons = [], refLayers = [], clipTurfPolygons = null, allRecords = [], activeFilters = new Set(), hiddenSpecies = new Set();
+
+const BIGDATA_MODE = new URLSearchParams(location.search).has('bigdata');
+if (BIGDATA_MODE) {
+  document.title = 'occurd. big data · Rutherford Ecology';
+  document.getElementById('bigdataHeaderLabel').style.display = 'inline';
+  document.getElementById('bigdataNavLink').style.display = 'none';
+  document.getElementById('bigdataCreds').style.display = 'block';
+  // Pre-fill credentials: sessionStorage first, then localStorage (if remember-me was used)
+  const _su = sessionStorage.getItem('gbif_user') || localStorage.getItem('gbif_user') || '';
+  const _sp = sessionStorage.getItem('gbif_pass') || localStorage.getItem('gbif_pass') || '';
+  document.getElementById('gbifCredsUser').value = _su;
+  document.getElementById('gbifCredsPass').value = _sp;
+  if (localStorage.getItem('gbif_user')) document.getElementById('gbifRemember').checked = true;
+}
+
 let viewMode = 'points', selectedSpecies = null, nextPolyId = 0, csvData = null, pendingLoad = null;
 let tlFilterMin = null, tlFilterMax = null; // timeline year filter (null = no filter)
 let tlRainbow = false; // colour points by year gradient when in timeline mode
@@ -1346,16 +1381,17 @@ function setFetchMode(fetching) {
     runBtn.disabled = false;
     showOccLoadingPhrase();
   } else {
-    runBtn.textContent = 'Fetch occurrences from GBIF';
+    runBtn.textContent = BIGDATA_MODE ? 'Download from GBIF (no 10k cap)' : 'Fetch occurrences from GBIF';
     runBtn.classList.remove('cancelling');
     runBtn.disabled = polygons.length === 0;
     hideOccLoadingPhrase();
   }
 }
-function showTooLargeModal(title, subtitle, body) {
+function showTooLargeModal(title, subtitle, body, bigDataUrl) {
   document.getElementById('tooLargeTitle').textContent   = title;
   document.getElementById('tooLargeSubtitle').textContent = subtitle || '';
   document.getElementById('tooLargeBody').textContent    = body;
+  document.getElementById('tooLargeBigDataLink').href = bigDataUrl || './?bigdata';
   document.getElementById('tooLargeModal').style.display = 'flex';
 }
 
@@ -1368,7 +1404,8 @@ function setStatus(msg, type, withCancel) {
       'style="margin-left:8px;background:none;border:1px solid currentColor;border-radius:3px;' +
       'padding:2px 8px;cursor:pointer;font-size:11px;font-family:var(--font-sans);color:inherit;font-weight:600;">Cancel</button>';
   } else {
-    statusBar.textContent = msg;
+    if (/<[a-z][\s\S]*>/i.test(msg)) statusBar.innerHTML = msg;
+    else statusBar.textContent = msg;
   }
 }
 function setProgress(pct, label) {
@@ -2086,7 +2123,24 @@ function handleFile(file) {
   const name = file.name.toLowerCase();
   if (name.endsWith('.kmz')) handleKMZ(file);
   else if (name.endsWith('.kml')) { const r = new FileReader(); r.onload = e => processKMLText(e.target.result, file.name); r.readAsText(file); }
-  else setStatus('Please upload .kml or .kmz files only.', 'error');
+  else if (name.endsWith('.csv')) { const r = new FileReader(); r.onload = e => handleGbifCsv(e.target.result, file.name); r.readAsText(file); }
+  else if (name.endsWith('.zip')) handleGbifZip(file);
+  else setStatus('Please upload .kml, .kmz, .zip or GBIF .csv files.', 'error');
+}
+
+async function handleGbifZip(file) {
+  setStatus('Loading ' + file.name + ' — this may take a while for large files…', 'info');
+  progressWrap.style.display = 'block';
+  progressLabel.textContent = 'Reading zip…';
+  await new Promise(r => setTimeout(r, 30)); // let the status render before blocking parse
+  try {
+    const zip = await JSZip.loadAsync(file);
+    const f = zip.file('occurrence.csv') || Object.values(zip.files).find(f => !f.dir && f.name.endsWith('.csv'));
+    if (!f) { setStatus('No occurrence.csv found inside ' + file.name + '. Is this a GBIF download zip?', 'error'); progressWrap.style.display = 'none'; return; }
+    progressLabel.textContent = 'Extracting CSV…';
+    const text = await f.async('text');
+    handleGbifCsv(text, file.name);
+  } catch(e) { setStatus('Could not read zip: ' + e.message, 'error'); progressWrap.style.display = 'none'; }
 }
 
 async function handleKMZ(file) {
@@ -5084,6 +5138,29 @@ runBtn.addEventListener('click', async () => {
   }
   if (polygons.length === 0) return;
 
+  // ── Big Data mode: use GBIF async download API instead of live search ──
+  if (BIGDATA_MODE) {
+    const user = document.getElementById('gbifCredsUser').value.trim();
+    const pass = document.getElementById('gbifCredsPass').value;
+    if (!user || !pass) {
+      setStatus('Enter your GBIF username and password above to download.', 'warning');
+      document.getElementById(user ? 'gbifCredsPass' : 'gbifCredsUser').focus();
+      return;
+    }
+    const remember = document.getElementById('gbifRemember').checked;
+    if (remember) {
+      localStorage.setItem('gbif_user', user);
+      localStorage.setItem('gbif_pass', pass);
+    } else {
+      sessionStorage.setItem('gbif_user', user);
+      sessionStorage.setItem('gbif_pass', pass);
+      localStorage.removeItem('gbif_user');
+      localStorage.removeItem('gbif_pass');
+    }
+    await _runGbifDownload(user, pass);
+    return;
+  }
+
   // Guard: species field visible, user typed something but never selected from dropdown
   const _spField = document.getElementById('spField');
   const _spInput = document.getElementById('spInput');
@@ -5364,10 +5441,18 @@ runBtn.addEventListener('click', async () => {
       }
       totalCount = json0.count;
       if (totalCount > MAX_RECORDS) {
+        const _dlParams = new URLSearchParams();
+        polygons.filter(p => p.type !== 'species' && p.wkt).forEach(p => _dlParams.append('wkt', p.wkt));
+        getSelectedTaxonKeys().forEach(k => _dlParams.append('taxon', k));
+        const _df = document.getElementById('dateFrom').value;
+        const _dt = document.getElementById('dateTo').value;
+        if (_df) _dlParams.set('dateFrom', _df);
+        if (_dt) _dlParams.set('dateTo', _dt);
         showTooLargeModal(
           'That area has too many records',
           totalCount.toLocaleString() + ' records found — GBIF limits live queries to ' + MAX_RECORDS.toLocaleString(),
-          'GBIF\'s live search API isn\'t designed for very large datasets — it works best for focused queries on a specific place, taxon group, or time window. Your current area returned more records than it can deliver in one go.'
+          'GBIF\'s live search API isn\'t designed for very large datasets — it works best for focused queries on a specific place, taxon group, or time window. Your current area returned more records than it can deliver in one go.',
+          './?bigdata&' + _dlParams.toString()
         );
         setStatus('⚠️ ' + totalCount.toLocaleString() + ' records — too large. See the popup for suggestions.', 'error');
         setFetchMode(false); return;
@@ -5893,6 +5978,337 @@ document.getElementById('dlChecklistBtn').addEventListener('click', () => {
   }
 })();
 
+async function handleGbifCsv(text, filename) {
+  const lines  = text.split(/\r?\n/);
+  const header = lines[0] ? lines[0].split('\t') : [];
+  if (!header.includes('gbifID') && !header.includes('decimalLatitude')) {
+    setStatus('That doesn\'t look like a GBIF occurrence CSV (expected tab-separated columns including gbifID).', 'error');
+    return;
+  }
+  setStatus('Parsing ' + filename + '…', 'info');
+  progressLabel.textContent = 'Parsing records…';
+  await new Promise(r => setTimeout(r, 30));
+  const rows = [];
+  for (let i = 1; i < lines.length; i++) {
+    if (!lines[i].trim()) continue;
+    const vals = lines[i].split('\t');
+    const row  = {};
+    header.forEach((col, ci) => { row[col] = vals[ci] !== undefined ? vals[ci] : ''; });
+    rows.push(_mapDwcRecord(null, row));
+  }
+  if (rows.length === 0) { setStatus('No records found in ' + filename, 'warning'); return; }
+
+  // If polygons are loaded, filter to records within them
+  const _geomPolys = polygons.filter(p => p.type !== 'species');
+  let displayRows = rows;
+  if (_geomPolys.length > 0) {
+    setStatus('Filtering to drawn polygons…', 'info');
+    progressLabel.textContent = 'Filtering to polygons…';
+    await new Promise(r => setTimeout(r, 30));
+    const turfPolys = _geomPolys.map(p => {
+      try {
+        const coords = p.latlngs.map(ll => [ll.lng !== undefined ? ll.lng : ll[1], ll.lat !== undefined ? ll.lat : ll[0]]);
+        const ring = [...coords];
+        if (ring[0][0] !== ring[ring.length-1][0] || ring[0][1] !== ring[ring.length-1][1]) ring.push(ring[0]);
+        return turf.polygon([ring]);
+      } catch(e) { return null; }
+    }).filter(Boolean);
+    if (turfPolys.length > 0) {
+      displayRows = rows.filter(r => {
+        const lat = parseFloat(r.decimalLatitude), lng = parseFloat(r.decimalLongitude);
+        if (isNaN(lat) || isNaN(lng)) return false;
+        const pt = turf.point([lng, lat]);
+        for (let _pi = 0; _pi < turfPolys.length; _pi++) {
+          try {
+            if (turf.booleanPointInPolygon(pt, turfPolys[_pi])) {
+              r.polygon_name = _geomPolys[_pi].label || '';
+              return true;
+            }
+          } catch(e) {}
+        }
+        return false;
+      });
+    }
+  }
+  if (displayRows.length === 0) { setStatus('No records fell within the drawn polygons.', 'warning'); return; }
+
+  clearResults();
+  allRecords = displayRows;
+  document.getElementById('mRecords').textContent = displayRows.length.toLocaleString();
+  document.getElementById('mSpecies').textContent = new Set(displayRows.map(r => r.species || r.scientificName).filter(Boolean)).size.toLocaleString();
+  metricsGrid.style.display = 'grid';
+  maybeActivateNztcs();
+  setStatus('Looking up common names…', 'info');
+  progressLabel.textContent = 'Looking up common names…';
+  await lookupCommonNames(displayRows);
+  buildFilterChips(displayRows);
+  buildChecklist(displayRows);
+  setTimeout(() => prefetchPhotos(displayRows), 800);
+  const _isMobile = window.innerWidth < 700;
+  if (!_isMobile) checklistPanel.classList.add('open');
+  _showChecklistHandle(true); _updateChecklistHandle(!_isMobile);
+  renderPoints(displayRows);
+  if (!_geomPolys.length && displayRows.some(r => r.decimalLatitude && r.decimalLongitude)) {
+    const lats = displayRows.map(r => r.decimalLatitude).filter(Boolean);
+    const lngs = displayRows.map(r => r.decimalLongitude).filter(Boolean);
+    map.fitBounds([[Math.min(...lats), Math.min(...lngs)], [Math.max(...lats), Math.max(...lngs)]], { padding: [40, 40] });
+  }
+  setTimeout(() => { map.invalidateSize(); }, 100);
+  csvData = buildCSV(displayRows);
+  outputSection.style.display = 'block'; nerdToolsSection.style.display = 'block';
+  const filtered = rows.length - displayRows.length;
+  setStatus(displayRows.length.toLocaleString() + ' records loaded from ' + filename + (filtered > 0 ? ' (' + filtered.toLocaleString() + ' outside polygons removed)' : '') + '.', 'success');
+}
+
+// ── GBIF Big Data — credential check ─────────────────────────────────────
+
+async function _checkGbifCreds() {
+  const user = document.getElementById('gbifCredsUser').value.trim();
+  const pass = document.getElementById('gbifCredsPass').value;
+  const btn  = document.getElementById('gbifCheckBtn');
+  const stat = document.getElementById('gbifCheckStatus');
+  if (!user || !pass) {
+    stat.style.display = 'inline';
+    stat.textContent = '⚠ Enter username and password first.';
+    stat.style.color = '#b07a00';
+    return;
+  }
+  btn.disabled = true;
+  btn.textContent = 'Checking…';
+  stat.style.display = 'none';
+  try {
+    const res = await fetch('https://api.gbif.org/v1/user/login', {
+      headers: { 'Authorization': 'Basic ' + btoa(user + ':' + pass) }
+    });
+    stat.style.display = 'inline';
+    if (res.ok) {
+      stat.textContent = '✓ Valid';
+      stat.style.color = '#2e7d32';
+    } else if (res.status === 401) {
+      stat.textContent = '✗ Invalid username or password';
+      stat.style.color = '#c0392b';
+    } else {
+      stat.textContent = '⚠ GBIF returned ' + res.status;
+      stat.style.color = '#b07a00';
+    }
+  } catch(e) {
+    stat.style.display = 'inline';
+    stat.textContent = '⚠ Network error — check your connection';
+    stat.style.color = '#b07a00';
+  }
+  btn.disabled = false;
+  btn.textContent = 'Check credentials';
+}
+
+// ── GBIF Big Data — download functions ───────────────────────────────────
+
+function _mapDwcRecord(poly, row) {
+  const lat = parseFloat(row['decimalLatitude']);
+  const lng = parseFloat(row['decimalLongitude']);
+  return {
+    polygon_name:                  poly ? (poly.label || null) : null,
+    gbifID:                        row['gbifID']        || null,
+    eventDate:                     row['eventDate']     || null,
+    year:                          row['year']          || null,
+    month:                         row['month']         || null,
+    day:                           row['day']           || null,
+    scientificName:                row['scientificName'] || null,
+    vernacularName:                null,
+    kingdom:                       row['kingdom']  || null,
+    phylum:                        row['phylum']   || null,
+    class:                         row['class']    || null,
+    order:                         row['order']    || null,
+    family:                        row['family']   || null,
+    genus:                         row['genus']    || null,
+    species:                       row['species']  || null,
+    decimalLatitude:               isNaN(lat) ? null : lat,
+    decimalLongitude:              isNaN(lng) ? null : lng,
+    coordinateUncertaintyInMeters: row['coordinateUncertaintyInMeters'] || null,
+    hasGeospatialIssues:           row['issue'] ? String(/COORDINATE_/i.test(row['issue'])) : null,
+    basisOfRecord:                 row['basisOfRecord']  || null,
+    occurrenceID:                  row['occurrenceID']   || null,
+    references:                    null,
+    taxonKey:                      row['taxonKey']       || null,
+    speciesKey:                    row['speciesKey']     || null,
+    datasetName:                   row['datasetName']    || null,
+    datasetKey:                    row['datasetKey']     || null,
+    institutionCode:               row['institutionCode'] || null,
+    country:                       null,
+    countryCode:                   row['countryCode']    || null,
+    stateProvince:                 row['stateProvince']  || null,
+    locality:                      row['locality']       || null,
+    recordedBy:                    row['recordedBy']     || null,
+    establishmentMeans:            row['establishmentMeans'] || null,
+    dynamicProperties:             null,
+    iucnRedListCategory:           null,
+    recordPhoto:                   null,
+    _polyId:    poly ? poly.id    : null,
+    _polyLabel: poly ? poly.label : null,
+    _fromDownload: true
+  };
+}
+
+function _wktEnsureCCW(wkt) {
+  try {
+    const inner = wkt.replace(/^POLYGON\(\(/, '').replace(/\)\)$/, '');
+    const pts = inner.split(',').map(s => { const [x, y] = s.trim().split(' '); return [parseFloat(x), parseFloat(y)]; });
+    // Shoelace formula — negative area = CCW in geographic coords (y-up)
+    let area = 0;
+    for (let i = 0, n = pts.length; i < n; i++) {
+      const [x1, y1] = pts[i], [x2, y2] = pts[(i + 1) % n];
+      area += (x2 - x1) * (y2 + y1);
+    }
+    // area > 0 means clockwise — reverse to make CCW
+    if (area > 0) {
+      const rev = pts.slice().reverse();
+      return 'POLYGON((' + rev.map(c => c[0].toFixed(6) + ' ' + c[1].toFixed(6)).join(',') + '))';
+    }
+  } catch(e) {}
+  return wkt;
+}
+
+function _buildPredicateFromWkts(wkts) {
+  if (!wkts.length) return null;
+  const geomPredicate = wkts.length === 1
+    ? { type: 'within', geometry: wkts[0] }
+    : { type: 'or', predicates: wkts.map(g => ({ type: 'within', geometry: g })) };
+  return geomPredicate;
+}
+
+function _buildGbifDownloadPredicate(simplifyTol) {
+  const _geomPolys      = polygons.filter(p => p.type !== 'species');
+  const _speciesEntries = polygons.filter(p => p.type === 'species');
+  const wkts = [];
+  for (const p of _geomPolys) {
+    if (!simplifyTol) {
+      // First attempt — use pre-built WKT which correctly includes holes
+      wkts.push(getQueryWKT(p));
+      continue;
+    }
+    if (simplifyTol === 'no-holes') {
+      // Strip holes — outer ring only; any records in excluded areas come back but can be filtered
+      try {
+        const coords = p.latlngs.map(ll => [ll.lng !== undefined ? ll.lng : ll[1], ll.lat !== undefined ? ll.lat : ll[0]]);
+        const ring = [...coords];
+        if (ring[0][0] !== ring[ring.length-1][0] || ring[0][1] !== ring[ring.length-1][1]) ring.push(ring[0]);
+        wkts.push(_wktEnsureCCW('POLYGON((' + ring.map(c => c[0].toFixed(6) + ' ' + c[1].toFixed(6)).join(',') + '))'));
+        continue;
+      } catch(e) {}
+      wkts.push(getQueryWKT(p));
+      continue;
+    }
+    // Retry with simplification — simplify outer ring only
+    try {
+      const coords = p.latlngs.map(ll => [ll.lng !== undefined ? ll.lng : ll[1], ll.lat !== undefined ? ll.lat : ll[0]]);
+      const ring = [...coords];
+      if (ring[0][0] !== ring[ring.length-1][0] || ring[0][1] !== ring[ring.length-1][1]) ring.push(ring[0]);
+      const simplified = turf.simplify(turf.polygon([ring]), { tolerance: simplifyTol, highQuality: true });
+      const r = simplified.geometry.coordinates[0];
+      if (r.length >= 4) { // need at least 3 unique points + closing point
+        wkts.push(_wktEnsureCCW('POLYGON((' + r.map(c => c[0].toFixed(6) + ' ' + c[1].toFixed(6)).join(',') + '))'));
+        continue;
+      }
+    } catch(e) {}
+    // Polygon too small to simplify — skip this tolerance, try next
+  }
+  if (!wkts.length) return null;
+  let geomPredicate = null;
+  if (wkts.length === 1)      geomPredicate = { type: 'within', geometry: wkts[0] };
+  else if (wkts.length > 1)  geomPredicate = { type: 'or', predicates: wkts.map(g => ({ type: 'within', geometry: g })) };
+
+  const rawParams = buildTaxonParams(getSelectedTaxonKeys());
+  _speciesEntries.forEach(s => { if (s.taxonKey) rawParams.push(['taxonKey', String(s.taxonKey)]); });
+  const allTaxonKeys = [...new Set(rawParams.map(([, v]) => v))];
+  let taxonPredicate = null;
+  if (allTaxonKeys.length === 1)     taxonPredicate = { type: 'equals', key: 'TAXON_KEY', value: allTaxonKeys[0] };
+  else if (allTaxonKeys.length > 1)  taxonPredicate = { type: 'in', key: 'TAXON_KEY', values: allTaxonKeys };
+
+  const dateFrom = document.getElementById('dateFrom').value;
+  const dateTo   = document.getElementById('dateTo').value || _todayStr;
+  const subs = [
+    ...(geomPredicate  ? [geomPredicate]  : []),
+    ...(taxonPredicate ? [taxonPredicate] : []),
+    ...(dateFrom ? [{ type: 'greaterThanOrEquals', key: 'YEAR', value: dateFrom.slice(0, 4) }] : []),
+    ...(dateTo   ? [{ type: 'lessThanOrEquals',    key: 'YEAR', value: dateTo.slice(0, 4)   }] : [])
+  ];
+  if (subs.length === 0) return { type: 'isNotNull', parameter: 'OCCURRENCE_ID' };
+  if (subs.length === 1) return subs[0];
+  return { type: 'and', predicates: subs };
+}
+
+async function _runGbifDownload(user, pass) {
+  setFetchMode(true); fetchAbortFlag = false; clearResults();
+  taxonMenu.style.display = 'none';
+  const auth = btoa(user + ':' + pass);
+
+  // Step 1: submit request — retry with increasing simplification if GBIF rejects the shape
+  setStatus('Submitting download request to GBIF…', 'info');
+  let downloadKey;
+  const _simplifyTols = [null, 'no-holes', 0.00005, 0.0001, 0.0005, 0.001, 0.005];
+  let _submitted = false;
+  for (const tol of _simplifyTols) {
+    const predicate = _buildGbifDownloadPredicate(tol);
+    if (!predicate) { setFetchMode(false); return; }
+    let res;
+    try {
+      res = await fetch('https://api.gbif.org/v1/occurrence/download/request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Basic ' + auth },
+        body: JSON.stringify({ creator: user, sendNotification: true, format: 'SIMPLE_CSV', predicate })
+      });
+    } catch(e) { setStatus('Download request failed: ' + e.message, 'error'); setFetchMode(false); return; }
+    if (res.status === 401) {
+      sessionStorage.removeItem('gbif_pass'); localStorage.removeItem('gbif_pass');
+      document.getElementById('gbifCredsPass').value = '';
+      setStatus('Invalid GBIF credentials — check your password and try again.', 'error');
+      setFetchMode(false); return;
+    }
+    if (res.status === 400) {
+      const t = await res.text().catch(() => '');
+      if (t.includes('Invalid shape') || t.includes('WKT') || t.includes('clockwise')) {
+        if (tol === 'no-holes') setStatus('Polygon has exclusion zones — retrying without holes…', 'info');
+        else if (tol !== null) setStatus('Simplifying polygon (tolerance ' + tol + ')…', 'info');
+        continue; // retry with next tolerance
+      }
+      setStatus('Download request failed: HTTP 400: ' + t.slice(0, 200), 'error'); setFetchMode(false); return;
+    }
+    if (!res.ok) { const t = await res.text().catch(() => ''); setStatus('Download request failed: HTTP ' + res.status + ': ' + t.slice(0, 200), 'error'); setFetchMode(false); return; }
+    downloadKey = (await res.text()).replace(/"/g, '').trim();
+    _submitted = true;
+    break;
+  }
+  if (!_submitted) {
+    // Last resort — bounding box of all polygons
+    setStatus('Retrying with bounding box (records outside exact boundary may be included)…', 'info');
+    try {
+      const _fallbackPolys = polygons.filter(p => p.type !== 'species');
+      const allLats = _fallbackPolys.flatMap(p => p.latlngs.map(ll => ll.lat !== undefined ? ll.lat : ll[0]));
+      const allLngs = _fallbackPolys.flatMap(p => p.latlngs.map(ll => ll.lng !== undefined ? ll.lng : ll[1]));
+      const minLng = Math.min(...allLngs).toFixed(6), maxLng = Math.max(...allLngs).toFixed(6);
+      const minLat = Math.min(...allLats).toFixed(6), maxLat = Math.max(...allLats).toFixed(6);
+      const bboxWkt = "POLYGON((" + minLng + " " + minLat + "," + maxLng + " " + minLat + "," + maxLng + " " + maxLat + "," + minLng + " " + maxLat + "," + minLng + " " + minLat + "))";
+      const bboxPred = _buildPredicateFromWkts([bboxWkt]);
+      const res = await fetch('https://api.gbif.org/v1/occurrence/download/request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Basic ' + auth },
+        body: JSON.stringify({ creator: user, sendNotification: true, format: 'SIMPLE_CSV', predicate: bboxPred })
+      });
+      if (res.ok) {
+        downloadKey = (await res.text()).replace(/"/g, '').trim();
+        _submitted = true;
+      }
+    } catch(e) {}
+    if (!_submitted) { setStatus('Could not submit — polygon geometry could not be sent to GBIF.', 'error'); setFetchMode(false); return; }
+  }
+
+  // Step 2: done - fire and forget. GBIF emails the user when ready.
+  const _keyMsg = "Request submitted (key: " + downloadKey + "). GBIF will email you when ready (can take 15+ minutes). "
+    + "<a href=\"https://www.gbif.org/user/download\" target=\"_blank\" style=\"color:var(--green-dark);\">Check progress on GBIF</a>"
+    + "<br>When the zip arrives, drop it into the upload zone at the top of this column.";
+  setStatus(_keyMsg, "success");
+  setFetchMode(false);
+}
+
 // Restore shared search after everything is initialised
 if (window._pendingShare) {
   restoreFromShare(window._pendingShare);
@@ -5915,6 +6331,15 @@ if (window._pendingShare) {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v5.92</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>Big Data mode — ported from beta: add <code>?bigdata</code> to the URL for the GBIF async download path with no 10,000 record cap (requires a free GBIF account; credentials stored in browser only)</li>
+        <li>Upload zone now also accepts GBIF download <code>.zip</code>/<code>.csv</code> files, filtered to any drawn polygons</li>
+        <li>"That area has too many records" popup now links straight to Big Data Mode, pre-filling the polygon, taxa, and date range</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v5.91</span>
       <span class="changelog-date">Jun 2026</span>

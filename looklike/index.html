@@ -438,7 +438,7 @@
 
 <header>
   <div class="logo"><img src="Logo-long.png" alt="LookLike?"></div>
-  <div class="header-meta" id="header-meta"><span id="header-label">Visual species photo browser · <a href="https://www.rutherfordecology.co.nz/" target="_blank" rel="noopener" class="re-link"><span class="re-by">by </span><span class="re-name">Rutherford</span><span class="re-by"> ecology</span></a></span> <span class="version">v1.32</span></div>
+  <div class="header-meta" id="header-meta"><span id="header-label">Visual species photo browser · <a href="https://www.rutherfordecology.co.nz/" target="_blank" rel="noopener" class="re-link"><span class="re-by">by </span><span class="re-name">Rutherford</span><span class="re-by"> ecology</span></a></span> <span class="version">v1.33</span></div>
   <a class="bmc-btn" href="https://buymeacoffee.com/rutherfordecology" target="_blank" rel="noopener">☕ Buy me a coffee</a>
   <div id="filter-wrap">
     <input id="filter-input" type="search" placeholder="Filter species…" autocomplete="off">
@@ -527,7 +527,7 @@ function showLanding() {
 loadBtn.addEventListener('click', () => {
   const raw = input.value.trim();
   if (!raw) return;
-  const names = raw.split('\n').map(s => s.trim()).filter(Boolean);
+  const names = raw.split(/[\n,]/).map(s => s.trim()).filter(Boolean);
   if (!names.length) return;
   state.names = names;
   state.cards = [];
@@ -666,10 +666,16 @@ async function loadCard(idx) {
         .map(r => ({ url: r.photoUrl, gbifID: r.gbifID, occurrenceID: r.occurrenceID, references: r.references, institutionCode: r.institutionCode, datasetKey: r.datasetKey })))
     : Promise.resolve([]);
 
-  const [inatRes, gbifRes] = await Promise.allSettled([
+  // Fire the GBIF-photo fallback in parallel with the iNat lookup (rather than only
+  // starting it after iNat resolves and turns out to have no photo) — for species iNat
+  // can't match on the first try, fetchINat already makes up to 3 sequential API calls,
+  // so waiting until afterward to even start the fallback request roughly doubled load time.
+  const [inatRes, gbifRes, gbifFallbackRes] = await Promise.allSettled([
     fetchINat(card.name),
     gbifPromise,
+    fetchGBIF(card.name),
   ]);
+  const gbifFallback = gbifFallbackRes.status === 'fulfilled' ? gbifFallbackRes.value : [];
 
   // iNat
   const inatSlot = el.querySelector('[data-slot="inat"]');
@@ -687,17 +693,13 @@ async function loadCard(idx) {
     }
     if (photoUrl) {
       renderPhoto(inatSlot, photoUrl, `${card.name} — iNaturalist`, card.name, commonName);
+    } else if (gbifFallback.length) {
+      renderPhoto(inatSlot, gbifThumb(gbifFallback[0].url, 500), `${card.name} — GBIF`, card.name, commonName, gbifFallback[0].url);
     } else {
-      const gbifFallback = await fetchGBIF(card.name);
-      if (gbifFallback.length) {
-        renderPhoto(inatSlot, gbifThumb(gbifFallback[0].url, 500), `${card.name} — GBIF`, card.name, commonName, gbifFallback[0].url);
-      } else {
-        renderNoPhoto(inatSlot);
-      }
+      renderNoPhoto(inatSlot);
     }
   } else {
     el.querySelector('.common-name').textContent = '—';
-    const gbifFallback = await fetchGBIF(card.name);
     if (gbifFallback.length) {
       renderPhoto(inatSlot, gbifThumb(gbifFallback[0].url, 500), `${card.name} — GBIF`, card.name, '', gbifFallback[0].url);
     } else {
