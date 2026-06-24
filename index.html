@@ -45,7 +45,7 @@
       <img src="occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v5.90</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v5.91</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -4481,10 +4481,19 @@ function filterChecklistByTaxon() {
     header.style.opacity = visible ? '1' : '0.4';
     const chev = header.querySelector('.cl-chevron');
     if (chev) chev.style.transform = visible ? 'rotate(0deg)' : 'rotate(-90deg)';
+    // Keep the group tick in sync — a minimised/hidden group should read as unticked
+    const gcb = header.querySelector('.cl-group-cb');
+    if (gcb) { gcb.checked = visible; gcb.indeterminate = false; }
     // Show/hide the species rows beneath it
     let el = header.nextElementSibling;
     while (el && !el.classList.contains('cl-group-header')) {
       el.style.display = visible ? '' : 'none';
+      if (el.classList.contains('cl-row')) {
+        const cb = el.querySelector('.cl-photo-cb');
+        const name = el.dataset.species;
+        if (cb) cb.checked = visible;
+        if (name) { if (visible) hiddenSpecies.delete(name); else hiddenSpecies.add(name); }
+      }
       el = el.nextElementSibling;
     }
   });
@@ -4584,6 +4593,8 @@ function buildChecklist(records) {
       if (viewMode === 'heat') renderHeatmap(allRecords);
       else { renderPoints(allRecords); applyTimelineFilter(); }
       filterChecklistByTaxon();
+      document.getElementById('mShown').textContent = allRecords.filter(passesFilters).length.toLocaleString();
+      _updateLooklikeBtn();
       csvData = buildCSV(allRecords.filter(passesFilters));
     }
     gh.addEventListener('click', handleGroupToggle);
@@ -5904,6 +5915,13 @@ if (window._pendingShare) {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v5.91</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>Minimising a taxon group in the species checklist now unticks it (and re-ticking it expands it back) — the checkbox state was previously left stale when a group was collapsed by its header</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v5.90</span>
       <span class="changelog-date">Jun 2026</span>
