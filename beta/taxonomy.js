@@ -955,8 +955,38 @@
         `</div>` + rankHtml;
       row.addEventListener('click', () => resolveAndJump(r));
       drop.appendChild(row);
+      // NZOR covers all ranks but its name index carries no rank metadata, so
+      // family/order/class hits (e.g. "Psittacidae") show with no badge at first,
+      // looking indistinguishable from a typo. Resolve the real rank in the
+      // background and patch the badge in once known — this also caches the
+      // gbifKey so a click resolves instantly instead of re-matching.
+      if (!r.rank && !r.gbifKey && r.nzorData) _lazyResolveRank(row, r);
     });
     drop.style.display = '';
+  }
+
+  async function _lazyResolveRank(rowEl, result) {
+    const sci = result.nzorData.sci || result.nzorData.n;
+    if (!sci) return;
+    try {
+      const url = 'https://api.gbif.org/v1/species/match?name='
+                + encodeURIComponent(sci)
+                + '&datasetKey=d7dddbf4-2cf0-4f39-9b2a-bb099caae36c&verbose=false';
+      const res = await fetch(url);
+      if (!res.ok) return;
+      const j = await res.json();
+      if (j.matchType === 'NONE' || !j.rank || !j.usageKey) return;
+      result.rank    = RANK_LABELS[j.rank] || j.rank;
+      result.gbifKey = j.usageKey; // cache — resolveAndJump skips re-matching on click
+      if (!rowEl.isConnected) return; // dropdown may have closed/re-rendered by now
+      let rankEl = rowEl.querySelector('.miller-sug-rank');
+      if (!rankEl) {
+        rankEl = document.createElement('span');
+        rankEl.className = 'miller-sug-rank';
+        rowEl.appendChild(rankEl);
+      }
+      rankEl.textContent = result.rank;
+    } catch(e) {}
   }
 
   async function resolveAndJump(result) {

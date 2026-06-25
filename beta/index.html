@@ -46,7 +46,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v6.10</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v6.14</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -2714,14 +2714,41 @@ document.getElementById('clNztcsFilters').addEventListener('click', e => {
   csvData = buildCSV(allRecords.filter(passesFilters));
 });
 
+// NZTCS sometimes carries one record under a name GBIF has since split into two
+// accepted species (e.g. the kōtuku is logged in GBIF as both "Ardea alba" and
+// "Ardea modesta", depending on which taxonomy a dataset used). Once a record's
+// own name resolves to an NZTCS entry under a *different* binomial, re-point it
+// onto that binomial — NZTCS is treated as the authority, so both GBIF names
+// lump into a single checklist row instead of showing as two separate species.
+function _lumpNztcsSpeciesNames(records) {
+  if (!nztcsData) return;
+  records.forEach(r => {
+    const res = lookupNztcs(r);
+    if (!res || res.conflict || !res.certain) return;
+    const canonical = (res.entry.name || '').trim().split(/\s+/).slice(0, 2).join(' ');
+    if (!canonical) return;
+    const current = (r.species || r.scientificName || '').trim().split(/\s+/).slice(0, 2).join(' ');
+    if (current && canonical.toLowerCase() !== current.toLowerCase()) {
+      r.species = canonical;
+    }
+  });
+}
+
 async function loadNztcsData() {
-  if (nztcsData) { nztcsUnlocked = true; updateNztcsBtn(); if (allRecords.length > 0) buildChecklist(allRecords); return; }
+  if (nztcsData) {
+    nztcsUnlocked = true;
+    updateNztcsBtn();
+    _lumpNztcsSpeciesNames(allRecords);
+    if (allRecords.length > 0) buildChecklist(allRecords);
+    return;
+  }
   try {
     const resp = await fetch('nztcs.json');
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
     nztcsData     = await resp.json();
     nztcsUnlocked = true;
     updateNztcsBtn();
+    _lumpNztcsSpeciesNames(allRecords);
     if (allRecords.length > 0) buildChecklist(allRecords);
   } catch(err) {
     console.warn('NZTCS load failed:', err);
@@ -3456,6 +3483,27 @@ function buildRecordPage(rec) {
   };
 }
 
+// Popup photos default to object-fit:cover in a fixed-height box, which crops
+// hard into either edge once the photo's aspect ratio diverges much from the
+// box's — wide landscape shots lose their sides, tall portraits lose top/bottom.
+// Once that crop would lose more than ~20% of the photo, fall back to a
+// letterboxed contain fit instead of cropping it away.
+window._gbifFitPhoto = function(img) {
+  const bw = img.offsetWidth, bh = img.offsetHeight;
+  if (!bw || !bh || !img.naturalWidth || !img.naturalHeight) return;
+  const boxAspect = bw / bh;
+  const imgAspect = img.naturalWidth / img.naturalHeight;
+  const cropFrac = imgAspect > boxAspect ? 1 - (boxAspect / imgAspect) : 1 - (imgAspect / boxAspect);
+  if (cropFrac > 0.2) {
+    img.style.width = 'auto';
+    img.style.maxWidth = '100%';
+    img.style.height = bh + 'px';
+    img.style.objectFit = 'contain';
+    img.style.margin = '0 auto';
+    img.style.display = 'block';
+  }
+};
+
 function renderPhotoSlot(slotId, idx) {
   const slot = document.getElementById(slotId);
   const data = _photoSlots[slotId];
@@ -3479,7 +3527,7 @@ function renderPhotoSlot(slotId, idx) {
     '<div style="position:relative;">' +
       '<img src="' + photo.url + '" alt="' + sciName + '" ' +
         'style="width:100%;height:' + imgH + ';object-fit:cover;border-radius:4px;display:block;" ' +
-        'onload="if(this.naturalHeight>this.naturalWidth){this.style.width=\'auto\';this.style.maxWidth=\'100%\';this.style.objectFit=\'contain\';this.style.margin=\'0 auto\';}" ' +
+        'onload="window._gbifFitPhoto(this)" ' +
         'onerror="this.parentElement.parentElement.innerHTML=\'\'">' +
       _expandBtn(photo.url, photo.photographer || '') +
     '</div>' +
@@ -3537,7 +3585,7 @@ window._gbifShowRecordPhoto = function(slotId, photoKey) {
     '<div style="position:relative;">' +
       '<img src="' + gbifThumb(photo.url, 400) + '" alt="" ' +
       'style="width:100%;height:' + imgH + ';object-fit:cover;border-radius:4px;display:block;" ' +
-      'onload="if(this.naturalHeight>this.naturalWidth){this.style.width=\'auto\';this.style.maxWidth=\'100%\';this.style.objectFit=\'contain\';this.style.margin=\'0 auto\';}" ' +
+      'onload="window._gbifFitPhoto(this)" ' +
       'onerror="window._gbifImgFallback(this,\'' + photoKey + '\')"> ' +
       _expandBtn(photo.url, photo.photographer || '') +
     '</div>' +
@@ -6129,25 +6177,6 @@ function _mapDwcRecord(poly, row) {
   };
 }
 
-function _wktEnsureCCW(wkt) {
-  try {
-    const inner = wkt.replace(/^POLYGON\(\(/, '').replace(/\)\)$/, '');
-    const pts = inner.split(',').map(s => { const [x, y] = s.trim().split(' '); return [parseFloat(x), parseFloat(y)]; });
-    // Shoelace formula — negative area = CCW in geographic coords (y-up)
-    let area = 0;
-    for (let i = 0, n = pts.length; i < n; i++) {
-      const [x1, y1] = pts[i], [x2, y2] = pts[(i + 1) % n];
-      area += (x2 - x1) * (y2 + y1);
-    }
-    // area > 0 means clockwise — reverse to make CCW
-    if (area > 0) {
-      const rev = pts.slice().reverse();
-      return 'POLYGON((' + rev.map(c => c[0].toFixed(6) + ' ' + c[1].toFixed(6)).join(',') + '))';
-    }
-  } catch(e) {}
-  return wkt;
-}
-
 function _buildPredicateFromWkts(wkts) {
   if (!wkts.length) return null;
   const geomPredicate = wkts.length === 1
@@ -6167,26 +6196,42 @@ function _buildGbifDownloadPredicate(simplifyTol) {
       continue;
     }
     if (simplifyTol === 'no-holes') {
-      // Strip holes — outer ring only; any records in excluded areas come back but can be filtered
+      // Strip holes — outer ring only; any records in excluded areas come back but can be filtered.
+      // Goes through latlngsToWKT (not a manual ring string) so antimeridian-crossing
+      // polygons still get split into a MULTIPOLYGON instead of silently wrapping wrong.
       try {
-        const coords = p.latlngs.map(ll => [ll.lng !== undefined ? ll.lng : ll[1], ll.lat !== undefined ? ll.lat : ll[0]]);
-        const ring = [...coords];
-        if (ring[0][0] !== ring[ring.length-1][0] || ring[0][1] !== ring[ring.length-1][1]) ring.push(ring[0]);
-        wkts.push(_wktEnsureCCW('POLYGON((' + ring.map(c => c[0].toFixed(6) + ' ' + c[1].toFixed(6)).join(',') + '))'));
+        wkts.push(latlngsToWKT(p.latlngs, []));
         continue;
       } catch(e) {}
       wkts.push(getQueryWKT(p));
       continue;
     }
-    // Retry with simplification — simplify outer ring only
+    // Retry with simplification — simplify outer ring only.
+    // Unwrap to continuous coordinates first so turf.simplify doesn't see a fake
+    // ~360°-wide polygon where the ring crosses the antimeridian, then hand the
+    // simplified ring to latlngsToWKT to re-split it into a MULTIPOLYGON if needed.
     try {
-      const coords = p.latlngs.map(ll => [ll.lng !== undefined ? ll.lng : ll[1], ll.lat !== undefined ? ll.lat : ll[0]]);
-      const ring = [...coords];
+      const continuous = [];
+      let prevLng = null;
+      for (const ll of p.latlngs) {
+        const lat = ll.lat !== undefined ? ll.lat : ll[0];
+        let lng   = ll.lng !== undefined ? ll.lng : ll[1];
+        lng = ((lng % 360) + 360) % 360;
+        if (lng > 180) lng -= 360;
+        if (prevLng !== null) {
+          while (lng - prevLng >  180) lng -= 360;
+          while (lng - prevLng < -180) lng += 360;
+        }
+        prevLng = lng;
+        continuous.push([lng, lat]);
+      }
+      const ring = [...continuous];
       if (ring[0][0] !== ring[ring.length-1][0] || ring[0][1] !== ring[ring.length-1][1]) ring.push(ring[0]);
       const simplified = turf.simplify(turf.polygon([ring]), { tolerance: simplifyTol, highQuality: true });
       const r = simplified.geometry.coordinates[0];
       if (r.length >= 4) { // need at least 3 unique points + closing point
-        wkts.push(_wktEnsureCCW('POLYGON((' + r.map(c => c[0].toFixed(6) + ' ' + c[1].toFixed(6)).join(',') + '))'));
+        const asLatLngs = r.slice(0, -1).map(c => ({ lat: c[1], lng: c[0] }));
+        wkts.push(latlngsToWKT(asLatLngs, []));
         continue;
       }
     } catch(e) {}
@@ -6312,6 +6357,34 @@ if (window._pendingShare) {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v6.14</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>NZTCS species lumping — when GBIF records the same NZTCS-listed taxon under two different accepted names (e.g. kōtuku as both <em>Ardea alba</em> and <em>Ardea modesta</em>), both now merge into one checklist row under NZTCS's name instead of appearing as two separate species</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v6.13</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>Popup photos — wide landscape shots no longer get their left/right edges cropped off; the fixed-height cover-fit now falls back to a letterboxed contain fit once cropping would lose more than ~20% of the photo (previously only applied to tall portrait photos)</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v6.12</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>Fixed Big Data Mode downloads for polygons crossing the antimeridian (e.g. Kamchatka–Alaska) — the shape-simplification retry path built a manual WKT ring that mixed positive/negative longitudes into a self-intersecting shape, returning only a sliver of the drawn area instead of the full region</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v6.11</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>Tree of life search — Family/Order/Class hits from the local name index (e.g. "Psittacidae") now get their rank badge filled in shortly after appearing, instead of staying unlabeled forever; resolving also speeds up the click since the GBIF key gets cached ahead of time</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v6.10</span>
       <span class="changelog-date">Jun 2026</span>
