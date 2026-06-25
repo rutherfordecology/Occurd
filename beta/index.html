@@ -6110,12 +6110,16 @@ async function handleGbifCsv(text, filename) {
   const _isMobile = window.innerWidth < 700;
   if (!_isMobile) checklistPanel.classList.add('open');
   _showChecklistHandle(true); _updateChecklistHandle(!_isMobile);
-  renderPoints(displayRows);
+  // Fit the map to the data's extent BEFORE rendering points — makeMarker() shifts each
+  // marker to the world copy nearest the map's *current* center to handle the antimeridian,
+  // so the map must already be centered on the new data first or markers land a world away
+  // (hit this for real with Samoa, which sits right next to the date line).
   if (!_geomPolys.length && displayRows.some(r => r.decimalLatitude && r.decimalLongitude)) {
     const lats = displayRows.map(r => r.decimalLatitude).filter(Boolean);
     const lngs = displayRows.map(r => r.decimalLongitude).filter(Boolean);
     map.fitBounds([[Math.min(...lats), Math.min(...lngs)], [Math.max(...lats), Math.max(...lngs)]], { padding: [40, 40] });
   }
+  renderPoints(displayRows);
   setTimeout(() => { map.invalidateSize(); }, 100);
   csvData = buildCSV(displayRows);
   outputSection.style.display = 'block'; nerdToolsSection.style.display = 'block';
