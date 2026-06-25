@@ -46,7 +46,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v5.97</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v6.14</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -88,7 +88,7 @@
           <input type="file" id="fileInput" accept=".kml,.kmz,.csv,.zip" multiple>
           <div style="display:flex;align-items:center;gap:8px;justify-content:center;">
             <span style="font-size:18px;">&#128506;</span>
-            <span style="font-size:12px;color:var(--text2);">Drop <strong>KML/KMZ</strong> or a <strong>GBIF download .zip/.csv</strong> here, or <span style="color:var(--green);text-decoration:underline;cursor:pointer;">browse</span> — or draw on the map</span>
+            <span id="dropZoneLabel" style="font-size:12px;color:var(--text2);">Drop <strong>KML/KMZ</strong> or <strong>GBIF CSV/ZIP</strong> here, or <span style="color:var(--green);text-decoration:underline;cursor:pointer;">browse</span> — or draw on the map</span>
           </div>
         </div>
         <div class="poly-list" id="polyList">
@@ -409,12 +409,7 @@
       <div class="cl-nztcs-filters" id="clNztcsFilters" style="display:none;">
         <span class="filter-row-label">NZTCS</span>
         <button class="nztcs-fc active" data-f="all">All</button>
-        <button class="nztcs-fc" data-f="nc">NC</button>
-        <button class="nztcs-fc" data-f="ne">NE</button>
-        <button class="nztcs-fc" data-f="nv">NV</button>
-        <button class="nztcs-fc" data-f="ar">At Risk</button>
-        <button class="nztcs-fc" data-f="rc">Recovering</button>
-        <button class="nztcs-fc" data-f="ex">Extinct</button>
+        <!-- dynamic per-status chips rendered by updateNztcsChipCounts -->
       </div>
       <div class="cl-iucn-filters" id="clIucnFilters" style="display:none;">
         <span class="filter-row-label">IUCN Red List</span>
@@ -465,6 +460,10 @@
                cursor:pointer;font-size:12px;font-weight:600;font-family:var(--font-sans);white-space:nowrap;"
         id="shareModalCopyBtn">Copy</button>
     </div>
+    <div id="shareModalCsvRow" style="display:none;margin-top:0.75rem;padding-top:0.75rem;border-top:1px solid var(--border);">
+      <p style="font-size:12px;color:var(--text2);margin:0 0 0.5rem;">Download the current results as a CSV file.</p>
+      <button onclick="downloadCurrentCsv()" style="background:var(--green);color:#fff;border:none;border-radius:6px;padding:6px 14px;cursor:pointer;font-size:12px;font-weight:600;font-family:var(--font-sans);">&#8595; Download CSV</button>
+    </div>
     <div style="text-align:right;margin-top:1rem;">
       <button onclick="document.getElementById('shareModal').classList.remove('open')"
         style="background:none;border:1px solid var(--border);border-radius:6px;cursor:pointer;
@@ -508,43 +507,8 @@
     <h3>Feedback</h3>
     <p>Found a bug or have a suggestion? <a href="mailto:rutherfordecology@gmail.com" style="color:var(--green);">rutherfordecology@gmail.com</a></p>
 
-    <h3>Check out these other apps</h3>
-    <ul style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:0.5rem;">
-      <li><a href="https://rutherfordecology.github.io/Occurd/looklike/" target="_blank" style="color:var(--green);font-weight:500;">LookLike</a> — identify species from photos</li>
-      <li><a href="https://rutherfordecology.github.io/Occurd/whatdat/" target="_blank" style="color:var(--green);font-weight:500;">WhatDat</a> — species identification quiz</li>
-      <li><a href="https://rutherfordecology.github.io/WhatDatBird/" target="_blank" style="color:var(--green);font-weight:500;">WhatDatBird</a> — bird identification challenge</li>
-      <li style="font-size:0.85em;color:var(--text3);">&#127757; For New Zealand users: <a href="https://rutherfordecology.github.io/Occurd/but-is-it-threatened/" target="_blank" style="color:var(--green);font-weight:500;">But Is It Threatened?</a> — check NZ threat status</li>
-    </ul>
-
     <div class="modal-btns" style="margin-top:1.2rem;">
       <button class="modal-btn primary" id="aboutClose">Close</button>
-    </div>
-  </div>
-</div>
-
-<!-- Too-large fetch explainer modal -->
-<div class="modal-overlay" id="tooLargeModal" style="z-index:10001;display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);align-items:center;justify-content:center;padding:20px;">
-  <div class="modal" style="max-width:520px;width:92%;padding:1.75rem;border-radius:16px;background:#fff;box-shadow:0 20px 60px rgba(0,0,0,0.2);">
-    <div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:1rem;">
-      <span style="font-size:2rem;line-height:1;">&#128308;</span>
-      <div>
-        <h2 style="margin:0 0 4px;font-size:1.1rem;color:#1c1b18;" id="tooLargeTitle">That area is too large</h2>
-        <p style="margin:0;font-size:0.8rem;color:#9b9890;" id="tooLargeSubtitle"></p>
-      </div>
-    </div>
-    <p style="margin:0 0 1rem;font-size:0.88rem;color:#4a4945;line-height:1.6;" id="tooLargeBody"></p>
-    <div style="background:#f3f2ee;border-radius:10px;padding:12px 14px;margin-bottom:1.2rem;">
-      <p style="margin:0 0 6px;font-size:0.78rem;font-weight:800;color:#6b6960;letter-spacing:0.06em;text-transform:uppercase;">Try one of these</p>
-      <ul style="margin:0;padding-left:16px;font-size:0.85rem;color:#4a4945;line-height:1.8;">
-        <li><strong>Smaller area</strong> — draw a tighter polygon around a park, bay, or reserve</li>
-        <li><strong>Filter by taxon</strong> — choose Birds, Plants, Fish etc. before fetching</li>
-        <li><strong>Shorter date range</strong> — narrow the year range in the date filter</li>
-        <li><strong>Occurd Big Data</strong> — for large datasets with no 10,000-record cap, use <a id="tooLargeBigDataLink" href="./?bigdata" target="_blank" style="color:var(--green-dark);font-weight:700;">Big Data Mode ↗</a> (requires a free GBIF account; download the zip it emails you and drop it into the upload zone here)</li>
-      </ul>
-    </div>
-    <div style="display:flex;gap:10px;justify-content:flex-end;">
-      <button onclick="document.getElementById('tooLargeModal').style.display='none'" style="padding:9px 18px;background:none;border:1.5px solid #dddbd3;border-radius:8px;font-size:0.88rem;font-weight:700;cursor:pointer;font-family:inherit;color:#6b6960;">Dismiss</button>
-      <button onclick="document.getElementById('tooLargeModal').style.display='none';document.getElementById('runBtn').click()" style="padding:9px 18px;background:var(--green-dark);border:none;border-radius:8px;font-size:0.88rem;font-weight:700;cursor:pointer;font-family:inherit;color:#fff;">Try again</button>
     </div>
   </div>
 </div>
@@ -1138,7 +1102,6 @@ if (BIGDATA_MODE) {
   document.getElementById('gbifCredsPass').value = _sp;
   if (localStorage.getItem('gbif_user')) document.getElementById('gbifRemember').checked = true;
 }
-
 let viewMode = 'points', selectedSpecies = null, nextPolyId = 0, csvData = null, pendingLoad = null;
 let tlFilterMin = null, tlFilterMax = null; // timeline year filter (null = no filter)
 let tlRainbow = false; // colour points by year gradient when in timeline mode
@@ -1387,14 +1350,6 @@ function setFetchMode(fetching) {
     hideOccLoadingPhrase();
   }
 }
-function showTooLargeModal(title, subtitle, body, bigDataUrl) {
-  document.getElementById('tooLargeTitle').textContent   = title;
-  document.getElementById('tooLargeSubtitle').textContent = subtitle || '';
-  document.getElementById('tooLargeBody').textContent    = body;
-  document.getElementById('tooLargeBigDataLink').href = bigDataUrl || './?bigdata';
-  document.getElementById('tooLargeModal').style.display = 'flex';
-}
-
 function setStatus(msg, type, withCancel) {
   statusBar.className = 'status-bar ' + type;
   statusBar.style.display = 'block';
@@ -1630,6 +1585,7 @@ function copyShareUrl() {
   const input = document.getElementById('shareUrlInput');
   const copyBtn = document.getElementById('shareModalCopyBtn');
   document.getElementById('shareModal').classList.add('open');
+  document.getElementById('shareModalCsvRow').style.display = csvData ? 'block' : 'none';
   if (input) { input.value = url; setTimeout(() => input.select(), 50); }
   if (copyBtn) { copyBtn.textContent = 'Copy'; copyBtn.style.background = 'var(--green)'; }
 
@@ -2560,13 +2516,22 @@ const NZTCS_STATUS_CFG = {
   'Vagrant':                    { cls:'oi', label:'Va'  },
 };
 const NZTCS_FILTER_GROUPS = {
-  'nc':  ['Nationally Critical'],
-  'ne':  ['Nationally Endangered'],
-  'nv':  ['Nationally Vulnerable'],
-  'ar':  ['Declining', 'Naturally Uncommon', 'Relict', 'Gradual Decline', 'Serious Decline', 'Uncommon'],
-  'rc':  ['Recovering', 'Nationally Increasing'],
-  'ex':  ['Extinct'],
+  'th': ['Nationally Critical', 'Nationally Endangered', 'Nationally Vulnerable', 'Nationally Increasing', 'Declining', 'Naturally Uncommon', 'Relict', 'Gradual Decline', 'Serious Decline', 'Uncommon', 'Recovering', 'Extinct'],
+  'nc': ['Nationally Critical'],
+  'ne': ['Nationally Endangered'],
+  'nv': ['Nationally Vulnerable'],
+  'de': ['Declining'],
+  'nu': ['Naturally Uncommon'],
+  're': ['Relict'],
+  'gd': ['Gradual Decline'],
+  'sd': ['Serious Decline'],
+  'un': ['Uncommon'],
+  'rc': ['Recovering'],
+  'ni': ['Nationally Increasing'],
+  'ex': ['Extinct'],
 };
+const NZTCS_FILTER_LABELS = { th:'All Threatened', nc:'NC', ne:'NE', nv:'NV', de:'De', nu:'NU', re:'Re', gd:'GD', sd:'SD', un:'Un', rc:'Rc', ni:'NI', ex:'Ex' };
+const NZTCS_FILTER_ORDER  = ['th','nc','ne','nv','de','nu','re','gd','sd','un','rc','ni','ex'];
 
 function nztcsNormKey(s) {
   if (!s) return null;
@@ -2711,22 +2676,30 @@ function updateIucnBtn() {
 }
 
 function updateNztcsChipCounts() {
-  const counts = { all: 0, nc: 0, ne: 0, nv: 0, ar: 0, rc: 0, ex: 0 };
+  const counts = {};
+  NZTCS_FILTER_ORDER.forEach(k => { counts[k] = 0; });
   document.querySelectorAll('#clScroll .cl-row').forEach(row => {
-    counts.all++;
     const status = row.dataset.nztcs;
-    if (status) {
-      for (const [key, statuses] of Object.entries(NZTCS_FILTER_GROUPS)) {
-        if (statuses.includes(status)) { counts[key]++; break; }
-      }
-    }
+    if (!status) return;
+    NZTCS_FILTER_ORDER.forEach(k => {
+      if (NZTCS_FILTER_GROUPS[k].includes(status)) counts[k]++;
+    });
   });
-  document.querySelectorAll('.nztcs-fc[data-f]').forEach(btn => {
-    const f = btn.dataset.f;
-    if (!btn.dataset.baseLabel) btn.dataset.baseLabel = btn.textContent.replace(/\s*\(\d+\)$/, '');
-    const c = counts[f] !== undefined ? counts[f] : 0;
-    btn.textContent = (f !== 'all' && c > 0) ? btn.dataset.baseLabel + ' (' + c + ')' : btn.dataset.baseLabel;
+  const container = document.getElementById('clNztcsFilters');
+  // Remove all dynamic chips (everything except 'all' and the label span)
+  container.querySelectorAll('.nztcs-fc:not([data-f="all"])').forEach(b => b.remove());
+  // Re-add chips for statuses present in the data, in defined order
+  NZTCS_FILTER_ORDER.forEach(k => {
+    if (counts[k] === 0) return;
+    const btn = document.createElement('button');
+    btn.className = 'nztcs-fc';
+    btn.dataset.f = k;
+    btn.textContent = NZTCS_FILTER_LABELS[k] + (k !== 'th' ? ' (' + counts[k] + ')' : '');
+    if (currentNztcsFilter === k) btn.classList.add('active');
+    container.appendChild(btn);
   });
+  // Keep 'all' active state correct
+  container.querySelector('.nztcs-fc[data-f="all"]').classList.toggle('active', currentNztcsFilter === 'all');
 }
 
 
@@ -2919,17 +2892,16 @@ function searchAreaOverlapsNZ() {
   });
 }
 
-// Called after each search completes. Shows NZTCS button only for NZ searches.
+// Called after each search completes. Shows NZTCS button whenever records are loaded.
 function maybeActivateNztcs() {
   const btn = document.getElementById('clNztcsBtn');
-  if (!searchAreaOverlapsNZ()) {
+  if (allRecords.length === 0) {
     btn.style.display = 'none';
     nztcsUnlocked = false;
     document.getElementById('clNztcsFilters').style.display = 'none';
     currentNztcsFilter = 'all';
     return;
   }
-  // NZ search — show the button; user must click it to activate
   btn.style.display = '';
 }
 
@@ -3828,12 +3800,9 @@ function makeMarker(stackedRecords) {
   const isInatOnly   = stackedRecords.every(r => r._inatOnly);
   const strokeColor  = hasTkRecord ? '#ec4899' : isInatOnly ? '#f97316' : (uncertain ? '#f87171' : '#fff');
   const strokeWeight = hasTkRecord ? 2.5 : isInatOnly ? 1.5 : (uncertain ? 1.5 : (stackedRecords.length > 1 ? 2 : 1));
-  // Canvas renderer (not SVG, the default) — SVG gives every point its own DOM
-  // node, which chokes the browser once you're past a few thousand uncluster points
-  // (the common case in Big Data mode). Canvas draws them all into one element.
   const marker = L.circleMarker([lat, lng], {
     radius, fillColor: fillColour, color: strokeColor,
-    weight: strokeWeight, fillOpacity: baseFillOpacity, renderer: canvasRenderer
+    weight: strokeWeight, fillOpacity: baseFillOpacity
   });
   marker._baseFillOpacity = baseFillOpacity;
   marker._baseWeight      = strokeWeight;
@@ -4670,31 +4639,26 @@ function buildChecklist(records) {
     gh.style.display = 'flex';
     gh.style.alignItems = 'center';
     gh.style.justifyContent = 'space-between';
-    gh.style.display = 'grid';
-    gh.style.gridTemplateColumns = '1fr 28px 32px';
-    gh.style.alignItems = 'center';
     gh.innerHTML =
-      '<span style="display:flex;align-items:center;gap:6px;">' +
-        '<span class="cl-chevron" style="font-size:10px;color:var(--text3);transition:transform 0.15s;display:inline-block;">&#9660;</span>' +
+      '<span style="display:flex;align-items:center;gap:6px;flex:1;min-width:0;">' +
+        '<span class="cl-chevron" style="font-size:10px;color:var(--text3);transition:transform 0.15s;display:inline-block;flex-shrink:0;">&#9660;</span>' +
         '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:' + colour + ';flex-shrink:0;"></span>' +
         label +
       '</span>' +
-      '<label class="cl-group-selall" title="Select all ' + label + '" onclick="event.stopPropagation()" style="justify-self:center;">' +
+      '<label class="cl-group-selall" onclick="event.stopPropagation()" style="flex-shrink:0;display:flex;align-items:center;margin-left:6px;">' +
         '<input type="checkbox" class="cl-group-cb" data-group="' + g + '" checked>' +
-      '</label>' +
-      '<span></span>';
+      '</label>';
+    // Chevron / label click = collapse/expand only (no effect on hiddenSpecies)
     let _lastFire = 0;
-    function handleGroupToggle(e) {
+    function handleGroupCollapse(e) {
       if (e.target.closest('.cl-group-selall')) return; // let checkbox handle itself
       e.preventDefault();
       const now = Date.now();
       if (now - _lastFire < 300) return;
       _lastFire = now;
-      // Clear any species selection so renderPoints shows all groups, not just the selected one
       if (selectedSpecies) clearSpeciesSelection();
       if (activeFilters.has(g)) activeFilters.delete(g);
       else activeFilters.add(g);
-      // Update map directly — don't rely on _filterRefresh indirection
       if (viewMode === 'heat') renderHeatmap(allRecords);
       else { renderPoints(allRecords); applyTimelineFilter(); }
       filterChecklistByTaxon();
@@ -4702,8 +4666,8 @@ function buildChecklist(records) {
       _updateLooklikeBtn();
       csvData = buildCSV(allRecords.filter(passesFilters));
     }
-    gh.addEventListener('click', handleGroupToggle);
-    gh.addEventListener('touchstart', handleGroupToggle, { passive: false });
+    gh.addEventListener('click', handleGroupCollapse);
+    gh.addEventListener('touchstart', handleGroupCollapse, { passive: false });
     // Checkbox = select/deselect all species in this group (no collapse)
     const _gcbEl = gh.querySelector('.cl-group-cb');
     if (_gcbEl) _gcbEl.addEventListener('change', e => {
@@ -4808,7 +4772,43 @@ function buildChecklist(records) {
 function _updateLooklikeBtn() {
   const n = document.querySelectorAll('.cl-row .cl-photo-cb:checked').length;
   const btn = document.getElementById('clLooklikeBtn');
-  if (btn) { btn.textContent = '📷 Photos'; btn.title = n ? `Open ${n} selected species in LookLike` : 'Open selected species in LookLike'; }
+  if (btn) { btn.textContent = '📷'; btn.title = n ? `Open ${n} selected species in LookLike` : 'Open selected species in LookLike'; }
+}
+
+// ── WhatDat? integration ─────────────────────────────────────────────────────
+function openInWhatDat() {
+  const checkedNames = [...document.querySelectorAll('.cl-row .cl-photo-cb:checked')]
+    .map(cb => cb.closest('.cl-row')?.dataset.species).filter(Boolean);
+  const allVisible = [...document.querySelectorAll('.cl-row')]
+    .filter(r => !r.classList.contains('hidden') && r.style.display !== 'none')
+    .map(r => r.dataset.species).filter(Boolean);
+  const names = [...new Set(checkedNames.length ? checkedNames : allVisible)];
+  if (!names.length) { alert('No species in the list yet.'); return; }
+
+  try {
+    let listName = 'Occurd list';
+    let url = '../whatdat/quiz.html?mode=species_list';
+
+    if (typeof polygons !== 'undefined' && polygons.length > 0) {
+      const allLats = polygons.flatMap(p => (p.latlngs || []).map(ll => ll.lat ?? ll[0]));
+      const allLngs = polygons.flatMap(p => (p.latlngs || []).map(ll => ll.lng ?? ll[1]));
+      if (allLats.length) {
+        const swlat = Math.min(...allLats).toFixed(5);
+        const nelat = Math.max(...allLats).toFixed(5);
+        const swlng = Math.min(...allLngs).toFixed(5);
+        const nelng = Math.max(...allLngs).toFixed(5);
+        url += '&swlat=' + swlat + '&nelat=' + nelat + '&swlng=' + swlng + '&nelng=' + nelng;
+      }
+      listName = polygons[0].label || 'Occurd list';
+    }
+
+    url += '&list_name=' + encodeURIComponent(listName);
+    localStorage.setItem('whatdat_species_list', JSON.stringify(names));
+    const w = window.open(url, '_blank');
+    if (!w) alert('Quiz blocked by popup blocker — please allow popups for this site and try again.');
+  } catch(err) {
+    alert('Could not open quiz: ' + err.message);
+  }
 }
 
 function openInLooklike() {
@@ -4850,44 +4850,6 @@ function openInLooklike() {
   window.open(url, '_blank');
 }
 
-// ── WhatDat? integration ─────────────────────────────────────────────────────
-function openInWhatDat() {
-  // Use checked species if any are ticked; otherwise use all visible rows
-  const checkedNames = [...document.querySelectorAll('.cl-row .cl-photo-cb:checked')]
-    .map(cb => cb.closest('.cl-row')?.dataset.species).filter(Boolean);
-  const allVisible = [...document.querySelectorAll('.cl-row')]
-    .filter(r => !r.classList.contains('hidden') && r.style.display !== 'none')
-    .map(r => r.dataset.species).filter(Boolean);
-  const names = [...new Set(checkedNames.length ? checkedNames : allVisible)];
-  if (!names.length) { alert('No species in the list yet.'); return; }
-
-  try {
-    let listName = 'Occurd list';
-    let url = './whatdat/quiz.html?mode=species_list';
-
-    // Pass current polygon location so WhatDat can place the quiz on the map
-    if (typeof polygons !== 'undefined' && polygons.length > 0) {
-      const allLats = polygons.flatMap(p => (p.latlngs || []).map(ll => ll.lat ?? ll[0]));
-      const allLngs = polygons.flatMap(p => (p.latlngs || []).map(ll => ll.lng ?? ll[1]));
-      if (allLats.length) {
-        const swlat = Math.min(...allLats).toFixed(5);
-        const nelat = Math.max(...allLats).toFixed(5);
-        const swlng = Math.min(...allLngs).toFixed(5);
-        const nelng = Math.max(...allLngs).toFixed(5);
-        url += `&swlat=${swlat}&nelat=${nelat}&swlng=${swlng}&nelng=${nelng}`;
-      }
-      listName = polygons[0].label || 'Occurd list';
-    }
-
-    url += `&list_name=${encodeURIComponent(listName)}`;
-    localStorage.setItem('whatdat_species_list', JSON.stringify(names));
-    const w = window.open(url, '_blank');
-    if (!w) alert('Quiz blocked by popup blocker — please allow popups for this site and try again.');
-  } catch(err) {
-    alert('Could not open quiz: ' + err.message);
-  }
-}
-
 // Delegated checkbox handling on clScroll
 clScroll.addEventListener('change', function(e) {
   if (e.target.classList.contains('cl-photo-cb')) {
@@ -4903,24 +4865,13 @@ clScroll.addEventListener('change', function(e) {
     _syncSelAllVisible();
   } else if (e.target.classList.contains('cl-group-cb')) {
     const checked = e.target.checked;
-    const header = e.target.closest('.cl-group-header');
-    const g = header?.dataset.group;
-    // Toggle photo-selection on child rows
-    let el = header.nextElementSibling;
+    let el = e.target.closest('.cl-group-header').nextElementSibling;
     while (el && !el.classList.contains('cl-group-header')) {
       if (_rowIsActive(el)) {
         const cb = el.querySelector('.cl-photo-cb');
         if (cb) cb.checked = checked;
       }
       el = el.nextElementSibling;
-    }
-    // Also update map visibility to match
-    if (g) {
-      if (checked) activeFilters.add(g);
-      else activeFilters.delete(g);
-      if (viewMode === 'heat') renderHeatmap(allRecords);
-      else { renderPoints(allRecords); applyTimelineFilter(); }
-      filterChecklistByTaxon();
     }
     _updateLooklikeBtn();
     _syncSelAllVisible();
@@ -4976,8 +4927,9 @@ function buildFilterChips(records) {
   records.forEach(r => { const g = getTaxonGroup(r); groups[g] = (groups[g] || 0) + 1; });
   const allGroupKeys = Object.keys(groups).sort();
 
-  // Initialise all groups as active
+  // Initialise all groups as active, all species visible
   activeFilters.clear();
+  hiddenSpecies.clear();
   allGroupKeys.forEach(g => activeFilters.add(g));
 
   function refreshGroupHeaders() {
@@ -5499,13 +5451,12 @@ runBtn.addEventListener('click', async () => {
         const _dt = document.getElementById('dateTo').value;
         if (_df) _dlParams.set('dateFrom', _df);
         if (_dt) _dlParams.set('dateTo', _dt);
-        showTooLargeModal(
-          'That area has too many records',
-          totalCount.toLocaleString() + ' records found — GBIF limits live queries to ' + MAX_RECORDS.toLocaleString(),
-          'GBIF\'s live search API isn\'t designed for very large datasets — it works best for focused queries on a specific place, taxon group, or time window. Your current area returned more records than it can deliver in one go.',
-          './?bigdata&' + _dlParams.toString()
-        );
-        setStatus('⚠️ ' + totalCount.toLocaleString() + ' records — too large. See the popup for suggestions.', 'error');
+        const _dlUrl = './?bigdata&' + _dlParams.toString();
+        statusBar.className = 'status-bar error';
+        statusBar.style.display = 'block';
+        statusBar.innerHTML = '⚠️ ' + totalCount.toLocaleString() + ' records — too large for live search (limit ' + MAX_RECORDS.toLocaleString() + '). ' +
+          'Try ① smaller polygon ② specific taxa ③ shorter date range, or use ' +
+          '<a href="' + _dlUrl + '" target="_blank" style="color:inherit;font-weight:700;text-decoration:underline;">Occurd Big Data ↗</a> for the full dataset.';
         setFetchMode(false); return;
       }
       json0.results.forEach(r => allFetched.push(_mapOccRecord(poly, r)));
@@ -5532,12 +5483,8 @@ runBtn.addEventListener('click', async () => {
                 totalCount.toLocaleString() + ' records fetched (network error). Results below may be incomplete — refetch to try again.';
               break;
             }
-            showTooLargeModal(
-              'Fetch failed',
-              'GBIF stopped responding after 5 attempts',
-              'This usually means the request is too large or complex for GBIF\'s live API to handle. Large areas, broad taxon filters, and wide date ranges all increase the chance of a timeout.'
-            );
-            setStatus('Fetch failed after 5 attempts.', 'error');
+            setStatus('Fetch failed after 5 attempts. If it keeps failing: ① smaller polygon  ② specific taxa  ③ shorter year range.', 'error');
+            statusBar.innerHTML += ' <button onclick="document.getElementById(\'runBtn\').click()" style="margin-left:8px;background:none;border:1px solid currentColor;border-radius:3px;padding:2px 8px;cursor:pointer;font-size:11px;font-family:var(--font-sans);color:inherit;font-weight:600;">Try again</button>';
             setFetchMode(false); return;
           }
           batchJsons.forEach(json => json.results.forEach(r => allFetched.push(_mapOccRecord(poly, r))));
@@ -5854,7 +5801,29 @@ const GEOPRIVACY_DISCLAIMER =
 document.getElementById('dlCsvBtn').addEventListener('click', () => {
   const filtered = allRecords.filter(passesFilters);
   let fields = window.innerWidth < 768 ? CSV_FIELDS_MOBILE : CSV_FIELDS;
-  let rows = filtered;
+  // Build turf polygons once for polygon_name assignment
+  const _dlGeomPolys = polygons.filter(p => p.type !== 'species' && p.latlngs && p.latlngs.length > 0);
+  const _dlTurfPolys = _dlGeomPolys.map(p => {
+    try {
+      const coords = p.latlngs.map(ll => [ll.lng !== undefined ? ll.lng : ll[1], ll.lat !== undefined ? ll.lat : ll[0]]);
+      const ring = [...coords];
+      if (ring[0][0] !== ring[ring.length-1][0] || ring[0][1] !== ring[ring.length-1][1]) ring.push(ring[0]);
+      return turf.polygon([ring]);
+    } catch(e) { return null; }
+  });
+  let rows = filtered.map(r => {
+    if (r.polygon_name) return r; // already set
+    if (!_dlTurfPolys.length) return r;
+    const lat = parseFloat(r.decimalLatitude), lng = parseFloat(r.decimalLongitude);
+    if (isNaN(lat) || isNaN(lng)) return r;
+    const pt = turf.point([lng, lat]);
+    for (let _i = 0; _i < _dlTurfPolys.length; _i++) {
+      if (!_dlTurfPolys[_i]) continue;
+      try { if (turf.booleanPointInPolygon(pt, _dlTurfPolys[_i])) return Object.assign({}, r, { polygon_name: _dlGeomPolys[_i].label || '' }); }
+      catch(e) {}
+    }
+    return r;
+  });
   if (nztcsUnlocked && nztcsData) {
     fields = [...fields, 'nztcs_status', 'nztcs_category', 'nztcs_year'];
     rows = filtered.map(r => {
@@ -6029,6 +5998,8 @@ document.getElementById('dlChecklistBtn').addEventListener('click', () => {
   }
 })();
 
+// ── GBIF CSV upload ───────────────────────────────────────────────────────
+
 async function handleGbifCsv(text, filename) {
   const lines  = text.split(/\r?\n/);
   const header = lines[0] ? lines[0].split('\t') : [];
@@ -6109,6 +6080,13 @@ async function handleGbifCsv(text, filename) {
   outputSection.style.display = 'block'; nerdToolsSection.style.display = 'block';
   const filtered = rows.length - displayRows.length;
   setStatus(displayRows.length.toLocaleString() + ' records loaded from ' + filename + (filtered > 0 ? ' (' + filtered.toLocaleString() + ' outside polygons removed)' : '') + '.', 'success');
+}
+
+// ── Share modal CSV download ──────────────────────────────────────────────
+
+function downloadCurrentCsv() {
+  if (!csvData) return;
+  downloadBlob(csvData, 'gbif_occurrences_' + new Date().toISOString().split('T')[0] + '.csv', 'text/csv;charset=utf-8;');
 }
 
 // ── GBIF Big Data — credential check ─────────────────────────────────────
@@ -6380,171 +6358,103 @@ if (window._pendingShare) {
   </div>
   <div class="changelog-scroll" id="changelogScroll">
     <div class="changelog-version">
-      <span class="changelog-version-tag">v5.97</span>
-      <span class="changelog-date">Jun 2026</span>
-      <ul>
-        <li>Rewrote README as flowing prose instead of fragmented bullet lists</li>
-      </ul>
-    </div>
-    <div class="changelog-version">
-      <span class="changelog-version-tag">v5.96</span>
+      <span class="changelog-version-tag">v6.14</span>
       <span class="changelog-date">Jun 2026</span>
       <ul>
         <li>NZTCS species lumping — when GBIF records the same NZTCS-listed taxon under two different accepted names (e.g. kōtuku as both <em>Ardea alba</em> and <em>Ardea modesta</em>), both now merge into one checklist row under NZTCS's name instead of appearing as two separate species</li>
       </ul>
     </div>
     <div class="changelog-version">
-      <span class="changelog-version-tag">v5.95</span>
+      <span class="changelog-version-tag">v6.13</span>
       <span class="changelog-date">Jun 2026</span>
       <ul>
         <li>Popup photos — wide landscape shots no longer get their left/right edges cropped off; the fixed-height cover-fit now falls back to a letterboxed contain fit once cropping would lose more than ~20% of the photo (previously only applied to tall portrait photos)</li>
       </ul>
     </div>
     <div class="changelog-version">
-      <span class="changelog-version-tag">v5.94</span>
+      <span class="changelog-version-tag">v6.12</span>
       <span class="changelog-date">Jun 2026</span>
       <ul>
         <li>Fixed Big Data Mode downloads for polygons crossing the antimeridian (e.g. Kamchatka–Alaska) — the shape-simplification retry path built a manual WKT ring that mixed positive/negative longitudes into a self-intersecting shape, returning only a sliver of the drawn area instead of the full region</li>
       </ul>
     </div>
     <div class="changelog-version">
-      <span class="changelog-version-tag">v5.93</span>
+      <span class="changelog-version-tag">v6.11</span>
       <span class="changelog-date">Jun 2026</span>
       <ul>
         <li>Tree of life search — Family/Order/Class hits from the local name index (e.g. "Psittacidae") now get their rank badge filled in shortly after appearing, instead of staying unlabeled forever; resolving also speeds up the click since the GBIF key gets cached ahead of time</li>
       </ul>
     </div>
     <div class="changelog-version">
-      <span class="changelog-version-tag">v5.92</span>
-      <span class="changelog-date">Jun 2026</span>
-      <ul>
-        <li>Big Data mode — ported from beta: add <code>?bigdata</code> to the URL for the GBIF async download path with no 10,000 record cap (requires a free GBIF account; credentials stored in browser only)</li>
-        <li>Upload zone now also accepts GBIF download <code>.zip</code>/<code>.csv</code> files, filtered to any drawn polygons</li>
-        <li>"That area has too many records" popup now links straight to Big Data Mode, pre-filling the polygon, taxa, and date range</li>
-      </ul>
-    </div>
-    <div class="changelog-version">
-      <span class="changelog-version-tag">v5.91</span>
+      <span class="changelog-version-tag">v6.10</span>
       <span class="changelog-date">Jun 2026</span>
       <ul>
         <li>Minimising a taxon group in the species checklist now unticks it (and re-ticking it expands it back) — the checkbox state was previously left stale when a group was collapsed by its header</li>
       </ul>
     </div>
     <div class="changelog-version">
-      <span class="changelog-version-tag">v5.90</span>
+      <span class="changelog-version-tag">v6.09</span>
       <span class="changelog-date">Jun 2026</span>
       <ul>
         <li>"Other Animalia" now queries GBIF for the exact complement of taxa (every Animalia phylum/class not already covered by its own checkbox) instead of fetching the whole animal kingdom and filtering ~90% of it away afterward — fewer wasted requests, faster fetch</li>
       </ul>
     </div>
     <div class="changelog-version">
-      <span class="changelog-version-tag">v5.89</span>
-      <span class="changelog-date">Jun 2026</span>
-      <ul>
-        <li>Species checklist checkboxes now default to all-selected and actually drive the map, heatmap, and timeline — unticking a species hides it everywhere, not just from the Quiz/Photos hand-off as before</li>
-      </ul>
-    </div>
-    <div class="changelog-version">
-      <span class="changelog-version-tag">v5.88</span>
-      <span class="changelog-date">Jun 2026</span>
-      <ul>
-        <li>But is it threatened — merged 2,056 duplicate-entry collisions (same species, inconsistent author/year formatting in NZOR) into single clean entries; total auto-resolved collisions now 3,423, with 860 genuinely ambiguous "sensu" name pileups left for manual review (v1.59)</li>
-      </ul>
-    </div>
-    <div class="changelog-version">
-      <span class="changelog-version-tag">v5.87</span>
-      <span class="changelog-date">Jun 2026</span>
-      <ul>
-        <li>But is it threatened — rebuilt nzor_names.json from a full NZOR export with author citations preserved, fixing cases where two unrelated species sharing the same bare epithet (e.g. native <em>Clematis paniculata</em> vs. the misapplied "sensu Thunb." name now called <em>Clematis terniflora</em>) silently collided on one lookup key; 1,367 such collisions auto-resolved, 2,916 unresolved cases now show "No match found" instead of a wrong species (v1.58)</li>
-      </ul>
-    </div>
-    <div class="changelog-version">
-      <span class="changelog-version-tag">v5.86</span>
+      <span class="changelog-version-tag">v6.08</span>
       <span class="changelog-date">Jun 2026</span>
       <ul>
         <li>Removed the "Technical search" filters (institution code, recordedBy, identifiedBy, typeStatus) — GBIF's own search covers this better. Nerd tools section is hidden until results exist again</li>
       </ul>
     </div>
     <div class="changelog-version">
-      <span class="changelog-version-tag">v5.83</span>
+      <span class="changelog-version-tag">v6.05</span>
       <span class="changelog-date">Jun 2026</span>
       <ul>
         <li>Record photos — fix: if GBIF's image-resize proxy can't fetch a source image (some institutions, e.g. MNHN, block it with bot protection), the photo now retries the original un-proxied URL instead of failing silently</li>
       </ul>
     </div>
     <div class="changelog-version">
-      <span class="changelog-version-tag">v5.82</span>
-      <span class="changelog-date">Jun 2026</span>
-      <ul>
-        <li>Species checklist — fix: "select all" (and per-group select-all) no longer select species greyed out by the timeline year filter</li>
-      </ul>
-    </div>
-    <div class="changelog-version">
-      <span class="changelog-version-tag">v5.81</span>
-      <span class="changelog-date">Jun 2026</span>
-      <ul>
-        <li>Species checklist — fix: "select all" no longer ticks the group checkbox for minimised/filtered-out taxon groups (e.g. ALGAE collapsed via the taxon filter chips); it now only reflects groups whose species rows were actually selected</li>
-      </ul>
-    </div>
-    <div class="changelog-version">
-      <span class="changelog-version-tag">v5.80</span>
-      <span class="changelog-date">Jun 2026</span>
-      <ul>
-        <li>Timeline — fix: dragging the slider no longer auto-enables "Colour by year" (this was never meant to happen automatically)</li>
-        <li>Timeline — added a Close button so you can exit timeline view without hunting for the Points/Heat buttons elsewhere in the sidebar</li>
-      </ul>
-    </div>
-    <div class="changelog-version">
-      <span class="changelog-version-tag">v5.79</span>
-      <span class="changelog-date">Jun 2026</span>
-      <ul>
-        <li>Record/GBIF photos (popup camera button and LookLike grid) now load through GBIF's image-resize proxy instead of full-resolution originals — much faster loading, especially for camera trap and museum specimen images</li>
-      </ul>
-    </div>
-    <div class="changelog-version">
-      <span class="changelog-version-tag">v5.78</span>
+      <span class="changelog-version-tag">v6.04</span>
       <span class="changelog-date">Jun 2026</span>
       <ul>
         <li>LookLike "Photos" handoff — fix: now uses a relative link instead of a hardcoded domain, so selected species transfer correctly regardless of which Occurd URL (github.io or custom domain) you're browsing on</li>
+        <li>Record/GBIF photos (popup camera button and LookLike grid) now load through GBIF's image-resize proxy instead of full-resolution originals — much faster loading, especially for camera trap and museum specimen images</li>
+        <li>Timeline — fix: dragging the slider no longer auto-enables "Colour by year" (this was never meant to happen automatically)</li>
+        <li>Timeline — added a Close button so you can exit timeline view without hunting for the Points/Heat buttons elsewhere in the sidebar</li>
+        <li>Species checklist — fix: "select all" (and per-group select-all) no longer select species that are minimised/filtered out or greyed out by the timeline year filter</li>
       </ul>
     </div>
     <div class="changelog-version">
-      <span class="changelog-version-tag">v5.76</span>
+      <span class="changelog-version-tag">v6.03</span>
       <span class="changelog-date">Jun 2026</span>
       <ul>
-        <li>WhatDat — species list quizzes shared via ?list= URL now play correctly from the library (previously showed "no place" error)</li>
+        <li>NZTCS filter chips — now dynamic: one chip per status actually present in the results (NC, NE, NV, De, NU, Re, GD, SD, Un, Rc, NI, Ex); chips not present in the data are hidden; All Threatened covers all listed statuses</li>
+        <li>NZTCS button — now appears whenever records are loaded, not just for NZ polygon searches</li>
+        <li>Checklist redesign — removed confusing group-level checkbox; collapsing a group now directly hides those species from the map, quiz, and photos; individual species checkboxes control all three (map dots, quiz, LookLike); everything checked by default; state persists across NZTCS/IUCN rebuilds</li>
+        <li>Nav link — "go to Big Data Mode" now uses the same bold/italic logo font treatment</li>
       </ul>
     </div>
     <div class="changelog-version">
-      <span class="changelog-version-tag">v5.75</span>
+      <span class="changelog-version-tag">v5.89</span>
       <span class="changelog-date">Jun 2026</span>
       <ul>
-        <li>WhatDat — save quiz to library from the intro screen, not just after finishing; useful for hard quizzes you can't complete</li>
-        <li>WhatDat — save button no longer flashes on already-saved quizzes; library check is cached so the result screen is instant</li>
+        <li>Big Data zip upload — dropping a GBIF download zip now immediately shows a progress indicator; records are filtered to any drawn polygons using point-in-polygon; records outside polygons are excluded and the count is shown in the status bar</li>
+        <li>NZTCS button — now activates correctly after loading a GBIF zip file</li>
+        <li>Header Big Data Mode label — restyled to match the occurd logo typeface (<strong>Big Data Mode</strong>) instead of plain bold text</li>
       </ul>
     </div>
     <div class="changelog-version">
-      <span class="changelog-version-tag">v5.74</span>
+      <span class="changelog-version-tag">v5.87</span>
       <span class="changelog-date">Jun 2026</span>
       <ul>
-        <li>About modal — "Check out these other apps" section added: links to LookLike, WhatDat, WhatDatBird, and But Is It Threatened? (NZ users)</li>
-        <li>WhatDat species list — fixed bug where pasting a new list was ignored if a previous list from another app was cached in localStorage; also added iNaturalist fallback for species names that GBIF can't resolve</li>
-        <li>WhatDat leaderboard — renewed GitHub token</li>
-      </ul>
-    </div>
-    <div class="changelog-version">
-      <span class="changelog-version-tag">v5.73</span>
-      <span class="changelog-date">Jun 2026</span>
-      <ul>
-        <li>WhatDat quiz result — title now shows "Well done!" when not all species were shown (e.g. some had no photos); "You saw all the species!" reserved for when the full pool was quizzed</li>
-        <li>WhatDat quiz result — leaderboard now appears when launched from a polygon bbox (e.g. from Occurd species list)</li>
-      </ul>
-    </div>
-    <div class="changelog-version">
-      <span class="changelog-version-tag">v5.72</span>
-      <span class="changelog-date">Jun 2026</span>
-      <ul>
-        <li>Quiz button — fixed silent failure when popup blocker prevents WhatDat opening; now shows a clear message asking user to allow popups; also guards against JS errors in polygon bbox calculation</li>
+        <li>Big Data mode — add <code>?bigdata</code> to the URL to activate GBIF async download path on the same page; no 10,000 record cap; requires a free GBIF account (credentials stored in browser only, never sent anywhere except GBIF)</li>
+        <li>Credentials UI — username/password fields appear in Big Data mode with optional "Remember me" (sessionStorage default, localStorage opt-in)</li>
+        <li>Header "Big Data" link and 10k-error nudge now point to <code>./?bigdata</code> on the same page, pre-filling polygon and filters</li>
+        <li>Redirect — <code>/beta/bigdata/</code> redirects to <code>/beta/?bigdata</code> for bookmarkable URL</li>
+        <li>Big Data header label — "big data" tag appears next to the occurd logo in the top-left when in Big Data mode</li>
+        <li>Check credentials — "Check credentials" button in Big Data mode tests GBIF login via <code>/v1/user/login</code> and shows ✓ Valid / ✗ Invalid inline</li>
+        <li>GBIF CSV upload — drop zone now accepts GBIF occurrence CSV files; parses tab-separated rows with <code>_mapDwcRecord</code> and loads into the full Occurd interface (map, checklist, filters, timeline) with auto-fit to points</li>
+        <li>Share modal CSV download — "Download CSV" button appears in the share modal when results are loaded</li>
       </ul>
     </div>
     <div class="changelog-version">
@@ -6750,15 +6660,6 @@ if (window._pendingShare) {
         <li>Buffer "obscured only" option — a checkbox next to the buffer distance buttons; when ticked the resulting buffer polygon fetches only records with coordinate uncertainty ≥ 10 km from GBIF (catching iNat-obscured records near the polygon edge without pulling in thousands of precise records)</li>
         <li>0.2° buffer option — new buffer button sized to match the iNaturalist obscured-record grid square; hover tooltip explains its use; works with the "iNat obscured records" checkbox</li>
         <li>iNat obscured records mode — when ticked on a buffer polygon, skips GBIF entirely and queries the iNaturalist API directly with geoprivacy=obscured; only obscured iNat observations within the buffer are returned, keeping record counts manageable; markers shown with orange ring</li>
-      </ul>
-    </div>
-    <div class="changelog-version">
-      <span class="changelog-version-tag">v4.72</span>
-      <span class="changelog-date">Jun 2026</span>
-      <ul>
-        <li>WhatDat — leaderboard added (scores saved to GitHub, keyed by place + mode, top 10 per board); leaderboard toggle on intro screen; submit form on result screen</li>
-        <li>WhatDat — quiz name edit now updates the header and eyebrow in real time</li>
-        <li>WhatDat — Common mode icon changed to 🐕</li>
       </ul>
     </div>
     <div class="changelog-version">
