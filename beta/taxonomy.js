@@ -18,14 +18,47 @@
     FAMILY:'Family',   TRIBE:'Tribe',   GENUS:'Genus', SPECIES:'Species',
     SUBPHYLUM:'Subphylum', SUBCLASS:'Subclass', SUBORDER:'Suborder',
     SUBFAMILY:'Subfamily', SUBGENUS:'Subgenus',
+    DOMAIN:'Domain', SUBKINGDOM:'Subkingdom', INFRAKINGDOM:'Infrakingdom',
+    SUPERPHYLUM:'Superphylum', INFRAPHYLUM:'Infraphylum', PARVPHYLUM:'Parvphylum',
+    SUPERCLASS:'Superclass', INFRACLASS:'Infraclass', PARVCLASS:'Parvclass',
+    MEGACLASS:'Megaclass', SUPERORDER:'Superorder', INFRAORDER:'Infraorder',
+    PARVORDER:'Parvorder', SUPERFAMILY:'Superfamily', INFRAFAMILY:'Infrafamily',
+    SUBTRIBE:'Subtribe', SUBSPECIES:'Subspecies', VARIETY:'Variety', FORM:'Form',
   };
-  const VALID_RANKS = new Set(Object.keys(RANK_LABELS));
 
-  // Rank sort order — lower number = higher in hierarchy = shown first
-  const RANK_ORDER = {
-    KINGDOM:0, PHYLUM:1, SUBPHYLUM:2, CLASS:3, SUBCLASS:4, ORDER:5,
-    SUBORDER:6, FAMILY:7, SUBFAMILY:8, TRIBE:9, GENUS:10, SUBGENUS:11, SPECIES:12
-  };
+  // Ranks that aren't a real navigable taxon level — everything else is shown as a
+  // column, whatever the rank turns out to be. GBIF's full Rank enum (and the extra
+  // ranks COL XR uses beyond that enum, e.g. PARVPHYLUM/MEGACLASS) is too large and
+  // too likely to grow to maintain as an allowlist — an allowlist also silently breaks
+  // navigation the moment a taxon source introduces a rank we didn't list (this is
+  // exactly what happened with COL XR's extra vertebrate ranks).
+  const JUNK_RANKS = new Set(['UNRANKED', 'OTHER']);
+
+  // Pretty-print a rank we don't have an explicit label for for, e.g. 'PARVPHYLUM' → 'Parvphylum'
+  function rankLabel(rank) {
+    if (!rank) return '';
+    if (RANK_LABELS[rank]) return RANK_LABELS[rank];
+    return rank.charAt(0) + rank.slice(1).toLowerCase().replace(/_/g, ' ');
+  }
+
+  // Rank sort order — lower number = higher in hierarchy = shown first.
+  // Built from GBIF's official Rank enum (already in correct hierarchical order),
+  // with COL XR's extra non-enum ranks spliced in at their observed position.
+  const GBIF_RANK_ENUM = [
+    'DOMAIN','SUPERKINGDOM','KINGDOM','SUBKINGDOM','INFRAKINGDOM','SUPERPHYLUM','PHYLUM',
+    'SUBPHYLUM','INFRAPHYLUM','PARVPHYLUM','MEGACLASS','SUPERCLASS','CLASS','SUBCLASS',
+    'INFRACLASS','PARVCLASS','SUPERLEGION','LEGION','SUBLEGION','INFRALEGION','SUPERCOHORT',
+    'COHORT','SUBCOHORT','INFRACOHORT','MAGNORDER','SUPERORDER','GRANDORDER','ORDER',
+    'SUBORDER','INFRAORDER','PARVORDER','SUPERFAMILY','FAMILY','SUBFAMILY','INFRAFAMILY',
+    'SUPERTRIBE','TRIBE','SUBTRIBE','INFRATRIBE','SUPRAGENERIC_NAME','GENUS','SUBGENUS',
+    'INFRAGENUS','SECTION','SUBSECTION','SERIES','SUBSERIES','INFRAGENERIC_NAME',
+    'SPECIES_AGGREGATE','SPECIES','INFRASPECIFIC_NAME','GREX','SUBSPECIES','CULTIVAR_GROUP',
+    'CONVARIETY','INFRASUBSPECIFIC_NAME','PROLES','RACE','NATIO','ABERRATION','MORPH',
+    'VARIETY','SUBVARIETY','FORM','SUBFORM','PATHOVAR','BIOVAR','CHEMOVAR','MORPHOVAR',
+    'PHAGOVAR','SEROVAR','CHEMOFORM','FORMA_SPECIALIS','CULTIVAR','STRAIN',
+  ];
+  const RANK_ORDER = {};
+  GBIF_RANK_ENUM.forEach((r, i) => { RANK_ORDER[r] = i; });
 
   // Maps a parent rank → the GBIF occurrence facet field for its children
   // e.g. children of a CLASS are ORDERs → facet by orderKey
@@ -224,7 +257,7 @@
   function colHeaderLabel(ci) {
     const nodes = cols[ci];
     if (nodes && nodes.length > 0 && nodes[0].rank) {
-      return RANK_LABELS[nodes[0].rank] || nodes[0].rank;
+      return rankLabel(nodes[0].rank);
     }
     return COL_HEADERS[ci] || 'Taxa';
   }
@@ -514,7 +547,7 @@
           if (!res.ok) throw new Error('HTTP ' + res.status);
           const j = await res.json();
           (j.results || []).forEach(x => {
-            if (x.rank && VALID_RANKS.has(x.rank) &&
+            if (x.rank && !JUNK_RANKS.has(x.rank) &&
                 (!x.taxonomicStatus || x.taxonomicStatus === 'ACCEPTED' || x.taxonomicStatus === 'DOUBTFUL'))
               all.push(x);
           });
@@ -742,7 +775,7 @@
     const hit = getSelected();
     if (hit) {
       const name = nodeName(hit.node);
-      const rank = RANK_LABELS[hit.node.rank] || hit.node.rank || 'taxon';
+      const rank = rankLabel(hit.node.rank) || 'taxon';
       btn.textContent = 'Add ' + name + ' (' + rank + ') to search';
       btn.disabled    = false;
       btn._taxoNode   = hit.node;
@@ -897,7 +930,7 @@
         type:     'scientific',
         display:  s.canonicalName || s.scientificName || s.name || '?',
         subLabel: s.family || s.order || '',
-        rank:     RANK_LABELS[s.rank] || s.rank || '',
+        rank:     rankLabel(s.rank),
         gbifKey:  s.key,
         nzorData: null,
       }));
@@ -926,7 +959,7 @@
           subLabel: isVernMatch
             ? (s.canonicalName || '')
             : (s.family || s.order || ''),
-          rank:     RANK_LABELS[s.rank] || s.rank || '',
+          rank:     rankLabel(s.rank),
           gbifKey:  s.key,
           nzorData: null,
         };
@@ -976,7 +1009,7 @@
       if (!res.ok) return;
       const j = await res.json();
       if (j.matchType === 'NONE' || !j.rank || !j.usageKey) return;
-      result.rank    = RANK_LABELS[j.rank] || j.rank;
+      result.rank    = rankLabel(j.rank);
       result.gbifKey = j.usageKey; // cache — resolveAndJump skips re-matching on click
       if (!rowEl.isConnected) return; // dropdown may have closed/re-rendered by now
       let rankEl = rowEl.querySelector('.miller-sug-rank');
