@@ -6076,7 +6076,7 @@ async function handleGbifCsv(text, filename) {
   if (!_geomPolys.length && displayRows.some(r => r.decimalLatitude && r.decimalLongitude)) {
     const lats = displayRows.map(r => r.decimalLatitude).filter(Boolean);
     const lngs = displayRows.map(r => r.decimalLongitude).filter(Boolean);
-    map.fitBounds([[Math.min(...lats), Math.min(...lngs)], [Math.max(...lats), Math.max(...lngs)]], { padding: [40, 40] });
+    map.fitBounds([[Math.min(...lats), Math.min(...lngs)], [Math.max(...lats), Math.max(...lngs)]], { padding: [40, 40], animate: false });
   }
   renderPoints(displayRows);
   setTimeout(() => { map.invalidateSize(); }, 100);
