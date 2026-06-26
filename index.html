@@ -46,7 +46,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v6.16</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v6.22</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -89,6 +89,10 @@
           <div style="display:flex;align-items:center;gap:8px;justify-content:center;">
             <span style="font-size:18px;">&#128506;</span>
             <span id="dropZoneLabel" style="font-size:12px;color:var(--text2);">Drop <strong>KML/KMZ</strong> or <strong>GBIF CSV/ZIP</strong> here, or <span style="color:var(--green);text-decoration:underline;cursor:pointer;">browse</span> — or draw on the map</span>
+          </div>
+          <div id="dropZoneProgress" style="display:none;align-items:center;justify-content:center;gap:6px;font-size:11.5px;color:var(--green-dark);font-weight:600;margin-top:6px;">
+            <span style="width:10px;height:10px;border:2px solid var(--green-light);border-top-color:var(--green-dark);border-radius:50%;display:inline-block;animation:dzSpin 0.7s linear infinite;"></span>
+            <span id="dropZoneProgressText"></span>
           </div>
         </div>
         <div class="poly-list" id="polyList">
@@ -188,7 +192,12 @@
         </div>
       </div>
       <div style="margin-top:0.5rem;margin-bottom:0.5rem;">
-        <label class="check-row"><input type="checkbox" id="excludeLowPrecision"><span>Exclude low-precision (&gt;1.5 km)</span></label>
+        <label style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;display:block;margin-bottom:0.3rem;">Coordinate precision</label>
+        <select id="precisionFilter" style="width:100%;font-size:12.5px;padding:5px 6px;border:1px solid var(--border);border-radius:var(--radius);font-family:inherit;background:var(--surface);color:inherit;">
+          <option value="all">All records</option>
+          <option value="exclude">Exclude low-precision (&gt;1.5 km)</option>
+          <option value="only">Only low-precision (&gt;1.5 km)</option>
+        </select>
       </div>
       </div><!-- /s2 -->
 
@@ -674,16 +683,18 @@ const CB_TO_GROUP = {
 // we query the explicit complement: every Animalia phylum/class NOT covered by its own
 // checkbox (Aves, Mammalia, Reptilia, Amphibia, Fish, Insecta, Arachnida, Crustacea,
 // Mollusca, Echinodermata, Cnidaria, Annelida). Keys from GBIF backbone, taxonKey 1.
+// COL XR (Catalogue of Life Extended Release) equivalents of the legacy GBIF backbone
+// keys above — resolved 2026-06-25 against checklistKey 7ddf754f-d193-4cc9-b351-99906754a03b.
 const OTHER_ANIMALIA_KEYS = [
   // Phyla with no dedicated checkbox
-  '67','110','53','55','51','45','7663989','8173593','22','77','75','5959089',
-  '5967457','5967454','5967481','64','63','62','5967456','19','76','108','105',
-  '5963150','91','74','14','7190138',
+  '622BD','B8V3K','622CG','36','B8V3L','622CL','3Z','BDTX4','B8V3M','B8VF3','4R','B8VF5',
+  'B8VF6','54','NM','5B','5C','BV844','CVJLH','5P','B8V3N','7NF2H','B8TXQ',
+  'B8VF9','5Y','63','L2QNW','7NF2K',
   // Arthropoda classes outside Insecta/Arachnida/Crustacea
-  '235','360','10713444','361','11374670','351','143','11377931','354','236',
-  '7742773','11699831','9273948','696',
+  '8X','93','KZS5W','7NF3S','L237Z','B8VF7','B6MTL','8NKDZ','B8V3Z','B8VFB',
+  'B6MLD','B8WLB','TRL','84JQT',
   // Chordata classes outside the Fish/tetrapod buckets (sea squirts, lancelets)
-  '356','207','1441','7375758',
+  'B8V3P','L2QHG','ZK','DR',
 ];
 
 // Map
@@ -1180,6 +1191,10 @@ const polyEmpty      = document.getElementById('polyEmpty');
 const clearAllBtn    = document.getElementById('clearAllBtn');
 const dropZone       = document.getElementById('dropZone');
 const fileInput      = document.getElementById('fileInput');
+const dropZoneProgress     = document.getElementById('dropZoneProgress');
+const dropZoneProgressText = document.getElementById('dropZoneProgressText');
+function showDropZoneProgress(text) { dropZoneProgress.style.display = 'flex'; dropZoneProgressText.textContent = text; }
+function hideDropZoneProgress() { dropZoneProgress.style.display = 'none'; }
 const outputSection  = document.getElementById('outputSection');
 const checklistPanel = document.getElementById('checklistPanel');
 const clSelectedInfo = document.getElementById('clSelectedInfo');
@@ -2088,15 +2103,17 @@ async function handleGbifZip(file) {
   setStatus('Loading ' + file.name + ' — this may take a while for large files…', 'info');
   progressWrap.style.display = 'block';
   progressLabel.textContent = 'Reading zip…';
+  showDropZoneProgress('Reading ' + file.name + '…');
   await new Promise(r => setTimeout(r, 30)); // let the status render before blocking parse
   try {
     const zip = await JSZip.loadAsync(file);
     const f = zip.file('occurrence.csv') || Object.values(zip.files).find(f => !f.dir && f.name.endsWith('.csv'));
-    if (!f) { setStatus('No occurrence.csv found inside ' + file.name + '. Is this a GBIF download zip?', 'error'); progressWrap.style.display = 'none'; return; }
+    if (!f) { setStatus('No occurrence.csv found inside ' + file.name + '. Is this a GBIF download zip?', 'error'); progressWrap.style.display = 'none'; hideDropZoneProgress(); return; }
     progressLabel.textContent = 'Extracting CSV…';
+    showDropZoneProgress('Extracting CSV…');
     const text = await f.async('text');
     handleGbifCsv(text, file.name);
-  } catch(e) { setStatus('Could not read zip: ' + e.message, 'error'); progressWrap.style.display = 'none'; }
+  } catch(e) { setStatus('Could not read zip: ' + e.message, 'error'); progressWrap.style.display = 'none'; hideDropZoneProgress(); }
 }
 
 async function handleKMZ(file) {
@@ -4026,15 +4043,20 @@ async function fetchEffortData() {
   if (btn) { btn.textContent = 'Loading…'; btn.disabled = true; }
   effortByYear = {};
 
-  // Resolve classKey from taxon keys so effort query matches the same class (e.g. Aves for birds)
+  // Resolve classKey from taxon keys so effort query matches the same class (e.g. Aves for birds).
+  // Species entries carry COL XR's alphanumeric taxonID, which the bare /v1/species/{key}
+  // lookup can't accept (it requires a numeric id, full stop, even with checklistKey).
+  // Faceting occurrence/search by classKey instead sidesteps that — under checklistKey
+  // scoping, facet values come back as COL XR's own alphanumeric codes too, which are
+  // then directly reusable as a checklistKey-scoped classKey filter below.
   let effortClassKey = null;
   if (_effortTaxonKeys.length > 0) {
     try {
       const classKeys = await Promise.all(_effortTaxonKeys.map(async k => {
-        const r = await gbifFetch('https://api.gbif.org/v1/species/' + k);
+        const r = await gbifFetch('https://api.gbif.org/v1/occurrence/search?limit=0&taxonKey=' + encodeURIComponent(k) + '&checklistKey=' + COL_XR_CHECKLIST_KEY + '&facet=classKey&facetLimit=1');
         if (!r.ok) return null;
         const d = await r.json();
-        return d.classKey || null;
+        return d.facets?.[0]?.counts?.[0]?.name || null;
       }));
       const unique = [...new Set(classKeys.filter(Boolean))];
       if (unique.length === 1) effortClassKey = unique[0]; // only inject if all species share same class
@@ -4042,7 +4064,7 @@ async function fetchEffortData() {
   }
 
   for (const params of _effortFetchParams) {
-    const extraParams = effortClassKey ? [['classKey', String(effortClassKey)]] : [];
+    const extraParams = effortClassKey ? [['classKey', String(effortClassKey)], ['checklistKey', COL_XR_CHECKLIST_KEY]] : [];
     const qs = [...params, ...extraParams, ['facet', 'YEAR'], ['facetLimit', '200'], ['limit', '0']]
       .map(([k, v]) => encodeURIComponent(k) + '=' + encodeURIComponent(v)).join('&');
     try {
@@ -4846,7 +4868,7 @@ function openInLooklike() {
     localStorage.setItem('looklike_names', JSON.stringify({ ts, names: speciesData.map(s => s.name) }));
   } catch(e) {}
 
-  const url = 'looklike/?v=' + ts;
+  const url = '../looklike/?v=' + ts;
   window.open(url, '_blank');
 }
 
@@ -5015,26 +5037,57 @@ document.querySelectorAll('.taxon-group-toggle').forEach(header => {
   });
 });
 
+// Catalogue of Life Extended Release (COL XR) — GBIF's default taxonomy since 2026-06.
+// All taxonKeys below are COL XR's alphanumeric codes, resolved from the legacy GBIF
+// backbone's numeric classKeys; every occurrence/search call using them must carry this
+// checklistKey, since GBIF's v1 occurrence API still defaults to the legacy backbone otherwise.
+const COL_XR_CHECKLIST_KEY = '7ddf754f-d193-4cc9-b351-99906754a03b';
+
+// Maps each checkbox's legacy taxon group to its COL XR equivalent. The legacy GBIF backbone
+// keys (212, 359, etc.) are kept as map keys since checkbox values in the HTML are unchanged.
+const COL_XR_GROUP_KEYS = {
+  '212': ['V2'],            // Aves
+  '359': ['6224G'],         // Mammalia
+  '131': ['PH'],            // Amphibia
+  '216': ['H6'],            // Insecta
+  '367': ['CCQKT'],         // Arachnida
+  '52':  ['M2L'],           // Mollusca
+  '50':  ['CHN'],           // Echinodermata
+  '43':  ['CN2'],           // Cnidaria
+  '42':  ['NN'],            // Annelida
+  '194': ['C7ZVJ'],         // Pinopsida (gymnosperms)
+  '7228684': ['GV'],        // Polypodiopsida (ferns & allies)
+  '5':   ['F'],             // Fungi
+};
+
 // Build taxon key params for the GBIF occurrence search API
 function buildTaxonParams(keys) {
   if (keys.length === 0) return [];
   const params = [];
   keys.forEach(key => {
-    if (key === 'fish')           { params.push(['taxonKey', '44']); } // Chordata, post-filter to fish orders
-    else if (key === 'reptilia')    { ['11592253','11418114','11493978','11569602'].forEach(k => params.push(['taxonKey', k])); } // Squamata, Testudines, Crocodylia, Sphenodontia (GBIF retired Reptilia key 358 in CoL 2022)
-    else if (key === 'bryophytes')  { ['35','9','13'].forEach(k => params.push(['taxonKey', k])); }  // Bryophyta, Marchantiophyta (liverworts), Anthocerotophyta (hornworts)
-    else if (key === 'crustacea')   { ['229','203','281','353'].forEach(k => params.push(['taxonKey', k])); } // Malacostraca, Maxillopoda, Branchiopoda, Ostracoda
-    else if (key === 'angiosperms') { ['220','196'].forEach(k => params.push(['taxonKey', k])); } // Magnoliopsida (dicots), Liliopsida (monocots)
-    else if (key === 'algae')       { ['36','106','98','7819616','68'].forEach(k => params.push(['taxonKey', k])); } // Chlorophyta, Rhodophyta, Ochrophyta, Charophyta, Cyanobacteria
+    if (key === 'fish')           { params.push(['taxonKey', 'CH2']); } // Chordata, post-filter to fish orders
+    else if (key === 'reptilia')    { params.push(['taxonKey', 'RP']); } // COL XR has a single Reptilia class node (legacy backbone retired 358 in CoL 2022, requiring 4 order keys instead)
+    else if (key === 'bryophytes')  { ['BJ5TM','9J9G3','9JHQ8'].forEach(k => params.push(['taxonKey', k])); }  // Bryophyta, Marchantiophyta (liverworts), Anthocerotophyta (hornworts)
+    else if (key === 'crustacea')   { ['MC','B8V3R','7NF5R','V9X8L','V9R9L','8H','B8TXJ'].forEach(k => params.push(['taxonKey', k])); } // Malacostraca, Copepoda, Thecostraca, Branchiura, Pentastomida (COL XR splits legacy Maxillopoda into these 4), Branchiopoda, Ostracoda
+    else if (key === 'angiosperms') { ['MG','L2L'].forEach(k => params.push(['taxonKey', k])); } // Magnoliopsida (dicots), Liliopsida (monocots)
+    else if (key === 'algae')       { ['CGV7L','L2MHG','5H','KZS5S','CNPLM'].forEach(k => params.push(['taxonKey', k])); } // Chlorophyta, Rhodophyta, Ochrophyta, Charophyta, Cyanobacteriota (COL XR's accepted name for Cyanobacteria — '3R' was the demoted synonym key, which missed most records)
     else if (key === '1')           { OTHER_ANIMALIA_KEYS.forEach(k => params.push(['taxonKey', k])); }
+    else if (COL_XR_GROUP_KEYS[key]) { COL_XR_GROUP_KEYS[key].forEach(k => params.push(['taxonKey', k])); }
     else                            { params.push(['taxonKey', key]); }
   });
+  params.push(['checklistKey', COL_XR_CHECKLIST_KEY]);
   return params;
 }
 
 const MAX_RECORDS = 10000; // hard limit — queries above this are rejected before fetching begins
 
 // Return the WKT to use for a GBIF query.
+// 'all' | 'exclude' | 'only' — drives the GBIF query filter and the iNat-merge skip logic below
+function getPrecisionMode() {
+  const el = document.getElementById('precisionFilter');
+  return el ? el.value : 'all';
+}
+
 // If the polygon has many vertices the WKT string becomes very long and mobile proxies
 // can silently truncate the URL, causing network errors. Simplify progressively until
 // the WKT is under 3 000 chars (~120 pts), which is well within all proxy limits.
@@ -5284,7 +5337,7 @@ runBtn.addEventListener('click', async () => {
             if (_seenObsIds.has(obs.id)) continue;
             _seenObsIds.add(obs.id);
             if (!obs.location) continue;
-            if (document.getElementById('excludeLowPrecision').checked) continue; // obscured records are always low-precision
+            if (getPrecisionMode() === 'exclude') continue; // obscured records are always low-precision
             const [_latS, _lngS] = obs.location.split(',');
             const _lat = parseFloat(_latS), _lng = parseFloat(_lngS);
             if (isNaN(_lat) || isNaN(_lng)) continue;
@@ -5348,7 +5401,9 @@ runBtn.addEventListener('click', async () => {
 
     const baseParams = [['geometry', getQueryWKT(geomPoly)], ['hasCoordinate', 'true'], ['limit', '300']];
     if (dateFrom && dateTo) baseParams.push(['eventDate', dateFrom + ',' + dateTo]);
-    if (document.getElementById('excludeLowPrecision').checked) baseParams.push(['coordinateUncertaintyInMeters', '*,1499']);
+    const _precisionMode = getPrecisionMode();
+    if (_precisionMode === 'exclude') baseParams.push(['coordinateUncertaintyInMeters', '*,1499']);
+    else if (_precisionMode === 'only') baseParams.push(['coordinateUncertaintyInMeters', '1500,*']);
     const _basisMap = {
       inclObservations: ['HUMAN_OBSERVATION','MACHINE_OBSERVATION','OCCURRENCE'],
       inclPreserved:    ['PRESERVED_SPECIMEN','LIVING_SPECIMEN','MATERIAL_CITATION'],
@@ -5372,8 +5427,9 @@ runBtn.addEventListener('click', async () => {
       if (!_effortFetchParams.some(ep => ep[0][1] === _effortWKT)) _effortFetchParams.push(_effortP);
     }
     if (poly.type === 'species') {
-      // Species entry: fetch only this taxon
-      if (poly.taxonKey) baseParams.push(['taxonKey', String(poly.taxonKey)]);
+      // Species entry: fetch only this taxon. taxonKey is COL XR's alphanumeric code,
+      // which only resolves against occurrence data when checklistKey is also present.
+      if (poly.taxonKey) baseParams.push(['taxonKey', String(poly.taxonKey)], ['checklistKey', COL_XR_CHECKLIST_KEY]);
       else baseParams.push(['scientificName', poly.sciName]);
     } else {
       // Geometry polygon: use taxon group filter
@@ -5572,9 +5628,13 @@ runBtn.addEventListener('click', async () => {
             if (!obs.location) continue;
             const _obsId = String(obs.id);
             if (_gbifInatIds.has(_obsId)) continue; // already in GBIF
-            if (document.getElementById('excludeLowPrecision').checked) {
+            const _precMode = getPrecisionMode();
+            if (_precMode === 'exclude') {
               const _pa = parseFloat(obs.positional_accuracy);
               if (isNaN(_pa) || _pa >= 1500) continue;
+            } else if (_precMode === 'only') {
+              const _pa = parseFloat(obs.positional_accuracy);
+              if (!isNaN(_pa) && _pa < 1500) continue;
             }
 
             const [_latStr, _lngStr] = obs.location.split(',');
@@ -6005,10 +6065,12 @@ async function handleGbifCsv(text, filename) {
   const header = lines[0] ? lines[0].split('\t') : [];
   if (!header.includes('gbifID') && !header.includes('decimalLatitude')) {
     setStatus('That doesn\'t look like a GBIF occurrence CSV (expected tab-separated columns including gbifID).', 'error');
+    hideDropZoneProgress();
     return;
   }
   setStatus('Parsing ' + filename + '…', 'info');
   progressLabel.textContent = 'Parsing records…';
+  showDropZoneProgress('Parsing records…');
   await new Promise(r => setTimeout(r, 30));
   const rows = [];
   for (let i = 1; i < lines.length; i++) {
@@ -6018,7 +6080,7 @@ async function handleGbifCsv(text, filename) {
     header.forEach((col, ci) => { row[col] = vals[ci] !== undefined ? vals[ci] : ''; });
     rows.push(_mapDwcRecord(null, row));
   }
-  if (rows.length === 0) { setStatus('No records found in ' + filename, 'warning'); return; }
+  if (rows.length === 0) { setStatus('No records found in ' + filename, 'warning'); hideDropZoneProgress(); return; }
 
   // If polygons are loaded, filter to records within them
   const _geomPolys = polygons.filter(p => p.type !== 'species');
@@ -6026,6 +6088,7 @@ async function handleGbifCsv(text, filename) {
   if (_geomPolys.length > 0) {
     setStatus('Filtering to drawn polygons…', 'info');
     progressLabel.textContent = 'Filtering to polygons…';
+    showDropZoneProgress('Filtering to polygons…');
     await new Promise(r => setTimeout(r, 30));
     const turfPolys = _geomPolys.map(p => {
       try {
@@ -6052,7 +6115,7 @@ async function handleGbifCsv(text, filename) {
       });
     }
   }
-  if (displayRows.length === 0) { setStatus('No records fell within the drawn polygons.', 'warning'); return; }
+  if (displayRows.length === 0) { setStatus('No records fell within the drawn polygons.', 'warning'); hideDropZoneProgress(); return; }
 
   clearResults();
   allRecords = displayRows;
@@ -6062,6 +6125,7 @@ async function handleGbifCsv(text, filename) {
   maybeActivateNztcs();
   setStatus('Looking up common names…', 'info');
   progressLabel.textContent = 'Looking up common names…';
+  showDropZoneProgress('Looking up common names…');
   await lookupCommonNames(displayRows);
   buildFilterChips(displayRows);
   buildChecklist(displayRows);
@@ -6084,6 +6148,8 @@ async function handleGbifCsv(text, filename) {
   outputSection.style.display = 'block'; nerdToolsSection.style.display = 'block';
   const filtered = rows.length - displayRows.length;
   setStatus(displayRows.length.toLocaleString() + ' records loaded from ' + filename + (filtered > 0 ? ' (' + filtered.toLocaleString() + ' outside polygons removed)' : '') + '.', 'success');
+  progressWrap.style.display = 'none';
+  hideDropZoneProgress();
 }
 
 // ── Share modal CSV download ──────────────────────────────────────────────
@@ -6247,11 +6313,15 @@ function _buildGbifDownloadPredicate(simplifyTol) {
   else if (wkts.length > 1)  geomPredicate = { type: 'or', predicates: wkts.map(g => ({ type: 'within', geometry: g })) };
 
   const rawParams = buildTaxonParams(getSelectedTaxonKeys());
-  _speciesEntries.forEach(s => { if (s.taxonKey) rawParams.push(['taxonKey', String(s.taxonKey)]); });
-  const allTaxonKeys = [...new Set(rawParams.map(([, v]) => v))];
+  _speciesEntries.forEach(s => { if (s.taxonKey) rawParams.push(['taxonKey', String(s.taxonKey)]); }); // COL XR alphanumeric keys
+  const allTaxonKeys = [...new Set(rawParams.filter(([k]) => k === 'taxonKey').map(([, v]) => v))];
   let taxonPredicate = null;
   if (allTaxonKeys.length === 1)     taxonPredicate = { type: 'equals', key: 'TAXON_KEY', value: allTaxonKeys[0] };
   else if (allTaxonKeys.length > 1)  taxonPredicate = { type: 'in', key: 'TAXON_KEY', values: allTaxonKeys };
+  // Downloads accept one checklistKey for the whole request. Every taxonKey value here —
+  // from taxon-group filters and from individually-picked species alike — is now a COL XR
+  // alphanumeric code, so checklistKey is always required whenever any taxon filter is set.
+  if (taxonPredicate) taxonPredicate.checklistKey = COL_XR_CHECKLIST_KEY;
 
   const dateFrom = document.getElementById('dateFrom').value;
   const dateTo   = document.getElementById('dateTo').value || _todayStr;
@@ -6276,15 +6346,20 @@ async function _runGbifDownload(user, pass) {
   let downloadKey;
   const _simplifyTols = [null, 'no-holes', 0.00005, 0.0001, 0.0005, 0.001, 0.005];
   let _submitted = false;
+  // checklistKey is needed whenever any taxon filter is set — taxon-group filters and
+  // individually-picked species entries are both COL XR alphanumeric keys now.
+  const _usesColXr = getSelectedTaxonKeys().length > 0 || polygons.some(p => p.type === 'species' && p.taxonKey);
   for (const tol of _simplifyTols) {
     const predicate = _buildGbifDownloadPredicate(tol);
     if (!predicate) { setFetchMode(false); return; }
     let res;
     try {
+      const body = { creator: user, sendNotification: true, format: 'SIMPLE_CSV', predicate };
+      if (_usesColXr) body.checklistKey = COL_XR_CHECKLIST_KEY;
       res = await fetch('https://api.gbif.org/v1/occurrence/download/request', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': 'Basic ' + auth },
-        body: JSON.stringify({ creator: user, sendNotification: true, format: 'SIMPLE_CSV', predicate })
+        body: JSON.stringify(body)
       });
     } catch(e) { setStatus('Download request failed: ' + e.message, 'error'); setFetchMode(false); return; }
     if (res.status === 401) {
@@ -6362,17 +6437,61 @@ if (window._pendingShare) {
   </div>
   <div class="changelog-scroll" id="changelogScroll">
     <div class="changelog-version">
+      <span class="changelog-version-tag">v6.22</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>Tree of life search — rank badges (Family/Order/Genus/etc) for NZOR-sourced results take a couple of seconds to resolve over the network; added a pulsing placeholder so it's clear it's loading rather than missing</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v6.21</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>Fixed 404 error when sending species to LookLike from beta — link was missing the "../" needed to reach the looklike folder from inside /beta/</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v6.20</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>Coordinate precision — "Exclude low-precision" checkbox replaced with a dropdown: All records / Exclude low-precision (&gt;1.5 km) / Only low-precision (&gt;1.5 km), so you can isolate the low-precision records instead of only ever removing them</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v6.19</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>Tree of life — fix: searching/jumping to a species could sit loading for a long time. COL XR's class-level taxa (e.g. Aves) mix ~40 real orders with ~180 incertae-sedis fossil genera/families placed directly underneath, pushing some columns past the 200-result page size and forcing a slow second sequential fetch that the rest of the columns had to wait on; page size raised to 500 so this fits in one request</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v6.18</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>Tree of life and species search now run on COL XR (Catalogue of Life Extended Release), the same taxonomy already used by taxon-group filters — both species-picking UIs are consistent again. Bacteria now browses as a Domain with its real modern kingdoms (Bacillati etc.) underneath, rather than one flat kingdom</li>
+        <li>Fixed a real bug exposed by the migration: <code>species/match</code> (used to resolve a typed/picked species name to a GBIF taxon) has no COL XR equivalent and was silently ignoring the checklist scope — replaced with <code>v2/species/match</code> for free-typed names and <code>species/search</code> for curated local-name lookups (NZOR/NVS/Samoa)</li>
+        <li>NZ/Samoa occurrence-count badges in Tree of life still come from the legacy backbone's occurrence facets (no behaviour change there) — taxa with no legacy equivalent just show no count, instead of a wrong one</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v6.17</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>Tree of life — internal prep for COL XR migration: rank recognition switched from an allowlist of known ranks to a blocklist of junk ranks, so taxonomy sources that use intermediate clade ranks (e.g. Infraphylum, Megaclass) navigate correctly instead of silently dead-ending; no visible change yet on the current data source</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
       <span class="changelog-version-tag">v6.16</span>
       <span class="changelog-date">Jun 2026</span>
       <ul>
-        <li>GBIF zip/CSV upload — fix: the v6.15 antimeridian fix didn't actually take effect because the map's re-centring animates by default and marker placement read the map's center before the pan finished; re-centring now jumps instantly so markers land in the right place</li>
+        <li>GBIF zip/CSV upload — fix: the antimeridian fix below didn't actually take effect because the map's re-centring animates by default and marker placement read the map's center before the pan finished; re-centring now jumps instantly so markers land in the right place</li>
       </ul>
     </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v6.15</span>
       <span class="changelog-date">Jun 2026</span>
       <ul>
-        <li>GBIF zip/CSV upload — fix: points near the antimeridian (e.g. Samoa, Fiji, Kiribati) didn't appear on the map when uploaded without a drawn polygon first; the map was being re-centred on the data's extent *after* markers were already placed at the wrong world copy</li>
+        <li>Drag-and-drop GBIF zip/CSV upload — drop zone now shows a live progress indicator (reading zip, extracting CSV, parsing records, filtering to polygons, looking up common names) instead of giving no feedback while large files process</li>
       </ul>
     </div>
     <div class="changelog-version">

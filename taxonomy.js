@@ -4,13 +4,23 @@
 (function() {
   'use strict';
 
+  // COL XR's own numeric keys for these root taxa (resolved 2026-06-26 against
+  // checklistKey 7ddf754f-d193-4cc9-b351-99906754a03b). nubKey is the matching legacy
+  // GBIF backbone numeric ID, used only for NZ occurrence-count faceting (getGeoKeys) —
+  // that machinery still queries occurrence data via the legacy backbone, which has no
+  // concept of COL XR's own internal keys. taxonID is COL's native alphanumeric code,
+  // the only form usable as an occurrence taxonKey filter (paired with checklistKey).
+  // Bacteria sits under a real DOMAIN rank with newer kingdoms (Bacillati etc.) beneath
+  // it in COL XR rather than being a flat kingdom — listed here as a DOMAIN root entry;
+  // the generic rank handling (see JUNK_RANKS below) navigates it correctly with no
+  // special-casing. It has no legacy nub equivalent, so NZ counts won't show for it.
   const KINGDOMS = [
-    { key:1, name:'Animalia',  rank:'KINGDOM' },
-    { key:6, name:'Plantae',   rank:'KINGDOM' },
-    { key:5, name:'Fungi',     rank:'KINGDOM' },
-    { key:4, name:'Chromista', rank:'KINGDOM' },
-    { key:7, name:'Protozoa',  rank:'KINGDOM' },
-    { key:3, name:'Bacteria',  rank:'KINGDOM' },
+    { key:296374190, nubKey:1,    taxonID:'N',     name:'Animalia',  rank:'KINGDOM' },
+    { key:293994071, nubKey:6,    taxonID:'P',     name:'Plantae',   rank:'KINGDOM' },
+    { key:299629601, nubKey:5,    taxonID:'F',     name:'Fungi',     rank:'KINGDOM' },
+    { key:299967116, nubKey:4,    taxonID:'C',     name:'Chromista', rank:'KINGDOM' },
+    { key:293992559, nubKey:7,    taxonID:'Z',     name:'Protozoa',  rank:'KINGDOM' },
+    { key:293990344, nubKey:null, taxonID:'CRRY6', name:'Bacteria',  rank:'DOMAIN'  },
   ];
 
   const RANK_LABELS = {
@@ -18,14 +28,47 @@
     FAMILY:'Family',   TRIBE:'Tribe',   GENUS:'Genus', SPECIES:'Species',
     SUBPHYLUM:'Subphylum', SUBCLASS:'Subclass', SUBORDER:'Suborder',
     SUBFAMILY:'Subfamily', SUBGENUS:'Subgenus',
+    DOMAIN:'Domain', SUBKINGDOM:'Subkingdom', INFRAKINGDOM:'Infrakingdom',
+    SUPERPHYLUM:'Superphylum', INFRAPHYLUM:'Infraphylum', PARVPHYLUM:'Parvphylum',
+    SUPERCLASS:'Superclass', INFRACLASS:'Infraclass', PARVCLASS:'Parvclass',
+    MEGACLASS:'Megaclass', SUPERORDER:'Superorder', INFRAORDER:'Infraorder',
+    PARVORDER:'Parvorder', SUPERFAMILY:'Superfamily', INFRAFAMILY:'Infrafamily',
+    SUBTRIBE:'Subtribe', SUBSPECIES:'Subspecies', VARIETY:'Variety', FORM:'Form',
   };
-  const VALID_RANKS = new Set(Object.keys(RANK_LABELS));
 
-  // Rank sort order — lower number = higher in hierarchy = shown first
-  const RANK_ORDER = {
-    KINGDOM:0, PHYLUM:1, SUBPHYLUM:2, CLASS:3, SUBCLASS:4, ORDER:5,
-    SUBORDER:6, FAMILY:7, SUBFAMILY:8, TRIBE:9, GENUS:10, SUBGENUS:11, SPECIES:12
-  };
+  // Ranks that aren't a real navigable taxon level — everything else is shown as a
+  // column, whatever the rank turns out to be. GBIF's full Rank enum (and the extra
+  // ranks COL XR uses beyond that enum, e.g. PARVPHYLUM/MEGACLASS) is too large and
+  // too likely to grow to maintain as an allowlist — an allowlist also silently breaks
+  // navigation the moment a taxon source introduces a rank we didn't list (this is
+  // exactly what happened with COL XR's extra vertebrate ranks).
+  const JUNK_RANKS = new Set(['UNRANKED', 'OTHER']);
+
+  // Pretty-print a rank we don't have an explicit label for for, e.g. 'PARVPHYLUM' → 'Parvphylum'
+  function rankLabel(rank) {
+    if (!rank) return '';
+    if (RANK_LABELS[rank]) return RANK_LABELS[rank];
+    return rank.charAt(0) + rank.slice(1).toLowerCase().replace(/_/g, ' ');
+  }
+
+  // Rank sort order — lower number = higher in hierarchy = shown first.
+  // Built from GBIF's official Rank enum (already in correct hierarchical order),
+  // with COL XR's extra non-enum ranks spliced in at their observed position.
+  const GBIF_RANK_ENUM = [
+    'DOMAIN','SUPERKINGDOM','KINGDOM','SUBKINGDOM','INFRAKINGDOM','SUPERPHYLUM','PHYLUM',
+    'SUBPHYLUM','INFRAPHYLUM','PARVPHYLUM','MEGACLASS','SUPERCLASS','CLASS','SUBCLASS',
+    'INFRACLASS','PARVCLASS','SUPERLEGION','LEGION','SUBLEGION','INFRALEGION','SUPERCOHORT',
+    'COHORT','SUBCOHORT','INFRACOHORT','MAGNORDER','SUPERORDER','GRANDORDER','ORDER',
+    'SUBORDER','INFRAORDER','PARVORDER','SUPERFAMILY','FAMILY','SUBFAMILY','INFRAFAMILY',
+    'SUPERTRIBE','TRIBE','SUBTRIBE','INFRATRIBE','SUPRAGENERIC_NAME','GENUS','SUBGENUS',
+    'INFRAGENUS','SECTION','SUBSECTION','SERIES','SUBSERIES','INFRAGENERIC_NAME',
+    'SPECIES_AGGREGATE','SPECIES','INFRASPECIFIC_NAME','GREX','SUBSPECIES','CULTIVAR_GROUP',
+    'CONVARIETY','INFRASUBSPECIFIC_NAME','PROLES','RACE','NATIO','ABERRATION','MORPH',
+    'VARIETY','SUBVARIETY','FORM','SUBFORM','PATHOVAR','BIOVAR','CHEMOVAR','MORPHOVAR',
+    'PHAGOVAR','SEROVAR','CHEMOFORM','FORMA_SPECIALIS','CULTIVAR','STRAIN',
+  ];
+  const RANK_ORDER = {};
+  GBIF_RANK_ENUM.forEach((r, i) => { RANK_ORDER[r] = i; });
 
   // Maps a parent rank → the GBIF occurrence facet field for its children
   // e.g. children of a CLASS are ORDERs → facet by orderKey
@@ -224,7 +267,7 @@
   function colHeaderLabel(ci) {
     const nodes = cols[ci];
     if (nodes && nodes.length > 0 && nodes[0].rank) {
-      return RANK_LABELS[nodes[0].rank] || nodes[0].rank;
+      return rankLabel(nodes[0].rank);
     }
     return COL_HEADERS[ci] || 'Taxa';
   }
@@ -510,11 +553,17 @@
         const all = [];
         let offset = 0;
         while (true) {
-          const res = await gbifFetch('https://api.gbif.org/v1/species/' + parentKey + '/children?limit=200&offset=' + offset);
+          // limit=500, not 200 — COL XR's class-rank nodes (e.g. Aves) mix ~40 real orders
+          // with ~180 incertae-sedis fossil genera/families placed directly under the class,
+          // pushing some columns past 200 children. A second sequential page for one column
+          // makes Promise.all (all columns load in parallel) wait on it — confirmed live this
+          // roughly doubles that column's load time. 500 fits Aves' ~220 children in one request
+          // at the same per-request latency as 200, at no real cost for the common case of fewer.
+          const res = await gbifFetch('https://api.gbif.org/v1/species/' + parentKey + '/children?limit=500&offset=' + offset);
           if (!res.ok) throw new Error('HTTP ' + res.status);
           const j = await res.json();
           (j.results || []).forEach(x => {
-            if (x.rank && VALID_RANKS.has(x.rank) &&
+            if (x.rank && !JUNK_RANKS.has(x.rank) &&
                 (!x.taxonomicStatus || x.taxonomicStatus === 'ACCEPTED' || x.taxonomicStatus === 'DOUBTFUL'))
               all.push(x);
           });
@@ -524,7 +573,7 @@
             onFirstPage(partial);
           }
           if (j.endOfRecords) break;
-          offset += 200;
+          offset += 500;
         }
         // Sort by rank hierarchy first so higher ranks (Phylum) appear before lower (Family/Genus)
         // even when GBIF mixes ranks as direct children (e.g. incertae sedis placements)
@@ -544,15 +593,18 @@
 
   // Apply NZ occurrence filter and attach counts. Falls back to full list if filtering
   // would wipe everything (intermediate ranks like Subfamily don't appear in facets).
+  // Matches on nubKey, not key — the facet counts come from occurrence data, which only
+  // understands the legacy GBIF backbone, not COL XR's own internal keys. Nodes with no
+  // nubKey (no legacy equivalent, e.g. brand-new COL XR taxa) just get no count badge.
   function nzFilterAndCount(children, nzKeys) {
     if (!children) return [];   // guard: fetch may have failed and returned undefined
     if (!nzKeys || !nzKeys.size) {
       children.forEach(c => { c._nzCount = null; });
       return children;
     }
-    const filtered = children.filter(c => nzKeys.has(String(c.key)));
+    const filtered = children.filter(c => c.nubKey != null && nzKeys.has(String(c.nubKey)));
     const result = filtered.length > 0 ? filtered : children;
-    result.forEach(c => { c._nzCount = nzKeys.get(String(c.key)) || null; });
+    result.forEach(c => { c._nzCount = (c.nubKey != null && nzKeys.get(String(c.nubKey))) || null; });
     return result;
   }
 
@@ -562,7 +614,8 @@
   //             when done. If NZ data is already cached from a prior loadSiblings
   //             call, phase 2 is instant.
   async function loadCol(ci, parentNode) {
-    const key = parentNode.key;
+    const key    = parentNode.key;
+    const nubKey = parentNode.nubKey; // legacy numeric key — for NZ-count faceting only
     const mySeq = _jumpSeq;
 
     showLoadingPhrase(); // always show on every column click
@@ -597,15 +650,16 @@
 
     // Final render with complete results + geo filter if cached
     const _cc = getActiveCountry();
-    const cachedNZ = _cc ? nzCache[_cc + ':' + (key || 'root')] : undefined;
+    const cachedNZ = (_cc && nubKey != null) ? nzCache[_cc + ':' + nubKey] : undefined;
     cols[ci] = (cachedNZ !== undefined) ? nzFilterAndCount(children, cachedNZ) : children;
     renderCol(ci);
     updateHint();
     updateAddBtn();
 
-    // Phase 2 — NZ counts in background (skipped if already cached)
-    if (cachedNZ === undefined) {
-      getGeoKeys(key, parentNode.rank).then(nzKeys => {
+    // Phase 2 — NZ counts in background (skipped if already cached, or if this node
+    // has no legacy equivalent at all — nothing to facet against)
+    if (cachedNZ === undefined && nubKey != null) {
+      getGeoKeys(nubKey, parentNode.rank).then(nzKeys => {
         hideLoadingPhrase(); // hide after Phase 2 completes
         if (_jumpSeq !== mySeq) return;
         cols[ci] = nzFilterAndCount(children, nzKeys);
@@ -631,9 +685,9 @@
     const nzKeys = await getGeoKeys(null, null);
     if (_jumpSeq !== mySeq) return;
     const kingdoms = (nzKeys && nzKeys.size > 0)
-      ? KINGDOMS.filter(k => nzKeys.has(String(k.key)))
+      ? KINGDOMS.filter(k => k.nubKey != null && nzKeys.has(String(k.nubKey)))
       : [...KINGDOMS];
-    kingdoms.forEach(k => { k._nzCount = nzKeys ? (nzKeys.get(String(k.key)) || null) : null; });
+    kingdoms.forEach(k => { k._nzCount = (nzKeys && k.nubKey != null) ? (nzKeys.get(String(k.nubKey)) || null) : null; });
     cols[0] = kingdoms;
     renderCol(0);
     updateHint();
@@ -742,7 +796,7 @@
     const hit = getSelected();
     if (hit) {
       const name = nodeName(hit.node);
-      const rank = RANK_LABELS[hit.node.rank] || hit.node.rank || 'taxon';
+      const rank = rankLabel(hit.node.rank) || 'taxon';
       btn.textContent = 'Add ' + name + ' (' + rank + ') to search';
       btn.disabled    = false;
       btn._taxoNode   = hit.node;
@@ -888,7 +942,7 @@
 
   async function searchGbif(q) {
     try {
-      const url = 'https://api.gbif.org/v1/species/suggest?datasetKey=d7dddbf4-2cf0-4f39-9b2a-bb099caae36c&q='
+      const url = 'https://api.gbif.org/v1/species/suggest?datasetKey=7ddf754f-d193-4cc9-b351-99906754a03b&q='
                 + encodeURIComponent(q) + '&limit=10';
       const res = await fetch(url);
       if (!res.ok) return [];
@@ -897,7 +951,7 @@
         type:     'scientific',
         display:  s.canonicalName || s.scientificName || s.name || '?',
         subLabel: s.family || s.order || '',
-        rank:     RANK_LABELS[s.rank] || s.rank || '',
+        rank:     rankLabel(s.rank),
         gbifKey:  s.key,
         nzorData: null,
       }));
@@ -909,7 +963,7 @@
     try {
       const url = 'https://api.gbif.org/v1/species/search?q='
                 + encodeURIComponent(q)
-                + '&datasetKey=d7dddbf4-2cf0-4f39-9b2a-bb099caae36c&limit=8&status=ACCEPTED';
+                + '&datasetKey=7ddf754f-d193-4cc9-b351-99906754a03b&limit=8&status=ACCEPTED';
       const res = await fetch(url);
       if (!res.ok) return [];
       const j = await res.json();
@@ -926,7 +980,7 @@
           subLabel: isVernMatch
             ? (s.canonicalName || '')
             : (s.family || s.order || ''),
-          rank:     RANK_LABELS[s.rank] || s.rank || '',
+          rank:     rankLabel(s.rank),
           gbifKey:  s.key,
           nzorData: null,
         };
@@ -946,7 +1000,9 @@
     results.forEach(r => {
       const row = document.createElement('div');
       row.className = 'miller-sug';
-      const rankHtml = r.rank ? `<span class="miller-sug-rank">${r.rank}</span>` : '';
+      const willLazyResolve = !r.rank && !r.gbifKey && r.nzorData;
+      const rankHtml = r.rank ? `<span class="miller-sug-rank">${r.rank}</span>`
+                     : willLazyResolve ? `<span class="miller-sug-rank miller-sug-rank-pending">&hellip;</span>` : '';
       const mainClass = r.type === 'vernacular' ? 'vern' : 'sci';
       row.innerHTML =
         `<div class="miller-sug-info">` +
@@ -965,28 +1021,47 @@
     drop.style.display = '';
   }
 
+  // Resolve an already-correct scientific name (from NZOR/NVS/Samoa's curated local
+  // data, not free-typed user input) to its COL XR node. species/match has no COL XR
+  // equivalent (it silently ignores checklistKey/datasetKey), so this uses species/search
+  // instead and picks the best exact-canonical-name match — names from these curated
+  // sources are already clean/correctly-spelled, so search's lack of fuzzy/typo tolerance
+  // (which species/match has) isn't a problem here. Returns the COL XR numeric key (for
+  // browsing via /children, /parents — those reject the alphanumeric taxonID form) plus
+  // rank and taxonID, or null if nothing matched.
+  async function _resolveColXrName(sci) {
+    try {
+      const url = 'https://api.gbif.org/v1/species/search?q='
+                + encodeURIComponent(sci)
+                + '&datasetKey=' + COL_XR_CHECKLIST_KEY + '&limit=10&status=ACCEPTED';
+      const res = await fetch(url);
+      if (!res.ok) return null;
+      const j = await res.json();
+      const sciLow = sci.toLowerCase();
+      const exact = (j.results || []).find(r => (r.canonicalName || '').toLowerCase() === sciLow)
+                 || (j.results || [])[0];
+      if (!exact || !exact.rank) return null;
+      return { key: exact.key, rank: exact.rank, taxonID: exact.taxonID || null };
+    } catch(e) { return null; }
+  }
+
   async function _lazyResolveRank(rowEl, result) {
     const sci = result.nzorData.sci || result.nzorData.n;
     if (!sci) return;
-    try {
-      const url = 'https://api.gbif.org/v1/species/match?name='
-                + encodeURIComponent(sci)
-                + '&datasetKey=d7dddbf4-2cf0-4f39-9b2a-bb099caae36c&verbose=false';
-      const res = await fetch(url);
-      if (!res.ok) return;
-      const j = await res.json();
-      if (j.matchType === 'NONE' || !j.rank || !j.usageKey) return;
-      result.rank    = RANK_LABELS[j.rank] || j.rank;
-      result.gbifKey = j.usageKey; // cache — resolveAndJump skips re-matching on click
-      if (!rowEl.isConnected) return; // dropdown may have closed/re-rendered by now
-      let rankEl = rowEl.querySelector('.miller-sug-rank');
-      if (!rankEl) {
-        rankEl = document.createElement('span');
-        rankEl.className = 'miller-sug-rank';
-        rowEl.appendChild(rankEl);
-      }
-      rankEl.textContent = result.rank;
-    } catch(e) {}
+    const hit = await _resolveColXrName(sci);
+    if (!hit) return;
+    result.rank     = rankLabel(hit.rank);
+    result.gbifKey  = hit.key;     // cache — resolveAndJump skips re-matching on click
+    result.taxonID  = hit.taxonID;
+    if (!rowEl.isConnected) return; // dropdown may have closed/re-rendered by now
+    let rankEl = rowEl.querySelector('.miller-sug-rank');
+    if (!rankEl) {
+      rankEl = document.createElement('span');
+      rankEl.className = 'miller-sug-rank';
+      rowEl.appendChild(rankEl);
+    }
+    rankEl.classList.remove('miller-sug-rank-pending');
+    rankEl.textContent = result.rank;
   }
 
   async function resolveAndJump(result) {
@@ -1000,17 +1075,8 @@
                        : (!gbifKey && result.nzorData) ? (result.nzorData.sci || result.nzorData.n)
                        : null;
     if (!gbifKey && sciToResolve) {
-      const sci = sciToResolve;
-      try {
-        const url = 'https://api.gbif.org/v1/species/match?name='
-                  + encodeURIComponent(sci)
-                  + '&datasetKey=d7dddbf4-2cf0-4f39-9b2a-bb099caae36c&verbose=false';
-        const res = await fetch(url);
-        if (res.ok) {
-          const j = await res.json();
-          if (j.matchType !== 'NONE' && j.usageKey) gbifKey = j.usageKey;
-        }
-      } catch(e) {}
+      const hit = await _resolveColXrName(sciToResolve);
+      if (hit) gbifKey = hit.key;
     }
     if (!gbifKey) return; // can't resolve — nothing to show
 
@@ -1027,15 +1093,15 @@
     if (!parentNode) {
       const nzKeys = await getGeoKeys(null, null);
       const kds = (nzKeys && nzKeys.size > 0)
-        ? KINGDOMS.filter(k => nzKeys.has(String(k.key)))
+        ? KINGDOMS.filter(k => k.nubKey != null && nzKeys.has(String(k.nubKey)))
         : [...KINGDOMS];
-      kds.forEach(k => { k._nzCount = nzKeys ? (nzKeys.get(String(k.key)) || null) : null; });
+      kds.forEach(k => { k._nzCount = (nzKeys && k.nubKey != null) ? (nzKeys.get(String(k.nubKey)) || null) : null; });
       return kds;
     }
     const parentKey = parentNode.key;
     const [children, nzKeys] = await Promise.all([
       fetchTaxoChildren(parentKey),
-      getGeoKeys(parentKey, parentNode.rank),
+      parentNode.nubKey != null ? getGeoKeys(parentNode.nubKey, parentNode.rank) : Promise.resolve(null),
     ]);
     let result = nzFilterAndCount(children, nzKeys);
     // Always keep must-include key even if NZ filter would remove it
@@ -1138,7 +1204,7 @@
 
       // Apply cached geo filter if already available (from a prior search of the same taxa)
       const _cc2 = getActiveCountry();
-      const cachedLastNZ = _cc2 ? nzCache[_cc2 + ':' + lastSrc.key] : undefined;
+      const cachedLastNZ = (_cc2 && lastSrc.nubKey != null) ? nzCache[_cc2 + ':' + lastSrc.nubKey] : undefined;
       cols[NUM_COLS - 1] = (cachedLastNZ !== undefined)
         ? nzFilterAndCount(lastChildren, cachedLastNZ)
         : lastChildren;
@@ -1164,7 +1230,7 @@
         if (!res || !res.srcNode) continue;  // skip kingdom cols (srcNode===null)
         const { nodes, hiIdx, mustKey, srcNode } = res;
         ;(async (ci, srcNode, nodes, mustKey) => {
-          const nzKeys = await getGeoKeys(srcNode.key, srcNode.rank);
+          const nzKeys = srcNode.nubKey != null ? await getGeoKeys(srcNode.nubKey, srcNode.rank) : null;
           if (_jumpSeq !== mySeq) return;
           let displayed = nzFilterAndCount(nodes, nzKeys);
           // Keep the selected ancestor visible even if NZ-filtered-out
@@ -1181,9 +1247,9 @@
       }
 
       // NZ for rightmost column
-      if (cachedLastNZ === undefined) {
+      if (cachedLastNZ === undefined && lastSrc.nubKey != null) {
         ;(async () => {
-          const nzKeys = await getGeoKeys(lastSrc.key, lastSrc.rank);
+          const nzKeys = await getGeoKeys(lastSrc.nubKey, lastSrc.rank);
           if (_jumpSeq !== mySeq) return;
           const displayed = nzFilterAndCount(lastChildren, nzKeys);
           cols[NUM_COLS - 1] = displayed;
@@ -1253,7 +1319,10 @@
       const node = btn?._taxoNode;
       if (!node) return;
       if (typeof window.addSpeciesEntry === 'function')
-        window.addSpeciesEntry(nodeName(node), node.key, null);
+        // taxonID (COL XR's native alphanumeric code), not key (COL XR's internal numeric
+        // id) — only taxonID works as an occurrence taxonKey filter once paired with
+        // checklistKey; the numeric key returns zero records if used the same way.
+        window.addSpeciesEntry(nodeName(node), node.taxonID || node.key, null);
       close();
     });
     initSearch();
