@@ -46,7 +46,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v6.20</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v6.22</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -4868,7 +4868,7 @@ function openInLooklike() {
     localStorage.setItem('looklike_names', JSON.stringify({ ts, names: speciesData.map(s => s.name) }));
   } catch(e) {}
 
-  const url = 'looklike/?v=' + ts;
+  const url = '../looklike/?v=' + ts;
   window.open(url, '_blank');
 }
 
@@ -6436,6 +6436,20 @@ if (window._pendingShare) {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v6.22</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>Tree of life search — rank badges (Family/Order/Genus/etc) for NZOR-sourced results take a couple of seconds to resolve over the network; added a pulsing placeholder so it's clear it's loading rather than missing</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v6.21</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>Fixed 404 error when sending species to LookLike from beta — link was missing the "../" needed to reach the looklike folder from inside /beta/</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v6.20</span>
       <span class="changelog-date">Jun 2026</span>

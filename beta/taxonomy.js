@@ -1000,7 +1000,9 @@
     results.forEach(r => {
       const row = document.createElement('div');
       row.className = 'miller-sug';
-      const rankHtml = r.rank ? `<span class="miller-sug-rank">${r.rank}</span>` : '';
+      const willLazyResolve = !r.rank && !r.gbifKey && r.nzorData;
+      const rankHtml = r.rank ? `<span class="miller-sug-rank">${r.rank}</span>`
+                     : willLazyResolve ? `<span class="miller-sug-rank miller-sug-rank-pending">&hellip;</span>` : '';
       const mainClass = r.type === 'vernacular' ? 'vern' : 'sci';
       row.innerHTML =
         `<div class="miller-sug-info">` +
@@ -1058,6 +1060,7 @@
       rankEl.className = 'miller-sug-rank';
       rowEl.appendChild(rankEl);
     }
+    rankEl.classList.remove('miller-sug-rank-pending');
     rankEl.textContent = result.rank;
   }
 
