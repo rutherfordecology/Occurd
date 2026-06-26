@@ -46,7 +46,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v6.17</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v6.18</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -4038,15 +4038,20 @@ async function fetchEffortData() {
   if (btn) { btn.textContent = 'Loading…'; btn.disabled = true; }
   effortByYear = {};
 
-  // Resolve classKey from taxon keys so effort query matches the same class (e.g. Aves for birds)
+  // Resolve classKey from taxon keys so effort query matches the same class (e.g. Aves for birds).
+  // Species entries carry COL XR's alphanumeric taxonID, which the bare /v1/species/{key}
+  // lookup can't accept (it requires a numeric id, full stop, even with checklistKey).
+  // Faceting occurrence/search by classKey instead sidesteps that — under checklistKey
+  // scoping, facet values come back as COL XR's own alphanumeric codes too, which are
+  // then directly reusable as a checklistKey-scoped classKey filter below.
   let effortClassKey = null;
   if (_effortTaxonKeys.length > 0) {
     try {
       const classKeys = await Promise.all(_effortTaxonKeys.map(async k => {
-        const r = await gbifFetch('https://api.gbif.org/v1/species/' + k);
+        const r = await gbifFetch('https://api.gbif.org/v1/occurrence/search?limit=0&taxonKey=' + encodeURIComponent(k) + '&checklistKey=' + COL_XR_CHECKLIST_KEY + '&facet=classKey&facetLimit=1');
         if (!r.ok) return null;
         const d = await r.json();
-        return d.classKey || null;
+        return d.facets?.[0]?.counts?.[0]?.name || null;
       }));
       const unique = [...new Set(classKeys.filter(Boolean))];
       if (unique.length === 1) effortClassKey = unique[0]; // only inject if all species share same class
@@ -4054,7 +4059,7 @@ async function fetchEffortData() {
   }
 
   for (const params of _effortFetchParams) {
-    const extraParams = effortClassKey ? [['classKey', String(effortClassKey)]] : [];
+    const extraParams = effortClassKey ? [['classKey', String(effortClassKey)], ['checklistKey', COL_XR_CHECKLIST_KEY]] : [];
     const qs = [...params, ...extraParams, ['facet', 'YEAR'], ['facetLimit', '200'], ['limit', '0']]
       .map(([k, v]) => encodeURIComponent(k) + '=' + encodeURIComponent(v)).join('&');
     try {
@@ -5409,8 +5414,9 @@ runBtn.addEventListener('click', async () => {
       if (!_effortFetchParams.some(ep => ep[0][1] === _effortWKT)) _effortFetchParams.push(_effortP);
     }
     if (poly.type === 'species') {
-      // Species entry: fetch only this taxon
-      if (poly.taxonKey) baseParams.push(['taxonKey', String(poly.taxonKey)]);
+      // Species entry: fetch only this taxon. taxonKey is COL XR's alphanumeric code,
+      // which only resolves against occurrence data when checklistKey is also present.
+      if (poly.taxonKey) baseParams.push(['taxonKey', String(poly.taxonKey)], ['checklistKey', COL_XR_CHECKLIST_KEY]);
       else baseParams.push(['scientificName', poly.sciName]);
     } else {
       // Geometry polygon: use taxon group filter
@@ -6290,17 +6296,15 @@ function _buildGbifDownloadPredicate(simplifyTol) {
   else if (wkts.length > 1)  geomPredicate = { type: 'or', predicates: wkts.map(g => ({ type: 'within', geometry: g })) };
 
   const rawParams = buildTaxonParams(getSelectedTaxonKeys());
-  const usesColXrGroups = rawParams.some(([k]) => k === 'taxonKey'); // group filters were selected (COL XR keys)
-  _speciesEntries.forEach(s => { if (s.taxonKey) rawParams.push(['taxonKey', String(s.taxonKey)]); }); // legacy backbone keys
+  _speciesEntries.forEach(s => { if (s.taxonKey) rawParams.push(['taxonKey', String(s.taxonKey)]); }); // COL XR alphanumeric keys
   const allTaxonKeys = [...new Set(rawParams.filter(([k]) => k === 'taxonKey').map(([, v]) => v))];
   let taxonPredicate = null;
   if (allTaxonKeys.length === 1)     taxonPredicate = { type: 'equals', key: 'TAXON_KEY', value: allTaxonKeys[0] };
   else if (allTaxonKeys.length > 1)  taxonPredicate = { type: 'in', key: 'TAXON_KEY', values: allTaxonKeys };
-  // Downloads accept one checklistKey for the whole request. If individual species entries
-  // (legacy backbone keys, from species-search.js) are combined with taxon-group filters
-  // (COL XR keys) in the same download, the species entries won't resolve correctly — an
-  // existing rare-combo limitation, not introduced here, since both used to share one backbone.
-  if (usesColXrGroups && taxonPredicate) taxonPredicate.checklistKey = COL_XR_CHECKLIST_KEY;
+  // Downloads accept one checklistKey for the whole request. Every taxonKey value here —
+  // from taxon-group filters and from individually-picked species alike — is now a COL XR
+  // alphanumeric code, so checklistKey is always required whenever any taxon filter is set.
+  if (taxonPredicate) taxonPredicate.checklistKey = COL_XR_CHECKLIST_KEY;
 
   const dateFrom = document.getElementById('dateFrom').value;
   const dateTo   = document.getElementById('dateTo').value || _todayStr;
@@ -6325,7 +6329,9 @@ async function _runGbifDownload(user, pass) {
   let downloadKey;
   const _simplifyTols = [null, 'no-holes', 0.00005, 0.0001, 0.0005, 0.001, 0.005];
   let _submitted = false;
-  const _usesColXr = getSelectedTaxonKeys().length > 0; // taxon-group filters resolve via COL XR
+  // checklistKey is needed whenever any taxon filter is set — taxon-group filters and
+  // individually-picked species entries are both COL XR alphanumeric keys now.
+  const _usesColXr = getSelectedTaxonKeys().length > 0 || polygons.some(p => p.type === 'species' && p.taxonKey);
   for (const tol of _simplifyTols) {
     const predicate = _buildGbifDownloadPredicate(tol);
     if (!predicate) { setFetchMode(false); return; }
@@ -6413,6 +6419,15 @@ if (window._pendingShare) {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v6.18</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>Tree of life and species search now run on COL XR (Catalogue of Life Extended Release), the same taxonomy already used by taxon-group filters — both species-picking UIs are consistent again. Bacteria now browses as a Domain with its real modern kingdoms (Bacillati etc.) underneath, rather than one flat kingdom</li>
+        <li>Fixed a real bug exposed by the migration: <code>species/match</code> (used to resolve a typed/picked species name to a GBIF taxon) has no COL XR equivalent and was silently ignoring the checklist scope — replaced with <code>v2/species/match</code> for free-typed names and <code>species/search</code> for curated local-name lookups (NZOR/NVS/Samoa)</li>
+        <li>NZ/Samoa occurrence-count badges in Tree of life still come from the legacy backbone's occurrence facets (no behaviour change there) — taxa with no legacy equivalent just show no count, instead of a wrong one</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v6.17</span>
       <span class="changelog-date">Jun 2026</span>

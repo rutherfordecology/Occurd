@@ -310,24 +310,27 @@
       input.classList.add('sp-active');
       let resolvedKey = null;
       try {
-        // Primary: species/match — only accept if it actually returned a GENUS rank
-        const r = await gbifFetch('https://api.gbif.org/v1/species/match?verbose=false&rank=GENUS&name=' + encodeURIComponent(genusName));
+        // Primary: v2 species/match, COL XR-scoped — v1's species/match has no COL XR
+        // equivalent (it silently ignores checklistKey). v2's match.key is already the
+        // COL XR alphanumeric code (taxonID-equivalent), ready to use as-is downstream.
+        const r = await gbifFetch('https://api.gbif.org/v2/species/match?rank=GENUS&scientificName=' + encodeURIComponent(genusName) + '&checklistKey=' + COL_XR_CHECKLIST_KEY);
         if (r.ok) {
           const j = await r.json();
-          if (j.usageKey && j.rank === 'GENUS' && j.matchType !== 'NONE') {
-            resolvedKey = j.usageKey;
+          if (j.usage && j.usage.key && j.usage.rank === 'GENUS' && j.diagnostics && j.diagnostics.matchType !== 'NONE') {
+            resolvedKey = j.usage.key;
           }
         }
       } catch(e) {}
       if (!resolvedKey) {
-        // Fallback: backbone suggest API — look for an exact canonical name match at genus rank
+        // Fallback: species/search (not /suggest — that endpoint doesn't return taxonID,
+        // which is the only key form usable downstream) — exact canonical name at genus rank
         try {
-          const r2 = await gbifFetch('https://api.gbif.org/v1/species/suggest?datasetKey=d7dddbf4-2cf0-4f39-9b2a-bb099caae36c&rank=GENUS&q=' + encodeURIComponent(genusName) + '&limit=10');
+          const r2 = await gbifFetch('https://api.gbif.org/v1/species/search?datasetKey=' + COL_XR_CHECKLIST_KEY + '&rank=GENUS&q=' + encodeURIComponent(genusName) + '&limit=10&status=ACCEPTED');
           if (r2.ok) {
-            const arr = await r2.json();
-            const exact = arr.find(x => x.rank === 'GENUS' && x.canonicalName &&
+            const j2 = await r2.json();
+            const exact = (j2.results || []).find(x => x.canonicalName &&
               x.canonicalName.toLowerCase() === genusName.toLowerCase());
-            if (exact) resolvedKey = exact.key;
+            if (exact) resolvedKey = exact.taxonID || exact.key;
           }
         } catch(e2) {}
       }
@@ -352,13 +355,15 @@
     input.classList.add('sp-active');
     clrBtn.style.display = 'none';
 
-    // Resolve GBIF taxon key
+    // Resolve GBIF taxon key — v2/match, COL XR-scoped (see genus-selection comment above
+    // for why v2 instead of v1). usage.key is already the COL XR alphanumeric code; if the
+    // matched name is a synonym, prefer acceptedUsage.key (the equivalent of v1's speciesKey)
     let resolvedKey = null;
     try {
-      const r = await gbifFetch('https://api.gbif.org/v1/species/match?verbose=false&name=' + encodeURIComponent(sciName));
+      const r = await gbifFetch('https://api.gbif.org/v2/species/match?scientificName=' + encodeURIComponent(sciName) + '&checklistKey=' + COL_XR_CHECKLIST_KEY);
       if (r.ok) {
         const j = await r.json();
-        resolvedKey = j.usageKey || j.speciesKey || null;
+        if (j.usage) resolvedKey = (j.usage.status === 'SYNONYM' && j.acceptedUsage) ? j.acceptedUsage.key : j.usage.key;
       }
     } catch(e) {}
 
