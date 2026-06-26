@@ -46,7 +46,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v6.19</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v6.20</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -192,7 +192,12 @@
         </div>
       </div>
       <div style="margin-top:0.5rem;margin-bottom:0.5rem;">
-        <label class="check-row"><input type="checkbox" id="excludeLowPrecision"><span>Exclude low-precision (&gt;1.5 km)</span></label>
+        <label style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;display:block;margin-bottom:0.3rem;">Coordinate precision</label>
+        <select id="precisionFilter" style="width:100%;font-size:12.5px;padding:5px 6px;border:1px solid var(--border);border-radius:var(--radius);font-family:inherit;background:var(--surface);color:inherit;">
+          <option value="all">All records</option>
+          <option value="exclude">Exclude low-precision (&gt;1.5 km)</option>
+          <option value="only">Only low-precision (&gt;1.5 km)</option>
+        </select>
       </div>
       </div><!-- /s2 -->
 
@@ -5077,6 +5082,12 @@ function buildTaxonParams(keys) {
 const MAX_RECORDS = 10000; // hard limit — queries above this are rejected before fetching begins
 
 // Return the WKT to use for a GBIF query.
+// 'all' | 'exclude' | 'only' — drives the GBIF query filter and the iNat-merge skip logic below
+function getPrecisionMode() {
+  const el = document.getElementById('precisionFilter');
+  return el ? el.value : 'all';
+}
+
 // If the polygon has many vertices the WKT string becomes very long and mobile proxies
 // can silently truncate the URL, causing network errors. Simplify progressively until
 // the WKT is under 3 000 chars (~120 pts), which is well within all proxy limits.
@@ -5326,7 +5337,7 @@ runBtn.addEventListener('click', async () => {
             if (_seenObsIds.has(obs.id)) continue;
             _seenObsIds.add(obs.id);
             if (!obs.location) continue;
-            if (document.getElementById('excludeLowPrecision').checked) continue; // obscured records are always low-precision
+            if (getPrecisionMode() === 'exclude') continue; // obscured records are always low-precision
             const [_latS, _lngS] = obs.location.split(',');
             const _lat = parseFloat(_latS), _lng = parseFloat(_lngS);
             if (isNaN(_lat) || isNaN(_lng)) continue;
@@ -5390,7 +5401,9 @@ runBtn.addEventListener('click', async () => {
 
     const baseParams = [['geometry', getQueryWKT(geomPoly)], ['hasCoordinate', 'true'], ['limit', '300']];
     if (dateFrom && dateTo) baseParams.push(['eventDate', dateFrom + ',' + dateTo]);
-    if (document.getElementById('excludeLowPrecision').checked) baseParams.push(['coordinateUncertaintyInMeters', '*,1499']);
+    const _precisionMode = getPrecisionMode();
+    if (_precisionMode === 'exclude') baseParams.push(['coordinateUncertaintyInMeters', '*,1499']);
+    else if (_precisionMode === 'only') baseParams.push(['coordinateUncertaintyInMeters', '1500,*']);
     const _basisMap = {
       inclObservations: ['HUMAN_OBSERVATION','MACHINE_OBSERVATION','OCCURRENCE'],
       inclPreserved:    ['PRESERVED_SPECIMEN','LIVING_SPECIMEN','MATERIAL_CITATION'],
@@ -5615,9 +5628,13 @@ runBtn.addEventListener('click', async () => {
             if (!obs.location) continue;
             const _obsId = String(obs.id);
             if (_gbifInatIds.has(_obsId)) continue; // already in GBIF
-            if (document.getElementById('excludeLowPrecision').checked) {
+            const _precMode = getPrecisionMode();
+            if (_precMode === 'exclude') {
               const _pa = parseFloat(obs.positional_accuracy);
               if (isNaN(_pa) || _pa >= 1500) continue;
+            } else if (_precMode === 'only') {
+              const _pa = parseFloat(obs.positional_accuracy);
+              if (!isNaN(_pa) && _pa < 1500) continue;
             }
 
             const [_latStr, _lngStr] = obs.location.split(',');
@@ -6419,6 +6436,13 @@ if (window._pendingShare) {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v6.20</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>Coordinate precision — "Exclude low-precision" checkbox replaced with a dropdown: All records / Exclude low-precision (&gt;1.5 km) / Only low-precision (&gt;1.5 km), so you can isolate the low-precision records instead of only ever removing them</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v6.19</span>
       <span class="changelog-date">Jun 2026</span>
