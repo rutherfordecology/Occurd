@@ -553,7 +553,13 @@
         const all = [];
         let offset = 0;
         while (true) {
-          const res = await gbifFetch('https://api.gbif.org/v1/species/' + parentKey + '/children?limit=200&offset=' + offset);
+          // limit=500, not 200 — COL XR's class-rank nodes (e.g. Aves) mix ~40 real orders
+          // with ~180 incertae-sedis fossil genera/families placed directly under the class,
+          // pushing some columns past 200 children. A second sequential page for one column
+          // makes Promise.all (all columns load in parallel) wait on it — confirmed live this
+          // roughly doubles that column's load time. 500 fits Aves' ~220 children in one request
+          // at the same per-request latency as 200, at no real cost for the common case of fewer.
+          const res = await gbifFetch('https://api.gbif.org/v1/species/' + parentKey + '/children?limit=500&offset=' + offset);
           if (!res.ok) throw new Error('HTTP ' + res.status);
           const j = await res.json();
           (j.results || []).forEach(x => {
@@ -567,7 +573,7 @@
             onFirstPage(partial);
           }
           if (j.endOfRecords) break;
-          offset += 200;
+          offset += 500;
         }
         // Sort by rank hierarchy first so higher ranks (Phylum) appear before lower (Family/Genus)
         // even when GBIF mixes ranks as direct children (e.g. incertae sedis placements)
