@@ -46,7 +46,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v6.33</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v6.34</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -1938,25 +1938,26 @@ function removePolygon(id) {
     return;
   }
 
-  // Remaining polygons exist — surgically remove only this polygon's records
-  if (allRecords.length > 0) {
-    allRecords = allRecords.filter(r => r._polyId !== id);
-    if (allRecords.length === 0) {
-      clearResults();
-      return;
-    }
-    const species = new Set(allRecords.map(r => r.species || r.scientificName).filter(Boolean));
-    document.getElementById('mRecords').textContent = allRecords.length.toLocaleString();
-    document.getElementById('mSpecies').textContent = species.size.toLocaleString();
-    buildFilterChips(allRecords);
-    buildChecklist(allRecords);
-    if (viewMode === 'points') renderPoints(allRecords);
-    else renderHeatmap(allRecords);
-    csvData = buildCSV(allRecords.filter(passesFilters));
-    showQualityFlags(allRecords);
-
-    setStatus(allRecords.length.toLocaleString() + ' records remaining across ' + polygons.length + ' polygon' + (polygons.length === 1 ? '' : 's') + '.', 'info');
+  // Remaining polygons exist — surgically remove only this polygon's records.
+  // Run even if allRecords was already empty: other polygons may have no
+  // records of their own, and a stale heat/cluster layer from before must
+  // still be cleared rather than left orphaned on the map.
+  allRecords = allRecords.filter(r => r._polyId !== id);
+  if (allRecords.length === 0) {
+    clearResults();
+    return;
   }
+  const species = new Set(allRecords.map(r => r.species || r.scientificName).filter(Boolean));
+  document.getElementById('mRecords').textContent = allRecords.length.toLocaleString();
+  document.getElementById('mSpecies').textContent = species.size.toLocaleString();
+  buildFilterChips(allRecords);
+  buildChecklist(allRecords);
+  if (viewMode === 'points') renderPoints(allRecords);
+  else renderHeatmap(allRecords);
+  csvData = buildCSV(allRecords.filter(passesFilters));
+  showQualityFlags(allRecords);
+
+  setStatus(allRecords.length.toLocaleString() + ' records remaining across ' + polygons.length + ' polygon' + (polygons.length === 1 ? '' : 's') + '.', 'info');
 }
 
 function renderPolyList() {
@@ -6463,6 +6464,13 @@ if (window._pendingShare) {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v6.34</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>Fixed: closing a polygon (✕) could leave a stale heatmap/cluster layer on the map even after the species checklist correctly emptied out. Removing a polygon only cleared the map layers when that specific removal was what zeroed the record count — if records were already empty (e.g. a leftover polygon with no records of its own) the cleanup never ran. The map layers now always get cleared whenever no records remain, regardless of why</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v6.33</span>
       <span class="changelog-date">Jun 2026</span>
