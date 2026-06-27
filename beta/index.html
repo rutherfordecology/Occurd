@@ -46,7 +46,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v6.23</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v6.24</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -4766,8 +4766,20 @@ function buildChecklist(records) {
       row.addEventListener('click', e => {
         if (e.target.closest('.cl-photo-cb')) return; // checkbox handles its own click
         const cb = row.querySelector('.cl-photo-cb');
-        cb.checked = !cb.checked;
-        cb.dispatchEvent(new Event('change', { bubbles: true }));
+        const visibleCbs = [...clScroll.querySelectorAll('.cl-row')]
+          .filter(r => r.style.display !== 'none')
+          .map(r => r.querySelector('.cl-photo-cb'));
+        const allSelected = visibleCbs.every(c => c.checked);
+        if (allSelected && visibleCbs.length > 1) {
+          // Solo this species: untick everything else, keep/tick this one
+          visibleCbs.forEach(c => {
+            if (c !== cb && c.checked) { c.checked = false; c.dispatchEvent(new Event('change', { bubbles: true })); }
+          });
+          if (!cb.checked) { cb.checked = true; cb.dispatchEvent(new Event('change', { bubbles: true })); }
+        } else {
+          cb.checked = !cb.checked;
+          cb.dispatchEvent(new Event('change', { bubbles: true }));
+        }
       });
       clScroll.appendChild(row);
     });
@@ -6438,6 +6450,13 @@ if (window._pendingShare) {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v6.24</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>Species checklist click — fixed: clicking a species name now behaves like a solo button when everything is ticked (ticks just that one, unticks the rest), and like a normal toggle afterwards, so you can build up a multi-species selection by clicking names instead of hunting for tick boxes</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v6.23</span>
       <span class="changelog-date">Jun 2026</span>
