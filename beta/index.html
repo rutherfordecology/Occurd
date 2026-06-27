@@ -46,7 +46,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v6.30</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v6.31</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -3892,7 +3892,7 @@ function renderPoints(records) {
 
 let _occurrenceGeoRad = null;
 let _occurrenceHeatPts = null;
-let _occurrenceHeatCount = 0;
+let _occurrenceHeatMax = 0.07;
 
 function _occurrenceGeoRadiusFromExtent() {
   const bounds = polyLayer.getBounds();
@@ -3908,16 +3908,9 @@ function _occurrenceGeoRadiusFromExtent() {
 function _occurrencePixelRadius(geoRad) {
   const pxPerDeg = Math.pow(2, map.getZoom()) * 256 / 360;
   const r = Math.round(geoRad * pxPerDeg);
-  const radius = Math.max(12, Math.min(60, r));
-  const blur   = Math.max(8,  Math.min(45, Math.round(r * 0.75)));
-  // Busy datasets pack many overlapping records into a small area; at a fixed
-  // radius their blobs all merge into one undifferentiated red mass. Shrink
-  // radius/blur as record count grows so dense areas keep some internal
-  // texture instead of blowing out into a single flat hotspot.
-  const densityScale = 1 / Math.sqrt(Math.max(1, (_occurrenceHeatCount || 0) / 50));
   return {
-    radius: Math.max(15, Math.round(radius * densityScale)),
-    blur:   Math.max(10, Math.round(blur * densityScale))
+    radius: Math.max(12, Math.min(60, r)),
+    blur:   Math.max(8,  Math.min(45, Math.round(r * 0.75)))
   };
 }
 
@@ -3927,8 +3920,8 @@ function renderHeatmap(records) {
   const filtered = records.filter(r => passesFilters(r) && r.decimalLatitude != null);
   const heatCenterLng = map.getCenter().lng;
 
-  // Count records per unique coordinate so hotspots don't oversaturate.
-  // Log-scale the weight: 1 record → ~0.15, 10 → ~0.52, 100 → ~1.0
+  // Count records per unique coordinate so exact-duplicate stacks don't
+  // blow straight past the colour scale.
   const locCounts = {};
   filtered.forEach(r => {
     let hLng = r.decimalLongitude;
@@ -3941,7 +3934,13 @@ function renderHeatmap(records) {
   _occurrenceHeatPts = Object.values(locCounts).map(({ lat, lng, n }) =>
     [lat, lng, Math.min(1, 0.25 * Math.log2(n + 1))]
   );
-  _occurrenceHeatCount = filtered.length;
+  // The colour ceiling scales with how many records are currently shown —
+  // a handful of records reaches red easily, but with thousands shown,
+  // leaflet.heat's additive blending of all those overlapping blobs would
+  // otherwise saturate huge areas to solid red regardless of true relative
+  // density. Raising the ceiling with record count keeps red meaningful:
+  // only the genuinely busiest spots in a big dataset reach it.
+  _occurrenceHeatMax = 0.07 * Math.pow(Math.max(1, filtered.length), 0.85);
   _occurrenceGeoRad = _occurrenceGeoRadiusFromExtent();
 
   _occurrenceApplyLayer();
@@ -3956,7 +3955,7 @@ function _occurrenceApplyLayer() {
   // maxZoom must track the current zoom — Leaflet.heat scales intensity by
   // 2^(zoom - maxZoom), so a fixed maxZoom makes the same data look hotter
   // the further in you zoom even though radius/blur are otherwise unchanged.
-  heatLayer = L.heatLayer(_occurrenceHeatPts, { radius, blur, maxZoom: map.getZoom(), minOpacity: 0.12, max: 0.07,
+  heatLayer = L.heatLayer(_occurrenceHeatPts, { radius, blur, maxZoom: map.getZoom(), minOpacity: 0.12, max: _occurrenceHeatMax,
     gradient: { 0.0: 'blue', 0.12: 'cyan', 0.25: 'lime', 0.4: 'yellow', 0.6: 'orange', 1.0: 'red' } });
   map.addLayer(heatLayer);
 }
@@ -6464,6 +6463,13 @@ if (window._pendingShare) {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v6.31</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>Heatmap — too much of the map was reading as solid red once a fetch had more than a few hundred records, since leaflet.heat's additive blending of every overlapping record blob saturates red at a fixed density regardless of how many records are actually shown. The colour ceiling now scales with the number of records currently visible (adjusting live as you tick species on/off) instead of the v6.30 attempt of shrinking radius/blur, so red stays meaningful — a handful of records reaches it easily, but a dense, busy fetch needs proportionally more concentration before an area reads as a genuine hotspot</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v6.30</span>
       <span class="changelog-date">Jun 2026</span>
