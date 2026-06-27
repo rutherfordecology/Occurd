@@ -46,7 +46,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v6.40</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v6.41</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -1779,6 +1779,10 @@ function clearResults() {
   const _clf = document.getElementById('clFooter'); if (_clf) _clf.style.display = 'none';
   if (clusterLayer) { map.removeLayer(clusterLayer); clusterLayer = null; }
   if (heatLayer)    { map.removeLayer(heatLayer);    heatLayer = null; }
+  // Clear stale heat data too — otherwise the zoomend listener (which
+  // re-adds the heat layer from _occurrenceHeatPts whenever it's truthy)
+  // resurrects the old heatmap the next time the map is zoomed.
+  _occurrenceHeatPts = null; _occurrenceHeatMax = 0.07; _occurrenceGeoRad = null;
 }
 
 // Polygons
@@ -6470,6 +6474,13 @@ if (window._pendingShare) {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v6.41</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>Heatmap — fixed closing the last polygon leaving the heatmap on the map after the next zoom; clearResults() removed the heat layer but left the underlying heat data set, which the zoomend listener was re-adding from</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v6.40</span>
       <span class="changelog-date">Jun 2026</span>
