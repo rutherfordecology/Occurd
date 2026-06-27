@@ -46,7 +46,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v6.41</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v6.42</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -6098,11 +6098,33 @@ document.getElementById('dlChecklistBtn').addEventListener('click', () => {
 
 // ── GBIF CSV upload ───────────────────────────────────────────────────────
 
+function _parseCsvLine(line) {
+  const out = []; let cur = ''; let inQ = false;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (inQ) {
+      if (c === '"') { if (line[i+1] === '"') { cur += '"'; i++; } else { inQ = false; } }
+      else cur += c;
+    } else {
+      if (c === '"') inQ = true;
+      else if (c === ',') { out.push(cur); cur = ''; }
+      else cur += c;
+    }
+  }
+  out.push(cur);
+  return out;
+}
+
 async function handleGbifCsv(text, filename) {
-  const lines  = text.split(/\r?\n/);
-  const header = lines[0] ? lines[0].split('\t') : [];
+  let lines = text.split(/\r?\n/);
+  // strip Occurd's own "# Downloaded from Occurd..." comment header lines so re-uploads work
+  while (lines.length && lines[0].startsWith('#')) lines.shift();
+  const headerLine = lines[0] || '';
+  const isTabDelim = headerLine.includes('\t');
+  const splitLine  = isTabDelim ? (l => l.split('\t')) : _parseCsvLine;
+  const header = headerLine ? splitLine(headerLine) : [];
   if (!header.includes('gbifID') && !header.includes('decimalLatitude')) {
-    setStatus('That doesn\'t look like a GBIF occurrence CSV (expected tab-separated columns including gbifID).', 'error');
+    setStatus('That doesn\'t look like a GBIF occurrence CSV (expected columns including gbifID or decimalLatitude).', 'error');
     hideDropZoneProgress();
     return;
   }
@@ -6113,7 +6135,7 @@ async function handleGbifCsv(text, filename) {
   const rows = [];
   for (let i = 1; i < lines.length; i++) {
     if (!lines[i].trim()) continue;
-    const vals = lines[i].split('\t');
+    const vals = splitLine(lines[i]);
     const row  = {};
     header.forEach((col, ci) => { row[col] = vals[ci] !== undefined ? vals[ci] : ''; });
     rows.push(_mapDwcRecord(null, row));
@@ -6250,7 +6272,7 @@ function _mapDwcRecord(poly, row) {
     month:                         row['month']         || null,
     day:                           row['day']           || null,
     scientificName:                row['scientificName'] || null,
-    vernacularName:                null,
+    vernacularName:                row['vernacularName'] || null,
     kingdom:                       row['kingdom']  || null,
     phylum:                        row['phylum']   || null,
     class:                         row['class']    || null,
@@ -6270,7 +6292,7 @@ function _mapDwcRecord(poly, row) {
     datasetName:                   row['datasetName']    || null,
     datasetKey:                    row['datasetKey']     || null,
     institutionCode:               row['institutionCode'] || null,
-    country:                       null,
+    country:                       row['country']         || null,
     countryCode:                   row['countryCode']    || null,
     stateProvince:                 row['stateProvince']  || null,
     locality:                      row['locality']       || null,
@@ -6474,6 +6496,13 @@ if (window._pendingShare) {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v6.42</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>Re-uploading a CSV downloaded from Occurd — the drop zone now accepts Occurd's own comma-separated export (it was previously rejected because the upload parser only understood tab-separated raw GBIF downloads and choked on the "# Downloaded from Occurd" comment header); vernacularName and country are now preserved on re-upload</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v6.41</span>
       <span class="changelog-date">Jun 2026</span>
