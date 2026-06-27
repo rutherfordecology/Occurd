@@ -46,7 +46,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v6.28</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v6.29</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -5084,7 +5084,7 @@ function buildTaxonParams(keys) {
   if (keys.length === 0) return [];
   const params = [];
   keys.forEach(key => {
-    if (key === 'fish')           { params.push(['taxonKey', 'CH2']); } // Chordata, post-filter to fish orders
+    if (key === 'fish')           { ['8VR36','8VSMX','8X6G5','8VQW5'].forEach(k => params.push(['taxonKey', k])); } // Actinopterygii (ray-finned), Sarcopterygii (coelacanths+lungfish, excludes Tetrapoda which COL XR splits out as a sibling), Chondrichthyes (sharks/rays/chimaeras), Cyclostomi (hagfish+lampreys) — replaces the old whole-Chordata fetch + client-side post-filter
     else if (key === 'reptilia')    { params.push(['taxonKey', 'RP']); } // COL XR has a single Reptilia class node (legacy backbone retired 358 in CoL 2022, requiring 4 order keys instead)
     else if (key === 'bryophytes')  { ['BJ5TM','9J9G3','9JHQ8'].forEach(k => params.push(['taxonKey', k])); }  // Bryophyta, Marchantiophyta (liverworts), Anthocerotophyta (hornworts)
     else if (key === 'crustacea')   { ['MC','B8V3R','7NF5R','V9X8L','V9R9L','8H','B8TXJ'].forEach(k => params.push(['taxonKey', k])); } // Malacostraca, Copepoda, Thecostraca, Branchiura, Pentastomida (COL XR splits legacy Maxillopoda into these 4), Branchiopoda, Ostracoda
@@ -6455,6 +6455,13 @@ if (window._pendingShare) {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v6.29</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>Fish filter — fetching just fetched the entire phylum Chordata (every mammal, bird, reptile and amphibian too) and threw most of it away client-side, since the legacy backbone had no clean "Fish" node. COL XR's modern taxonomy splits Tetrapoda out as a sibling rather than nesting it under fish-adjacent classes, so the fetch now queries Actinopterygii, Sarcopterygii, Chondrichthyes and Cyclostomi directly — only fish come back, no more wasted bandwidth fetching thousands of non-fish records</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v6.28</span>
       <span class="changelog-date">Jun 2026</span>
