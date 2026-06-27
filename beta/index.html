@@ -46,7 +46,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v6.44</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v6.45</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -3967,15 +3967,15 @@ function renderHeatmap(records) {
   if (pts.length) {
     const bandwidth = _occurrenceDensityBandwidth();
     const density = _occurrenceComputeDensity(pts, bandwidth);
-    // Square-root compression so a tight cluster doesn't dominate the scale
-    // linearly — without this, a handful of co-located records swamps
-    // everything else into the same "low" bucket. Then clamp to the 99th
-    // percentile rather than the absolute max, so one extreme hotspot can't
-    // wash out the rest of the gradient: the top ~1% of cells reach red,
-    // the bulk of the data spans blue → yellow.
-    const compressed = density.map(Math.sqrt);
+    // Cube-root compression (stronger than sqrt) so a tight cluster doesn't
+    // dominate the scale — without this, a handful of co-located records
+    // swamps everything else into the same "low" bucket. Then clamp to the
+    // 99.5th percentile rather than the absolute max, so one extreme hotspot
+    // can't wash out the rest of the gradient: only the most extreme density
+    // reaches red, the bulk of the data spans blue → yellow.
+    const compressed = density.map(d => Math.pow(d, 1 / 3));
     const sorted = [...compressed].sort((a, b) => a - b);
-    const ceiling = sorted[Math.floor(0.99 * (sorted.length - 1))] || Math.max(...compressed, 1);
+    const ceiling = sorted[Math.floor(0.995 * (sorted.length - 1))] || Math.max(...compressed, 1);
     _occurrenceHeatPts = pts.map((p, i) => [p[0], p[1], Math.min(1, compressed[i] / ceiling)]);
   } else {
     _occurrenceHeatPts = [];
@@ -3998,7 +3998,7 @@ function _occurrenceApplyLayer() {
     minOpacity: 0.12, max: _occurrenceHeatMax,
     // Blue (low) → green (moderate) → yellow (high) → red reserved for the
     // top band only, since weights are already percentile-clamped to 0..1.
-    gradient: { 0.0: '#1565c0', 0.3: '#2e7d32', 0.6: '#fdd835', 0.85: '#fb8c00', 0.97: '#e53935' } });
+    gradient: { 0.0: '#1565c0', 0.4: '#2e7d32', 0.7: '#fdd835', 0.92: '#fb8c00', 0.99: '#e53935' } });
   map.addLayer(heatLayer);
 }
 
@@ -6527,6 +6527,13 @@ if (window._pendingShare) {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v6.45</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>Heatmap still skewed too red — switched from square-root to cube-root density compression, clamped to the 99.5th percentile, and pushed the colour gradient's yellow/orange/red bands further up the scale so red is reserved for only the most extreme hotspots</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v6.44</span>
       <span class="changelog-date">Jun 2026</span>
