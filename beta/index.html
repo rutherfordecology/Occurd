@@ -46,7 +46,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v6.42</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v6.43</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -1782,7 +1782,7 @@ function clearResults() {
   // Clear stale heat data too — otherwise the zoomend listener (which
   // re-adds the heat layer from _occurrenceHeatPts whenever it's truthy)
   // resurrects the old heatmap the next time the map is zoomed.
-  _occurrenceHeatPts = null; _occurrenceHeatMax = 0.07; _occurrenceGeoRad = null;
+  _occurrenceHeatPts = null; _occurrenceHeatMax = 4;
 }
 
 // Polygons
@@ -3895,20 +3895,16 @@ function renderPoints(records) {
   csvData = buildCSV(filtered);
 }
 
-let _occurrenceGeoRad = null;
 let _occurrenceHeatPts = null;
-let _occurrenceHeatMax = 0.07;
-
-function _occurrenceGeoRadiusFromExtent() {
-  const bounds = polyLayer.getBounds();
-  if (!bounds.isValid()) return 0.005;
-  const shorter = Math.min(
-    bounds.getNorth() - bounds.getSouth(),
-    bounds.getEast()  - bounds.getWest()
-  );
-  // Spread radius ≈ 1/20th of polygon's shorter dimension; clamp to sensible range
-  return Math.min(0.05, Math.max(0.0005, shorter / 20));
-}
+// Fixed absolute ceiling, not relative to the busiest cell in view: each
+// point contributes weight 1, and leaflet.heat (simpleheat) sums overlapping
+// points' contributions within radius. A relative max (old approach: scale
+// by the single densest cell) crushed every other area to near-invisible,
+// because pre-binning to grid centroids also collapsed nearby-but-distinct
+// points into one dot per cell — destroying the natural overlap that makes
+// a KDE-style heatmap read as a smooth gradient. Feeding raw points and
+// letting them overlap is what leaflet.heat is actually designed for.
+let _occurrenceHeatMax = 4;
 
 // Render radius/blur are fixed screen pixels — NOT derived from zoom or
 // polygon extent. Colour is computed entirely from the data (see below), so
@@ -3924,33 +3920,16 @@ function renderHeatmap(records) {
   const filtered = records.filter(r => passesFilters(r) && r.decimalLatitude != null);
   const heatCenterLng = map.getCenter().lng;
 
-  // Bin records into a fixed geographic grid (cell size tied to the
-  // polygon's extent, not the current zoom) and weight each occupied cell
-  // by its count relative to the busiest cell currently in view. Because
-  // the bins and weights come purely from the data, colour never changes
-  // when you zoom in or out over the same records.
-  _occurrenceGeoRad = _occurrenceGeoRadiusFromExtent();
-  const binSize = _occurrenceGeoRad / 3;
-  const bins = {};
-  filtered.forEach(r => {
+  // Feed every record as its own point (weight 1) rather than pre-binning
+  // into a coarse grid — overlapping points naturally accumulate intensity
+  // under the hood via simpleheat's additive canvas blur, which is what
+  // produces a smooth gradient instead of isolated per-cell blobs.
+  _occurrenceHeatPts = filtered.map(r => {
     let hLng = r.decimalLongitude;
     while (hLng < heatCenterLng - 180) hLng += 360;
     while (hLng > heatCenterLng + 180) hLng -= 360;
-    const key = Math.round(hLng / binSize) + ',' + Math.round(r.decimalLatitude / binSize);
-    if (!bins[key]) bins[key] = { latSum: 0, lngSum: 0, n: 0 };
-    bins[key].latSum += r.decimalLatitude;
-    bins[key].lngSum += hLng;
-    bins[key].n++;
+    return [r.decimalLatitude, hLng, 1];
   });
-  const cells = Object.values(bins);
-  const maxN  = cells.reduce((m, c) => Math.max(m, c.n), 1);
-  // Ratio raised to a power >1 (rather than log-compressed) so low-count
-  // cells stay well below red — log compression bunched too many cells
-  // near the top of the scale and produced a near-solid-red result.
-  _occurrenceHeatPts = cells.map(({ latSum, lngSum, n }) =>
-    [latSum / n, lngSum / n, Math.pow(n / maxN, 1.6)]
-  );
-  _occurrenceHeatMax = 1;
 
   _occurrenceApplyLayer();
   document.getElementById('mShown').textContent = filtered.length.toLocaleString();
@@ -6496,6 +6475,13 @@ if (window._pendingShare) {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v6.43</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>Heatmap rewrite — was pre-binning records into a coarse grid and weighting each cell relative to the single busiest cell, which collapsed spread-out points into 2-3 isolated hotspots; now feeds individual points directly to the density layer so overlapping records blend into a smooth gradient like a proper density surface</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v6.42</span>
       <span class="changelog-date">Jun 2026</span>
