@@ -46,7 +46,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v6.23</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v6.48</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -1779,6 +1779,10 @@ function clearResults() {
   const _clf = document.getElementById('clFooter'); if (_clf) _clf.style.display = 'none';
   if (clusterLayer) { map.removeLayer(clusterLayer); clusterLayer = null; }
   if (heatLayer)    { map.removeLayer(heatLayer);    heatLayer = null; }
+  // Clear stale heat data too — otherwise the zoomend listener (which
+  // re-adds the heat layer from _occurrenceHeatPts whenever it's truthy)
+  // resurrects the old heatmap the next time the map is zoomed.
+  _occurrenceHeatPts = null; _occurrenceHeatMax = 4;
 }
 
 // Polygons
@@ -1938,25 +1942,26 @@ function removePolygon(id) {
     return;
   }
 
-  // Remaining polygons exist — surgically remove only this polygon's records
-  if (allRecords.length > 0) {
-    allRecords = allRecords.filter(r => r._polyId !== id);
-    if (allRecords.length === 0) {
-      clearResults();
-      return;
-    }
-    const species = new Set(allRecords.map(r => r.species || r.scientificName).filter(Boolean));
-    document.getElementById('mRecords').textContent = allRecords.length.toLocaleString();
-    document.getElementById('mSpecies').textContent = species.size.toLocaleString();
-    buildFilterChips(allRecords);
-    buildChecklist(allRecords);
-    if (viewMode === 'points') renderPoints(allRecords);
-    else renderHeatmap(allRecords);
-    csvData = buildCSV(allRecords.filter(passesFilters));
-    showQualityFlags(allRecords);
-
-    setStatus(allRecords.length.toLocaleString() + ' records remaining across ' + polygons.length + ' polygon' + (polygons.length === 1 ? '' : 's') + '.', 'info');
+  // Remaining polygons exist — surgically remove only this polygon's records.
+  // Run even if allRecords was already empty: other polygons may have no
+  // records of their own, and a stale heat/cluster layer from before must
+  // still be cleared rather than left orphaned on the map.
+  allRecords = allRecords.filter(r => r._polyId !== id);
+  if (allRecords.length === 0) {
+    clearResults();
+    return;
   }
+  const species = new Set(allRecords.map(r => r.species || r.scientificName).filter(Boolean));
+  document.getElementById('mRecords').textContent = allRecords.length.toLocaleString();
+  document.getElementById('mSpecies').textContent = species.size.toLocaleString();
+  buildFilterChips(allRecords);
+  buildChecklist(allRecords);
+  if (viewMode === 'points') renderPoints(allRecords);
+  else renderHeatmap(allRecords);
+  csvData = buildCSV(allRecords.filter(passesFilters));
+  showQualityFlags(allRecords);
+
+  setStatus(allRecords.length.toLocaleString() + ' records remaining across ' + polygons.length + ' polygon' + (polygons.length === 1 ? '' : 's') + '.', 'info');
 }
 
 function renderPolyList() {
@@ -4763,9 +4768,25 @@ function buildChecklist(records) {
         document.getElementById('mShown').textContent = allRecords.filter(passesFilters).length.toLocaleString();
         csvData = buildCSV(allRecords.filter(passesFilters));
       });
-      row.addEventListener('click', () => {
-        if (selectedSpecies === name) clearSpeciesSelection();
-        else selectSpecies(name);
+      row.addEventListener('click', e => {
+        if (e.target.closest('.cl-photo-cb')) return; // checkbox handles its own click
+        const cb = row.querySelector('.cl-photo-cb');
+        const visibleCbs = [...clScroll.querySelectorAll('.cl-row')]
+          .filter(r => r.style.display !== 'none')
+          .map(r => r.querySelector('.cl-photo-cb'));
+        const allSelected = visibleCbs.every(c => c.checked);
+        if (allSelected && visibleCbs.length > 1) {
+          // Solo this species: untick everything else, keep/tick this one
+          visibleCbs.forEach(c => {
+            if (c !== cb && c.checked) { c.checked = false; c.dispatchEvent(new Event('change', { bubbles: true })); }
+          });
+          if (!cb.checked) { cb.checked = true; cb.dispatchEvent(new Event('change', { bubbles: true })); }
+        } else {
+          cb.checked = !cb.checked;
+          cb.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+        document.querySelectorAll('.cl-group-header').forEach(header => _syncGroupCb(header));
+        _syncSelAllVisible();
       });
       clScroll.appendChild(row);
     });
@@ -4911,7 +4932,7 @@ document.getElementById('clSelAllVisible').addEventListener('change', function()
   document.querySelectorAll('.cl-row').forEach(row => {
     if (_rowIsActive(row)) {
       const cb = row.querySelector('.cl-photo-cb');
-      if (cb) cb.checked = checked;
+      if (cb && cb.checked !== checked) { cb.checked = checked; cb.dispatchEvent(new Event('change', { bubbles: true })); }
     }
   });
   document.querySelectorAll('.cl-group-header').forEach(header => _syncGroupCb(header));
@@ -5065,7 +5086,7 @@ function buildTaxonParams(keys) {
   if (keys.length === 0) return [];
   const params = [];
   keys.forEach(key => {
-    if (key === 'fish')           { params.push(['taxonKey', 'CH2']); } // Chordata, post-filter to fish orders
+    if (key === 'fish')           { ['8VR36','8VSMX','8X6G5','8VQW5'].forEach(k => params.push(['taxonKey', k])); } // Actinopterygii (ray-finned), Sarcopterygii (coelacanths+lungfish, excludes Tetrapoda which COL XR splits out as a sibling), Chondrichthyes (sharks/rays/chimaeras), Cyclostomi (hagfish+lampreys) — replaces the old whole-Chordata fetch + client-side post-filter
     else if (key === 'reptilia')    { params.push(['taxonKey', 'RP']); } // COL XR has a single Reptilia class node (legacy backbone retired 358 in CoL 2022, requiring 4 order keys instead)
     else if (key === 'bryophytes')  { ['BJ5TM','9J9G3','9JHQ8'].forEach(k => params.push(['taxonKey', k])); }  // Bryophyta, Marchantiophyta (liverworts), Anthocerotophyta (hornworts)
     else if (key === 'crustacea')   { ['MC','B8V3R','7NF5R','V9X8L','V9R9L','8H','B8TXJ'].forEach(k => params.push(['taxonKey', k])); } // Malacostraca, Copepoda, Thecostraca, Branchiura, Pentastomida (COL XR splits legacy Maxillopoda into these 4), Branchiopoda, Ostracoda
@@ -5384,7 +5405,11 @@ runBtn.addEventListener('click', async () => {
               locality: obs.place_guess || null,
               recordedBy: obs.user ? (obs.user.name || obs.user.login || null) : null,
               dynamicProperties: null, iucnRedListCategory: null,
-              recordPhoto: (() => { const ph = (obs.photos || [])[0]; return ph && ph.url ? ph.url.replace('square','medium') : null; })(),
+              recordPhoto: (() => {
+                const ph = (obs.photos || [])[0];
+                if (!ph || !ph.url) return null;
+                return { url: ph.url.replace('square','medium'), photographer: obs.user ? (obs.user.name || obs.user.login || '') : '' };
+              })(),
               polygon_name: geomPoly.label || '',
               _inatOnly: true,
             });
@@ -5690,10 +5715,7 @@ runBtn.addEventListener('click', async () => {
               recordPhoto: (() => {
                 const ph = (obs.photos || [])[0];
                 if (!ph || !ph.url) return null;
-                return {
-                  url: ph.url.replace('square', 'medium'),
-                  photographer: obs.user ? (obs.user.name || obs.user.login || '') : ''
-                };
+                return { url: ph.url.replace('square', 'medium'), photographer: obs.user ? (obs.user.name || obs.user.login || '') : '' };
               })(),
               polygon_name: gp.label || '',
               _inatOnly: true,
@@ -6064,11 +6086,33 @@ document.getElementById('dlChecklistBtn').addEventListener('click', () => {
 
 // ── GBIF CSV upload ───────────────────────────────────────────────────────
 
+function _parseCsvLine(line) {
+  const out = []; let cur = ''; let inQ = false;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (inQ) {
+      if (c === '"') { if (line[i+1] === '"') { cur += '"'; i++; } else { inQ = false; } }
+      else cur += c;
+    } else {
+      if (c === '"') inQ = true;
+      else if (c === ',') { out.push(cur); cur = ''; }
+      else cur += c;
+    }
+  }
+  out.push(cur);
+  return out;
+}
+
 async function handleGbifCsv(text, filename) {
-  const lines  = text.split(/\r?\n/);
-  const header = lines[0] ? lines[0].split('\t') : [];
+  let lines = text.split(/\r?\n/);
+  // strip Occurd's own "# Downloaded from Occurd..." comment header lines so re-uploads work
+  while (lines.length && lines[0].startsWith('#')) lines.shift();
+  const headerLine = lines[0] || '';
+  const isTabDelim = headerLine.includes('\t');
+  const splitLine  = isTabDelim ? (l => l.split('\t')) : _parseCsvLine;
+  const header = headerLine ? splitLine(headerLine) : [];
   if (!header.includes('gbifID') && !header.includes('decimalLatitude')) {
-    setStatus('That doesn\'t look like a GBIF occurrence CSV (expected tab-separated columns including gbifID).', 'error');
+    setStatus('That doesn\'t look like a GBIF occurrence CSV (expected columns including gbifID or decimalLatitude).', 'error');
     hideDropZoneProgress();
     return;
   }
@@ -6079,7 +6123,7 @@ async function handleGbifCsv(text, filename) {
   const rows = [];
   for (let i = 1; i < lines.length; i++) {
     if (!lines[i].trim()) continue;
-    const vals = lines[i].split('\t');
+    const vals = splitLine(lines[i]);
     const row  = {};
     header.forEach((col, ci) => { row[col] = vals[ci] !== undefined ? vals[ci] : ''; });
     rows.push(_mapDwcRecord(null, row));
@@ -6216,7 +6260,7 @@ function _mapDwcRecord(poly, row) {
     month:                         row['month']         || null,
     day:                           row['day']           || null,
     scientificName:                row['scientificName'] || null,
-    vernacularName:                null,
+    vernacularName:                row['vernacularName'] || null,
     kingdom:                       row['kingdom']  || null,
     phylum:                        row['phylum']   || null,
     class:                         row['class']    || null,
@@ -6236,7 +6280,7 @@ function _mapDwcRecord(poly, row) {
     datasetName:                   row['datasetName']    || null,
     datasetKey:                    row['datasetKey']     || null,
     institutionCode:               row['institutionCode'] || null,
-    country:                       null,
+    country:                       row['country']         || null,
     countryCode:                   row['countryCode']    || null,
     stateProvince:                 row['stateProvince']  || null,
     locality:                      row['locality']       || null,
@@ -6441,10 +6485,185 @@ if (window._pendingShare) {
   </div>
   <div class="changelog-scroll" id="changelogScroll">
     <div class="changelog-version">
+      <span class="changelog-version-tag">v6.48</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>Heatmap — reverted the v6.45/v6.46 density-estimate rewrite (Gaussian bandwidth + log/gamma compression), which produced worse saturation than the original. Restored the production heatmap exactly: per-coordinate log2 occurrence counts, polygon-extent-based pixel radius, and the blue→cyan→lime→yellow→red gradient</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v6.47</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>Fixed broken photo for iNaturalist records not yet in GBIF (both the polygon-search and obscured-record paths) — record photo was stored as a plain URL string instead of the object the popup renderer expects, so the image src came out "undefined"</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v6.46</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>Heatmap — widened the Gaussian render/density radius another ~30% on top of the previous pass, and added a gamma≈2 curve on top of the log compression so mid/high densities climb the colour scale more slowly. Most hotspots now read as orange with only the single densest 1% reaching pure red, for a softer, more Google-Maps-like gradient</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v6.45</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>Heatmap still skewed too red — switched from square-root to cube-root density compression, clamped to the 99.5th percentile, and pushed the colour gradient's yellow/orange/red bands further up the scale so red is reserved for only the most extreme hotspots</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v6.44</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>Heatmap colour scaling — dense urban areas were saturating almost entirely solid red; density is now estimated per-point (triangular kernel over nearby records), square-root compressed, and clamped to the 99th percentile rather than the absolute max, so red is reserved for genuine top-tier hotspots and most of the map reads as blue/green/yellow</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v6.43</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>Heatmap rewrite — was pre-binning records into a coarse grid and weighting each cell relative to the single busiest cell, which collapsed spread-out points into 2-3 isolated hotspots; now feeds individual points directly to the density layer so overlapping records blend into a smooth gradient like a proper density surface</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v6.42</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>Re-uploading a CSV downloaded from Occurd — the drop zone now accepts Occurd's own comma-separated export (it was previously rejected because the upload parser only understood tab-separated raw GBIF downloads and choked on the "# Downloaded from Occurd" comment header); vernacularName and country are now preserved on re-upload</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v6.41</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>Heatmap — fixed closing the last polygon leaving the heatmap on the map after the next zoom; clearResults() removed the heat layer but left the underlying heat data set, which the zoomend listener was re-adding from</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v6.40</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>Heatmap — fixed hotspots fading out when zooming in; v6.39's rewrite accidentally dropped the maxZoom setting that neutralises Leaflet.heat's internal zoom-based intensity scaling</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v6.39</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>Heatmap — blob size is now a fixed screen size at every zoom (colour comes purely from a geographic density grid, not blob overlap), fixing both the colour-changes-with-zoom bug and the hard-edged giant blobs seen when zoomed in close</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v6.38</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>Heatmap — softened the blur so zoomed-in blobs don't show hard quarter-circle edges where neighbouring points' stamps overlapped</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v6.37</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>Heatmap — reverted v6.36's grid-binning (caused too much solid red) back to per-record colouring; fixed the real zoom-dependence bug by removing pixel radius/blur clamps that were breaking proportionality between blob size and point spacing as you zoom</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v6.36</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>Heatmap — fixed colour intensity changing as you zoom in/out on the same data; density is now computed from a fixed geographic grid tied to the polygon, not the current zoom level</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v6.35</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>Heatmap — stretched the colour gradient's top end further; red now starts at 55% of the ceiling (was 70%) so the busiest spots show a bigger, more obvious red core</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v6.34</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>Fixed: closing a polygon (✕) could leave a stale heatmap/cluster layer on the map even after the species checklist correctly emptied out. Removing a polygon only cleared the map layers when that specific removal was what zeroed the record count — if records were already empty (e.g. a leftover polygon with no records of its own) the cleanup never ran. The map layers now always get cleared whenever no records remain, regardless of why</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v6.33</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>Heatmap — the highest-density spots plateaued at orange/yellow instead of reading clearly as red. Compressed the colour gradient's top end (red now starts at 70% of the ceiling instead of 100%, with the other colour bands pulled in to match) so genuine hotspots are unmistakably red rather than needing to be the literal single densest pixel</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v6.32</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>Heatmap — v6.31's colour ceiling made everything read a touch too soft/pale; nudged it down 10% so red comes in a bit sooner across the board</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v6.31</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>Heatmap — too much of the map was reading as solid red once a fetch had more than a few hundred records, since leaflet.heat's additive blending of every overlapping record blob saturates red at a fixed density regardless of how many records are actually shown. The colour ceiling now scales with the number of records currently visible (adjusting live as you tick species on/off) instead of the v6.30 attempt of shrinking radius/blur, so red stays meaningful — a handful of records reaches it easily, but a dense, busy fetch needs proportionally more concentration before an area reads as a genuine hotspot</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v6.30</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>Heatmap — busy areas with lots of overlapping records were blowing out into one giant flat red mass with no internal texture, since every blob used the same fixed radius regardless of how many records were in view. Radius/blur now shrink as the visible record count grows, so dense clusters keep some shape instead of merging into an undifferentiated red blob, while sparse areas (including lone records) keep their full-size hotspot</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v6.29</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>Fish filter — fetching just fetched the entire phylum Chordata (every mammal, bird, reptile and amphibian too) and threw most of it away client-side, since the legacy backbone had no clean "Fish" node. COL XR's modern taxonomy splits Tetrapoda out as a sibling rather than nesting it under fish-adjacent classes, so the fetch now queries Actinopterygii, Sarcopterygii, Chondrichthyes and Cyclostomi directly — only fish come back, no more wasted bandwidth fetching thousands of non-fish records</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v6.28</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>Heatmap — fixed: the same records looked progressively hotter the further you zoomed in, even within a fixed polygon. Leaflet.heat scales intensity by 2^(zoom &minus; maxZoom) internally, and maxZoom was set to a fixed 19, so zooming in pushed the multiplier up regardless of radius/blur. maxZoom now tracks the current zoom on every redraw, neutralising that scaling so intensity reflects the data, not how far in you've zoomed</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v6.27</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>Heatmap — an isolated single record rendered as a faint pale-blue smear instead of reading as a hotspot, because the colour gradient's blue band covered the bottom 35% of the intensity range and the intensity ceiling was tuned for large, dense datasets. Front-loaded the gradient's warm colours and lowered the ceiling so a lone record now shows clearly as a yellow/orange hotspot, with denser clusters still scaling up to red</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v6.26</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>Fixed: clicking a species name to solo/toggle it left the taxon group tick box (e.g. "Aves") showing its old state instead of updating to reflect the species ticked underneath it</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v6.25</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>Fixed: the "select/deselect all visible species" checkbox at the top of the checklist ticked the boxes but never actually updated the map/heatmap/timeline/quiz/photos — it set each row's checkbox without touching the underlying selection state or re-rendering</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v6.24</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>Species checklist click — fixed: clicking a species name now behaves like a solo button when everything is ticked (ticks just that one, unticks the rest), and like a normal toggle afterwards, so you can build up a multi-species selection by clicking names instead of hunting for tick boxes</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
       <span class="changelog-version-tag">v6.23</span>
       <span class="changelog-date">Jun 2026</span>
       <ul>
-        <li>Fixed broken photo for iNaturalist records not yet in GBIF — record photo was stored as a plain URL string instead of the object the popup renderer expects, so the image src came out "undefined"</li>
+        <li>Clicking a species name in the checklist now toggles its tick box (map/quiz/timeline/photos inclusion) instead of just highlighting it on the map</li>
       </ul>
     </div>
     <div class="changelog-version">
