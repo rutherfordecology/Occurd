@@ -46,7 +46,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v6.35</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v6.36</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -3915,34 +3915,38 @@ function _occurrencePixelRadius(geoRad) {
   };
 }
 
+// Colour reflects density purely from the data — how many records fall in
+// a given patch of ground, relative to the busiest patch currently shown —
+// not from anything zoom- or pixel-dependent. We bin records into a fixed
+// geographic grid (cell size tied to the polygon's extent, not the current
+// zoom) and weight each occupied cell by its count relative to the busiest
+// cell in view; zooming in/out only changes how that fixed weight is drawn
+// on screen, never what the weight itself is.
 function renderHeatmap(records) {
   if (clusterLayer) { map.removeLayer(clusterLayer); clusterLayer = null; }
   if (heatLayer)    { map.removeLayer(heatLayer); heatLayer = null; }
   const filtered = records.filter(r => passesFilters(r) && r.decimalLatitude != null);
   const heatCenterLng = map.getCenter().lng;
+  _occurrenceGeoRad = _occurrenceGeoRadiusFromExtent();
+  const binSize = _occurrenceGeoRad / 3; // finer than the blob radius so blur blends neighbouring cells smoothly
 
-  // Count records per unique coordinate so exact-duplicate stacks don't
-  // blow straight past the colour scale.
-  const locCounts = {};
+  const bins = {};
   filtered.forEach(r => {
     let hLng = r.decimalLongitude;
     while (hLng < heatCenterLng - 180) hLng += 360;
     while (hLng > heatCenterLng + 180) hLng -= 360;
-    const key = r.decimalLatitude.toFixed(5) + ',' + hLng.toFixed(5);
-    if (!locCounts[key]) locCounts[key] = { lat: r.decimalLatitude, lng: hLng, n: 0 };
-    locCounts[key].n++;
+    const key = Math.round(hLng / binSize) + ',' + Math.round(r.decimalLatitude / binSize);
+    if (!bins[key]) bins[key] = { latSum: 0, lngSum: 0, n: 0 };
+    bins[key].latSum += r.decimalLatitude;
+    bins[key].lngSum += hLng;
+    bins[key].n++;
   });
-  _occurrenceHeatPts = Object.values(locCounts).map(({ lat, lng, n }) =>
-    [lat, lng, Math.min(1, 0.25 * Math.log2(n + 1))]
+  const cells = Object.values(bins);
+  const maxN  = cells.reduce((m, c) => Math.max(m, c.n), 1);
+  _occurrenceHeatPts = cells.map(({ latSum, lngSum, n }) =>
+    [latSum / n, lngSum / n, Math.log(n + 1) / Math.log(maxN + 1)]
   );
-  // The colour ceiling scales with how many records are currently shown —
-  // a handful of records reaches red easily, but with thousands shown,
-  // leaflet.heat's additive blending of all those overlapping blobs would
-  // otherwise saturate huge areas to solid red regardless of true relative
-  // density. Raising the ceiling with record count keeps red meaningful:
-  // only the genuinely busiest spots in a big dataset reach it.
-  _occurrenceHeatMax = 0.063 * Math.pow(Math.max(1, filtered.length), 0.85);
-  _occurrenceGeoRad = _occurrenceGeoRadiusFromExtent();
+  _occurrenceHeatMax = 1;
 
   _occurrenceApplyLayer();
   document.getElementById('mShown').textContent = filtered.length.toLocaleString();
@@ -6464,6 +6468,13 @@ if (window._pendingShare) {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v6.36</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>Heatmap — fixed colour intensity changing as you zoom in/out on the same data; density is now computed from a fixed geographic grid tied to the polygon, not the current zoom level</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v6.35</span>
       <span class="changelog-date">Jun 2026</span>
