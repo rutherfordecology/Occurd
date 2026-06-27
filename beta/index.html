@@ -46,7 +46,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v6.31</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v6.32</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -3940,7 +3940,7 @@ function renderHeatmap(records) {
   // otherwise saturate huge areas to solid red regardless of true relative
   // density. Raising the ceiling with record count keeps red meaningful:
   // only the genuinely busiest spots in a big dataset reach it.
-  _occurrenceHeatMax = 0.07 * Math.pow(Math.max(1, filtered.length), 0.85);
+  _occurrenceHeatMax = 0.063 * Math.pow(Math.max(1, filtered.length), 0.85);
   _occurrenceGeoRad = _occurrenceGeoRadiusFromExtent();
 
   _occurrenceApplyLayer();
@@ -6463,6 +6463,13 @@ if (window._pendingShare) {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v6.32</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>Heatmap — v6.31's colour ceiling made everything read a touch too soft/pale; nudged it down 10% so red comes in a bit sooner across the board</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v6.31</span>
       <span class="changelog-date">Jun 2026</span>
