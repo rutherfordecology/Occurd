@@ -46,7 +46,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v6.26</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v6.27</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -3944,8 +3944,8 @@ function _occurrenceApplyLayer() {
   if (!_occurrenceHeatPts) return;
   if (heatLayer) { map.removeLayer(heatLayer); heatLayer = null; }
   const { radius, blur } = _occurrencePixelRadius(_occurrenceGeoRad);
-  heatLayer = L.heatLayer(_occurrenceHeatPts, { radius, blur, maxZoom: 19, minOpacity: 0.12, max: 0.20,
-    gradient: { 0.0: 'blue', 0.35: 'cyan', 0.6: 'lime', 0.8: 'yellow', 1.0: 'red' } });
+  heatLayer = L.heatLayer(_occurrenceHeatPts, { radius, blur, maxZoom: 19, minOpacity: 0.12, max: 0.07,
+    gradient: { 0.0: 'blue', 0.12: 'cyan', 0.25: 'lime', 0.4: 'yellow', 0.6: 'orange', 1.0: 'red' } });
   map.addLayer(heatLayer);
 }
 
@@ -6452,6 +6452,13 @@ if (window._pendingShare) {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v6.27</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>Heatmap — an isolated single record rendered as a faint pale-blue smear instead of reading as a hotspot, because the colour gradient's blue band covered the bottom 35% of the intensity range and the intensity ceiling was tuned for large, dense datasets. Front-loaded the gradient's warm colours and lowered the ceiling so a lone record now shows clearly as a yellow/orange hotspot, with denser clusters still scaling up to red</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v6.26</span>
       <span class="changelog-date">Jun 2026</span>
