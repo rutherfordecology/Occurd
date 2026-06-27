@@ -46,7 +46,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v6.24</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v6.25</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -4925,7 +4925,7 @@ document.getElementById('clSelAllVisible').addEventListener('change', function()
   document.querySelectorAll('.cl-row').forEach(row => {
     if (_rowIsActive(row)) {
       const cb = row.querySelector('.cl-photo-cb');
-      if (cb) cb.checked = checked;
+      if (cb && cb.checked !== checked) { cb.checked = checked; cb.dispatchEvent(new Event('change', { bubbles: true })); }
     }
   });
   document.querySelectorAll('.cl-group-header').forEach(header => _syncGroupCb(header));
@@ -6450,6 +6450,13 @@ if (window._pendingShare) {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v6.25</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>Fixed: the "select/deselect all visible species" checkbox at the top of the checklist ticked the boxes but never actually updated the map/heatmap/timeline/quiz/photos — it set each row's checkbox without touching the underlying selection state or re-rendering</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v6.24</span>
       <span class="changelog-date">Jun 2026</span>
