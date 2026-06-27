@@ -46,7 +46,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v6.37</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v6.38</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -3913,7 +3913,11 @@ function _occurrencePixelRadius(geoRad) {
   // scale exactly with zoom so the visual result is zoom-invariant.
   const pxPerDeg = Math.pow(2, map.getZoom()) * 256 / 360;
   const r = Math.max(1, Math.round(geoRad * pxPerDeg));
-  return { radius: r, blur: Math.max(1, Math.round(r * 0.75)) };
+  // Heavier blur (relative to radius) than before — at high zoom the blob
+  // radius itself gets large, and a thin blur left each point's circular
+  // edge visible as a hard arc where neighbouring blobs overlapped. A wider
+  // blur fades each stamp out gradually instead, so overlaps blend smoothly.
+  return { radius: r, blur: Math.max(1, Math.round(r * 1.4)) };
 }
 
 function renderHeatmap(records) {
@@ -6465,6 +6469,13 @@ if (window._pendingShare) {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v6.38</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>Heatmap — softened the blur so zoomed-in blobs don't show hard quarter-circle edges where neighbouring points' stamps overlapped</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v6.37</span>
       <span class="changelog-date">Jun 2026</span>
