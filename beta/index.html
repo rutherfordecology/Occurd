@@ -46,7 +46,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v6.29</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v6.30</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -3892,6 +3892,7 @@ function renderPoints(records) {
 
 let _occurrenceGeoRad = null;
 let _occurrenceHeatPts = null;
+let _occurrenceHeatCount = 0;
 
 function _occurrenceGeoRadiusFromExtent() {
   const bounds = polyLayer.getBounds();
@@ -3907,9 +3908,16 @@ function _occurrenceGeoRadiusFromExtent() {
 function _occurrencePixelRadius(geoRad) {
   const pxPerDeg = Math.pow(2, map.getZoom()) * 256 / 360;
   const r = Math.round(geoRad * pxPerDeg);
+  const radius = Math.max(12, Math.min(60, r));
+  const blur   = Math.max(8,  Math.min(45, Math.round(r * 0.75)));
+  // Busy datasets pack many overlapping records into a small area; at a fixed
+  // radius their blobs all merge into one undifferentiated red mass. Shrink
+  // radius/blur as record count grows so dense areas keep some internal
+  // texture instead of blowing out into a single flat hotspot.
+  const densityScale = 1 / Math.sqrt(Math.max(1, (_occurrenceHeatCount || 0) / 50));
   return {
-    radius: Math.max(12, Math.min(60, r)),
-    blur:   Math.max(8,  Math.min(45, Math.round(r * 0.75)))
+    radius: Math.max(15, Math.round(radius * densityScale)),
+    blur:   Math.max(10, Math.round(blur * densityScale))
   };
 }
 
@@ -3933,6 +3941,7 @@ function renderHeatmap(records) {
   _occurrenceHeatPts = Object.values(locCounts).map(({ lat, lng, n }) =>
     [lat, lng, Math.min(1, 0.25 * Math.log2(n + 1))]
   );
+  _occurrenceHeatCount = filtered.length;
   _occurrenceGeoRad = _occurrenceGeoRadiusFromExtent();
 
   _occurrenceApplyLayer();
@@ -6455,6 +6464,13 @@ if (window._pendingShare) {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v6.30</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>Heatmap — busy areas with lots of overlapping records were blowing out into one giant flat red mass with no internal texture, since every blob used the same fixed radius regardless of how many records were in view. Radius/blur now shrink as the visible record count grows, so dense clusters keep some shape instead of merging into an undifferentiated red blob, while sparse areas (including lone records) keep their full-size hotspot</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v6.29</span>
       <span class="changelog-date">Jun 2026</span>
