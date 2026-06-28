@@ -450,6 +450,7 @@
     <p>This polygon has <strong id="vertexCount"></strong> vertices. GBIF's API can struggle with highly complex geometries.<br><br>Consider simplifying it in QGIS first, or proceed and see if the query works.</p>
     <div class="modal-btns">
       <button class="modal-btn" id="modalCancel">Cancel</button>
+      <button class="modal-btn" id="modalSimplify">Simplify &amp; add</button>
       <button class="modal-btn primary" id="modalProceed">Proceed anyway</button>
     </div>
   </div>
@@ -2444,6 +2445,23 @@ function closeRingCoords(coords) {
   return coords;
 }
 
+// Simplify a [lat,lng] ring down to roughly `targetCount` vertices using turf.simplify,
+// stepping the tolerance up until the vertex count drops below the target (or we give up).
+function simplifyLatLngs(latlngs, targetCount) {
+  const ring = closeRingCoords(latlngs.map(llToGeoJSON));
+  const geojson = { type: 'Feature', geometry: { type: 'Polygon', coordinates: [ring] } };
+  for (const tol of [0.0005, 0.001, 0.002, 0.005, 0.01, 0.02, 0.05, 0.1]) {
+    try {
+      const simplified = turf.simplify(geojson, { tolerance: tol, highQuality: true });
+      const r = simplified.geometry.coordinates[0];
+      if (r.length >= 4 && r.length - 1 <= targetCount) {
+        return r.slice(0, -1).map(c => [c[1], c[0]]); // drop closing dup, back to [lat,lng]
+      }
+    } catch(e) {}
+  }
+  return latlngs; // couldn't get under target — return original, caller decides what to do
+}
+
 browseAddBtn.addEventListener('click', () => {
   const selected = browsePolygons.filter(bp => bp.selected);
   if (!selected.length) return;
@@ -3002,6 +3020,15 @@ document.getElementById('nztcsBetaAcceptBtn').addEventListener('click', async ()
 });
 
 document.getElementById('modalCancel').addEventListener('click', () => { complexModal.classList.remove('open'); pendingLoad = null; });
+document.getElementById('modalSimplify').addEventListener('click', () => {
+  complexModal.classList.remove('open');
+  if (pendingLoad) {
+    const simplified = simplifyLatLngs(pendingLoad.latlngs, COMPLEXITY_THRESHOLD);
+    addPolygon(simplified, pendingLoad.label);
+    setStatus('Simplified from ' + pendingLoad.latlngs.length.toLocaleString() + ' to ' + simplified.length.toLocaleString() + ' vertices', 'info');
+    pendingLoad = null;
+  }
+});
 document.getElementById('modalProceed').addEventListener('click', () => {
   complexModal.classList.remove('open');
   if (pendingLoad) { addPolygon(pendingLoad.latlngs, pendingLoad.label); pendingLoad = null; }
@@ -6582,6 +6609,13 @@ if (window._pendingShare) {
         <li>Species search is now backed by a new pluggable name-resolver.js, so the NZOR/NVS/Samoa lookup logic isn't locked into this one app; a fork can register its own species list as another source without touching the search UI code</li>
         <li>Common names that genuinely apply to more than one species (e.g. "toatoa" → 4 different plants, "Kiwis" → family or order) now show a "which one?" picker instead of silently guessing or failing — same pattern but-is-it-threatened already uses for ambiguous names</li>
         <li>The ~860 scientific-name homonym collisions that the v1.58 NZOR rebuild was dropping entirely (two different taxonomic concepts sharing a bare name, no single accepted winner) now also surface as a picker rather than disappearing from search</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v6.51</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>Added a "Simplify &amp; add" option to the complex-polygon warning shown for KML uploads with too many vertices — uses turf.simplify (Douglas-Peucker) to bring the shape under the 500-vertex threshold in-app, instead of requiring a round trip through QGIS</li>
       </ul>
     </div>
     <div class="changelog-version">
