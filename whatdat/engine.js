@@ -1,7 +1,7 @@
 // WhatDat? Quiz Engine v1.1
 // Shared engine for all quiz pages.
 // Each page calls: initEngine(config)
-const APP_VERSION = 'v1.8';
+const APP_VERSION = 'v1.9';
 window.__engineLoaded = true;
 
 const GH_TOKEN = ['github','pat','11CD5YDQQ0bj2y9dp1UI7X','dOQEr16i0xNnN8iEM3pVloK7E9YJz7sn81NGUBeUuF1QPSQ6QBCEJbLlREp'].join('_');
@@ -920,7 +920,13 @@ function renderQuiz(app) {
     const localName = matchBird?.samoan || matchBird?.maori || '';
     const localLabel = localName ? `<span class="opt-local-name">${localName}</span>` : '';
     const latinLabel = showLatin && matchBird?.latin ? `<span class="opt-latin-small">${matchBird.latin}</span>` : '';
-    return `<button class="${cls}" ${state.selected?'disabled':''} onclick="selectAnswer('${safe}',event)"><span class="opt-english">${opt}</span>${localLabel}${latinLabel}</button>`;
+    // Plant quizzes: show family on every option, not just on reveal. Family is
+    // often the recognisable trait when the exact species isn't obvious, and
+    // seeing it on all 4 choices (not just the correct one after answering)
+    // reinforces family-level identification as its own skill.
+    const familyLabel = CFG.taxonName === 'Plantae' && matchBird?.family
+      ? `<span class="opt-family">${matchBird.family}</span>` : '';
+    return `<button class="${cls}" ${state.selected?'disabled':''} onclick="selectAnswer('${safe}',event)"><span class="opt-english">${opt}</span>${localLabel}${latinLabel}${familyLabel}</button>`;
   }).join('');
 
   let fieldNote='';
