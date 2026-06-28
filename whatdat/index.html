@@ -73,8 +73,9 @@
   .taxon-clear-btn:hover { border-color: #d47a7a; color: #8a2c2c; }
 
   /* Location button */
-  .pick-btn { display: block; width: 100%; padding: 16px 24px; background: #1a5940; border: none; color: #fff; border-radius: 14px; font-size: 1.05rem; font-weight: 800; cursor: pointer; font-family: inherit; transition: all 0.15s; text-align: center; box-shadow: 0 4px 16px rgba(26,89,64,0.25); }
-  .pick-btn:hover { background: #226b4d; box-shadow: 0 6px 20px rgba(26,89,64,0.35); transform: translateY(-1px); }
+  .map-section { max-width: 900px; margin: 0 auto 28px; }
+  .map-hint { text-align: center; font-size: 0.85rem; color: #6b6960; margin-bottom: 10px; line-height: 1.5; }
+  .map-hint strong { color: #1a5940; }
 
   .divider { display: flex; align-items: center; gap: 12px; margin: 18px 0; color: #c8c6bc; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.08em; }
   .divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: #dddbd3; }
@@ -97,22 +98,16 @@
   .splist-start-btn:hover { background: #1a5940; }
 
   /* Map modal */
-  .map-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 1000; align-items: center; justify-content: center; padding: 20px; }
-  .map-modal.open { display: flex; }
-  .map-box { background: #fff; border-radius: 16px; width: 100%; max-width: 700px; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.25); display: flex; flex-direction: column; max-height: 90vh; }
-  .map-header { padding: 14px 18px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #dddbd3; flex-shrink: 0; }
-  .map-header h2 { font-size: 1rem; font-weight: 800; color: #1a5940; }
-  .map-header-taxon { font-size: 0.75rem; color: #2a7a58; font-style: italic; }
-  .map-close { background: none; border: none; font-size: 1.4rem; cursor: pointer; color: #9b9890; }
-  .map-close:hover { color: #1c1b18; }
-  .map-search-row { padding: 8px 12px; border-bottom: 1px solid #dddbd3; display: flex; gap: 6px; flex-shrink: 0; }
+  .map-header-taxon { display: block; font-size: 0.78rem; color: #2a7a58; font-style: italic; margin-top: 2px; }
+  .map-search-row { padding: 8px 0; display: flex; gap: 6px; }
   .map-search-row input { flex: 1; padding: 7px 11px; border: 1px solid #ccc; border-radius: 8px; font-size: 0.88rem; font-family: inherit; outline: none; }
   .map-search-row input:focus { border-color: #1a5940; }
   .map-search-row button { padding: 7px 13px; background: #1a5940; color: #fff; border: none; border-radius: 8px; font-size: 0.85rem; font-weight: 700; cursor: pointer; }
   .map-search-row button:hover { background: #226b4d; }
-  #pickMap { flex: 1; min-height: 280px; }
-  .map-status { padding: 10px 18px; font-size: 0.85rem; color: #6b6960; border-top: 1px solid #dddbd3; flex-shrink: 0; min-height: 44px; display: flex; align-items: center; }
-  .map-places { border-top: 1px solid #dddbd3; flex-shrink: 0; overflow-y: auto; max-height: 200px; }
+  #pickMap { height: 380px; border-radius: 14px; overflow: hidden; border: 1.5px solid #dddbd3; }
+  @media (max-width: 600px) { #pickMap { height: 240px; } }
+  .map-status { padding: 8px 2px; font-size: 0.85rem; color: #6b6960; min-height: 30px; display: flex; align-items: center; }
+  .map-places { border: 1px solid #dddbd3; border-radius: 10px; overflow-y: auto; max-height: 200px; }
   .map-place-item { padding: 11px 18px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #f3f2ee; transition: background 0.1s; }
   .map-place-item:last-child { border-bottom: none; }
   .map-place-item:hover, .map-place-item.active { background: #e8f4ef; }
@@ -125,10 +120,6 @@
   footer a:hover { text-decoration: underline; }
 
   /* ── Library ─────────────────────────────────────────────────────────────── */
-  .lib-map-toggle { display:inline-block; margin:0 auto 16px; padding:9px 18px; background:#fff; border:1.5px solid #dddbd3; color:#1a5940; border-radius:10px; font-weight:800; font-size:0.78rem; cursor:pointer; font-family:inherit; transition:all 0.15s; }
-  .lib-map-toggle:hover { border-color:#2a7a58; background:#e8f4ef; }
-  .lib-map { display:none; max-width:900px; height:340px; margin:0 auto 28px; border-radius:14px; overflow:hidden; border:1px solid #dddbd3; }
-  .lib-map.open { display:block; }
   .section-label { max-width:900px; margin:0 auto 14px; padding:0 20px; font-size:0.68rem; font-weight:800; letter-spacing:0.12em; text-transform:uppercase; color:#9b9890; }
   .cards-grid { max-width:900px; margin:0 auto 32px; padding:0 20px; display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:14px; }
   .place-card { background:#fff; border:1.5px solid #dddbd3; border-radius:14px; overflow:hidden; text-decoration:none; color:inherit; transition:all 0.2s; display:block; box-shadow:0 2px 8px rgba(0,0,0,0.04); }
@@ -154,7 +145,7 @@
 <div class="topbar">
   <div>
     <span class="topbar-title">WhatDat?</span>
-    <span class="topbar-version">v1.7</span>
+    <span class="topbar-version">v1.8</span>
   </div>
   <span class="topbar-re">by <a href="https://www.rutherfordecology.co.nz/" target="_blank"><strong>Rutherford</strong> ecology</a></span>
 </div>
@@ -200,8 +191,17 @@
     </div>
   </div>
 
-  <!-- ── Location button ───────────────────────────────────────────────────── -->
-  <button class="pick-btn" id="pickBtn" onclick="openMap()">&#127758; Choose a location to play</button>
+  <!-- ── Combined map: existing quiz markers + click-anywhere-to-create ─────── -->
+  <div class="map-section">
+    <p class="map-hint">Click a <strong>quiz marker</strong> to play an existing quiz — or <strong>click anywhere</strong> on the map to start a new one<span class="map-header-taxon" id="mapHeaderTaxon"></span></p>
+    <div id="pickMap"></div>
+    <div class="map-search-row">
+      <input id="modalSearchInput" type="text" placeholder="Search for a place, park, or reserve…" onkeydown="if(event.key==='Enter')searchMap()">
+      <button onclick="searchMap()">Search</button>
+    </div>
+    <div class="map-status"><span id="mapStatusText">Click anywhere on the map to find a location.</span></div>
+    <div class="map-places" id="mapPlaces"></div>
+  </div>
 
   <div class="divider">OR</div>
 
@@ -231,32 +231,8 @@
 </div>
 
 <!-- ── Library ───────────────────────────────────────────────────────────── -->
-<div style="text-align:center;margin-bottom:8px;">
-  <button class="lib-map-toggle" id="libMapToggle" onclick="toggleLibraryMap()" style="display:none;">&#128506; View quiz map</button>
-</div>
-<div id="libraryMap" class="lib-map"></div>
 <div id="quizLibrary"><div class="section-label">Loading quiz library...</div></div>
 <div class="share-toast" id="shareToast"></div>
-
-<!-- ── Map modal ─────────────────────────────────────────────────────────── -->
-<div class="map-modal" id="mapModal">
-  <div class="map-box">
-    <div class="map-header">
-      <div>
-        <h2>&#127758; Choose a location</h2>
-        <div class="map-header-taxon" id="mapHeaderTaxon"></div>
-      </div>
-      <button class="map-close" onclick="closeMap()">&#x2715;</button>
-    </div>
-    <div id="pickMap"></div>
-    <div class="map-search-row">
-      <input id="modalSearchInput" type="text" placeholder="Search for a place, park, or reserve…" onkeydown="if(event.key==='Enter')searchMap()">
-      <button onclick="searchMap()">Search</button>
-    </div>
-    <div class="map-status"><span id="mapStatusText">Click anywhere on the map to find a location.</span></div>
-    <div class="map-places" id="mapPlaces"></div>
-  </div>
-</div>
 
 <footer>
   Photos: <a href="https://www.inaturalist.org" target="_blank">iNaturalist</a> (CC licensed) &mdash;
@@ -389,18 +365,15 @@ function clearTaxon() {
 function updateToggleLabel() {
   const btn    = document.getElementById('taxonToggleBtn');
   const lbl    = document.getElementById('taxonToggleLabel');
-  const pick   = document.getElementById('pickBtn');
   const mapHdr = document.getElementById('mapHeaderTaxon');
   if (confirmedTaxon) {
     const rl = RANK_LABELS[confirmedTaxon.rank] || confirmedTaxon.rank;
     btn.classList.add('has-selection');
     lbl.innerHTML = `&#127807; ${rl}: <span class="taxon-sel-pill"><em>${confirmedTaxon.name}</em> <button onclick="event.stopPropagation();clearTaxon()" title="Remove">&#215;</button></span>`;
-    pick.textContent = `\u{1F30E} Choose a location — ${confirmedTaxon.name} only`;
-    if (mapHdr) mapHdr.textContent = 'Filtering: ' + confirmedTaxon.name;
+    if (mapHdr) mapHdr.textContent = ' — Filtering: ' + confirmedTaxon.name;
   } else {
     btn.classList.remove('has-selection');
     lbl.innerHTML = `&#127807; Filter by life group <span style="font-size:0.75rem;color:#9b9890;font-weight:400;">(optional — all life by default)</span>`;
-    pick.innerHTML = `&#127758; Choose a location to play`;
     if (mapHdr) mapHdr.textContent = '';
   }
 }
@@ -515,18 +488,23 @@ const TYPE_LABEL = {
   12:'Region', 14:'Island', 17:'Marine Reserve',
 };
 
-function openMap() {
-  document.getElementById('mapModal').classList.add('open');
-  if (!pickMap) {
-    pickMap = L.map('pickMap').setView([20, 0], 2);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; <a href="https://openstreetmap.org/copyright">OpenStreetMap</a>',
-      maxZoom: 18
-    }).addTo(pickMap);
-    pickMap.on('click', onMapClick);
-  }
-  setTimeout(() => pickMap.invalidateSize(), 80);
+// Single combined map: shows every saved quiz as a marker (added once the
+// library loads, see loadLibrary) and lets you click anywhere else to start
+// a new one -- same merged pattern as WhatDatBird's mainMap.
+function initMainMap() {
+  pickMap = L.map('pickMap', {
+    minZoom: 2,
+    maxBounds: [[-90, -270], [90, 270]],
+    maxBoundsViscosity: 1.0
+  }).setView([10, 140], 2);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; <a href="https://openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    maxZoom: 18,
+    noWrap: false
+  }).addTo(pickMap);
+  pickMap.on('click', onMapClick);
 }
+initMainMap();
 
 async function searchMap() {
   const q = document.getElementById('modalSearchInput').value.trim();
@@ -587,16 +565,9 @@ function goBbox() {
   const { s, n, w, e, name, cc } = _pendingBbox;
   let url = `quiz.html?swlat=${s}&nelat=${n}&swlng=${w}&nelng=${e}&place_name=${encodeURIComponent(name)}`;
   if (cc) url += `&country_code=${cc}`;
-  closeMap(); window.location.href = buildQuizUrl(url);
+  window.location.href = buildQuizUrl(url);
 }
 
-function closeMap() {
-  document.getElementById('mapModal').classList.remove('open');
-  placesEl().innerHTML = '';
-  statusEl().textContent = 'Click anywhere on the map to find a location.';
-  document.getElementById('modalSearchInput').value = '';
-  clearBoundary();
-}
 function clearBoundary() { if (boundaryLayer) { boundaryLayer.remove(); boundaryLayer = null; } }
 function statusEl() { return document.getElementById('mapStatusText'); }
 function placesEl() { return document.getElementById('mapPlaces'); }
@@ -671,13 +642,11 @@ function attachPlaceListeners() {
 }
 
 function goPlace(id, name) {
-  closeMap();
   window.location.href = buildQuizUrl(`quiz.html?place_id=${id}&place_name=${encodeURIComponent(name)}`);
 }
 function goCoords(lat, lng, name, cc) {
   let url = `quiz.html?lat=${lat.toFixed(5)}&lng=${lng.toFixed(5)}&place_name=${encodeURIComponent(name)}`;
   if (cc) url += `&country_code=${cc}`;
-  closeMap();
   window.location.href = buildQuizUrl(url);
 }
 
@@ -715,7 +684,6 @@ async function onMapClick(e) {
 // ── Quiz Library ──────────────────────────────────────────────────────────────
 const CONTINENT_ORDER = ['Africa','Antarctica','Asia','Europe','North America','Oceania','South America','Other'];
 let _libraryQuizzes = [];
-let _libraryMap = null;
 
 function quizCoords(q) {
   const lat = q.lat ?? q.coord_lat ?? null;
@@ -738,33 +706,17 @@ async function resolveQuizCoords(q) {
   } catch { return null; }
 }
 
-async function toggleLibraryMap() {
-  const box = document.getElementById('libraryMap');
-  const open = box.classList.toggle('open');
-  document.getElementById('libMapToggle').textContent = open ? '&#10005; Hide quiz map' : '&#128506; View quiz map';
-  if (open) {
-    if (!_libraryMap) {
-      _libraryMap = L.map('libraryMap');
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; <a href="https://openstreetmap.org/copyright">OpenStreetMap</a>',
-        maxZoom: 18
-      }).addTo(_libraryMap);
-      _libraryMap.setView([20, 0], 2);
-      setTimeout(() => _libraryMap.invalidateSize(), 80);
-      const pts = [];
-      for (const q of _libraryQuizzes) {
-        const c = await resolveQuizCoords(q);
-        if (!c) continue;
-        pts.push([c.lat, c.lng]);
-        const absUrl = q.url.startsWith('http') ? q.url : `https://occurd.rutherfordecology.co.nz/whatdat/${q.url}`;
-        L.marker([c.lat, c.lng]).addTo(_libraryMap)
-          .bindPopup(`<div style="font-family:system-ui;text-align:center"><div style="font-weight:700">${q.description||q.name}</div><a href="${absUrl}" style="color:#1a5940;font-weight:800;text-decoration:none">Play &#8594;</a></div>`);
-      }
-      if (pts.length > 1) _libraryMap.fitBounds(pts, { padding: [30,30], maxZoom: 6 });
-      else if (pts.length === 1) _libraryMap.setView(pts[0], 8);
-    } else {
-      setTimeout(() => _libraryMap.invalidateSize(), 80);
-    }
+// Plots every saved quiz as a marker on the combined map. Doesn't fit/zoom
+// to the markers -- the map stays at its wide default view so "click
+// anywhere to start a new quiz" still works for areas with no markers yet.
+async function addLibraryMarkersToMap(quizzes) {
+  if (!pickMap) return;
+  for (const q of quizzes) {
+    const c = await resolveQuizCoords(q);
+    if (!c) continue;
+    const absUrl = q.url.startsWith('http') ? q.url : `https://occurd.rutherfordecology.co.nz/whatdat/${q.url}`;
+    L.marker([c.lat, c.lng]).addTo(pickMap)
+      .bindPopup(`<div style="font-family:system-ui;text-align:center"><div style="font-weight:700">${q.description||q.name}</div><a href="${absUrl}" style="color:#1a5940;font-weight:800;text-decoration:none">Play &#8594;</a></div>`);
   }
 }
 
@@ -838,8 +790,7 @@ async function loadLibrary() {
     }
     lib.innerHTML = html || '<div class="section-label">No quizzes saved yet — finish a quiz and add it to the library!</div>';
     _libraryQuizzes = quizzes;
-    const mapToggle = document.getElementById('libMapToggle');
-    if (mapToggle && quizzes.length) mapToggle.style.display = 'inline-block';
+    addLibraryMarkersToMap(quizzes);
     for (const q of quizzes) {
       const imgId = `card-img-${(q.place_id || q.url).toString().replace(/\W/g,'')}`;
       const el = document.getElementById(imgId);
