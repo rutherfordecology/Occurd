@@ -46,7 +46,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v6.50</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v6.54</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -799,11 +799,16 @@ map.on(L.Draw.Event.DRAWSTART, e => {
   finishDrawBtn.disabled = true; // need ≥3 vertices before Finish is valid
   clearDrawDistLabels();
   isDrawingPoly = true;
+  // The map's own double-click-to-zoom handler steals the second click of the
+  // finishing double-click, so Leaflet.draw never sees a clean dblclick and the
+  // polygon never completes. Must be disabled for the duration of the draw.
+  map.doubleClickZoom.disable();
 });
 map.on(L.Draw.Event.DRAWSTOP, () => {
   drawActionBar.style.display = 'none';
   activeDrawHandler = null;
   clearDrawDistLabels();
+  map.doubleClickZoom.enable();
 });
 
 // ── Draw distance labels ──────────────────────────────────────────────────────
@@ -2029,8 +2034,10 @@ function renderPolyList() {
   function renderSpecies(p) {
     const el = document.createElement('div'); el.className = 'poly-item species-entry';
     const topRow = document.createElement('div'); topRow.className = 'poly-item-row';
+    const sciSuffix = (p.sciName && p.sciName.toLowerCase() !== p.name.toLowerCase())
+      ? ' <em style="opacity:0.65;font-style:italic;">(' + p.sciName + ')</em>' : '';
     topRow.innerHTML =
-      '<span class="poly-item-name">&#128269; ' + p.name + '</span>' +
+      '<span class="poly-item-name">&#128269; ' + p.name + sciSuffix + '</span>' +
       '<span class="poly-remove" data-id="' + p.id + '">&#x2715;</span>';
     topRow.querySelector('.poly-remove').addEventListener('click', () => removePolygon(p.id));
     el.appendChild(topRow);
@@ -6476,6 +6483,8 @@ if (window._pendingShare) {
 }
 
 </script>
+<script src="name-resolver.js"></script>
+<script src="but-is-it-threatened/nzor-source.js"></script>
 <script src="species-search.js"></script>
 <script src="qeii.js"></script>
 <script src="projects.js"></script>
@@ -6490,6 +6499,31 @@ if (window._pendingShare) {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v6.54</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>Fixed polygon drawing: double-clicking to finish a shape sometimes didn't stop drawing, left stray vertex markers on the map, or produced an unwanted extra triangle. The map's own double-click-to-zoom was stealing the second click of the finish gesture — it's now disabled while drawing is active</li>
+        <li>The species filter chip now shows the scientific name alongside the common name (e.g. "Weka (Gallirallus australis)")</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v6.52</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>NZOR matching itself (index building, ambiguity detection) moved out of species-search.js into a new shared but-is-it-threatened/nzor-source.js, eliminating the duplicate copy that used to live in but-is-it-threatened's own page. Both apps now read from the same module</li>
+        <li>Fixed false "which one?" prompts for names like "tui"/"kakapo"/"pukeko" — a single NZOR vernacular record often links to several citations of the *same* taxon (a species and its own subspecies, or a spelling variant), which the new disambiguation data was treating as separate species. These now collapse correctly; genuinely different species sharing a name (toatoa, penwiper, kiwis) still prompt as before</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v6.51</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>Species search is now backed by a new pluggable name-resolver.js, so the NZOR/NVS/Samoa lookup logic isn't locked into this one app; a fork can register its own species list as another source without touching the search UI code</li>
+        <li>Common names that genuinely apply to more than one species (e.g. "toatoa" → 4 different plants, "Kiwis" → family or order) now show a "which one?" picker instead of silently guessing or failing — same pattern but-is-it-threatened already uses for ambiguous names</li>
+        <li>The ~860 scientific-name homonym collisions that the v1.58 NZOR rebuild was dropping entirely (two different taxonomic concepts sharing a bare name, no single accepted winner) now also surface as a picker rather than disappearing from search</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v6.50</span>
       <span class="changelog-date">Jun 2026</span>
