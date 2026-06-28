@@ -17,7 +17,7 @@ window.onunhandledrejection = e => {
 };
 </script>
 <div id="app"></div>
-<script src="engine.js?v=1.10" onerror="document.getElementById('app').innerHTML='<div style=padding:2rem;font-family:sans-serif;color:#8a2c2c>Failed to load engine.js.<br><br><a href=index.html>← Back</a></div>'"></script>
+<script src="engine.js?v=1.11" onerror="document.getElementById('app').innerHTML='<div style=padding:2rem;font-family:sans-serif;color:#8a2c2c>Failed to load engine.js.<br><br><a href=index.html>← Back</a></div>'"></script>
 <script>
 // Common name overrides keyed by lowercase latin name
 const NAME_OVERRIDES = {
@@ -401,10 +401,10 @@ async function boot() {
       setState({ phase: 'error', loadError: 'This quiz link was created on another device or has expired. Ask the creator to share via the Share button instead.' });
       return;
     }
-    const { names, listName, extraNames } = stored;
+    const { names, listName, extraNames, coordLat, coordLng } = stored;
     if (extraNames) try { localStorage.setItem('whatdat_extra_names', JSON.stringify(extraNames)); } catch(e) {}
     const shareUrl = buildShareUrl(names, window.location.href);
-    initEngine({ placeName: listName || 'Quiz', taxonName: TAXON_NAME, backUrl: 'index.html', easyBirds: [], shareUrl });
+    initEngine({ placeName: listName || 'Quiz', taxonName: TAXON_NAME, backUrl: 'index.html', easyBirds: [], shareUrl, coordLat: coordLat ?? null, coordLng: coordLng ?? null });
     try {
       const birds = await loadFromSpeciesList(names);
       if (birds.length < 4) throw new Error(`Only ${birds.length} species resolved. Need at least 4.`);
@@ -443,22 +443,22 @@ async function boot() {
       return;
     }
 
+    const slCoordLat = BBOX_MODE ? (BBOX_SW_LAT + BBOX_NE_LAT) / 2 : (COORD_LAT ?? null);
+    const slCoordLng = BBOX_MODE ? (BBOX_SW_LNG + BBOX_NE_LNG) / 2 : (COORD_LNG ?? null);
+
     // Save quiz under a short local ID and rewrite the URL so it's tidy
     let shareUrl = null;
     if (!SPECIES_LIST_PARAM) {
       // Launched from another app — create a short local URL
       const id = newQuizId();
       const extraNames = (() => { try { return JSON.parse(localStorage.getItem('whatdat_extra_names') || '{}'); } catch(e) { return {}; } })();
-      saveQuizStore(id, { names, listName, extraNames });
+      saveQuizStore(id, { names, listName, extraNames, coordLat: slCoordLat, coordLng: slCoordLng });
       const shortUrl = new URL(window.location.href);
       shortUrl.search = '?q=' + id;
       history.replaceState(null, '', shortUrl.toString());
     }
     // Share URL always uses LZ-compressed encoding so it works cross-device
     shareUrl = buildShareUrl(names, window.location.href);
-
-    const slCoordLat = BBOX_MODE ? (BBOX_SW_LAT + BBOX_NE_LAT) / 2 : (COORD_LAT ?? null);
-    const slCoordLng = BBOX_MODE ? (BBOX_SW_LNG + BBOX_NE_LNG) / 2 : (COORD_LNG ?? null);
     initEngine({ placeName: listName, taxonName: TAXON_NAME, backUrl: 'index.html', easyBirds: [], shareUrl, coordLat: slCoordLat, coordLng: slCoordLng });
     try {
       const birds = await loadFromSpeciesList(names);
