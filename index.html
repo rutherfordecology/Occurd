@@ -46,7 +46,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v6.56</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v6.57</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -4942,15 +4942,27 @@ function _rowIsActive(row) {
 }
 
 document.getElementById('clSelAllVisible').addEventListener('change', function() {
+  // Update every row's checkbox + hiddenSpecies directly rather than dispatching
+  // a 'change' event per row -- each row's own handler does a full map re-render
+  // and CSV rebuild over all records, so doing that once per species (hundreds of
+  // times for a big checklist) froze the page and flooded GBIF/iNat with requests.
   const checked = this.checked;
   document.querySelectorAll('.cl-row').forEach(row => {
     if (_rowIsActive(row)) {
       const cb = row.querySelector('.cl-photo-cb');
-      if (cb && cb.checked !== checked) { cb.checked = checked; cb.dispatchEvent(new Event('change', { bubbles: true })); }
+      if (cb && cb.checked !== checked) {
+        cb.checked = checked;
+        const name = row.dataset.species;
+        if (name) { if (checked) hiddenSpecies.delete(name); else hiddenSpecies.add(name); }
+      }
     }
   });
   document.querySelectorAll('.cl-group-header').forEach(header => _syncGroupCb(header));
+  if (viewMode === 'heat') renderHeatmap(allRecords);
+  else { renderPoints(allRecords); applyTimelineFilter(); }
   _updateLooklikeBtn();
+  document.getElementById('mShown').textContent = allRecords.filter(passesFilters).length.toLocaleString();
+  csvData = buildCSV(allRecords.filter(passesFilters));
 });
 
 function _syncGroupCb(header) {
@@ -6500,6 +6512,13 @@ if (window._pendingShare) {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v6.57</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>Fixed a serious freeze: clicking the "select all" checkbox dispatched a separate change event per species row, and each row's handler does a full map re-render plus a CSV rebuild over every record — for a large checklist (500+ species) this meant hundreds of full re-renders and a flood of photo-lookup requests to GBIF/iNaturalist, freezing the page. Select/deselect-all now updates everything once instead of once per species</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v6.56</span>
       <span class="changelog-date">Jun 2026</span>
