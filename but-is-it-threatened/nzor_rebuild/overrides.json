@@ -1,0 +1,10 @@
+{
+  "kiwi": {
+    "n": "Kiwi",
+    "ambiguous": true,
+    "options": [
+      {"sci": "Apteryx", "id": "ff1660c3-ab1e-4df7-ab8c-e9659abd8ddf", "status": "the bird genus"},
+      {"sci": "Kiwi", "id": "071b096a-724f-4b46-9a96-3c11a9950618", "status": "wasp genus, not the bird"}
+    ]
+  }
+}

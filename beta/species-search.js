@@ -247,7 +247,7 @@
                      lng    >= SAMOA_BOUNDS.minLng && lng    <= SAMOA_BOUNDS.maxLng;
     inSamoa = nowSamoa;
     field.style.display = (inNZ || nowSamoa) ? 'block' : 'none';
-    if (inNZ    && !nzorData  && !nzorLoading) ensureNzor();
+    if (inNZ    && !nzor      && !nzorLoading) ensureNzor();
     if (inNZ    && !nvsData   && !nvsPromise)  ensureNvs();
     if (nowSamoa && !samoaData && !samoaPromise) ensureSamoa();
   }
@@ -360,7 +360,7 @@
 
     if (resolved.ambiguous) {
       const displayName = item.n || item.sci || '';
-      showPicker(displayName, resolved.options, opt => commitSpecies(opt.sci, opt.label || displayName));
+      showPicker(displayName, resolved.options, opt => commitSpecies(opt.sci, displayName));
       return;
     }
 

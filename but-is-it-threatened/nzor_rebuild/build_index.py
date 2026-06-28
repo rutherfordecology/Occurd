@@ -81,6 +81,20 @@ def load_all_records():
         records.extend(page['names'])
     return records
 
+def load_overrides():
+    """Manual corrections for cases NZOR's own data can't resolve correctly --
+    e.g. a common name that collides with an unrelated scientific name sharing
+    the exact same bare string (kiwi the bird vs Kiwi the wasp/spider genus),
+    where the automatic Status=='Current' collision rule picks whichever
+    record happens to be a scientific name and silently drops the vernacular
+    meaning entirely, with no indication to the user that anything was lost.
+    overrides.json: { "<lowercase key>": <entry to write directly into out> }"""
+    try:
+        with open('overrides.json', encoding='utf-8') as f:
+            return json.load(f)
+    except FileNotFoundError:
+        return {}
+
 def main():
     records = load_all_records()
     print(f"Loaded {len(records)} raw records", file=sys.stderr)
@@ -169,6 +183,12 @@ def main():
                 for r in by_id.values()
             ]
             out[key] = {'n': recs[0]['partialName'], 'ambiguous': True, 'options': options}
+
+    overrides = load_overrides()
+    for key, entry in overrides.items():
+        out[key] = entry
+    if overrides:
+        print(f"Applied {len(overrides)} manual override(s) from overrides.json", file=sys.stderr)
 
     with open('nzor_names_rebuilt.json', 'w', encoding='utf-8') as f:
         json.dump(out, f, ensure_ascii=False, separators=(',', ':'))
