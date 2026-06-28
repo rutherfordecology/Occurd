@@ -1,7 +1,7 @@
 // WhatDat? Quiz Engine v1.1
 // Shared engine for all quiz pages.
 // Each page calls: initEngine(config)
-const APP_VERSION = 'v1.9';
+const APP_VERSION = 'v1.10';
 window.__engineLoaded = true;
 
 const GH_TOKEN = ['github','pat','11CD5YDQQ0bj2y9dp1UI7X','dOQEr16i0xNnN8iEM3pVloK7E9YJz7sn81NGUBeUuF1QPSQ6QBCEJbLlREp'].join('_');
@@ -553,6 +553,7 @@ function saveQuizName() {
   if (h1Span && !CFG.title) h1Span.textContent = newName;
   const btn = input.nextElementSibling;
   if (btn) { btn.textContent = '✓'; setTimeout(() => { btn.textContent = '✓'; }, 1000); }
+  syncLibraryName(newName);
 }
 
 function lockQuizName() {
@@ -844,16 +845,48 @@ function unlockLeaderboard() {
 // carries the original lat/lng query params forward -- matching list quizzes
 // by coordinates alone would near-always report "not in library" even when
 // they are, so list quizzes are matched by their stored share URL instead.
-function isQuizAlreadyInLibrary(data) {
+function findLibraryEntryIndex(data) {
   if (CFG.placeId) {
-    return data.quizzes.some(q => String(q.place_id) === String(CFG.placeId));
+    return data.quizzes.findIndex(q => String(q.place_id) === String(CFG.placeId));
   }
   if (CFG.shareUrl) {
-    return data.quizzes.some(q => q.url === CFG.shareUrl);
+    return data.quizzes.findIndex(q => q.url === CFG.shareUrl);
   }
-  if (CFG.coordLat == null) return false;
-  return data.quizzes.some(q => q.coord_lat != null &&
+  if (CFG.coordLat == null) return -1;
+  return data.quizzes.findIndex(q => q.coord_lat != null &&
     Math.abs(q.coord_lat - CFG.coordLat) < 0.001 && Math.abs(q.coord_lng - CFG.coordLng) < 0.001);
+}
+function isQuizAlreadyInLibrary(data) { return findLibraryEntryIndex(data) !== -1; }
+
+// Renaming a quiz that's already saved (saveLibSection is hidden once
+// _inLibrary is true, so the only way to persist a rename at that point is
+// to push the new name straight to the library file).
+async function syncLibraryName(newName) {
+  if (_inLibrary !== true) return;
+  try {
+    const r = await fetch(`https://api.github.com/repos/${GH_REPO}/contents/${GH_FILE}`, {
+      headers: { Authorization: `token ${GH_TOKEN}`, Accept: 'application/vnd.github.v3+json' }
+    });
+    if (!r.ok) return;
+    const d = await r.json();
+    const sha = d.sha;
+    const data = JSON.parse(decodeURIComponent(escape(atob(d.content.replace(/\n/g, '')))).replace(/^﻿/, ''));
+    const idx = findLibraryEntryIndex(data);
+    if (idx === -1) return;
+    if (data.quizzes[idx].name === newName && data.quizzes[idx].description === newName) return;
+    data.quizzes[idx].name = newName;
+    data.quizzes[idx].description = newName;
+    const body = JSON.stringify({
+      message: `Rename quiz to ${newName}`,
+      sha,
+      content: btoa(unescape(encodeURIComponent(JSON.stringify(data, null, 2)))),
+    });
+    await fetch(`https://api.github.com/repos/${GH_REPO}/contents/${GH_FILE}`, {
+      method: 'PUT',
+      headers: { Authorization: `token ${GH_TOKEN}`, Accept: 'application/vnd.github.v3+json', 'Content-Type': 'application/json' },
+      body,
+    });
+  } catch {}
 }
 
 async function checkInLibrary() {
