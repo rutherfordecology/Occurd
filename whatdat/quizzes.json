@@ -95,6 +95,20 @@
       "lat": -13.824825,
       "lng": 188.24806999999998,
       "added": "2026-06-26"
+    },
+    {
+      "name": "Plants of Malololelei",
+      "continent": "Other",
+      "country": "Plants of Malololelei",
+      "description": "Plants of Malololelei",
+      "type": "list",
+      "url": "https://occurd.rutherfordecology.co.nz/whatdat/quiz.html?list=IIGwDglgdhCGAEYCuAnZLYBdYChgA8B7KQ5AZ3gGNCBbMFAUzLKTJwGEGIAjBMBqNigATDByaYUSGvBKVMqKNI7QosGrWnwAbgyk0OIPYWEDRWygAtoAsg0PRCZTBADmNBAHdYKbqlcQEBwmcAxa2j4QDK5YyuyEAGYJDAg%2BsNwQlLjxRqzwZJRImAwgIJGEEKZsAKI0ECBw%2BcRWEAmEDbgAYrCuGCnw3HrFKISwajidSILSjSWwzpm4ABIMw4QuFCMKIq3tcDhLTtiIZYI9NrgAknRYUVAU3qV6cOOXYLSE-bAgvDgAMkhhJ43I1CPJCBEQNoIGwALJjCCWdbwJiFIxnHCwzLERqURhqbCYiAAawRCDqeLGmEsuFhHxQwkWVBpGEE%2BzpKGgwgQlAgkl2HRwAAV5mRWiBCBh4GVUAL9gAlGlgazCUhIqVkdD7ADK7TGWkwku0ym1YCwSNMPPUZqUZUJpvNhFcEswGxOi3t2CsAE9sGhLKsrd6BFBbDCcNqvZZfT5lYH4AArdSwTJhtja70AL29AQsMxgOAAKt8IGbOS54C4OpQwjQgA",
+      "coord_lat": -13.897490000000001,
+      "coord_lng": 188.20412499999998,
+      "photo_taxon": "Codiaeum variegatum",
+      "lat": -13.897490000000001,
+      "lng": 188.20412499999998,
+      "added": "2026-06-28"
     }
   ]
 }
