@@ -20,11 +20,27 @@ New approach:
 import json, glob, sys
 
 def vernacular_links(r):
-    """For a Vernacular Name record, find every DISTINCT scientific name it
-    applies to (the 'is vernacular for' application) — usually one, but a
-    handful of broad/umbrella common names (e.g. "Kiwis" -> Apterygidae and
-    Apterygiformes) genuinely point at more than one concept. Returns an
-    ordered list of (sci, sciId) tuples, deduplicated by sci name."""
+    """For a Vernacular Name record, find every DISTINCT scientific concept it
+    applies to (the 'is vernacular for' application). Raw NZOR records often
+    link the same broad common name (e.g. "Tui", "Kakapo") to several
+    citations of the *same* underlying taxon at different ranks or spellings
+    -- a species and its own subspecies, a genus and a spelling variant of
+    its one species, a subfamily and the genus inside it. Those aren't a
+    user-facing choice between different species, so they're collapsed: any
+    two targets sharing a first word (genus, or the single word itself for
+    family/subfamily/order-level names) are treated as one. A handful of
+    genuinely broad common names still point at unrelated genera/families
+    (e.g. "Toatoa" -> Phyllocladus AND Haloragis, "Penwiper" -> Notothlaspi
+    AND Kalanchoe) -- those keep distinct first words and so remain as
+    separate options after collapsing.
+    Within a first-word group, keeps whichever target was encountered first
+    (NZOR's own concept ordering) rather than picking by name length -- the
+    pre-rebuild data shows this was inconsistent (sometimes the bare species
+    name won, sometimes a specific subspecies), so matching that incidental
+    ordering preserves the existing app's downstream NZTCS lookups rather
+    than substituting a new, different-but-"more principled" choice.
+    Returns an ordered list of (sci, sciId) tuples, one per distinct first
+    word."""
     if r.get('class') != 'Vernacular Name':
         return []
     seen = {}
@@ -35,7 +51,12 @@ def vernacular_links(r):
                 pn = target.get('partialName')
                 if pn and pn not in seen:
                     seen[pn] = target.get('nameId')
-    return list(seen.items())
+    groups = {}
+    for pn, name_id in seen.items():
+        firstWord = pn.split(' ', 1)[0].lower()
+        if firstWord not in groups:
+            groups[firstWord] = (pn, name_id)
+    return list(groups.values())
 
 def apply_vernacular(entry, r):
     """Set cls/sci(+sciId) for the single-target case (read by both the

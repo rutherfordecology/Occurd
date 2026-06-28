@@ -1,0 +1,1561 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-7ZSRQTPNJG"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-7ZSRQTPNJG');
+</script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>but is it threatened?</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:           #162518;
+      --surface:      #1e3322;
+      --surface2:     #26402a;
+      --border:       #2e5035;
+      --accent:       #7fc97a;
+      --accent-dim:   #5aaa54;
+      --text:         #e8f0e8;
+      --text-muted:   #7aad8a;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      color: var(--text);
+      padding: 1rem 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      position: sticky; top: 0; z-index: 100;
+    }
+    .header-logo img { height: 32px; width: auto; display: block; }
+    .header-meta { flex: 1; }
+    .header-meta h1 { font-size: 1.05rem; font-weight: 600; letter-spacing: 0.01em; }
+    .header-meta p  { font-size: 0.78rem; color: var(--text-muted); margin-top: 0.1rem; }
+    .re-link { color: var(--text-muted); text-decoration: none; }
+    .re-link:hover { color: var(--accent); }
+    .bmc-btn {
+      display: inline-flex; align-items: center; gap: .4rem;
+      padding: .4rem .9rem; border-radius: 8px;
+      background: var(--surface2); border: 1px solid var(--border);
+      color: var(--text-muted); font-size: .8rem; text-decoration: none;
+      white-space: nowrap; transition: border-color .15s, color .15s;
+      flex-shrink: 0;
+    }
+    .bmc-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .status-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--accent); flex-shrink: 0;
+      transition: background .3s;
+    }
+    .status-dot.loading { background: #ff9800; animation: pulse 1s infinite; }
+    .status-dot.error   { background: #f44336; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+    main {
+      max-width: 1100px;
+      margin: 2.5rem auto;
+      padding: 0 1.25rem;
+    }
+
+    /* ── Search ─────────────────────────────────────────── */
+    .search-wrap {
+      position: relative;
+      margin-bottom: 1rem;
+    }
+    #search {
+      width: 100%;
+      padding: 0.85rem 3rem 0.85rem 1.1rem;
+      font-size: 1.05rem;
+      border: 2px solid var(--border);
+      border-radius: 10px;
+      background: var(--surface);
+      color: var(--text);
+      outline: none;
+      transition: border-color .15s;
+    }
+    #search:focus { border-color: var(--accent); }
+    #clear-btn {
+      position: absolute; right: 0.75rem; top: 50%;
+      transform: translateY(-50%);
+      background: none; border: none;
+      cursor: pointer; font-size: 1.1rem; color: var(--text-muted);
+      display: none; line-height: 1;
+    }
+    #clear-btn:hover { color: var(--text); }
+
+    /* ── Dropdown ───────────────────────────────────────── */
+    #suggestions {
+      position: absolute;
+      top: calc(100% + 4px); left: 0; right: 0;
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      box-shadow: 0 8px 24px rgba(0,0,0,.35);
+      overflow: hidden;
+      z-index: 100;
+      max-height: 420px;
+      overflow-y: auto;
+    }
+    #suggestions[hidden] { display: none; }
+
+    .section-sep {
+      font-size: 0.68rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      padding: 0.45rem 1rem 0.2rem;
+      border-top: 1px solid var(--border);
+      background: var(--surface2);
+    }
+    .section-sep:first-child { border-top: none; }
+
+    .suggestion {
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+      padding: 0.6rem 1rem;
+      cursor: pointer;
+      font-size: 0.9rem;
+      border-bottom: 1px solid var(--border);
+      transition: background .1s;
+    }
+    .suggestion:last-child { border-bottom: none; }
+    .suggestion:hover, .suggestion.active { background: var(--surface2); }
+
+    .sname { flex: 1; min-width: 0; font-style: italic; }
+    .via-tag {
+      font-size: 0.76rem; color: var(--text-muted); white-space: nowrap;
+      font-style: normal;
+    }
+    .syn-tag {
+      font-size: 0.76rem; color: var(--text-muted); white-space: nowrap;
+      font-style: normal; opacity: .7;
+    }
+    .syn-tag::before { content: '→ '; }
+    .rank-tag {
+      font-size: 0.71rem; color: var(--text-muted);
+      white-space: nowrap; text-transform: capitalize;
+      font-style: normal; opacity: .6;
+    }
+
+    /* ── NZTCS badges ───────────────────────────────────── */
+    .badge {
+      font-size: 0.68rem; font-weight: 600;
+      padding: 0.18em 0.55em; border-radius: 4px;
+      white-space: nowrap; letter-spacing: 0.02em; flex-shrink: 0;
+    }
+    .cat-threatened               { background:#3d1010; color:#e07070; }
+    .cat-at-risk                  { background:#2e2000; color:#f0a830; }
+    .cat-not-threatened           { background:#0f2e14; color:#7fc97a; }
+    .cat-data-deficient           { background:var(--surface2); color:var(--text-muted); }
+    .cat-extinct                  { background:#1a1a1a; color:#ccc; }
+    .cat-introduced-and-naturalised { background:#1e1030; color:#b88af0; }
+    .cat-non-resident-native      { background:#0a1e30; color:#70a8e0; }
+    .cat-taxonomically-indistinct { background:var(--surface2); color:var(--text-muted); }
+    .cat-not-assessed             { background:var(--surface2); color:var(--text-muted); }
+    .cat-pest-plant               { background:#3d1010; color:#e07070; border:1px solid #7a2020; }
+
+    /* ── Loading / messages ─────────────────────────────── */
+    .spinner {
+      display:flex; align-items:center; gap:.5rem;
+      padding:.8rem 1rem; font-size:.85rem; color:var(--text-muted);
+    }
+    .spin-icon {
+      width:14px; height:14px;
+      border:2px solid var(--border); border-top-color:var(--accent);
+      border-radius:50%; animation:spin .6s linear infinite; flex-shrink:0;
+    }
+    @keyframes spin { to { transform:rotate(360deg); } }
+    .msg { padding:.8rem 1rem; font-size:.88rem; color:var(--text-muted); }
+
+    /* ── Detail panel ───────────────────────────────────── */
+    #detail {
+      background:var(--surface); border:1.5px solid var(--border);
+      border-radius:12px; padding:1.5rem;
+    }
+    #detail[hidden] { display:none; }
+
+    .detail-name { font-size:1.35rem; font-weight:600; font-style:italic; margin-bottom:.2rem; }
+    .detail-author { font-size:.85rem; color:var(--text-muted); font-style:normal; margin-bottom:.75rem; }
+
+    .detail-meta {
+      display:flex; flex-wrap:wrap; gap:.5rem;
+      margin-bottom:1rem; align-items:center;
+    }
+    .pill {
+      font-size:.78rem; padding:.2em .65em; border-radius:20px;
+      background:var(--surface2); color:var(--text-muted); text-transform:capitalize;
+    }
+    .pill.status-current   { background:#1a3d1e; color:#7fc97a; }
+    .pill.status-synonym   { background:#3d2e00; color:#f0a830; }
+    .pill.status-misapplied{ background:#3d1010; color:#e07070; }
+
+    .accepted-row {
+      font-size:.88rem; color:var(--text-muted); margin-bottom:1rem;
+      padding:.6rem .9rem;
+      background:#2a2510; border-left:3px solid #f59e0b;
+      border-radius:0 6px 6px 0;
+    }
+    .accepted-row strong { color:var(--text); }
+
+    .dl-title {
+      font-size:.72rem; font-weight:700; text-transform:uppercase;
+      letter-spacing:.08em; color:var(--text-muted); margin:1rem 0 .5rem;
+    }
+
+    .hierarchy {
+      display:flex; flex-wrap:wrap; gap:.3rem;
+      align-items:center; font-size:.83rem; color:var(--text-muted);
+    }
+    .hierarchy .sep { color:var(--border); }
+
+    .nztcs-box {
+      margin-top:1.1rem; padding:.9rem 1.1rem;
+      border-radius:8px; border:1.5px solid;
+    }
+    .nztcs-box.cat-threatened              { background:#3d1010; border-color:#7a2020; color:#e07070; }
+    .nztcs-box.cat-at-risk                 { background:#2e2000; border-color:#6b4800; color:#f0a830; }
+    .nztcs-box.cat-not-threatened          { background:#0f2e14; border-color:#2e6035; color:#7fc97a; }
+    .nztcs-box.cat-data-deficient          { background:var(--surface2); border-color:var(--border); color:var(--text-muted); }
+    .nztcs-box.cat-extinct                 { background:#1a1a1a; border-color:#444; color:#ccc; }
+    .nztcs-box.cat-introduced-and-naturalised { background:#1e1030; border-color:#5a3090; color:#b88af0; }
+    .nztcs-box.cat-non-resident-native     { background:#0a1e30; border-color:#1a4060; color:#70a8e0; }
+    .nztcs-box.cat-taxonomically-indistinct{ background:var(--surface2); border-color:var(--border); color:var(--text-muted); }
+    .nztcs-box.cat-not-assessed            { background:var(--surface2); border-color:var(--border); color:var(--text-muted); }
+
+    .nztcs-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:.3rem; }
+    .nztcs-label  { font-size:.7rem; font-weight:700; text-transform:uppercase; letter-spacing:.08em; opacity:.7; }
+    .nztcs-year   { font-size:.75rem; opacity:.7; }
+    .nztcs-status { font-size:1.05rem; font-weight:700; }
+    .nztcs-cat    { font-size:.82rem; opacity:.8; }
+
+    .nzor-link {
+      display:inline-block; margin-top:1rem;
+      font-size:.8rem; color:var(--accent);
+      text-decoration:none; border-bottom:1px solid var(--border);
+    }
+    .nzor-link:hover { border-color:var(--accent); }
+
+    .hint {
+      text-align:center; color:var(--text-muted);
+      font-size:.88rem; margin-top:2.5rem;
+    }
+
+    /* ── Nerd notes ─────────────────────────────────────── */
+    .nerd-notes {
+      margin-top:1.5rem;
+      border:1px solid var(--border);
+      border-radius:8px;
+      background:var(--surface);
+    }
+    .nerd-notes summary {
+      cursor:pointer;
+      padding:.6rem 1rem;
+      font-size:.82rem;
+      color:var(--text-muted);
+      list-style:none;
+      user-select:none;
+    }
+    .nerd-notes summary::-webkit-details-marker { display:none; }
+    .nerd-notes summary::before {
+      content:'▶ ';
+      font-size:.65rem;
+      vertical-align:middle;
+    }
+    .nerd-notes[open] summary::before { content:'▼ '; }
+    .nerd-notes[open] summary { color:var(--text); border-bottom:1px solid var(--border); }
+    .nerd-body {
+      padding:1.25rem 1.5rem;
+      font-size:.85rem;
+      color:var(--text-muted);
+      line-height:1.6;
+    }
+    .nerd-body h3 {
+      font-size:.9rem;
+      font-weight:700;
+      color:var(--accent);
+      margin:1.2rem 0 .4rem;
+    }
+    .nerd-body h3:first-child { margin-top:0; }
+    .nerd-body p { margin-bottom:.6rem; }
+    .nerd-table {
+      width:100%;
+      border-collapse:collapse;
+      margin:.5rem 0 .8rem;
+      font-size:.82rem;
+    }
+    .nerd-table th {
+      text-align:left;
+      border-bottom:2px solid var(--border);
+      padding:.3rem .5rem;
+      color:var(--text);
+    }
+    .nerd-table td {
+      padding:.35rem .5rem;
+      border-bottom:1px solid var(--border);
+      vertical-align:top;
+    }
+
+    /* ── Sensitive name toast ───────────────────────────── */
+    #sensitive-toast {
+      display:none; position:fixed; top:6rem; left:50%; transform:translateX(-50%);
+      background:#b34a2a; color:#fff; padding:.75rem 1.25rem; border-radius:.5rem;
+      font-size:.9rem; max-width:90vw; text-align:center; z-index:9999;
+      box-shadow:0 4px 16px rgba(0,0,0,.25); pointer-events:none;
+    }
+    #sensitive-toast.show { display:block; animation:fadeInOut 4s forwards; }
+    @keyframes fadeInOut {
+      0%   { opacity:0; }
+      10%  { opacity:1; }
+      75%  { opacity:1; }
+      100% { opacity:0; }
+    }
+
+    /* ── Batch ──────────────────────────────────────────── */
+
+    .drop-zone {
+      border:2px dashed var(--border); border-radius:10px;
+      padding:2rem 1.5rem; text-align:center;
+      background:var(--surface); cursor:pointer;
+      transition:border-color .15s, background .15s;
+      margin-bottom:1rem;
+    }
+    .drop-zone.drag-over { border-color:var(--accent); background:var(--surface2); }
+    .drop-zone p { color:var(--text-muted); font-size:.9rem; margin-bottom:.5rem; }
+    .drop-zone strong { color:var(--text); }
+
+    #batch-paste {
+      width:100%; min-height:100px; padding:.75rem 1rem;
+      font-size:.88rem; border:1.5px solid var(--border); border-radius:8px;
+      background:var(--surface); color:var(--text);
+      resize:vertical; font-family:inherit; outline:none;
+      transition:border-color .15s;
+    }
+    #batch-paste:focus { border-color:var(--accent); }
+
+    .batch-actions {
+      display:flex; gap:.75rem; align-items:center; margin-top:.75rem; flex-wrap:wrap;
+    }
+    .btn-primary {
+      padding:.55rem 1.3rem; background:var(--accent); color:#0d1f0f;
+      border:none; border-radius:8px; cursor:pointer; font-size:.9rem; font-weight:600;
+      transition:opacity .15s;
+    }
+    .btn-primary:hover { opacity:.85; }
+    .btn-primary:disabled { opacity:.4; cursor:default; }
+    .btn-secondary {
+      padding:.55rem 1.1rem; background:var(--surface2); color:var(--text-muted);
+      border:1.5px solid var(--border); border-radius:8px; cursor:pointer; font-size:.9rem;
+      transition:border-color .15s, color .15s;
+    }
+    .btn-secondary:hover { border-color:var(--accent); color:var(--text); }
+    .batch-count { font-size:.83rem; color:var(--text-muted); }
+
+    /* ── Results table ──────────────────────────────────── */
+    #batch-results { margin-top:1.25rem; overflow-x:auto; }
+    .results-table {
+      width:100%; border-collapse:collapse; font-size:.83rem;
+    }
+    .results-table th {
+      text-align:left; padding:.45rem .75rem;
+      background:var(--surface2); color:var(--text); font-weight:600;
+      font-size:.72rem; text-transform:uppercase; letter-spacing:.06em;
+      white-space:nowrap; border-bottom:2px solid var(--border);
+    }
+    .results-table th.sortable { cursor:pointer; user-select:none; }
+    .results-table th.sortable:hover { color:var(--accent); }
+    .results-table th.sort-asc::after  { content:' ▲'; opacity:.8; }
+    .results-table th.sort-desc::after { content:' ▼'; opacity:.8; }
+    .results-table td {
+      padding:.45rem .75rem; border-bottom:1px solid var(--border);
+      vertical-align:middle;
+    }
+    .results-table tr:last-child td { border-bottom:none; }
+    .results-table tr:hover td { background:var(--surface2); }
+    .results-table .unmatched td { color:var(--text-muted); opacity:.5; font-style:italic; }
+    .results-table .ambig-row td { background:#2a2510; }
+    .ambig-inline { color:#f0c060; font-size:.85rem; }
+    .ambig-picks { display:flex; flex-wrap:wrap; gap:.4rem; margin-top:.4rem; }
+    .ambig-pick-btn { background:var(--surface); border:1px solid #6b4800; color:#f0a830; border-radius:.3rem; padding:.25rem .6rem; font-size:.82rem; cursor:pointer; font-style:italic; }
+    .ambig-pick-btn:hover { background:#2e2000; }
+    .ambig-badge  { background:#2e2000; color:#f0a830; border:1px solid #6b4800; }
+    .ambig-pill   { background:#2e2000; color:#f0a830; }
+    .ambig-list   { display:flex; flex-direction:column; gap:.5rem; margin-top:.6rem; }
+    .ambig-card   { background:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:.6rem .75rem; }
+    .ambig-sci    { font-weight:500; margin-bottom:.15rem; }
+    .ambig-names     { font-size:.8rem; color:var(--text-muted); margin-bottom:.25rem; }
+    .subsp-best      { outline:2px solid currentColor; outline-offset:-2px; }
+    .subsp-best-tag  { font-size:.8rem; font-weight:700; letter-spacing:.02em; opacity:.9; margin-bottom:.4rem; }
+    .subsp-best-note { font-size:.75rem; color:var(--text-muted); margin-left:.3rem; }
+    .nvs-tag { background:#0a1e2e; color:#70a8e0; border:1px solid #1a4060; }
+    .results-table em { font-style:italic; }
+    .results-table .cb-col { width:28px; text-align:center; }
+    .batch-cb, #batch-sel-all { cursor:pointer; width:15px; height:15px; }
+    #batch-looklike, #batch-whatdat {
+      padding:.55rem 1.1rem; background:var(--accent); color:#0d1f0f;
+      border:none; border-radius:8px; cursor:pointer; font-size:.9rem; font-weight:600;
+      transition:opacity .15s;
+    }
+    #batch-looklike:hover, #batch-whatdat:hover { opacity:.85; }
+  </style>
+</head>
+<body>
+
+<div id="sensitive-toast"></div>
+
+<header>
+  <div class="header-logo"><img src="../logo.png" alt=""></div>
+  <div class="header-meta">
+    <h1>but is it threatened? <span style="font-size:0.65rem;font-weight:400;opacity:0.4;letter-spacing:0.05em;">v1.60-beta</span></h1>
+    <p>NZOR names · NZTCS status · by <a href="https://www.rutherfordecology.co.nz/" target="_blank" rel="noopener" class="re-link">Rutherford ecology</a></p>
+  </div>
+  <a class="bmc-btn" href="https://buymeacoffee.com/rutherfordecology" target="_blank" rel="noopener">☕ Buy me a coffee</a>
+  <div id="dot" class="status-dot loading" title="Loading NZTCS data…"></div>
+</header>
+
+<main>
+  <div id="search-panel" style="display:none">
+    <div class="search-wrap">
+      <input id="search" type="text"
+        placeholder="Search by name — scientific, common, or Māori…"
+        autocomplete="off" spellcheck="false" aria-label="Search species">
+      <button id="clear-btn" title="Clear" aria-label="Clear">✕</button>
+      <div id="suggestions" hidden role="listbox"></div>
+    </div>
+    <div id="detail" hidden></div>
+  </div>
+
+  <div id="batch-panel">
+    <div class="drop-zone" id="drop-zone">
+      <p><strong>Drag &amp; drop a file here</strong></p>
+      <p>CSV, TXT, PDF, Word (.docx), or Excel (.xlsx) — scientific names extracted automatically</p>
+    </div>
+    <textarea id="batch-paste" placeholder="Paste species names (one per line, comma-separated, or any block of text — scientific names will be extracted automatically)…"></textarea>
+    <div class="batch-actions">
+      <button class="btn-primary" id="batch-run" onclick="runBatch()">Match names</button>
+      <button class="btn-secondary" id="batch-clear" onclick="clearBatch()" style="display:none">Clear</button>
+      <button class="btn-secondary" id="batch-hide-unmatched" onclick="toggleHideUnmatched()" style="display:none">Hide unmatched</button>
+      <button class="btn-secondary" id="batch-dl" onclick="downloadBatchCSV()" disabled>Download CSV</button>
+      <button class="btn-secondary" id="batch-dl-nvs" onclick="downloadNVSTemplate()" disabled>Download template</button>
+      <button id="batch-looklike" onclick="openInLooklike()" style="display:none">📷 LookLike?</button>
+      <button id="batch-whatdat" onclick="openInWhatDat()" style="display:none">🎯 Quiz</button>
+      <span class="batch-count" id="batch-count"></span>
+    </div>
+    <div id="batch-results"></div>
+
+    <details class="nerd-notes" id="nerd-notes">
+      <summary>Nerd notes</summary>
+      <div class="nerd-body">
+
+        <h3>Where the data comes from</h3>
+        <table class="nerd-table">
+          <thead><tr><th>Source</th><th>Size</th><th>Used for</th></tr></thead>
+          <tbody>
+            <tr><td><strong>NZOR</strong> (NZ Organisms Register)</td><td>~165,000 names</td><td>The main name list — scientific names, old names, common names, Māori names</td></tr>
+            <tr><td><strong>NZTCS</strong> (NZ Threat Classification System)</td><td>~43,000 entries</td><td>Conservation status — the most important part of the tool</td></tr>
+            <tr><td><strong>NPPA</strong> (National Pest Plant Accord)</td><td>166 species</td><td>Pest plant flag only</td></tr>
+          </tbody>
+        </table>
+
+        <h3>Building the name list</h3>
+        <p><strong>Step 1 — Load everything from NZOR.</strong> NZOR is used first because it has the most complete collection of names — scientific names, synonyms, old combinations, and vernacular names with their links to scientific names.</p>
+        <p><strong>Step 2 — Add common and Māori names from NZTCS, and let NZTCS win any disputes.</strong> Some Māori and common names appear in NZTCS but not in NZOR, so these are added to fill gaps. Where NZOR and NZTCS disagree about which species a name belongs to, NZTCS wins. For example, NZOR records "tōtara" as a name for <em>Leucopogon fraseri</em> (pātōtara), while NZTCS correctly links it to <em>Podocarpus totara</em>. NZTCS is treated as more authoritative for New Zealand species names, so the NZOR entry is replaced.</p>
+
+        <h3>How a name is matched when you search</h3>
+        <p><strong>Step 1 — Exact match.</strong> The search term is looked up in the name list exactly as typed (lowercased, macrons kept). This covers most searches — <em>Rattus rattus</em>, kererū, <em>Clianthus puniceus</em>.</p>
+        <p><strong>Step 2 — Match with macrons stripped.</strong> If nothing is found, the search tries again ignoring macrons. This means typing "kereru" still finds "kererū", and "totara" still finds "tōtara". Without this step, anyone without a macron keyboard would get no results for many NZ names.</p>
+        <p>If neither step finds anything, the name is unmatched.</p>
+
+        <h3>How the threat status is found</h3>
+        <p>Once a species has been identified, the tool looks for its NZTCS status in this order:</p>
+        <p><strong>Step 1 — Direct match.</strong> The species name is looked up in NZTCS exactly. This works for the majority of species — <em>Rattus rattus</em>, <em>Nestor notabilis</em>, <em>Tradescantia fluminensis</em>.</p>
+        <p><strong>Step 2 — Strip the author name and try again.</strong> NZTCS entries often include the name of the person who first described the subspecies. For example, the Stewart Island fernbird is stored as <em>Bowdleria punctata stewartiana</em> Oliver, 1930 — not just <em>Bowdleria punctata stewartiana</em>. If step 1 fails, the tool strips the author off and tries again. Without this step, most subspecies would get no status at all. This match is only flagged with a <strong>*</strong> when two or more NZTCS entries share the same name after the author is removed — meaning the tool cannot be certain it picked the right one. In practice this is rare.</p>
+        <p><strong>Step 3 — Show all subspecies and highlight the most threatened.</strong> If the name still cannot be matched — for example because someone searched <em>Megadyptes antipodes</em> (yellow-eyed penguin), which NZTCS only lists at the subspecies level — the tool finds all subspecies of that species listed in NZTCS, displays them all, and highlights the most threatened one. The full list is shown so the user can see the complete picture and judge for themselves.</p>
+
+        <h3>Names shared by more than one species</h3>
+        <p>When loading, the tool checks every common name and Māori name to see how many different species use it. If two or more species share a name, it is flagged as ambiguous. This is common in NZ — <em>tītī</em> refers to several petrel and shearwater species, <em>puka</em> is used for both <em>Griselinia lucida</em> and <em>Meryta sinclairii</em>, and <em>mingimingi</em> applies to several shrub species across <em>Coprosma</em>, <em>Leucopogon</em>, and others. When a name is ambiguous, all the species that share it are listed rather than guessing.</p>
+
+        <h3>NVS 6-letter codes</h3>
+        <p>The tool also accepts NVS (National Vegetation Survey) codes — the 6-letter shorthand used by ecologists in the field, typically the first 3 letters of the genus and first 3 of the species (e.g. <strong>PODTOT</strong> for <em>Podocarpus totara</em>, <strong>LEPSCO</strong> for <em>Leptospermum scoparium</em>). There are 8,259 codes loaded from the NVS Databank. Old or synonym codes are recognised and redirected to the current preferred name. NVS codes work in both the search box and batch lookup.</p>
+
+        <h3>Remaining limitations</h3>
+        <p><strong>Native/exotic is only available when online.</strong> Whether a species is native or exotic comes from the NZOR website in real time. In batch mode this is not fetched, so most batch results show "Unknown" for origin. Species flagged as introduced or naturalised in NZTCS, or listed on the NPPA, will still show as Exotic.</p>
+        <p><strong>The most-threatened subspecies highlight is a rule of thumb.</strong> Highlighting the most threatened subspecies as the most relevant one is a reasonable default but still a guess. A user in Southland searching <em>Petroica australis</em> probably cares about the South Island robin, not whichever subspecies happens to be most threatened nationally. There is currently no way to refine this without knowing the user's location.</p>
+
+      </div>
+    </details>
+  </div>
+</main>
+
+<script src="../nzor-source.js"></script>
+<script>
+const NZOR = 'https://data.nzor.org.nz/v1';
+
+let threatRank     = () => 0; // hoisted — assigned in Promise.all once data loads
+let nztcs          = null;   // nztcs_slim.json: lowercase-name → {s,c,y,...}
+let nztcsStripped      = null;   // author-stripped keys: "genus species subsp" → entry
+let nztcsStrippedAmbig = null;   // set of stripped keys where 2+ NZTCS entries map to the same stripped name
+let nztcsSubspecies  = null;   // "genus species" → [all subspecies sorted most→least threatened]
+let nppa           = null;   // nppa.json: Set of lowercase scientific names
+let nzorIndex      = [];     // sorted search index built by NzorSource (../nzor-source.js)
+let ambiguousNames = null;   // vernacular key → [{sci, id?}] when 2+ species share the name
+let nvsData        = null;   // nvs.json: lowercase 6-letter code → {sci, pref?, prefSci?}
+let activeIdx = -1;
+let allItems  = [];
+let debounce;
+
+// ── Normalisation ────────────────────────────────────────────────────────────
+function norm(s) {
+  return s ? s.toLowerCase().replace(/\s+/g, ' ').trim() : '';
+}
+function normDia(s) {
+  return norm(s).normalize('NFD').replace(/[̀-ͯ]/g, '');
+}
+function capFirst(s) {
+  return s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
+}
+function catClass(cat) {
+  return cat ? 'cat-' + cat.toLowerCase().replace(/[^a-z]+/g, '-').replace(/-$/,'') : '';
+}
+function badgeHtml(entry) {
+  if (!entry) return '';
+  const e = entry._subspeciesList ? entry.best : entry;
+  if (!e?.s) return '';
+  return `<span class="badge ${catClass(e.c)}">${escHtml(e.s || e.c)}</span>`;
+}
+function makeSubspEntry(list) {
+  const statuses = new Set(list.map(s => threatRank(s.s)));
+  const ambig = statuses.size > 1; // subspecies differ in threat status
+  return { _subspeciesList: true, _subspeciesAmbig: ambig, list, best: list[0] };
+}
+
+function nztcsFor(...names) {
+  if (!nztcs) return null;
+  for (const n of names) {
+    if (!n) continue;
+    const k = norm(n);
+    if (nztcs[k]) return nztcs[k];
+    if (nztcsStripped?.[k]) return { ...nztcsStripped[k], _uncertain: nztcsStrippedAmbig.has(k) };
+    if (nztcsSubspecies?.[k]?.length) return makeSubspEntry(nztcsSubspecies[k]);
+    // For subspecies-level names (3+ words), also try genus+species fallback
+    const parts = k.split(' ');
+    if (parts.length >= 3) {
+      const sp = parts[0] + ' ' + parts[1];
+      if (nztcsStripped?.[sp]) return { ...nztcsStripped[sp], _uncertain: nztcsStrippedAmbig.has(sp) };
+      if (nztcsSubspecies?.[sp]?.length) return makeSubspEntry(nztcsSubspecies[sp]);
+    }
+  }
+  return null;
+}
+function isPestPlant(...names) {
+  if (!nppa) return false;
+  for (const n of names) { if (n && nppa.has(norm(n))) return true; }
+  return false;
+}
+function commonNamesFor(sciName) {
+  if (!sciName) return { cn: '', mn: '' };
+  const entry = nztcs?.[norm(sciName)];
+  let cn = entry?.cn || '';
+  let mn = entry?.mn || '';
+  // NZOR fallback: find first vernacular entry linked to this sci name
+  if (!cn) {
+    const ns = norm(sciName);
+    for (const item of nzorIndex) {
+      if (item.cls === 'v' && norm(item.sci || '') === ns) {
+        cn = item.n || capFirst(item.key);
+        break;
+      }
+    }
+  }
+  return { cn, mn };
+}
+
+// ── Load data ────────────────────────────────────────────────────────────────
+// NZOR matching (index + ambiguous-name detection) now lives in the shared
+// ../nzor-source.js, used by both this tool and Occurd's NZ species search —
+// see that file's header comment. Everything NZTCS-specific (threat status,
+// subspecies fallback, pest-plant flags) stays here, since it's not name
+// resolution, it's this tool's own domain logic.
+const dot = document.getElementById('dot');
+const weekStamp = Math.floor(Date.now() / 6048e5);
+
+Promise.all([
+  fetch(`../nztcs_slim.json?v=${weekStamp}`).then(r => r.json()),
+  fetch(`../nppa.json?v=${weekStamp}`).then(r => r.json()),
+  fetch(`../nvs.json?v=${weekStamp}`).then(r => r.json()),
+]).then(async ([nztcsData, nppaData, nvsRaw]) => {
+  nvsData = nvsRaw;
+  nztcs = nztcsData;
+  nppa  = new Set(nppaData);
+  // Build species-level fallback: "genus species" → most threatened subspecies entry
+  threatRank = s => {
+    const t = (s || '').toLowerCase();
+    if (t.includes('nationally critical'))   return 9;
+    if (t.includes('nationally endangered')) return 8;
+    if (t.includes('nationally vulnerable')) return 7;
+    if (t.includes('declining'))             return 6;
+    if (t.includes('recovering'))            return 5;
+    if (t.includes('relict'))                return 4;
+    if (t.includes('naturally uncommon'))    return 3;
+    if (t.includes('not threatened'))        return 2;
+    if (t.includes('extinct'))               return 1;
+    return 0;
+  };
+  // Build author-stripped map: "genus species subsp" (no author) → entry
+  // NZTCS keys use two authority formats: "(author, year)" and bare "author, year"
+  // or "author & author, year" — strip both.
+  nztcsStripped = {};
+  nztcsStrippedAmbig = new Set();
+  for (const [key, val] of Object.entries(nztcsData)) {
+    const stripped = key
+      .replace(/\s*\([^)]+\)\s*$/, '')                          // strip trailing (author, year)
+      .replace(/\s+[a-z]+(?:\s+&\s+[a-z]+)?,\s*\d{4}\s*$/, '') // strip author, year  or  author & author, year
+      .trim();
+    if (stripped !== key) {
+      if (nztcsStripped[stripped]) {
+        nztcsStrippedAmbig.add(stripped); // 2+ entries strip to the same name — flag as uncertain
+      } else {
+        nztcsStripped[stripped] = val;
+      }
+    }
+  }
+  // Build subspecies list map: "genus species" → [all subspecies sorted most→least threatened]
+  nztcsSubspecies = {};
+  for (const [key, val] of Object.entries(nztcsData)) {
+    const stripped = key
+      .replace(/\s*\([^)]+\)\s*$/, '')
+      .replace(/\s+[a-z]+(?:\s+&\s+[a-z]+)?,\s*\d{4}\s*$/, '')
+      .trim();
+    const parts = stripped.split(' ');
+    if (parts.length >= 3) {
+      const sp = parts[0] + ' ' + parts[1];
+      if (!nztcsSubspecies[sp]) nztcsSubspecies[sp] = [];
+      if (!nztcsSubspecies[sp].some(x => x.n === val.n))
+        nztcsSubspecies[sp].push(val);
+    }
+  }
+  for (const sp of Object.keys(nztcsSubspecies)) {
+    nztcsSubspecies[sp].sort((a, b) => threatRank(b.s) - threatRank(a.s));
+  }
+  // NZOR index + ambiguous-name detection (incl. NZTCS common/Māori name
+  // merging) all happens inside the shared module now.
+  const nzor = await window.NzorSource.load({ url: `../nzor_names_v2.json?v=${weekStamp}`, nztcsData });
+  nzorIndex      = nzor.index;
+  ambiguousNames = nzor.ambiguous;
+
+  // Add NVS 6-letter codes to the search index — NVS isn't part of the
+  // shared NZOR module (it's a separate code system), so this tool still
+  // merges it in directly, same as before.
+  if (nvsData) {
+    for (const [k, val] of Object.entries(nvsData)) {
+      const entry = { key: k, kd: k, n: k.toUpperCase(), cls: 'nvs', sci: val.sci };
+      if (val.pref) { entry.nvsPref = val.pref; entry.nvsPrefSci = val.prefSci; }
+      nzorIndex.push(entry);
+    }
+    nzorIndex.sort((a, b) => a.key < b.key ? -1 : 1);
+  }
+  dot.className = 'status-dot';
+  dot.title = `NZOR: ${nzorIndex.length.toLocaleString()} names · NZTCS: ${Object.keys(nztcsData).length.toLocaleString()} entries · NPPA: ${nppa.size} pest plants · NVS: ${Object.keys(nvsData).length.toLocaleString()} codes`;
+}).catch(() => {
+  dot.className = 'status-dot error';
+  dot.title = 'Data failed to load';
+});
+
+// ── Search ───────────────────────────────────────────────────────────────────
+function nzorSearch(q) {
+  if (!nzorIndex.length) return [];
+  if (q.length < 3 && normDia(q) !== 'ti') return [];
+  const qd = normDia(q);
+  const prefix = [], contains = [];
+  for (const item of nzorIndex) {
+    if (item.kd.startsWith(qd)) {
+      prefix.push(item);
+    } else if (contains.length < 10 && item.kd.includes(qd)) {
+      contains.push(item);
+    }
+  }
+  return [...prefix, ...contains];
+}
+
+// ── UI ───────────────────────────────────────────────────────────────────────
+const input    = document.getElementById('search');
+const sugBox   = document.getElementById('suggestions');
+const clearBtn = document.getElementById('clear-btn');
+const detail   = document.getElementById('detail');
+const hint     = document.getElementById('hint');
+
+input.addEventListener('input', () => {
+  clearBtn.style.display = input.value ? 'block' : 'none';
+  clearTimeout(debounce);
+  const q = input.value.trim();
+  if (q.length < 3) { hideSug(); return; }
+  if (q.toLowerCase().includes('niggerhead')) showSensitiveToast("It's 2026 folks, surely we can do better and use a different name for this one.");
+  debounce = setTimeout(() => renderDropdown(nzorSearch(q)), 250);
+});
+input.addEventListener('keydown', onKey);
+clearBtn.addEventListener('click', () => {
+  input.value = '';
+  clearBtn.style.display = 'none';
+  hideSug();
+  detail.hidden = true;
+  hint.hidden = false;
+  input.focus();
+});
+document.addEventListener('click', e => {
+  if (!e.target.closest('.search-wrap')) hideSug();
+});
+
+// ── Render dropdown ───────────────────────────────────────────────────────────
+let _toastTimer;
+function showSensitiveToast(msg) {
+  const t = document.getElementById('sensitive-toast');
+  t.textContent = msg;
+  t.classList.remove('show');
+  clearTimeout(_toastTimer);
+  void t.offsetWidth; // force reflow to restart animation
+  t.classList.add('show');
+  _toastTimer = setTimeout(() => t.classList.remove('show'), 4000);
+}
+
+function renderDropdown(results) {
+  if (!results.length) {
+    sugBox.innerHTML = `<div class="msg">No results found</div>`;
+    sugBox.hidden = false;
+    allItems = [];
+    return;
+  }
+  allItems = [];
+  let html = `<div class="section-sep">Names</div>`;
+
+  for (const item of results) {
+    const isVernac = item.cls === 'v';
+    const isSyn    = !!item.acc;
+    const isPref   = !isVernac && !isSyn;
+
+    // NZTCS badge: for vernacular use linked sci name, for synonym use accepted name
+    const isNvs   = item.cls === 'nvs';
+    const isAmbig = item.cls === 'v' && !!ambiguousNames?.[item.key];
+    const nvsLookupSci = isNvs ? (item.nvsPrefSci || item.sci) : null;
+    const entry   = (isAmbig || isNvs) ? (isNvs ? nztcsFor(nvsLookupSci) : null) : nztcsFor(item.sci, item.acc, item.key);
+    const isPest  = isNvs ? false : isAmbig ? false : isPestPlant(item.sci, item.acc, item.key);
+
+    // Name display
+    const dispName = item.n || capFirst(item.key);
+    const nameHtml = isNvs
+      ? `<strong>${escHtml(dispName)}</strong>`
+      : isVernac
+        ? escHtml(dispName)
+        : isPref
+          ? `<strong><em>${escHtml(dispName)}</em></strong>`
+          : `<em>${escHtml(dispName)}</em>`;
+
+    // Secondary tag: linked sci name (vernacular) or accepted name (synonym)
+    const secName  = isNvs ? (item.nvsPrefSci || item.sci) : isVernac ? item.sci : item.acc;
+    const secHtml  = secName ? `<span class="syn-tag">${escHtml(secName)}</span>` : '';
+    const typeTag  = isNvs
+      ? `<span class="rank-tag nvs-tag">NVS${item.nvsPref ? ' → ' + item.nvsPref : ''}</span>`
+      : isVernac ? `<span class="rank-tag">vernacular</span>` : '';
+    // Common name for scientific entries
+    const cnames   = isPref ? commonNamesFor(item.n || capFirst(item.key)) : { cn: '', mn: '' };
+    const cnTag    = cnames.cn ? `<span class="via-tag">${escHtml(cnames.cn)}</span>` : '';
+
+    html += `<div class="suggestion" data-i="${allItems.length}" role="option">
+      <span class="sname">${nameHtml}</span>
+      ${secHtml}${cnTag}${typeTag}
+      ${isPest ? `<span class="badge cat-pest-plant">Pest plant</span>` : ''}
+      ${isAmbig ? `<span class="badge ambig-badge">multiple species</span>` : badgeHtml(entry)}
+    </div>`;
+    allItems.push(item);
+  }
+
+  sugBox.innerHTML = html;
+  sugBox.querySelectorAll('.suggestion').forEach(el => {
+    el.addEventListener('click', () => pick(+el.dataset.i));
+  });
+  sugBox.hidden = false;
+  activeIdx = -1;
+}
+
+function hideSug() {
+  sugBox.hidden = true;
+  activeIdx = -1;
+  allItems = [];
+}
+
+// ── Keyboard nav ──────────────────────────────────────────────────────────────
+function onKey(e) {
+  const items = sugBox.querySelectorAll('.suggestion');
+  if (!items.length) return;
+  if (e.key === 'ArrowDown') {
+    e.preventDefault(); setActive(Math.min(activeIdx + 1, items.length - 1), items);
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault(); setActive(Math.max(activeIdx - 1, 0), items);
+  } else if (e.key === 'Enter' && activeIdx >= 0) {
+    e.preventDefault(); pick(activeIdx);
+  } else if (e.key === 'Escape') { hideSug(); }
+}
+function setActive(i, items) {
+  items.forEach(el => el.classList.remove('active'));
+  activeIdx = i;
+  items[i].classList.add('active');
+  items[i].scrollIntoView({ block: 'nearest' });
+}
+
+// ── Select ────────────────────────────────────────────────────────────────────
+async function pick(i) {
+  const item = allItems[i];
+  if (!item) return;
+  hideSug();
+  hint.hidden = true;
+
+  // Ambiguous vernacular — don't fetch NZOR, just list all possibilities
+  if (item.cls === 'v' && ambiguousNames?.[item.key]) {
+    showAmbiguousDetail(item);
+    return;
+  }
+
+  // NVS code — resolve to the scientific name's detail
+  if (item.cls === 'nvs') {
+    const resolvedSci = item.nvsPrefSci || item.sci;
+    const resolvedKey = norm(resolvedSci);
+    let sciItem = null;
+    let lo = 0, hi = nzorIndex.length - 1;
+    while (lo <= hi) {
+      const mid = (lo + hi) >> 1;
+      if (nzorIndex[mid].key === resolvedKey)    { sciItem = nzorIndex[mid]; break; }
+      else if (nzorIndex[mid].key < resolvedKey)   lo = mid + 1;
+      else                                          hi = mid - 1;
+    }
+    detail.innerHTML = `<div class="spinner"><div class="spin-icon"></div>Loading…</div>`;
+    detail.hidden = false;
+    try {
+      const idToFetch = sciItem?.id || (sciItem?.cls === 'v' ? sciItem?.sciId : null);
+      if (idToFetch) {
+        const nameObj = await fetchId(idToFetch);
+        if (nameObj) { showDetail(nameObj); return; }
+      }
+    } catch {}
+    showLocalDetail(sciItem || { key: resolvedKey, n: resolvedSci });
+    return;
+  }
+
+  detail.innerHTML = `<div class="spinner"><div class="spin-icon"></div>Loading…</div>`;
+  detail.hidden = false;
+
+  const fetchId = async (id) => {
+    const r = await fetch(`${NZOR}/names/${id}`, { headers: { Accept: 'application/json' } });
+    const d = await r.json();
+    return d.names?.[0] ?? null;
+  };
+
+  try {
+    if (item.cls === 'v' && item.sciId) {
+      // Vernacular — show the linked scientific name's detail
+      const sciName = await fetchId(item.sciId);
+      if (sciName) { showDetail(sciName, item.n || capFirst(item.key)); return; }
+    }
+    if (item.id) {
+      const nameObj = await fetchId(item.id);
+      if (nameObj) { showDetail(nameObj); return; }
+    }
+  } catch {}
+
+  // Fallback: offline detail from local data
+  showLocalDetail(item);
+}
+
+// ── Detail — NZOR result ──────────────────────────────────────────────────────
+function showDetail(n, vernacularName) {
+  const isSyn  = n.acceptedName?.nameId && n.nameId !== n.acceptedName.nameId;
+  const entry  = nztcsFor(n.partialName, n.acceptedName?.partialName);
+  const isPest = isPestPlant(n.partialName, n.acceptedName?.partialName);
+
+  const s = (n.status || '').toLowerCase();
+  const statusCls = s.includes('current') ? 'status-current'
+    : s.includes('synonym') ? 'status-synonym'
+    : s.includes('misapplied') ? 'status-misapplied' : '';
+
+  const nzBio  = (n.biostatuses || []).find(b => [].concat(b.geoRegion ?? []).includes('New Zealand'));
+  const origin = nzBio ? ([].concat(nzBio.origin ?? [])[0] ?? null) : null;
+  const originCls = origin === 'Endemic' ? 'status-current'
+    : origin === 'Native' ? 'status-current'
+    : origin === 'Exotic' ? 'status-synonym' : '';
+
+  const hier = (n.classificationHierarchy || [])
+    .filter(h => h.rank !== 'none' && h.partialName !== 'ROOT')
+    .map(h => `<span>${escHtml(h.partialName)}<span style="opacity:.45;font-size:.72em;margin-left:.2em">${h.rank}</span></span>`)
+    .join('<span class="sep"> › </span>');
+
+  const sciForNames  = isSyn ? (n.acceptedName?.partialName || n.partialName) : n.partialName;
+  const { cn, mn }   = commonNamesFor(sciForNames);
+
+  const acceptedBlock = isSyn ? `
+    <div class="accepted-row">Synonym of <strong>${escHtml(n.acceptedName?.partialName || '')}</strong></div>` : '';
+
+  const vernacRow = vernacularName && !vernacularName.toLowerCase().includes('niggerhead')
+    ? `<div class="accepted-row" style="border-color:#6ab0d4">Also known as <strong>${escHtml(vernacularName)}</strong></div>` : '';
+
+  detail.innerHTML = `
+    <div class="detail-name">${n.formattedPartialName || escHtml(n.partialName)}</div>
+    ${n.authors ? `<div class="detail-author">${escHtml(n.authors)}</div>` : ''}
+    ${cn || mn ? `<div class="detail-author">${[cn, mn].filter(Boolean).map(escHtml).join(' · ')}</div>` : ''}
+    ${origin ? `<div class="detail-meta"><span class="pill ${originCls}">${escHtml(origin)}</span></div>` : ''}
+    ${acceptedBlock}
+    ${vernacRow}
+    ${isPest ? `<div class="nztcs-box cat-pest-plant" style="margin-top:.75rem"><div class="nztcs-header"><span class="nztcs-label">NPPA</span></div><div class="nztcs-status">Pest plant</div><div class="nztcs-cat">National Pest Plant Accord — banned from sale, propagation &amp; distribution</div></div>` : ''}
+    ${nztcsBlock(entry)}
+    <a class="nzor-link" href="https://www.nzor.org.nz/names/${n.nameId}" target="_blank" rel="noopener">
+      View on NZOR ↗
+    </a>`;
+  detail.hidden = false;
+}
+
+// ── Detail — offline fallback from NzorSource index ────────────────────────────
+function showLocalDetail(item) {
+  const isVernac = item.cls === 'v';
+  const isSyn    = !!item.acc;
+  const dispName = item.n || capFirst(item.key);
+  const entry    = nztcsFor(item.sci, item.acc, item.key);
+  const isPest   = isPestPlant(item.sci, item.acc, item.key);
+  const { cn, mn } = commonNamesFor(item.sci || item.acc || (item.n || capFirst(item.key)));
+
+  const secBlock = isVernac && item.sci
+    ? `<div class="accepted-row" style="border-color:#6ab0d4">Vernacular name for <strong>${escHtml(item.sci)}</strong></div>`
+    : isSyn
+      ? `<div class="accepted-row">Synonym of <strong>${escHtml(item.acc)}</strong></div>`
+      : '';
+
+  detail.innerHTML = `
+    <div class="detail-name" style="${isVernac ? 'font-style:normal' : ''}">${isVernac ? escHtml(dispName) : `<em>${escHtml(dispName)}</em>`}</div>
+    ${cn || mn ? `<div class="detail-author">${[cn, mn].filter(Boolean).map(escHtml).join(' · ')}</div>` : ''}
+    <div class="detail-meta">
+      ${isVernac ? '<span class="pill">Vernacular name</span>' : ''}
+      ${isSyn ? '<span class="pill status-synonym">Synonym</span>' : ''}
+    </div>
+    ${secBlock}
+    ${isPest ? `<div class="nztcs-box cat-pest-plant" style="margin-top:.75rem"><div class="nztcs-header"><span class="nztcs-label">NPPA</span></div><div class="nztcs-status">Pest plant</div><div class="nztcs-cat">National Pest Plant Accord — banned from sale, propagation &amp; distribution</div></div>` : ''}
+    ${nztcsBlock(entry)}
+    ${item.id ? `<a class="nzor-link" href="https://www.nzor.org.nz/names/${item.id}" target="_blank" rel="noopener">View on NZOR ↗</a>` : ''}`;
+  detail.hidden = false;
+}
+
+// ── Ambiguous vernacular detail ───────────────────────────────────────────────
+function showAmbiguousDetail(item) {
+  const dispName = item.n || capFirst(item.key);
+  const candidates = ambiguousNames[item.key] || [];
+  const cards = candidates.map(c => {
+    const entry  = nztcsFor(c.sci);
+    const isPest = isPestPlant(c.sci);
+    const sciEntry = nztcs?.[norm(c.sci)];
+    const cn = sciEntry?.cn || '';
+    const mn = sciEntry?.mn || '';
+    return `<div class="ambig-card">
+      <div class="ambig-sci"><em>${escHtml(c.sci)}</em></div>
+      ${cn || mn ? `<div class="ambig-names">${[cn, mn].filter(Boolean).map(escHtml).join(' · ')}</div>` : ''}
+      <div style="margin-top:.3rem">
+        ${isPest ? `<span class="badge cat-pest-plant">Pest plant</span> ` : ''}
+        ${badgeHtml(entry)}
+      </div>
+    </div>`;
+  }).join('');
+  detail.innerHTML = `
+    <div class="detail-name">${escHtml(dispName)}</div>
+    <div class="detail-meta">
+      <span class="pill">Vernacular name</span>
+      <span class="pill ambig-pill">multiple species</span>
+    </div>
+    <div class="dl-title" style="margin-top:1rem">This name is shared by multiple species</div>
+    <div class="ambig-list">${cards}</div>`;
+  detail.hidden = false;
+}
+
+// ── NZTCS detail block ────────────────────────────────────────────────────────
+function nztcsBlock(entry) {
+  if (!entry) {
+    return `<div class="dl-title">NZ Threat Classification</div>
+            <div style="font-size:.85rem;color:#aaa;padding:.4rem 0">Not listed in NZTCS</div>`;
+  }
+  // Subspecies list fallback — show all subspecies, highlight most threatened
+  if (entry._subspeciesList) {
+    const rows = entry.list.map((sub, i) => {
+      const cls = catClass(sub.c);
+      const isBest = i === 0;
+      return `<div class="nztcs-box ${cls} ${isBest ? 'subsp-best' : ''}" style="margin-bottom:.4rem">
+        ${isBest ? `<div class="subsp-best-tag">★ Most threatened subspecies</div>` : ''}
+        <div class="nztcs-header">
+          <span class="nztcs-label">NZTCS</span>
+          ${sub.y ? `<span class="nztcs-year">${sub.y}</span>` : ''}
+        </div>
+        <div class="nztcs-status">${escHtml(sub.s)}</div>
+        <div class="nztcs-cat">${escHtml(sub.c || '')}</div>
+        <div style="font-size:.75rem;opacity:.7;margin-top:.2rem"><em>${escHtml(sub.n || '')}</em></div>
+      </div>`;
+    }).join('');
+    return `<div class="dl-title">NZ Threat Classification</div>
+      <div style="font-size:.8rem;color:#888;margin:.3rem 0 .6rem">Not listed at species level — subspecies in NZTCS:</div>
+      ${rows}`;
+  }
+  if (!entry.s) {
+    return `<div class="dl-title">NZ Threat Classification</div>
+            <div style="font-size:.85rem;color:#aaa;padding:.4rem 0">Not listed in NZTCS</div>`;
+  }
+  const cls = catClass(entry.c);
+  const uncertainNote = entry._uncertain
+    ? `<div style="font-size:.75rem;opacity:.7;margin-top:.3rem">* might be wrong</div>` : '';
+  return `<div class="dl-title">NZ Threat Classification</div>
+    <div class="nztcs-box ${cls}">
+      <div class="nztcs-header">
+        <span class="nztcs-label">NZTCS</span>
+        ${entry.y ? `<span class="nztcs-year">${entry.y}</span>` : ''}
+      </div>
+      <div class="nztcs-status">${escHtml(entry.s)}${entry._uncertain ? ' *' : ''}</div>
+      <div class="nztcs-cat">${escHtml(entry.c || '')}</div>
+      ${uncertainNote}
+    </div>`;
+}
+
+// ── Util ──────────────────────────────────────────────────────────────────────
+function escHtml(s) {
+  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+
+// ── Drag & drop ───────────────────────────────────────────────────────────────
+const dropZone = document.getElementById('drop-zone');
+const batchPaste = document.getElementById('batch-paste');
+
+dropZone.addEventListener('click', () => {
+  const inp = document.createElement('input');
+  inp.type = 'file'; inp.accept = '.csv,.txt,.tsv,.pdf,.doc,.docx,.xls,.xlsx';
+  inp.onchange = e => loadFile(e.target.files[0]);
+  inp.click();
+});
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault(); dropZone.classList.remove('drag-over');
+  if (e.dataTransfer.files[0]) loadFile(e.dataTransfer.files[0]);
+});
+
+async function loadFile(file) {
+  const lname = file.name.toLowerCase();
+  if (lname.endsWith('.docx') || file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+    dropZone.querySelector('p').textContent = 'Reading Word document…';
+    try {
+      const JSZip = await loadJSZip();
+      const zip = await JSZip.loadAsync(await file.arrayBuffer());
+      const xmlFile = zip.files['word/document.xml'];
+      if (!xmlFile) throw new Error('No document.xml found inside .docx');
+      const xml = await xmlFile.async('string');
+      const doc = new DOMParser().parseFromString(xml, 'text/xml');
+      const texts = [...doc.querySelectorAll('t')].map(el => el.textContent).join(' ');
+      batchPaste.value = texts;
+    } catch(e) {
+      alert('Could not read .docx: ' + e.message);
+    }
+    dropZone.querySelector('p').textContent = 'Drag & drop a file here';
+    return;
+  }
+  if (lname.endsWith('.doc')) {
+    alert('.doc (old Word format) cannot be read in the browser. Please save as .docx, PDF, or plain text and try again.');
+    return;
+  }
+  if (lname.endsWith('.xlsx') || file.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') {
+    dropZone.querySelector('p').textContent = 'Reading Excel file…';
+    try {
+      const JSZip = await loadJSZip();
+      const zip = await JSZip.loadAsync(await file.arrayBuffer());
+      // Extract shared strings (cell text values are stored here)
+      const ssFile = zip.files['xl/sharedStrings.xml'];
+      let texts = '';
+      if (ssFile) {
+        const xml = await ssFile.async('string');
+        const doc = new DOMParser().parseFromString(xml, 'text/xml');
+        texts = [...doc.querySelectorAll('t')].map(el => el.textContent).join(' ');
+      }
+      // Also pull inline strings from sheet1 in case sharedStrings is absent
+      const sheetFile = zip.files['xl/worksheets/sheet1.xml'];
+      if (sheetFile) {
+        const xml = await sheetFile.async('string');
+        const doc = new DOMParser().parseFromString(xml, 'text/xml');
+        const inline = [...doc.querySelectorAll('is t')].map(el => el.textContent).join(' ');
+        if (inline) texts = texts ? texts + ' ' + inline : inline;
+      }
+      if (!texts) throw new Error('No text content found in spreadsheet.');
+      batchPaste.value = texts;
+    } catch(e) {
+      alert('Could not read .xlsx: ' + e.message);
+    }
+    dropZone.querySelector('p').textContent = 'Drag & drop a file here';
+    return;
+  }
+  if (lname.endsWith('.xls')) {
+    alert('.xls (old Excel format) cannot be read in the browser. Please save as .xlsx or CSV and try again.');
+    return;
+  }
+  if (file.type === 'application/pdf' || lname.endsWith('.pdf')) {
+    dropZone.querySelector('p').textContent = 'Reading PDF…';
+    try {
+      const pdfjsLib = await loadPdfJs();
+      const arrayBuffer = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      const pages = [];
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const content = await page.getTextContent();
+        pages.push(content.items.map(item => item.str).join(' '));
+      }
+      batchPaste.value = pages.join('\n');
+    } catch(e) {
+      alert('Could not read PDF: ' + e.message);
+    }
+    dropZone.querySelector('p').textContent = 'Drag & drop a file here';
+  } else {
+    const reader = new FileReader();
+    reader.onload = e => { batchPaste.value = e.target.result; };
+    reader.readAsText(file);
+  }
+}
+
+let _jsZip = null;
+async function loadJSZip() {
+  if (_jsZip) return _jsZip;
+  if (window.JSZip) { _jsZip = window.JSZip; return _jsZip; }
+  await new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = 'https://unpkg.com/jszip@3.10.1/dist/jszip.min.js';
+    s.onload = resolve; s.onerror = reject;
+    document.head.appendChild(s);
+  });
+  _jsZip = window.JSZip;
+  return _jsZip;
+}
+
+let _pdfJs = null;
+async function loadPdfJs() {
+  if (_pdfJs) return _pdfJs;
+  const mod = await import('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.min.mjs');
+  mod.GlobalWorkerOptions.workerSrc =
+    'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.worker.min.mjs';
+  _pdfJs = mod;
+  return mod;
+}
+
+// ── Batch match ───────────────────────────────────────────────────────────────
+let batchResults = [];
+
+function batchMatch(rawName) {
+  const key = norm(rawName);
+  if (!key) return null;
+  const kd = normDia(key);
+
+  // Binary search for exact key match
+  let lo = 0, hi = nzorIndex.length - 1, item = null;
+  while (lo <= hi) {
+    const mid = (lo + hi) >> 1;
+    if (nzorIndex[mid].key === key)      { item = nzorIndex[mid]; break; }
+    else if (nzorIndex[mid].key < key)   lo = mid + 1;
+    else                                  hi = mid - 1;
+  }
+  // Fallback: diacritic-normalised exact match
+  if (!item) item = nzorIndex.find(x => x.kd === kd) ?? null;
+
+  if (!item) return { input: rawName, matched: false };
+
+  // Ambiguous vernacular — flag with all possibilities
+  if (item.cls === 'v' && ambiguousNames?.[item.key]) {
+    return {
+      input: rawName, matched: true, _ambiguous: true,
+      sci: ambiguousNames[item.key].map(x => x.sci).join(' / '),
+      _options: ambiguousNames[item.key].map(x => x.sci),
+      common: '', maori: '', status: '', category: '', year: '', pest: '', origin: '',
+    };
+  }
+
+  // Resolve to canonical scientific name
+  const sciName = item.cls === 'v' ? item.sci
+    : item.cls === 'nvs' ? (item.nvsPrefSci || item.sci)
+    : item.acc ? item.acc
+    : (item.n || capFirst(item.key));
+
+  const nztcsEntry = nztcsFor(sciName, item.key);
+  const pest       = isPestPlant(sciName, item.key);
+
+  // Subspecies list fallback — use best entry for batch but flag it
+  const eff = nztcsEntry?._subspeciesList ? { ...nztcsEntry.best, _subspeciesBest: true } : nztcsEntry;
+
+  // Common + Māori: prefer NZTCS entry for the canonical sci name.
+  // When only subspecies exist, don't inherit the subspecies's common name —
+  // look up the species-level name from NZOR instead.
+  const sciEntry = sciName ? nztcs?.[norm(sciName)] : null;
+  const { cn: nzorCn, mn: nzorMn } = nztcsEntry?._subspeciesList
+    ? commonNamesFor(sciName)
+    : { cn: '', mn: '' };
+  const common = sciEntry?.cn || nzorCn || (!nztcsEntry?._subspeciesList ? eff?.cn : '') || '';
+  const maori  = sciEntry?.mn || nzorMn || (!nztcsEntry?._subspeciesList ? eff?.mn : '') || '';
+
+  const categoryLower = (eff?.c || '').toLowerCase();
+  const exoticFromNztcs = categoryLower.includes('introduced') || categoryLower.includes('naturalised');
+  const origin = pest || exoticFromNztcs ? 'Exotic' : 'Unknown';
+
+  return {
+    input:    rawName,
+    matched:  true,
+    sci:      sciName || '',
+    common,
+    maori,
+    status:        eff?.s || '',
+    category:      eff?.c || '',
+    year:          eff?.y || '',
+    _subspeciesBest:  eff?._subspeciesBest || false,
+    _subspeciesAmbig: nztcsEntry?._subspeciesAmbig || false,
+    _subspeciesOptions: nztcsEntry?._subspeciesAmbig ? nztcsEntry.list : null,
+    pest:     pest ? 'Yes' : '',
+    origin,
+  };
+}
+
+function extractBinomialsFromText(text) {
+  // Extract potential scientific names (Genus epithet) from a prose block
+  const seen = new Set();
+  const names = [];
+  const re = /\b([A-Z][a-z]{2,})\s+([a-z][a-z\-]{2,})\b/g;
+  let m;
+  while ((m = re.exec(text)) !== null) {
+    const name = m[1] + ' ' + m[2];
+    if (!seen.has(name)) { seen.add(name); names.push(name); }
+  }
+  return names;
+}
+
+// Parse a single CSV row, respecting quoted fields
+function parseCsvRow(line) {
+  const cells = [];
+  let cur = '', inQ = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === '"') { inQ = !inQ; }
+    else if (ch === ',' && !inQ) { cells.push(cur); cur = ''; }
+    else { cur += ch; }
+  }
+  cells.push(cur);
+  return cells.map(c => c.trim());
+}
+
+// Strip author citation from a scientific name — keep genus + lowercase epithets only
+function stripAuthor(name) {
+  const words = name.split(/\s+/);
+  const kept = [words[0]]; // genus
+  for (let i = 1; i < words.length; i++) {
+    if (/^[a-z][a-z\-]+$/.test(words[i])) kept.push(words[i]);
+    else break; // hit an author (capital letter) — stop
+  }
+  return kept.length >= 2 ? kept.join(' ') : null; // need at least genus + epithet
+}
+
+function runBatch() {
+  const raw = batchPaste.value.trim();
+  if (!raw) return;
+
+  const lines = raw.split(/\r?\n/).filter(l => l.trim());
+  const names = [];
+
+  // Detect CSV with a scientificName column
+  const headerLine = lines[0];
+  const headerCells = parseCsvRow(headerLine).map(c => c.toLowerCase());
+  const sciCol = headerCells.indexOf('scientificname');
+
+  if (sciCol >= 0) {
+    // Proper CSV with scientificName column — extract and strip authors
+    for (let i = 1; i < lines.length; i++) {
+      const cells = parseCsvRow(lines[i]);
+      const raw_sci = cells[sciCol] || '';
+      const cleaned = stripAuthor(raw_sci);
+      if (cleaned) names.push(cleaned);
+    }
+  } else {
+    // Plain text / unknown format
+    for (const l of lines) {
+      for (const part of l.split(',')) {
+        const name = part.replace(/^"|"$/g, '').trim();
+        if (name) names.push(name);
+      }
+    }
+    // If any entry looks like prose (>4 words), switch to binomial extraction mode
+    const looksLikeProse = names.some(n => n.split(/\s+/).length > 4);
+    if (looksLikeProse) {
+      const extracted = extractBinomialsFromText(raw);
+      names.length = 0;
+      names.push(...extracted);
+    }
+  }
+
+  // Deduplicate
+  const seen = new Set();
+  const unique = names.filter(n => { const k = n.toLowerCase(); return seen.has(k) ? false : seen.add(k); });
+
+  batchResults = unique.map(batchMatch).filter(Boolean);
+
+  renderBatchTable(batchResults);
+  const matched = batchResults.filter(r => r.matched).length;
+  document.getElementById('batch-count').textContent =
+    `${matched} of ${batchResults.length} matched`;
+  document.getElementById('batch-dl').disabled = matched === 0;
+  document.getElementById('batch-dl-nvs').disabled = matched === 0;
+  document.getElementById('batch-looklike').style.display = matched > 0 ? '' : 'none';
+  document.getElementById('batch-whatdat').style.display = matched > 0 ? '' : 'none';
+  document.getElementById('batch-clear').style.display = '';
+  const hasUnmatched = batchResults.some(r => !r.matched || r._ambiguous);
+  const hideBtn = document.getElementById('batch-hide-unmatched');
+  hideBtn.style.display = hasUnmatched ? '' : 'none';
+  hideBtn.textContent = 'Hide unmatched';
+  hideUnmatched = false;
+  updateLooklikeBtn();
+  // Update LookLike button count whenever a checkbox changes
+  document.getElementById('batch-results').addEventListener('change', e => {
+    if (e.target.classList.contains('batch-cb')) updateLooklikeBtn();
+  });
+}
+
+let batchSort = { col: null, dir: 1 };
+
+const SORT_KEYS = {
+  input: r => (r.input || '').toLowerCase(),
+  sci:   r => (r.sci   || '').toLowerCase(),
+  common:r => (r.common|| '').toLowerCase(),
+  maori: r => (r.maori || '').toLowerCase(),
+  status:r => threatRank(r.status || ''),
+  category: r => (r.category || '').toLowerCase(),
+  year:  r => +(r.year) || 0,
+  origin:r => (r.origin || '').toLowerCase(),
+};
+
+function sortBatch(col) {
+  if (batchSort.col === col) {
+    batchSort.dir *= -1;
+  } else {
+    batchSort.col = col;
+    batchSort.dir = col === 'status' ? -1 : 1; // status: most threatened first by default
+  }
+  renderBatchTable(batchResults);
+}
+
+function sortedResults(results) {
+  if (!batchSort.col) return results;
+  const key = SORT_KEYS[batchSort.col];
+  if (!key) return results;
+  return [...results].sort((a, b) => {
+    // Unmatched/ambiguous always sink to bottom
+    const aOk = a.matched && !a._ambiguous;
+    const bOk = b.matched && !b._ambiguous;
+    if (aOk !== bOk) return aOk ? -1 : 1;
+    if (!aOk && !bOk) return 0;
+    const av = key(a), bv = key(b);
+    return av < bv ? -batchSort.dir : av > bv ? batchSort.dir : 0;
+  });
+}
+
+function renderBatchTable(results) {
+  if (!results.length) { document.getElementById('batch-results').innerHTML = ''; return; }
+  const filtered = hideUnmatched ? results.filter(r => r.matched && !r._ambiguous) : results;
+  const sorted = sortedResults(filtered);
+  const rows = sorted.map((r) => {
+    const origIdx = batchResults.indexOf(r);
+    if (!r.matched) {
+      return `<tr class="unmatched"><td class="cb-col"></td><td>${escHtml(r.input)}</td><td colspan="7">No match found</td></tr>`;
+    }
+    if (r._ambiguous) {
+      const btns = (r._options || []).map(s =>
+        `<button class="ambig-pick-btn" onclick="resolveBatchAmbig(${origIdx},'${s.replace(/'/g,"\\'")}')">${escHtml(s)}</button>`
+      ).join('');
+      return `<tr class="ambig-row"><td class="cb-col"></td><td>${escHtml(r.input)}</td><td colspan="7"><span class="ambig-inline">⚠ multiple species — which one?</span><div class="ambig-picks">${btns}</div></td></tr>`;
+    }
+    if (r._subspeciesAmbig) {
+      const btns = (r._subspeciesOptions || []).map((s, i) =>
+        `<button class="ambig-pick-btn" onclick="resolveBatchSubsp(${origIdx},${i})">${escHtml(s.n)} <span style="opacity:.7;font-style:normal">— ${escHtml(s.s)}</span></button>`
+      ).join('');
+      return `<tr class="ambig-row">
+        <td class="cb-col"><input type="checkbox" class="batch-cb" data-sci="${escHtml(r.sci)}" checked></td>
+        <td>${escHtml(r.input)}</td><td><em>${escHtml(r.sci)}</em></td>
+        <td colspan="6"><span class="ambig-inline">⚠ subspecies differ in status — which applies?</span><div class="ambig-picks">${btns}</div></td>
+      </tr>`;
+    }
+    const pestCell = r.pest ? `<span class="badge cat-pest-plant">Pest plant</span>` : '';
+    const statusCell = r.status
+      ? `<span class="badge ${catClass(r.category)}">${escHtml(r.status)}</span>${r._subspeciesBest ? ' <span class="subsp-best-note">most threatened subspecies</span>' : ''}`
+      : '<span style="color:#bbb">—</span>';
+    return `<tr>
+      <td class="cb-col"><input type="checkbox" class="batch-cb" data-sci="${escHtml(r.sci)}" checked></td>
+      <td>${escHtml(r.input)}</td>
+      <td><em>${escHtml(r.sci)}</em></td>
+      <td>${escHtml(r.common)}</td>
+      <td>${escHtml(r.maori)}</td>
+      <td>${statusCell} ${pestCell}</td>
+      <td>${escHtml(r.category)}</td>
+      <td>${escHtml(r.year)}</td>
+      <td>${escHtml(r.origin)}</td>
+    </tr>`;
+  }).join('');
+
+  const sc = batchSort.col;
+  const sd = batchSort.dir;
+  function thCls(col) {
+    return `class="sortable${sc===col ? (sd>0?' sort-asc':' sort-desc') : ''}"`;
+  }
+  document.getElementById('batch-results').innerHTML = `
+    <table class="results-table">
+      <thead><tr>
+        <th class="cb-col"><input type="checkbox" id="batch-sel-all" checked onchange="toggleAllBatchCbs(this.checked)" title="Select all"></th>
+        <th ${thCls('input')}   onclick="sortBatch('input')">Input name</th>
+        <th ${thCls('sci')}     onclick="sortBatch('sci')">Scientific name</th>
+        <th ${thCls('common')}  onclick="sortBatch('common')">Common name</th>
+        <th ${thCls('maori')}   onclick="sortBatch('maori')">Māori name</th>
+        <th ${thCls('status')}  onclick="sortBatch('status')">Status</th>
+        <th ${thCls('category')}onclick="sortBatch('category')">Category</th>
+        <th ${thCls('year')}    onclick="sortBatch('year')">Year</th>
+        <th ${thCls('origin')}  onclick="sortBatch('origin')">Origin</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+}
+
+function toggleAllBatchCbs(checked) {
+  document.querySelectorAll('.batch-cb').forEach(cb => cb.checked = checked);
+  updateLooklikeBtn();
+}
+
+function updateLooklikeBtn() {
+  const total = document.querySelectorAll('.batch-cb').length;
+  const checked = document.querySelectorAll('.batch-cb:checked').length;
+  const btn = document.getElementById('batch-looklike');
+  if (!btn || btn.style.display === 'none') return;
+  btn.textContent = checked === total
+    ? '📷 LookLike?'
+    : `📷 LookLike? (${checked} selected)`;
+}
+
+let hideUnmatched = false;
+function toggleHideUnmatched() {
+  hideUnmatched = !hideUnmatched;
+  const btn = document.getElementById('batch-hide-unmatched');
+  btn.textContent = hideUnmatched ? 'Show unmatched' : 'Hide unmatched';
+  renderBatchTable(batchResults);
+}
+
+function clearBatch() {
+  batchPaste.value = '';
+  batchResults = [];
+  document.getElementById('batch-results').innerHTML = '';
+  document.getElementById('batch-count').textContent = '';
+  document.getElementById('batch-dl').disabled = true;
+  document.getElementById('batch-dl-nvs').disabled = true;
+  document.getElementById('batch-looklike').style.display = 'none';
+  document.getElementById('batch-clear').style.display = 'none';
+  document.getElementById('batch-hide-unmatched').style.display = 'none';
+  hideUnmatched = false;
+}
+
+function openInLooklike() {
+  const seen = new Set();
+  const names = [];
+  document.querySelectorAll('.batch-cb:checked').forEach(cb => {
+    const sci = cb.dataset.sci;
+    if (sci && !seen.has(sci)) { seen.add(sci); names.push(sci); }
+  });
+  if (!names.length) { alert('Tick at least one species first.'); return; }
+  const ts = Date.now();
+  try {
+    localStorage.setItem('looklike_names', JSON.stringify({ names, ts }));
+  } catch(e) {}
+  window.open('https://occurd.rutherfordecology.co.nz/looklike/?v=' + ts, '_blank');
+}
+
+function openInWhatDat() {
+  const seen = new Set(), names = [], extraNames = {};
+  document.querySelectorAll('.batch-cb:checked').forEach(cb => {
+    const sci = cb.dataset.sci;
+    if (sci && !seen.has(sci)) {
+      seen.add(sci);
+      names.push(sci);
+      const r = batchResults.find(x => x.sci === sci);
+      if (r?.maori) extraNames[sci.toLowerCase()] = r.maori;
+    }
+  });
+  if (!names.length) { alert('Tick at least one matched species first.'); return; }
+  localStorage.setItem('whatdat_species_list', JSON.stringify(names));
+  localStorage.setItem('whatdat_extra_names', JSON.stringify(extraNames));
+  const url = '../whatdat/quiz.html?mode=species_list&list_name=' + encodeURIComponent('But Is It Threatened?');
+  window.open(url, '_blank');
+}
+
+// ── Download CSV ──────────────────────────────────────────────────────────────
+function resolveBatchAmbig(idx, sciName) {
+  const original = batchResults[idx].input;
+  const resolved = batchMatch(sciName);
+  if (resolved) { resolved.input = original; batchResults[idx] = resolved; }
+  renderBatchTable(batchResults);
+  const anyMatched = batchResults.some(r => r.matched);
+  document.getElementById('batch-dl').disabled = !anyMatched;
+  document.getElementById('batch-dl-nvs').disabled = !anyMatched;
+}
+
+function resolveBatchSubsp(idx, subspIdx) {
+  const r = batchResults[idx];
+  const chosen = (r._subspeciesOptions || [])[subspIdx];
+  if (!chosen) return;
+  const resolved = batchMatch(chosen.n);
+  if (resolved) { resolved.input = r.input; batchResults[idx] = resolved; }
+  renderBatchTable(batchResults);
+  const anyMatched = batchResults.some(r => r.matched);
+  document.getElementById('batch-dl').disabled = !anyMatched;
+  document.getElementById('batch-dl-nvs').disabled = !anyMatched;
+}
+
+function downloadNVSTemplate() {
+  const nvsColumns = ['blockcode','observation_method','abundance_class','observation_status','scientificname','observer','browsed','reqmgtnotes','easting','northing','plantednotes','notes','indicator','edge','planted','emergent','reqmgt','groundcover','epiphyte','understorey','canopy','keyinterest','dominantspecies','nativeinED','mapped'];
+  const sciIdx = nvsColumns.indexOf('scientificname');
+  const rows = [nvsColumns, ...batchResults.map(r => {
+    const row = nvsColumns.map(() => '');
+    if (r.matched && !r._ambiguous) row[sciIdx] = r.sci ?? '';
+    else row[sciIdx] = 'XXXUnmatchedXXX ' + r.input;
+    return row;
+  })].map(row => row.map(c => `"${String(c).replace(/"/g,'""')}"`).join(','));
+  const blob = new Blob(['﻿' + rows.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'nvs-template.csv';
+  a.click();
+}
+
+function downloadBatchCSV() {
+  const header = ['Input name','Scientific name','Common name','Māori name','NZTCS status','NZTCS category','Year','Pest plant (NPPA)','Origin'];
+  const csvRows = [header, ...batchResults.map(r => {
+    if (!r.matched) return [r.input, 'No match', '', '', '', '', '', '', ''];
+    if (r._ambiguous) return [r.input, 'Ambiguous — could be: ' + r.sci, '', '', '', '', '', '', ''];
+    return [r.input, r.sci, r.common, r.maori, r.status + (r._subspeciesBest ? ' (most threatened subspecies)' : ''), r.category, r.year, r.pest, r.origin];
+  })].map(row => row.map(c => `"${String(c ?? '').replace(/"/g,'""')}"`).join(','));
+  const blob = new Blob(['﻿' + csvRows.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'nz-species-status.csv';
+  a.click();
+}
+</script>
+</body>
+</html>

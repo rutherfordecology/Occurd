@@ -25,15 +25,19 @@
   let curItems = [];
 
   // ── NZOR source ──────────────────────────────────────────────────────────
-  let nzorData     = null;
+  // Matching itself lives in the shared but-is-it-threatened/nzor-source.js
+  // (NZ-specific, used by both apps) — this file just loads it without the
+  // NZTCS enrichment (Occurd doesn't need common/Māori name merging) and
+  // adds the genus-search affordance, which is Occurd UI, not core matching.
+  let nzor         = null;  // { index, ambiguous, search, lookupKey, resolveItem }
   let nzorPromise  = null;
   let nzorLoading  = false;
   let nzorSciIndex = null; // built once: lowercase sci name → [vernacular display names]
 
   function buildSciIndex() {
-    if (nzorSciIndex || !nzorData) return;
+    if (nzorSciIndex || !nzor) return;
     nzorSciIndex = {};
-    for (const val of Object.values(nzorData)) {
+    for (const val of nzor.index) {
       if (val.cls === 'v' && val.sci) {
         const k = val.sci.toLowerCase();
         if (!nzorSciIndex[k]) nzorSciIndex[k] = [];
@@ -54,20 +58,19 @@
   };
 
   window.ensureNzorLoaded = function() {
-    if (nzorData) return Promise.resolve(true);
+    if (nzor) return Promise.resolve(true);
     return ensureNzor();
   };
 
-  window._nzorReady = () => !!nzorData;
+  window._nzorReady = () => !!nzor;
 
   async function ensureNzor() {
-    if (nzorData) return true;
+    if (nzor) return true;
     if (!nzorPromise) {
       nzorLoading = true;
-      nzorPromise = fetch(NZOR_URL)
-        .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
-        .then(data => { nzorData = data; nzorLoading = false; nzorPromise = null; return true; })
-        .catch(e => { console.warn('NZOR load failed:', e); nzorData = null; nzorLoading = false; nzorPromise = null; return false; });
+      nzorPromise = window.NzorSource.load({ url: NZOR_URL })
+        .then(src => { nzor = src; nzorLoading = false; nzorPromise = null; return true; })
+        .catch(e => { console.warn('NZOR load failed:', e); nzor = null; nzorLoading = false; nzorPromise = null; return false; });
     }
     return nzorPromise;
   }
@@ -80,22 +83,16 @@
   }
 
   function searchNzor(q) {
-    if (!nzorData) return [];
-    const norm = normQuery(q);
-    if (norm.length < 2) return [];
-    const starts = [], contains = [];
-    for (const key of Object.keys(nzorData)) {
-      if (key.startsWith(norm))    starts.push(key);
-      else if (key.includes(norm)) contains.push(key);
-    }
-    const top = starts.slice(0, 10);
-    if (top.length < 10) top.push(...contains.slice(0, 10 - top.length));
-    const results = top.map(k => ({ key: k, ...nzorData[k] }));
+    if (!nzor) return [];
+    const results = nzor.search(q).slice(0, 10);
 
-    // Genus option: single-word query that is the first word of 2+ scientific names
+    // Genus option: single-word query that is the first word of 2+ scientific
+    // names — Occurd-specific UI affordance (basket-adds the whole genus),
+    // not part of the shared matching core.
+    const norm = normQuery(q);
     if (!norm.includes(' ') && norm.length >= 3) {
       const genusPrefix = norm + ' ';
-      const genusHits = starts.filter(k => k.startsWith(genusPrefix) && nzorData[k].cls !== 'v');
+      const genusHits = nzor.index.filter(x => x.kd.startsWith(genusPrefix) && x.cls !== 'v');
       if (genusHits.length >= 2) {
         const properGenus = norm.charAt(0).toUpperCase() + norm.slice(1);
         results.unshift({ key: '_genus_' + norm, n: properGenus, cls: 'g' });
@@ -105,27 +102,19 @@
   }
 
   // Exposed so the taxonomy browser can use it for common/Māori name lookup
-  window._nzorSearch = function(q) { return nzorData ? searchNzor(q) : []; };
+  window._nzorSearch = function(q) { return nzor ? searchNzor(q) : []; };
 
-  const nzorSource = {
+  window.NameResolver.registerSource({
     key: 'nzor',
     isRelevant: () => !inSamoa,
     ensureLoaded: ensureNzor,
-    isLoaded: () => !!nzorData,
+    isLoaded: () => !!nzor,
     search: searchNzor,
     resolve(item) {
       if (item.cls === 'g') return { ambiguous: false, isGenus: true, n: item.n };
-      if (item.ambiguous && Array.isArray(item.options)) {
-        return { ambiguous: true, options: item.options.map(o => ({ sci: o.sci, sciId: o.id, label: o.status })) };
-      }
-      if (item.sciOptions && item.sciOptions.length > 1) {
-        return { ambiguous: true, options: item.sciOptions };
-      }
-      const sci = (item.cls === 'v') ? (item.sci || item.n) : item.n;
-      return { ambiguous: false, sci, sciId: item.sciId || null };
+      return nzor.resolveItem(item);
     }
-  };
-  window.NameResolver.registerSource(nzorSource);
+  });
 
   // ── NVS source ───────────────────────────────────────────────────────────
   let nvsData    = null;
