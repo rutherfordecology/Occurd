@@ -46,7 +46,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v6.58</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v6.59</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -719,9 +719,18 @@ const topoLayer = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png'
   });
 });
 osmLayer.addTo(map);
-L.control.layers({ 'Map': osmLayer, 'Greyscale': greyscaleLayer, 'Satellite': satelliteLayer, 'Topo': topoLayer }, {}, { position: 'topleft' }).addTo(map);
+const layersControl = L.control.layers({ 'Map': osmLayer, 'Greyscale': greyscaleLayer, 'Satellite': satelliteLayer, 'Topo': topoLayer }, {}, { position: 'topleft' }).addTo(map);
 // Align draw hint with the actual polygon button after all controls are rendered
 setTimeout(() => { if (typeof window._positionDrawHint === 'function') window._positionDrawHint(); }, 150);
+// The layers control expands/collapses on hover (and tap on touch), shifting the polygon
+// draw button below it — re-align the hint whenever that happens.
+const _layersControlEl = layersControl.getContainer();
+if (_layersControlEl) {
+  const _reposition = () => setTimeout(() => { if (typeof window._positionDrawHint === 'function') window._positionDrawHint(); }, 50);
+  _layersControlEl.addEventListener('mouseenter', _reposition);
+  _layersControlEl.addEventListener('mouseleave', _reposition);
+  _layersControlEl.addEventListener('click', _reposition);
+}
 window.addEventListener('load', () => {
   setTimeout(() => map.invalidateSize(), 100);
   if (navigator.geolocation) {
@@ -6514,6 +6523,13 @@ if (window._pendingShare) {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v6.59</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>Fixed "click here to start drawing" hint not following the polygon button when the layer switcher (Map/Greyscale/Satellite/Topo) is opened, leaving the hint pointing at the wrong spot</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v6.58</span>
       <span class="changelog-date">Jun 2026</span>
