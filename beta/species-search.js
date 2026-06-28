@@ -1,10 +1,12 @@
-// ── NZ species search ─────────────────────────────────────────────────────────
-// Handles the NZ species field (NZOR + NVS autocomplete), NZ gate,
-// and exposes window._nzorSearch / window._nvsSearch for the taxonomy browser.
+// ── NZ / Samoa species search ───────────────────────────────────────────────
+// Thin UI layer (input, dropdown, debounce, region gate) over window.NameResolver.
+// The actual name data (NZOR, NVS, Samoa) lives in source plugins registered
+// below — a fork wanting its own species list registers another source the
+// same way, without touching this file's UI code.
 (function() {
   const NZ_BOUNDS    = { minLat: -52, maxLat: -29, minLng: 163, maxLng: 180 };
   const SAMOA_BOUNDS = { minLat: -15.0, maxLat: -13.0, minLng: -173.5, maxLng: -168.0 };
-  const NZOR_URL        = '../but-is-it-threatened/nzor_names.json';
+  const NZOR_URL        = '../but-is-it-threatened/nzor_names_v2.json';
   const NVS_URL         = '../but-is-it-threatened/nvs.json';
   const SAMOA_NAMES_URL = 'samoa_names.json';
 
@@ -17,24 +19,17 @@
   drop.id = 'spDrop';
   document.body.appendChild(drop);
 
-  let nzorData     = null;   // loaded lazily
-  let nzorPromise  = null;   // shared load promise — prevents duplicate fetches
+  let inSamoa  = false;  // tracks current map position
+  let debounce = null;
+  let focusIdx = -1;
+  let curItems = [];
+
+  // ── NZOR source ──────────────────────────────────────────────────────────
+  let nzorData     = null;
+  let nzorPromise  = null;
   let nzorLoading  = false;
-  let nvsData      = null;   // NVS codes: {code → {sci, pref?, prefSci?}}
-  let nvsPromise   = null;
-  let nzorSciIndex = null;   // built once: lowercase sci name → [vernacular display names]
-  let samoaData    = null;   // samoa_names.json: lowercase sci → {samoan, english}
-  let samoaPromise = null;
-  let selectedKey  = null;   // GBIF taxon key once resolved
-  let debounce     = null;
-  let focusIdx     = -1;
-  let curItems     = [];
-  let inSamoa      = false;  // tracks current map position
+  let nzorSciIndex = null; // built once: lowercase sci name → [vernacular display names]
 
-  window.getSpeciesTaxonKey = () => selectedKey;
-  window._nzorReady = () => !!nzorData;
-
-  // Reverse index: sci name (lowercase) → vernacular display names from NZOR
   function buildSciIndex() {
     if (nzorSciIndex || !nzorData) return;
     nzorSciIndex = {};
@@ -54,21 +49,88 @@
     if (!nzorSciIndex) return '';
     const hits = nzorSciIndex[sciName.toLowerCase()];
     if (!hits || !hits.length) return '';
-    // Deduplicate and return up to 2 names joined
     const uniq = hits.filter((v, i, a) => a.indexOf(v) === i);
     return uniq.slice(0, 2).join(' · ');
   };
 
-  // Exposed so buildChecklist can trigger a load and re-render when NZOR arrives
   window.ensureNzorLoaded = function() {
     if (nzorData) return Promise.resolve(true);
-    return ensureData(true);
+    return ensureNzor();
   };
 
-  // Expose search function so the taxonomy browser can use it for common/Māori name lookup
-  window._nzorSearch = function(q) { return nzorData ? search(q) : []; };
+  window._nzorReady = () => !!nzorData;
 
-  // Load NVS codes file independently (small file, loads fast)
+  async function ensureNzor() {
+    if (nzorData) return true;
+    if (!nzorPromise) {
+      nzorLoading = true;
+      nzorPromise = fetch(NZOR_URL)
+        .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+        .then(data => { nzorData = data; nzorLoading = false; nzorPromise = null; return true; })
+        .catch(e => { console.warn('NZOR load failed:', e); nzorData = null; nzorLoading = false; nzorPromise = null; return false; });
+    }
+    return nzorPromise;
+  }
+
+  function normQuery(s) {
+    return s.toLowerCase()
+      .replace(/[āÃā]/g, 'a').replace(/[ēĒ]/g, 'e')
+      .replace(/[īĪ]/g, 'i').replace(/[ōŌ]/g, 'o')
+      .replace(/[ūŪ]/g, 'u').trim();
+  }
+
+  function searchNzor(q) {
+    if (!nzorData) return [];
+    const norm = normQuery(q);
+    if (norm.length < 2) return [];
+    const starts = [], contains = [];
+    for (const key of Object.keys(nzorData)) {
+      if (key.startsWith(norm))    starts.push(key);
+      else if (key.includes(norm)) contains.push(key);
+    }
+    const top = starts.slice(0, 10);
+    if (top.length < 10) top.push(...contains.slice(0, 10 - top.length));
+    const results = top.map(k => ({ key: k, ...nzorData[k] }));
+
+    // Genus option: single-word query that is the first word of 2+ scientific names
+    if (!norm.includes(' ') && norm.length >= 3) {
+      const genusPrefix = norm + ' ';
+      const genusHits = starts.filter(k => k.startsWith(genusPrefix) && nzorData[k].cls !== 'v');
+      if (genusHits.length >= 2) {
+        const properGenus = norm.charAt(0).toUpperCase() + norm.slice(1);
+        results.unshift({ key: '_genus_' + norm, n: properGenus, cls: 'g' });
+      }
+    }
+    return results;
+  }
+
+  // Exposed so the taxonomy browser can use it for common/Māori name lookup
+  window._nzorSearch = function(q) { return nzorData ? searchNzor(q) : []; };
+
+  const nzorSource = {
+    key: 'nzor',
+    isRelevant: () => !inSamoa,
+    ensureLoaded: ensureNzor,
+    isLoaded: () => !!nzorData,
+    search: searchNzor,
+    resolve(item) {
+      if (item.cls === 'g') return { ambiguous: false, isGenus: true, n: item.n };
+      if (item.ambiguous && Array.isArray(item.options)) {
+        return { ambiguous: true, options: item.options.map(o => ({ sci: o.sci, sciId: o.id, label: o.status })) };
+      }
+      if (item.sciOptions && item.sciOptions.length > 1) {
+        return { ambiguous: true, options: item.sciOptions };
+      }
+      const sci = (item.cls === 'v') ? (item.sci || item.n) : item.n;
+      return { ambiguous: false, sci, sciId: item.sciId || null };
+    }
+  };
+  window.NameResolver.registerSource(nzorSource);
+
+  // ── NVS source ───────────────────────────────────────────────────────────
+  let nvsData    = null;
+  let nvsPromise = null;
+
   function ensureNvs() {
     if (nvsData) return Promise.resolve(true);
     if (!nvsPromise) {
@@ -80,14 +142,12 @@
     return nvsPromise;
   }
 
-  // Search NVS codes — exact match first, then prefix matches
   function searchNvs(q) {
     if (!nvsData) return [];
     const norm = q.toLowerCase().trim().replace(/\s+/g, '');
     if (norm.length < 2) return [];
     const results = [];
     const seen = new Set();
-    // Resolve entry, following pref redirect once
     function resolveEntry(code) {
       const e = nvsData[code];
       if (!e) return null;
@@ -96,13 +156,11 @@
       }
       return { code, sci: e.sci };
     }
-    // Exact match
     const exact = resolveEntry(norm);
     if (exact && !seen.has(exact.code)) {
       seen.add(exact.code);
       results.push({ cls: 'nvs', n: exact.sci, sci: exact.sci, nvscode: norm, key: norm });
     }
-    // Prefix matches
     for (const code of Object.keys(nvsData)) {
       if (results.length >= 8) break;
       if (code === norm || !code.startsWith(norm)) continue;
@@ -117,7 +175,19 @@
 
   window._nvsSearch = function(q) { return nvsData ? searchNvs(q) : []; };
 
-  // ── Samoa names ────────────────────────────────────────────────────────────
+  window.NameResolver.registerSource({
+    key: 'nvs',
+    isRelevant: () => !inSamoa,
+    ensureLoaded: ensureNvs,
+    isLoaded: () => !!nvsData,
+    search: searchNvs,
+    resolve: item => ({ ambiguous: false, sci: item.sci, sciId: null })
+  });
+
+  // ── Samoa source ─────────────────────────────────────────────────────────
+  let samoaData    = null;
+  let samoaPromise = null;
+
   function ensureSamoa() {
     if (samoaData) return Promise.resolve(true);
     if (!samoaPromise) {
@@ -139,7 +209,6 @@
       const samoan     = (entry.samoan || '').toLowerCase();
       const englishArr = Array.isArray(entry.english) ? entry.english : [entry.english || ''];
       const engLow     = name => name.toLowerCase();
-      // Latin name match takes priority over vernacular
       const sciStart   = sciLow.startsWith(norm);
       const sciContain = !sciStart && sciLow.includes(norm);
       if (sciStart || sciContain) {
@@ -154,9 +223,7 @@
         }
       }
     }
-    // Latin matches first (more precise), then vernacular
-    const top = [...sciStarts, ...vernStarts, ...sciContains, ...vernContains].slice(0, 10);
-    return top;
+    return [...sciStarts, ...vernStarts, ...sciContains, ...vernContains].slice(0, 10);
   }
 
   window.getSamoaVernacular = function(sciName) {
@@ -172,11 +239,18 @@
 
   window._samoaSearch = function(q) { return samoaData ? searchSamoa(q) : []; };
 
-  // Show field only when centred over NZ or Samoa
+  window.NameResolver.registerSource({
+    key: 'samoa',
+    isRelevant: () => inSamoa,
+    ensureLoaded: ensureSamoa,
+    isLoaded: () => !!samoaData,
+    search: searchSamoa,
+    resolve: item => ({ ambiguous: false, sci: item.sci, sciId: null })
+  });
+
+  // ── Region gate ──────────────────────────────────────────────────────────
   function checkNZGate() {
     const c = map.getCenter();
-    // Normalise longitude to [-180, 180] — Leaflet uses a continuous axis so panning
-    // past the antimeridian gives values like 189 instead of -171 for Samoa.
     let lng = ((c.lng + 180) % 360 + 360) % 360 - 180;
     const inNZ     = c.lat >= NZ_BOUNDS.minLat    && c.lat <= NZ_BOUNDS.maxLat    &&
                      lng    >= NZ_BOUNDS.minLng    && lng    <= NZ_BOUNDS.maxLng;
@@ -184,7 +258,7 @@
                      lng    >= SAMOA_BOUNDS.minLng && lng    <= SAMOA_BOUNDS.maxLng;
     inSamoa = nowSamoa;
     field.style.display = (inNZ || nowSamoa) ? 'block' : 'none';
-    if (inNZ    && !nzorData  && !nzorLoading) ensureData(true);
+    if (inNZ    && !nzorData  && !nzorLoading) ensureNzor();
     if (inNZ    && !nvsData   && !nvsPromise)  ensureNvs();
     if (nowSamoa && !samoaData && !samoaPromise) ensureSamoa();
   }
@@ -193,55 +267,7 @@
   setTimeout(checkNZGate, 600);
   setTimeout(checkNZGate, 2500);
 
-  // Load NZOR names — shared promise so concurrent callers all wait on the same fetch
-  async function ensureData(silent) {
-    if (nzorData) return true;
-    if (!nzorPromise) {
-      nzorLoading = true;
-      if (!silent) showDrop([{ _loading: true }]);
-      nzorPromise = fetch(NZOR_URL)
-        .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
-        .then(data => { nzorData = data; nzorLoading = false; nzorPromise = null; return true; })
-        .catch(e => { console.warn('NZOR load failed:', e); nzorData = null; nzorLoading = false; nzorPromise = null; return false; });
-    }
-    return nzorPromise;
-  }
-
-  function normQuery(s) {
-    // Strip macrons for matching, lowercase
-    return s.toLowerCase()
-      .replace(/[āÃā]/g, 'a').replace(/[ēĒ]/g, 'e')
-      .replace(/[īĪ]/g, 'i').replace(/[ōŌ]/g, 'o')
-      .replace(/[ūŪ]/g, 'u').trim();
-  }
-
-  function search(q) {
-    if (!nzorData) return [];
-    const norm = normQuery(q);
-    if (norm.length < 2) return [];
-    const starts = [], contains = [];
-    for (const key of Object.keys(nzorData)) {
-      if (key.startsWith(norm))    starts.push(key);
-      else if (key.includes(norm)) contains.push(key);
-    }
-    // Starts-with always first; pad remaining slots with contains matches
-    const top = starts.slice(0, 10);
-    if (top.length < 10) top.push(...contains.slice(0, 10 - top.length));
-    const results = top.map(k => ({ key: k, ...nzorData[k] }));
-
-    // Genus option: single-word query that is the first word of 2+ scientific names
-    if (!norm.includes(' ') && norm.length >= 3) {
-      const genusPrefix = norm + ' ';
-      const genusHits = starts.filter(k => k.startsWith(genusPrefix) && nzorData[k].cls !== 'v');
-      if (genusHits.length >= 2) {
-        const properGenus = norm.charAt(0).toUpperCase() + norm.slice(1);
-        results.unshift({ key: '_genus_' + norm, n: properGenus, cls: 'g' });
-      }
-    }
-
-    return results;
-  }
-
+  // ── Dropdown rendering ───────────────────────────────────────────────────
   function posDrop() {
     const r = input.getBoundingClientRect();
     drop.style.left  = r.left + 'px';
@@ -254,43 +280,43 @@
     drop.innerHTML = '';
     if (!items.length) { drop.style.display = 'none'; return; }
     if (items[0]._loading) {
-      drop.innerHTML = '<div class="sp-loading">Loading NZ species names…</div>';
+      drop.innerHTML = '<div class="sp-loading">Loading species names…</div>';
       posDrop(); drop.style.display = 'block'; return;
     }
-    items.forEach((item, i) => {
+    items.forEach((item) => {
       const el = document.createElement('div');
       el.className = 'sp-item';
       if (item.cls === 'g') {
-        // Genus option — shown at top when query matches 2+ species in that genus
         el.innerHTML =
           '<div class="sp-sci">' + item.n + '</div>' +
           '<div class="sp-common sp-genus-tag">all species in this genus</div>';
       } else if (item.cls === 'nvs') {
-        // NVS code match
         el.innerHTML =
           '<div class="sp-sci">' + item.sci + '</div>' +
           '<div class="sp-common"><span class="nvs-badge">NVS ' + item.nvscode.toUpperCase() + '</span></div>';
       } else if (item.cls === 'samoa') {
         if (item.matchBy === 'sci') {
-          // Latin search: Latin as primary, Samoan/English as subtitle
           el.innerHTML =
             '<div class="sp-sci">' + item.sci + '</div>' +
             '<div class="sp-common">' + [item.samoan, item.english].filter(Boolean).join(' · ') + '</div>';
         } else {
-          // Vernacular search: Samoan/English as primary, Latin as subtitle
           el.innerHTML =
             '<div class="sp-sci">' + item.n + '</div>' +
             '<div class="sp-common">' + item.sci + '</div>';
         }
+      } else if (item.ambiguous) {
+        el.innerHTML =
+          '<div class="sp-sci">' + item.n + '</div>' +
+          '<div class="sp-common sp-genus-tag">multiple matches — which one?</div>';
       } else {
-        // vernacular entry: show common name + scientific
-        // scientific entry: show scientific name only
         const isVern = item.cls === 'v';
-        const sci    = isVern ? (item.sci || '') : item.n;
-        const common = isVern ? item.n : '';
+        const isMulti = isVern && item.sciOptions && item.sciOptions.length > 1;
+        const sci    = isVern ? (isMulti ? item.n : (item.sci || '')) : item.n;
+        const common = isVern && !isMulti ? item.n : '';
         el.innerHTML =
           '<div class="sp-sci">' + sci + '</div>' +
-          (common ? '<div class="sp-common">' + common + '</div>' : '');
+          (common ? '<div class="sp-common">' + common + '</div>' : '') +
+          (isMulti ? '<div class="sp-common sp-genus-tag">' + item.sciOptions.length + ' species — which one?</div>' : '');
       }
       el.addEventListener('mousedown', e => { e.preventDefault(); selectItem(item); });
       drop.appendChild(el);
@@ -300,64 +326,93 @@
 
   function hideDrop() { drop.style.display = 'none'; curItems = []; focusIdx = -1; }
 
+  // ── Disambiguation picker ────────────────────────────────────────────────
+  // Shown inline below the input when a selection resolves to 2+ candidates
+  // (e.g. "toatoa" -> 4 different plants, or a homonym scientific name under
+  // 2 different authorities). Mirrors but-is-it-threatened's "which one?"
+  // pattern so the two tools stay visually consistent.
+  const pickerBox = document.createElement('div');
+  pickerBox.id = 'spAmbigPicker';
+  pickerBox.style.display = 'none';
+  field.appendChild(pickerBox);
+
+  function showPicker(displayName, options, onPick) {
+    pickerBox.innerHTML =
+      '<div class="sp-ambig-note">⚠ "' + displayName + '" matches multiple — which one?</div>' +
+      '<div class="sp-ambig-picks">' +
+        options.map((o, i) =>
+          '<button type="button" class="sp-ambig-btn" data-i="' + i + '">' +
+            '<em>' + o.sci + '</em>' + (o.label ? ' <span class="sp-ambig-label">' + o.label + '</span>' : '') +
+          '</button>'
+        ).join('') +
+      '</div>';
+    pickerBox.style.display = 'block';
+    pickerBox.querySelectorAll('.sp-ambig-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const opt = options[parseInt(btn.dataset.i, 10)];
+        hidePicker();
+        onPick(opt);
+      });
+    });
+  }
+  function hidePicker() { pickerBox.style.display = 'none'; pickerBox.innerHTML = ''; }
+
+  // ── Selection / resolution ───────────────────────────────────────────────
   async function selectItem(item) {
     hideDrop();
+    hidePicker();
 
-    // ── Genus selection ───────────────────────────────────────────────────
-    if (item.cls === 'g') {
-      const genusName = item.n;
-      input.value = 'all ' + genusName;
-      input.classList.add('sp-active');
-      let resolvedKey = null;
-      try {
-        // Primary: v2 species/match, COL XR-scoped — v1's species/match has no COL XR
-        // equivalent (it silently ignores checklistKey). v2's match.key is already the
-        // COL XR alphanumeric code (taxonID-equivalent), ready to use as-is downstream.
-        const r = await gbifFetch('https://api.gbif.org/v2/species/match?rank=GENUS&scientificName=' + encodeURIComponent(genusName) + '&checklistKey=' + COL_XR_CHECKLIST_KEY);
-        if (r.ok) {
-          const j = await r.json();
-          if (j.usage && j.usage.key && j.usage.rank === 'GENUS' && j.diagnostics && j.diagnostics.matchType !== 'NONE') {
-            resolvedKey = j.usage.key;
-          }
-        }
-      } catch(e) {}
-      if (!resolvedKey) {
-        // Fallback: species/search (not /suggest — that endpoint doesn't return taxonID,
-        // which is the only key form usable downstream) — exact canonical name at genus rank
-        try {
-          const r2 = await gbifFetch('https://api.gbif.org/v1/species/search?datasetKey=' + COL_XR_CHECKLIST_KEY + '&rank=GENUS&q=' + encodeURIComponent(genusName) + '&limit=10&status=ACCEPTED');
-          if (r2.ok) {
-            const j2 = await r2.json();
-            const exact = (j2.results || []).find(x => x.canonicalName &&
-              x.canonicalName.toLowerCase() === genusName.toLowerCase());
-            if (exact) resolvedKey = exact.taxonID || exact.key;
-          }
-        } catch(e2) {}
-      }
-      if (typeof window.addSpeciesEntry === 'function') {
-        window.addSpeciesEntry('all ' + genusName, resolvedKey, resolvedKey ? null : genusName);
-      }
-      input.value = ''; input.classList.remove('sp-active'); selectedKey = null;
+    const resolved = window.NameResolver.resolveItem(item);
+
+    if (resolved.isGenus) {
+      await commitGenus(resolved.n);
       return;
     }
 
-    // ── Species selection ─────────────────────────────────────────────────
-    // Resolve scientific name
-    const sciName = (item.cls === 'v' || item.cls === 'nvs' || item.cls === 'samoa') ? (item.sci || item.n) : item.n;
-    const displayName = item.cls === 'nvs'
-      ? item.sci + ' (NVS ' + item.nvscode.toUpperCase() + ')'
-      : item.cls === 'samoa'
-        ? (item.matchBy === 'sci' ? item.sci : item.n + ' (' + item.sci + ')')
-        : item.n + (item.cls === 'v' && item.sci ? ' (' + item.sci + ')' : '');
+    if (resolved.ambiguous) {
+      const displayName = item.n || item.sci || '';
+      showPicker(displayName, resolved.options, opt => commitSpecies(opt.sci, opt.label || displayName));
+      return;
+    }
 
-    // Show resolving state briefly
-    input.value = displayName;
+    await commitSpecies(resolved.sci, item.n);
+  }
+
+  async function commitGenus(genusName) {
+    input.value = 'all ' + genusName;
+    input.classList.add('sp-active');
+    let resolvedKey = null;
+    try {
+      const r = await gbifFetch('https://api.gbif.org/v2/species/match?rank=GENUS&scientificName=' + encodeURIComponent(genusName) + '&checklistKey=' + COL_XR_CHECKLIST_KEY);
+      if (r.ok) {
+        const j = await r.json();
+        if (j.usage && j.usage.key && j.usage.rank === 'GENUS' && j.diagnostics && j.diagnostics.matchType !== 'NONE') {
+          resolvedKey = j.usage.key;
+        }
+      }
+    } catch(e) {}
+    if (!resolvedKey) {
+      try {
+        const r2 = await gbifFetch('https://api.gbif.org/v1/species/search?datasetKey=' + COL_XR_CHECKLIST_KEY + '&rank=GENUS&q=' + encodeURIComponent(genusName) + '&limit=10&status=ACCEPTED');
+        if (r2.ok) {
+          const j2 = await r2.json();
+          const exact = (j2.results || []).find(x => x.canonicalName &&
+            x.canonicalName.toLowerCase() === genusName.toLowerCase());
+          if (exact) resolvedKey = exact.taxonID || exact.key;
+        }
+      } catch(e2) {}
+    }
+    if (typeof window.addSpeciesEntry === 'function') {
+      window.addSpeciesEntry('all ' + genusName, resolvedKey, resolvedKey ? null : genusName);
+    }
+    input.value = ''; input.classList.remove('sp-active');
+  }
+
+  async function commitSpecies(sciName, displayLabel) {
+    input.value = displayLabel || sciName;
     input.classList.add('sp-active');
     clrBtn.style.display = 'none';
 
-    // Resolve GBIF taxon key — v2/match, COL XR-scoped (see genus-selection comment above
-    // for why v2 instead of v1). usage.key is already the COL XR alphanumeric code; if the
-    // matched name is a synonym, prefer acceptedUsage.key (the equivalent of v1's speciesKey)
     let resolvedKey = null;
     try {
       const r = await gbifFetch('https://api.gbif.org/v2/species/match?scientificName=' + encodeURIComponent(sciName) + '&checklistKey=' + COL_XR_CHECKLIST_KEY);
@@ -367,45 +422,34 @@
       }
     } catch(e) {}
 
-    // Add to polygon list as a virtual species entry, then clear the input
     if (typeof window.addSpeciesEntry === 'function') {
-      window.addSpeciesEntry(displayName, resolvedKey, resolvedKey ? null : sciName);
+      window.addSpeciesEntry(displayLabel || sciName, resolvedKey, resolvedKey ? null : sciName);
     }
-    // Reset input ready for next species
     input.value = '';
     input.classList.remove('sp-active');
-    selectedKey = null;
   }
 
   function clearSel() {
-    selectedKey = null;
     input.value = '';
     input.classList.remove('sp-active');
     clrBtn.style.display = 'none';
     hideDrop();
+    hidePicker();
     input.focus();
   }
 
   clrBtn.addEventListener('click', clearSel);
 
   input.addEventListener('input', () => {
-    if (selectedKey) { selectedKey = null; input.classList.remove('sp-active'); clrBtn.style.display = 'none'; }
+    hidePicker();
+    if (input.classList.contains('sp-active')) { input.classList.remove('sp-active'); clrBtn.style.display = 'none'; }
     const q = input.value.trim();
     if (q.length < 2) { hideDrop(); return; }
     clearTimeout(debounce);
     debounce = setTimeout(async () => {
-      if (inSamoa) {
-        const ok = await ensureSamoa();
-        if (!ok) { hideDrop(); return; }
-        showDrop(searchSamoa(q));
-      } else {
-        const ok = await ensureData();
-        if (!ok) { hideDrop(); return; }
-        ensureNvs();
-        const nvsResults  = searchNvs(q);
-        const nzorResults = search(q);
-        showDrop([...nvsResults, ...nzorResults]);
-      }
+      const ctx = { inSamoa };
+      const items = await window.NameResolver.search(q, ctx);
+      showDrop(items);
     }, 200);
   });
 
@@ -414,7 +458,7 @@
     if (e.key === 'ArrowDown') { e.preventDefault(); focusIdx = Math.min(focusIdx+1, els.length-1); els.forEach((el,i)=>el.classList.toggle('sp-focus',i===focusIdx)); }
     else if (e.key === 'ArrowUp') { e.preventDefault(); focusIdx = Math.max(focusIdx-1,0); els.forEach((el,i)=>el.classList.toggle('sp-focus',i===focusIdx)); }
     else if (e.key === 'Enter' && focusIdx >= 0 && curItems[focusIdx]) { e.preventDefault(); selectItem(curItems[focusIdx]); }
-    else if (e.key === 'Escape') hideDrop();
+    else if (e.key === 'Escape') { hideDrop(); hidePicker(); }
   });
 
   input.addEventListener('blur', () => setTimeout(hideDrop, 150));

@@ -101,6 +101,13 @@ header { background: var(--green-dark); color: white; padding: 0 1.5rem; display
 .sp-common.sp-genus-tag { color: var(--blue); font-style: normal; }
 .sp-loading { font-size: 11px; color: var(--text3); padding: 8px 11px; font-style: italic; }
 .nvs-badge { font-size:9px;font-weight:700;letter-spacing:0.06em;background:#e0f2fe;color:#0369a1;padding:1px 5px;border-radius:3px; }
+#spAmbigPicker { margin-top: 6px; padding: 8px 10px; background: var(--amber-light); border: 1px solid var(--amber-mid); border-radius: var(--radius); }
+.sp-ambig-note { font-size: 11.5px; color: var(--text); font-weight: 600; margin-bottom: 6px; }
+.sp-ambig-picks { display: flex; flex-wrap: wrap; gap: 5px; }
+.sp-ambig-btn { background: var(--surface); border: 1px solid var(--amber-mid); color: var(--text); border-radius: 5px; padding: 4px 8px; font-size: 11.5px; font-family: var(--font-sans); cursor: pointer; }
+.sp-ambig-btn:hover { background: var(--amber-light); }
+.sp-ambig-btn em { font-style: italic; }
+.sp-ambig-label { color: var(--text3); font-size: 10.5px; }
 
 
 @keyframes hintFade { from { opacity:0; transform:translateX(-6px); } to { opacity:1; transform:translateX(0); } }

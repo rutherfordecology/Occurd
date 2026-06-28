@@ -19,19 +19,38 @@ New approach:
 """
 import json, glob, sys
 
-def vernacular_link(r):
-    """For a Vernacular Name record, find the scientific name it applies to
-    (the 'is vernacular for' application), so the app can map common name ->
-    Latin name for GBIF lookups. Returns (sci, sciId) or (None, None)."""
+def vernacular_links(r):
+    """For a Vernacular Name record, find every DISTINCT scientific name it
+    applies to (the 'is vernacular for' application) — usually one, but a
+    handful of broad/umbrella common names (e.g. "Kiwis" -> Apterygidae and
+    Apterygiformes) genuinely point at more than one concept. Returns an
+    ordered list of (sci, sciId) tuples, deduplicated by sci name."""
     if r.get('class') != 'Vernacular Name':
-        return None, None
+        return []
+    seen = {}
     for concept in r.get('concepts') or []:
         for app in concept.get('applications') or []:
             if app.get('type') == 'is vernacular for':
                 target = (app.get('concept') or {}).get('name') or {}
-                if target.get('partialName'):
-                    return target['partialName'], target.get('nameId')
-    return None, None
+                pn = target.get('partialName')
+                if pn and pn not in seen:
+                    seen[pn] = target.get('nameId')
+    return list(seen.items())
+
+def apply_vernacular(entry, r):
+    """Set cls/sci(+sciId) for the single-target case (read by both the
+    current app and older clients), or cls/sciOptions for the rare
+    multi-target case (read only by clients new enough to disambiguate;
+    older clients simply see no 'sci' and fall back to the bare name)."""
+    links = vernacular_links(r)
+    if len(links) == 1:
+        entry['cls'] = 'v'
+        entry['sci'] = links[0][0]
+        if links[0][1]:
+            entry['sciId'] = links[0][1]
+    elif len(links) >= 2:
+        entry['cls'] = 'v'
+        entry['sciOptions'] = [{'sci': sci, 'sciId': sciId} for sci, sciId in links]
 
 def load_all_records():
     records = []
@@ -66,12 +85,7 @@ def main():
             if acc and acc.get('nameId') != r['nameId']:
                 entry['acc'] = acc['partialName']
                 entry['accId'] = acc['nameId']
-            sci, sciId = vernacular_link(r)
-            if sci:
-                entry['cls'] = 'v'
-                entry['sci'] = sci
-                if sciId:
-                    entry['sciId'] = sciId
+            apply_vernacular(entry, r)
             out[key] = entry
             continue
 
@@ -117,16 +131,23 @@ def main():
             if acc and acc.get('nameId') != chosen['nameId']:
                 entry['acc'] = acc['partialName']
                 entry['accId'] = acc['nameId']
-            sci, sciId = vernacular_link(chosen)
-            if sci:
-                entry['cls'] = 'v'
-                entry['sci'] = sci
-                if sciId:
-                    entry['sciId'] = sciId
+            apply_vernacular(entry, chosen)
             out[key] = entry
-        # else: leave key out of out[] entirely rather than silently picking
-        # one - app will show "No match found" instead of a wrong species,
-        # until the override list (overrides.json) fills it in.
+        else:
+            # No single "Current" winner — rather than dropping the key
+            # entirely (old behaviour: app showed "No match found"), expose
+            # every distinct concept as an ambiguous entry so a resolver that
+            # understands 'ambiguous'/'options' can ask the user which one
+            # they meant. Clients that don't understand this shape simply
+            # won't find the key (same as before), so this is additive only.
+            by_id = {}
+            for r in recs:
+                by_id.setdefault(r['nameId'], r)
+            options = [
+                {'sci': r['fullName'] or r['partialName'], 'id': r['nameId'], 'status': r.get('status')}
+                for r in by_id.values()
+            ]
+            out[key] = {'n': recs[0]['partialName'], 'ambiguous': True, 'options': options}
 
     with open('nzor_names_rebuilt.json', 'w', encoding='utf-8') as f:
         json.dump(out, f, ensure_ascii=False, separators=(',', ':'))
