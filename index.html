@@ -6542,7 +6542,7 @@ if (window._pendingShare) {
       <span class="changelog-version-tag">v6.48</span>
       <span class="changelog-date">Jun 2026</span>
       <ul>
-        <li>Heatmap — reverted the v6.45/v6.46 density-estimate rewrite (Gaussian bandwidth + log/gamma compression), which produced worse saturation than the original. Restored the production heatmap exactly: per-coordinate log2 occurrence counts, polygon-extent-based pixel radius, and the blue→cyan→lime→yellow→red gradient</li>
+        <li>Iterated on heatmap colour scaling and density rendering across many versions (gradient bands, colour ceilings, zoom-dependence, density estimation methods) trying to fix oversaturation and improve hotspot clarity; ultimately reverted to the original algorithm — per-coordinate log2 occurrence counts, polygon-extent-based pixel radius, and the blue→cyan→lime→yellow→red gradient — which performed best</li>
       </ul>
     </div>
     <div class="changelog-version">
@@ -6553,87 +6553,10 @@ if (window._pendingShare) {
       </ul>
     </div>
     <div class="changelog-version">
-      <span class="changelog-version-tag">v6.46</span>
-      <span class="changelog-date">Jun 2026</span>
-      <ul>
-        <li>Heatmap — widened the Gaussian render/density radius another ~30% on top of the previous pass, and added a gamma≈2 curve on top of the log compression so mid/high densities climb the colour scale more slowly. Most hotspots now read as orange with only the single densest 1% reaching pure red, for a softer, more Google-Maps-like gradient</li>
-      </ul>
-    </div>
-    <div class="changelog-version">
-      <span class="changelog-version-tag">v6.45</span>
-      <span class="changelog-date">Jun 2026</span>
-      <ul>
-        <li>Heatmap still skewed too red — switched from square-root to cube-root density compression, clamped to the 99.5th percentile, and pushed the colour gradient's yellow/orange/red bands further up the scale so red is reserved for only the most extreme hotspots</li>
-      </ul>
-    </div>
-    <div class="changelog-version">
-      <span class="changelog-version-tag">v6.44</span>
-      <span class="changelog-date">Jun 2026</span>
-      <ul>
-        <li>Heatmap colour scaling — dense urban areas were saturating almost entirely solid red; density is now estimated per-point (triangular kernel over nearby records), square-root compressed, and clamped to the 99th percentile rather than the absolute max, so red is reserved for genuine top-tier hotspots and most of the map reads as blue/green/yellow</li>
-      </ul>
-    </div>
-    <div class="changelog-version">
-      <span class="changelog-version-tag">v6.43</span>
-      <span class="changelog-date">Jun 2026</span>
-      <ul>
-        <li>Heatmap rewrite — was pre-binning records into a coarse grid and weighting each cell relative to the single busiest cell, which collapsed spread-out points into 2-3 isolated hotspots; now feeds individual points directly to the density layer so overlapping records blend into a smooth gradient like a proper density surface</li>
-      </ul>
-    </div>
-    <div class="changelog-version">
       <span class="changelog-version-tag">v6.42</span>
       <span class="changelog-date">Jun 2026</span>
       <ul>
         <li>Re-uploading a CSV downloaded from Occurd — the drop zone now accepts Occurd's own comma-separated export (it was previously rejected because the upload parser only understood tab-separated raw GBIF downloads and choked on the "# Downloaded from Occurd" comment header); vernacularName and country are now preserved on re-upload</li>
-      </ul>
-    </div>
-    <div class="changelog-version">
-      <span class="changelog-version-tag">v6.41</span>
-      <span class="changelog-date">Jun 2026</span>
-      <ul>
-        <li>Heatmap — fixed closing the last polygon leaving the heatmap on the map after the next zoom; clearResults() removed the heat layer but left the underlying heat data set, which the zoomend listener was re-adding from</li>
-      </ul>
-    </div>
-    <div class="changelog-version">
-      <span class="changelog-version-tag">v6.40</span>
-      <span class="changelog-date">Jun 2026</span>
-      <ul>
-        <li>Heatmap — fixed hotspots fading out when zooming in; v6.39's rewrite accidentally dropped the maxZoom setting that neutralises Leaflet.heat's internal zoom-based intensity scaling</li>
-      </ul>
-    </div>
-    <div class="changelog-version">
-      <span class="changelog-version-tag">v6.39</span>
-      <span class="changelog-date">Jun 2026</span>
-      <ul>
-        <li>Heatmap — blob size is now a fixed screen size at every zoom (colour comes purely from a geographic density grid, not blob overlap), fixing both the colour-changes-with-zoom bug and the hard-edged giant blobs seen when zoomed in close</li>
-      </ul>
-    </div>
-    <div class="changelog-version">
-      <span class="changelog-version-tag">v6.38</span>
-      <span class="changelog-date">Jun 2026</span>
-      <ul>
-        <li>Heatmap — softened the blur so zoomed-in blobs don't show hard quarter-circle edges where neighbouring points' stamps overlapped</li>
-      </ul>
-    </div>
-    <div class="changelog-version">
-      <span class="changelog-version-tag">v6.37</span>
-      <span class="changelog-date">Jun 2026</span>
-      <ul>
-        <li>Heatmap — reverted v6.36's grid-binning (caused too much solid red) back to per-record colouring; fixed the real zoom-dependence bug by removing pixel radius/blur clamps that were breaking proportionality between blob size and point spacing as you zoom</li>
-      </ul>
-    </div>
-    <div class="changelog-version">
-      <span class="changelog-version-tag">v6.36</span>
-      <span class="changelog-date">Jun 2026</span>
-      <ul>
-        <li>Heatmap — fixed colour intensity changing as you zoom in/out on the same data; density is now computed from a fixed geographic grid tied to the polygon, not the current zoom level</li>
-      </ul>
-    </div>
-    <div class="changelog-version">
-      <span class="changelog-version-tag">v6.35</span>
-      <span class="changelog-date">Jun 2026</span>
-      <ul>
-        <li>Heatmap — stretched the colour gradient's top end further; red now starts at 55% of the ceiling (was 70%) so the busiest spots show a bigger, more obvious red core</li>
       </ul>
     </div>
     <div class="changelog-version">
@@ -6644,52 +6567,10 @@ if (window._pendingShare) {
       </ul>
     </div>
     <div class="changelog-version">
-      <span class="changelog-version-tag">v6.33</span>
-      <span class="changelog-date">Jun 2026</span>
-      <ul>
-        <li>Heatmap — the highest-density spots plateaued at orange/yellow instead of reading clearly as red. Compressed the colour gradient's top end (red now starts at 70% of the ceiling instead of 100%, with the other colour bands pulled in to match) so genuine hotspots are unmistakably red rather than needing to be the literal single densest pixel</li>
-      </ul>
-    </div>
-    <div class="changelog-version">
-      <span class="changelog-version-tag">v6.32</span>
-      <span class="changelog-date">Jun 2026</span>
-      <ul>
-        <li>Heatmap — v6.31's colour ceiling made everything read a touch too soft/pale; nudged it down 10% so red comes in a bit sooner across the board</li>
-      </ul>
-    </div>
-    <div class="changelog-version">
-      <span class="changelog-version-tag">v6.31</span>
-      <span class="changelog-date">Jun 2026</span>
-      <ul>
-        <li>Heatmap — too much of the map was reading as solid red once a fetch had more than a few hundred records, since leaflet.heat's additive blending of every overlapping record blob saturates red at a fixed density regardless of how many records are actually shown. The colour ceiling now scales with the number of records currently visible (adjusting live as you tick species on/off) instead of the v6.30 attempt of shrinking radius/blur, so red stays meaningful — a handful of records reaches it easily, but a dense, busy fetch needs proportionally more concentration before an area reads as a genuine hotspot</li>
-      </ul>
-    </div>
-    <div class="changelog-version">
-      <span class="changelog-version-tag">v6.30</span>
-      <span class="changelog-date">Jun 2026</span>
-      <ul>
-        <li>Heatmap — busy areas with lots of overlapping records were blowing out into one giant flat red mass with no internal texture, since every blob used the same fixed radius regardless of how many records were in view. Radius/blur now shrink as the visible record count grows, so dense clusters keep some shape instead of merging into an undifferentiated red blob, while sparse areas (including lone records) keep their full-size hotspot</li>
-      </ul>
-    </div>
-    <div class="changelog-version">
       <span class="changelog-version-tag">v6.29</span>
       <span class="changelog-date">Jun 2026</span>
       <ul>
         <li>Fish filter — fetching just fetched the entire phylum Chordata (every mammal, bird, reptile and amphibian too) and threw most of it away client-side, since the legacy backbone had no clean "Fish" node. COL XR's modern taxonomy splits Tetrapoda out as a sibling rather than nesting it under fish-adjacent classes, so the fetch now queries Actinopterygii, Sarcopterygii, Chondrichthyes and Cyclostomi directly — only fish come back, no more wasted bandwidth fetching thousands of non-fish records</li>
-      </ul>
-    </div>
-    <div class="changelog-version">
-      <span class="changelog-version-tag">v6.28</span>
-      <span class="changelog-date">Jun 2026</span>
-      <ul>
-        <li>Heatmap — fixed: the same records looked progressively hotter the further you zoomed in, even within a fixed polygon. Leaflet.heat scales intensity by 2^(zoom &minus; maxZoom) internally, and maxZoom was set to a fixed 19, so zooming in pushed the multiplier up regardless of radius/blur. maxZoom now tracks the current zoom on every redraw, neutralising that scaling so intensity reflects the data, not how far in you've zoomed</li>
-      </ul>
-    </div>
-    <div class="changelog-version">
-      <span class="changelog-version-tag">v6.27</span>
-      <span class="changelog-date">Jun 2026</span>
-      <ul>
-        <li>Heatmap — an isolated single record rendered as a faint pale-blue smear instead of reading as a hotspot, because the colour gradient's blue band covered the bottom 35% of the intensity range and the intensity ceiling was tuned for large, dense datasets. Front-loaded the gradient's warm colours and lowered the ceiling so a lone record now shows clearly as a yellow/orange hotspot, with denser clusters still scaling up to red</li>
       </ul>
     </div>
     <div class="changelog-version">
@@ -8116,21 +7997,7 @@ if (window._pendingShare) {
       <span class="changelog-version-tag">v2.37</span>
       <span class="changelog-date">May 2026</span>
       <ul>
-        <li>Fixed GBIF invalid WKT for KMZ polygons — now strips all trailing closure duplicates and deduplicates any consecutive identical vertices in the ring (handles KML files that repeat the start vertex)</li>
-      </ul>
-    </div>
-    <div class="changelog-version">
-      <span class="changelog-version-tag">v2.36</span>
-      <span class="changelog-date">May 2026</span>
-      <ul>
-        <li>Robust fix for KMZ polygon duplicate vertex — use epsilon comparison when stripping KML closing point to handle floating-point precision edge cases</li>
-      </ul>
-    </div>
-    <div class="changelog-version">
-      <span class="changelog-version-tag">v2.35</span>
-      <span class="changelog-date">May 2026</span>
-      <ul>
-        <li>Fixed GBIF "Invalid shape in WKT" error caused by KMZ polygons — KML LinearRings include a closing duplicate vertex which was producing two identical consecutive points in the WKT, now stripped before sending</li>
+        <li>Iterated three times on the same "Invalid shape in WKT" bug for KMZ polygons (caused by KML's duplicate closing vertex) — landed on stripping trailing closure duplicates and deduplicating any consecutive identical vertices, with epsilon comparison for floating-point precision</li>
       </ul>
     </div>
     <div class="changelog-version">
