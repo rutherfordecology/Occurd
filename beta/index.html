@@ -447,7 +447,7 @@
 <div class="modal-overlay" id="complexModal">
   <div class="modal">
     <h2>Complex polygon detected</h2>
-    <p>This polygon has <strong id="vertexCount"></strong> vertices. GBIF's API can struggle with highly complex geometries.<br><br>Consider simplifying it in QGIS first, or proceed and see if the query works.</p>
+    <p>This polygon has <strong id="vertexCount"></strong> vertices. GBIF's API can struggle with highly complex geometries.<br><br>Use "Simplify &amp; add" to automatically reduce it to a manageable size, or proceed with the original and see if the query works.</p>
     <div class="modal-btns">
       <button class="modal-btn" id="modalCancel">Cancel</button>
       <button class="modal-btn" id="modalSimplify">Simplify &amp; add</button>
@@ -6550,6 +6550,13 @@ if (window._pendingShare) {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v6.61</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>Updated the complex-polygon warning text to point at the new "Simplify &amp; add" button instead of suggesting a QGIS round-trip, now that simplification happens in-app</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v6.60</span>
       <span class="changelog-date">Jun 2026</span>
