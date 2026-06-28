@@ -392,7 +392,7 @@
       } catch(e2) {}
     }
     if (typeof window.addSpeciesEntry === 'function') {
-      window.addSpeciesEntry('all ' + genusName, resolvedKey, resolvedKey ? null : genusName);
+      window.addSpeciesEntry('all ' + genusName, resolvedKey, genusName);
     }
     input.value = ''; input.classList.remove('sp-active');
   }
@@ -412,7 +412,7 @@
     } catch(e) {}
 
     if (typeof window.addSpeciesEntry === 'function') {
-      window.addSpeciesEntry(displayLabel || sciName, resolvedKey, resolvedKey ? null : sciName);
+      window.addSpeciesEntry(displayLabel || sciName, resolvedKey, sciName);
     }
     input.value = '';
     input.classList.remove('sp-active');

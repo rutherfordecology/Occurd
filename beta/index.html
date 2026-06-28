@@ -46,7 +46,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v6.53</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v6.54</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -2034,8 +2034,10 @@ function renderPolyList() {
   function renderSpecies(p) {
     const el = document.createElement('div'); el.className = 'poly-item species-entry';
     const topRow = document.createElement('div'); topRow.className = 'poly-item-row';
+    const sciSuffix = (p.sciName && p.sciName.toLowerCase() !== p.name.toLowerCase())
+      ? ' <em style="opacity:0.65;font-style:italic;">(' + p.sciName + ')</em>' : '';
     topRow.innerHTML =
-      '<span class="poly-item-name">&#128269; ' + p.name + '</span>' +
+      '<span class="poly-item-name">&#128269; ' + p.name + sciSuffix + '</span>' +
       '<span class="poly-remove" data-id="' + p.id + '">&#x2715;</span>';
     topRow.querySelector('.poly-remove').addEventListener('click', () => removePolygon(p.id));
     el.appendChild(topRow);
