@@ -6551,6 +6551,13 @@ if (window._pendingShare) {
   </div>
   <div class="changelog-scroll" id="changelogScroll">
     <div class="changelog-version">
+      <span class="changelog-version-tag">v6.60</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>Added a "Simplify &amp; add" option to the complex-polygon warning shown for KML uploads with too many vertices — uses turf.simplify (Douglas-Peucker) to bring the shape under the 500-vertex threshold in-app, instead of requiring a round trip through QGIS</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
       <span class="changelog-version-tag">v6.59</span>
       <span class="changelog-date">Jun 2026</span>
       <ul>
@@ -6609,13 +6616,6 @@ if (window._pendingShare) {
         <li>Species search is now backed by a new pluggable name-resolver.js, so the NZOR/NVS/Samoa lookup logic isn't locked into this one app; a fork can register its own species list as another source without touching the search UI code</li>
         <li>Common names that genuinely apply to more than one species (e.g. "toatoa" → 4 different plants, "Kiwis" → family or order) now show a "which one?" picker instead of silently guessing or failing — same pattern but-is-it-threatened already uses for ambiguous names</li>
         <li>The ~860 scientific-name homonym collisions that the v1.58 NZOR rebuild was dropping entirely (two different taxonomic concepts sharing a bare name, no single accepted winner) now also surface as a picker rather than disappearing from search</li>
-      </ul>
-    </div>
-    <div class="changelog-version">
-      <span class="changelog-version-tag">v6.51</span>
-      <span class="changelog-date">Jun 2026</span>
-      <ul>
-        <li>Added a "Simplify &amp; add" option to the complex-polygon warning shown for KML uploads with too many vertices — uses turf.simplify (Douglas-Peucker) to bring the shape under the 500-vertex threshold in-app, instead of requiring a round trip through QGIS</li>
       </ul>
     </div>
     <div class="changelog-version">
