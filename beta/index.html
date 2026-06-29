@@ -46,7 +46,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v6.67</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v6.68</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -417,10 +417,12 @@
       </div>
       <div class="cl-nztcs-filters" id="clNztcsFilters" style="display:none;">
         <span class="filter-row-label">NZTCS</span>
+        <button class="nztcs-fc active" data-f="all">All</button>
         <!-- dynamic per-status chips rendered by updateNztcsChipCounts -->
       </div>
       <div class="cl-iucn-filters" id="clIucnFilters" style="display:none;">
         <span class="filter-row-label">IUCN Red List</span>
+        <button class="iucn-fc active" data-f="all">All</button>
         <button class="iucn-fc" data-f="EX">EX</button>
         <button class="iucn-fc" data-f="EW">EW</button>
         <button class="iucn-fc" data-f="CR">CR</button>
@@ -1773,8 +1775,8 @@ function clearResults() {
   document.getElementById('clNztcsFilters').style.display = 'none';
   document.getElementById('clIucnFilters').style.display = 'none';
   document.getElementById('clFooter').style.display = 'none';
-  document.querySelectorAll('.nztcs-fc').forEach(b => b.classList.remove('active'));
-  document.querySelectorAll('.iucn-fc').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.nztcs-fc').forEach(b => b.classList.toggle('active', b.dataset.f === 'all'));
+  document.querySelectorAll('.iucn-fc').forEach(b => b.classList.toggle('active', b.dataset.f === 'all'));
   const _ib = document.getElementById('clIucnBtn');
   if (_ib) { _ib.style.display = 'none'; _ib.classList.remove('unlocked'); _ib.textContent = 'IUCN'; }
   metricsGrid.style.display = 'none'; filterSection.style.display = 'none';
@@ -2754,8 +2756,8 @@ function updateNztcsChipCounts() {
     });
   });
   const container = document.getElementById('clNztcsFilters');
-  // Remove all dynamic chips (everything except the label span)
-  container.querySelectorAll('.nztcs-fc').forEach(b => b.remove());
+  // Remove all dynamic chips (everything except 'all' and the label span)
+  container.querySelectorAll('.nztcs-fc:not([data-f="all"])').forEach(b => b.remove());
   // Re-add chips for statuses present in the data, in defined order
   NZTCS_FILTER_ORDER.forEach(k => {
     if (counts[k] === 0) return;
@@ -2766,6 +2768,8 @@ function updateNztcsChipCounts() {
     if (currentNztcsFilter === k) btn.classList.add('active');
     container.appendChild(btn);
   });
+  // Keep 'all' active state correct
+  container.querySelector('.nztcs-fc[data-f="all"]').classList.toggle('active', currentNztcsFilter === 'all');
 }
 
 
@@ -2773,8 +2777,8 @@ document.getElementById('clNztcsFilters').addEventListener('click', e => {
   const btn = e.target.closest('.nztcs-fc');
   if (!btn) return;
   const wasActive = btn.classList.contains('active');
-  currentNztcsFilter = wasActive ? 'all' : btn.dataset.f;
-  document.querySelectorAll('.nztcs-fc').forEach(b => b.classList.toggle('active', !wasActive && b === btn));
+  currentNztcsFilter = (btn.dataset.f === 'all' || wasActive) ? 'all' : btn.dataset.f;
+  document.querySelectorAll('.nztcs-fc').forEach(b => b.classList.toggle('active', b.dataset.f === currentNztcsFilter));
   filterChecklistSearch();
   if (viewMode === 'points') renderPoints(allRecords);
   else if (viewMode === 'heat') renderHeatmap(allRecords);
@@ -2934,8 +2938,8 @@ document.getElementById('clIucnFilters').addEventListener('click', e => {
   const btn = e.target.closest('.iucn-fc');
   if (!btn) return;
   const wasActive = btn.classList.contains('active');
-  currentIucnFilter = wasActive ? 'all' : btn.dataset.f;
-  document.querySelectorAll('.iucn-fc').forEach(b => b.classList.toggle('active', !wasActive && b === btn));
+  currentIucnFilter = (btn.dataset.f === 'all' || wasActive) ? 'all' : btn.dataset.f;
+  document.querySelectorAll('.iucn-fc').forEach(b => b.classList.toggle('active', b.dataset.f === currentIucnFilter));
   filterChecklistSearch();
   if (viewMode === 'points') renderPoints(allRecords);
   else if (viewMode === 'heat') renderHeatmap(allRecords);
@@ -2978,7 +2982,7 @@ document.getElementById('clNztcsBtn').addEventListener('click', async () => {
     // Toggle off — remove badges and hide filter row
     nztcsUnlocked = false;
     currentNztcsFilter = 'all';
-    document.querySelectorAll('.nztcs-fc').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.nztcs-fc').forEach(b => b.classList.toggle('active', b.dataset.f === 'all'));
     updateNztcsBtn();
     if (allRecords.length > 0) buildChecklist(allRecords);
     return;
@@ -2992,7 +2996,7 @@ document.getElementById('clIucnBtn').addEventListener('click', () => {
     iucnUnlocked = false;
     _iucnFetchAbort = true;
     currentIucnFilter = 'all';
-    document.querySelectorAll('.iucn-fc').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.iucn-fc').forEach(b => b.classList.toggle('active', b.dataset.f === 'all'));
     updateIucnBtn();
     if (allRecords.length > 0) buildChecklist(allRecords);
     return;
@@ -6565,6 +6569,13 @@ if (window._pendingShare) {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v6.68</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>Brought back the "All" chip in the NZTCS and IUCN filter rows — removing it in v6.64 left no obvious way back to unfiltered once a status chip was active besides re-clicking the same chip</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v6.67</span>
       <span class="changelog-date">Jun 2026</span>
