@@ -46,7 +46,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v6.62</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v6.63</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -5189,7 +5189,11 @@ function getQueryWKT(poly) {
     const geojson = { type: 'Feature', geometry: { type: 'Polygon', coordinates: [ring] } };
     for (const tol of [0.005, 0.01, 0.02, 0.05, 0.1]) {
       const simplified = turf.simplify(geojson, { tolerance: tol, highQuality: false });
-      const r = simplified.geometry.coordinates[0];
+      let r = simplified.geometry.coordinates[0];
+      // GBIF/JTS requires the exterior ring to be wound counter-clockwise — reject otherwise.
+      let signedArea = 0;
+      for (let i = 0; i < r.length - 1; i++) signedArea += (r[i+1][0] - r[i][0]) * (r[i+1][1] + r[i][1]);
+      if (signedArea > 0) r = [...r].reverse();
       const wkt = 'POLYGON((' + r.map(c => c[0].toFixed(6) + ' ' + c[1].toFixed(6)).join(',') + '))';
       if (wkt.length <= 3000) return wkt;
     }
@@ -6550,6 +6554,13 @@ if (window._pendingShare) {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v6.63</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>Fixed: any polygon whose stored WKT exceeds 3,000 characters (roughly 120+ vertices) and whose source ring winds clockwise — common in catchment/district boundary exports — silently returned zero records instead of fetching anything. GBIF's geometry validator rejects clockwise exterior rings with an HTTP 400, but that error wasn't being surfaced; it just looked like an empty result. <code>getQueryWKT()</code>, which rebuilds a shorter WKT for long polygons, now enforces the same counter-clockwise winding that the initial WKT builder already did — it just wasn't reapplied after re-simplifying for length</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v6.62</span>
       <span class="changelog-date">Jun 2026</span>
