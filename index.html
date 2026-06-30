@@ -46,7 +46,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v6.60</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v6.74</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -447,9 +447,10 @@
 <div class="modal-overlay" id="complexModal">
   <div class="modal">
     <h2>Complex polygon detected</h2>
-    <p>This polygon has <strong id="vertexCount"></strong> vertices. GBIF's API can struggle with highly complex geometries.<br><br>Consider simplifying it in QGIS first, or proceed and see if the query works.</p>
+    <p>This polygon has <strong id="vertexCount"></strong> vertices. GBIF's API can struggle with highly complex geometries.<br><br>Use "Simplify &amp; add" to automatically reduce it to a manageable size, or proceed with the original and see if the query works.</p>
     <div class="modal-btns">
       <button class="modal-btn" id="modalCancel">Cancel</button>
+      <button class="modal-btn" id="modalSimplify">Simplify &amp; add</button>
       <button class="modal-btn primary" id="modalProceed">Proceed anyway</button>
     </div>
   </div>
@@ -719,9 +720,18 @@ const topoLayer = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png'
   });
 });
 osmLayer.addTo(map);
-L.control.layers({ 'Map': osmLayer, 'Greyscale': greyscaleLayer, 'Satellite': satelliteLayer, 'Topo': topoLayer }, {}, { position: 'topleft' }).addTo(map);
+const layersControl = L.control.layers({ 'Map': osmLayer, 'Greyscale': greyscaleLayer, 'Satellite': satelliteLayer, 'Topo': topoLayer }, {}, { position: 'topleft' }).addTo(map);
 // Align draw hint with the actual polygon button after all controls are rendered
 setTimeout(() => { if (typeof window._positionDrawHint === 'function') window._positionDrawHint(); }, 150);
+// The layers control expands/collapses on hover (and tap on touch), shifting the polygon
+// draw button below it — re-align the hint whenever that happens.
+const _layersControlEl = layersControl.getContainer();
+if (_layersControlEl) {
+  const _reposition = () => setTimeout(() => { if (typeof window._positionDrawHint === 'function') window._positionDrawHint(); }, 50);
+  _layersControlEl.addEventListener('mouseenter', _reposition);
+  _layersControlEl.addEventListener('mouseleave', _reposition);
+  _layersControlEl.addEventListener('click', _reposition);
+}
 window.addEventListener('load', () => {
   setTimeout(() => map.invalidateSize(), 100);
   if (navigator.geolocation && !window._restoredFromShare) {
@@ -1058,7 +1068,7 @@ map.on(L.Draw.Event.CREATED, e => {
     }
   } else {
     // If perpetuity layer is active, auto-add any intersecting QEII covenant polygons
-    let _qeiiAdded = 0;
+    const _qeiiPending = []; // { latlngs, name }
     if (window._qeiiState && window._qeiiState.features.length > 0) {
       try {
         const _drawnEntry = polygons.find(p => p.id === id);
@@ -1082,21 +1092,21 @@ map.on(L.Draw.Event.CREATED, e => {
               if (f.geometry.type === 'MultiPolygon') {
                 f.geometry.coordinates.forEach((poly, _i) => {
                   const _ll = poly[0].slice(0, -1).map(c => [c[1], c[0]]);
-                  addPolygon(_ll, _name + (f.geometry.coordinates.length > 1 ? ' (' + (_i + 1) + ')' : ''), []);
-                  _qeiiAdded++;
+                  _qeiiPending.push({ latlngs: _ll, name: _name + (f.geometry.coordinates.length > 1 ? ' (' + (_i + 1) + ')' : '') });
                 });
               } else {
                 const _ll = f.geometry.coordinates[0].slice(0, -1).map(c => [c[1], c[0]]);
-                addPolygon(_ll, _name, []);
-                _qeiiAdded++;
+                _qeiiPending.push({ latlngs: _ll, name: _name });
               }
             } catch(e) {}
           });
         }
       } catch(e) {}
     }
-    if (_qeiiAdded > 0) {
-      setStatus(_qeiiAdded + ' QEII covenant' + (_qeiiAdded === 1 ? '' : 's') + ' added from your selection. Drag corners or fetch when ready.', 'success');
+    if (_qeiiPending.length > 0) {
+      _qeiiPending.forEach(({ latlngs, name }) => addPolygon(latlngs, name, []));
+      const n = _qeiiPending.length;
+      setStatus(n + ' QEII covenant' + (n === 1 ? '' : 's') + ' added. Drag corners or fetch when ready.', 'success');
     } else {
       setStatus('Drag corners to adjust the polygon, then click Fetch when ready.', 'info');
     }
@@ -1538,9 +1548,7 @@ function passesFilters(r) {
   if (_rName && hiddenSpecies.has(_rName)) return false;
   if (nztcsUnlocked && currentNztcsFilter !== 'all') {
     const allowed = NZTCS_FILTER_GROUPS[currentNztcsFilter] || [];
-    const match = lookupNztcs(r);
-    const status = match && !match.conflict ? (match.entry.status || '') : '';
-    if (!allowed.includes(status)) return false;
+    if (!allowed.includes(getNztcsFilterStatus(r))) return false;
   }
   if (currentIucnFilter !== 'all') {
     const key = r.speciesKey || r.taxonKey;
@@ -2435,6 +2443,23 @@ function closeRingCoords(coords) {
   return coords;
 }
 
+// Simplify a [lat,lng] ring down to roughly `targetCount` vertices using turf.simplify,
+// stepping the tolerance up until the vertex count drops below the target (or we give up).
+function simplifyLatLngs(latlngs, targetCount) {
+  const ring = closeRingCoords(latlngs.map(llToGeoJSON));
+  const geojson = { type: 'Feature', geometry: { type: 'Polygon', coordinates: [ring] } };
+  for (const tol of [0.0005, 0.001, 0.002, 0.005, 0.01, 0.02, 0.05, 0.1]) {
+    try {
+      const simplified = turf.simplify(geojson, { tolerance: tol, highQuality: true });
+      const r = simplified.geometry.coordinates[0];
+      if (r.length >= 4 && r.length - 1 <= targetCount) {
+        return r.slice(0, -1).map(c => [c[1], c[0]]); // drop closing dup, back to [lat,lng]
+      }
+    } catch(e) {}
+  }
+  return latlngs; // couldn't get under target — return original, caller decides what to do
+}
+
 browseAddBtn.addEventListener('click', () => {
   const selected = browsePolygons.filter(bp => bp.selected);
   if (!selected.length) return;
@@ -2548,6 +2573,7 @@ const NZTCS_STATUS_CFG = {
 };
 const NZTCS_FILTER_GROUPS = {
   'th': ['Nationally Critical', 'Nationally Endangered', 'Nationally Vulnerable', 'Nationally Increasing', 'Declining', 'Naturally Uncommon', 'Relict', 'Gradual Decline', 'Serious Decline', 'Uncommon', 'Recovering', 'Extinct'],
+  'amb': ['__ambiguous__'],
   'nc': ['Nationally Critical'],
   'ne': ['Nationally Endangered'],
   'nv': ['Nationally Vulnerable'],
@@ -2561,8 +2587,8 @@ const NZTCS_FILTER_GROUPS = {
   'ni': ['Nationally Increasing'],
   'ex': ['Extinct'],
 };
-const NZTCS_FILTER_LABELS = { th:'All Threatened', nc:'NC', ne:'NE', nv:'NV', de:'De', nu:'NU', re:'Re', gd:'GD', sd:'SD', un:'Un', rc:'Rc', ni:'NI', ex:'Ex' };
-const NZTCS_FILTER_ORDER  = ['th','nc','ne','nv','de','nu','re','gd','sd','un','rc','ni','ex'];
+const NZTCS_FILTER_LABELS = { th:'All Threatened', amb:'△?', nc:'NC', ne:'NE', nv:'NV', de:'De', nu:'NU', re:'Re', gd:'GD', sd:'SD', un:'Un', rc:'Rc', ni:'NI', ex:'Ex' };
+const NZTCS_FILTER_ORDER  = ['th','amb','nc','ne','nv','de','nu','re','gd','sd','un','rc','ni','ex'];
 
 function nztcsNormKey(s) {
   if (!s) return null;
@@ -2614,6 +2640,19 @@ function lookupNztcs(rec) {
     }
   }
   return null;
+}
+
+// Like lookupNztcs but resolves unresolved subspecies conflicts to '__ambiguous__'
+// (or the user's chosen subspecies status, if they've picked one) for filtering.
+function getNztcsFilterStatus(rec) {
+  const match = lookupNztcs(rec);
+  if (!match) return '';
+  if (match.conflict) {
+    const name = rec.species || rec.scientificName || '';
+    const chosen = nztcsConflictChoices.get(name);
+    return chosen ? (chosen.status || '') : '__ambiguous__';
+  }
+  return match.entry.status || '';
 }
 
 function nztcsBadgeHtml(entry, certain) {
@@ -2737,8 +2776,9 @@ function updateNztcsChipCounts() {
 document.getElementById('clNztcsFilters').addEventListener('click', e => {
   const btn = e.target.closest('.nztcs-fc');
   if (!btn) return;
-  currentNztcsFilter = btn.dataset.f;
-  document.querySelectorAll('.nztcs-fc').forEach(b => b.classList.toggle('active', b === btn));
+  const wasActive = btn.classList.contains('active');
+  currentNztcsFilter = (btn.dataset.f === 'all' || wasActive) ? 'all' : btn.dataset.f;
+  document.querySelectorAll('.nztcs-fc').forEach(b => b.classList.toggle('active', b.dataset.f === currentNztcsFilter));
   filterChecklistSearch();
   if (viewMode === 'points') renderPoints(allRecords);
   else if (viewMode === 'heat') renderHeatmap(allRecords);
@@ -2897,8 +2937,9 @@ function updateIucnChipCounts() {
 document.getElementById('clIucnFilters').addEventListener('click', e => {
   const btn = e.target.closest('.iucn-fc');
   if (!btn) return;
-  currentIucnFilter = btn.dataset.f;
-  document.querySelectorAll('.iucn-fc').forEach(b => b.classList.toggle('active', b === btn));
+  const wasActive = btn.classList.contains('active');
+  currentIucnFilter = (btn.dataset.f === 'all' || wasActive) ? 'all' : btn.dataset.f;
+  document.querySelectorAll('.iucn-fc').forEach(b => b.classList.toggle('active', b.dataset.f === currentIucnFilter));
   filterChecklistSearch();
   if (viewMode === 'points') renderPoints(allRecords);
   else if (viewMode === 'heat') renderHeatmap(allRecords);
@@ -2993,6 +3034,15 @@ document.getElementById('nztcsBetaAcceptBtn').addEventListener('click', async ()
 });
 
 document.getElementById('modalCancel').addEventListener('click', () => { complexModal.classList.remove('open'); pendingLoad = null; });
+document.getElementById('modalSimplify').addEventListener('click', () => {
+  complexModal.classList.remove('open');
+  if (pendingLoad) {
+    const simplified = simplifyLatLngs(pendingLoad.latlngs, COMPLEXITY_THRESHOLD);
+    addPolygonSafe(simplified, pendingLoad.label);
+    setStatus('Simplified from ' + pendingLoad.latlngs.length.toLocaleString() + ' to ' + simplified.length.toLocaleString() + ' vertices', 'info');
+    pendingLoad = null;
+  }
+});
 document.getElementById('modalProceed').addEventListener('click', () => {
   complexModal.classList.remove('open');
   if (pendingLoad) { addPolygon(pendingLoad.latlngs, pendingLoad.label); pendingLoad = null; }
@@ -4756,7 +4806,7 @@ function buildChecklist(records) {
           }
         }
       } catch(e) { console.warn('NZTCS badge error for', name, e); }
-      row.dataset.nztcs = nztcsEntry ? (nztcsEntry.status || '') : '';
+      row.dataset.nztcs = nztcsEntry ? (nztcsEntry.status || '') : (nztcsMatch && nztcsMatch.conflict ? '__ambiguous__' : '');
       // IUCN — only show if user has unlocked
       const iucnKey = iucnUnlocked ? (info.record.speciesKey || info.record.taxonKey) : null;
       const iucnStatus = iucnKey && iucnCache[iucnKey] ? iucnCache[iucnKey] : null;
@@ -5153,7 +5203,11 @@ function getQueryWKT(poly) {
     const geojson = { type: 'Feature', geometry: { type: 'Polygon', coordinates: [ring] } };
     for (const tol of [0.005, 0.01, 0.02, 0.05, 0.1]) {
       const simplified = turf.simplify(geojson, { tolerance: tol, highQuality: false });
-      const r = simplified.geometry.coordinates[0];
+      let r = simplified.geometry.coordinates[0];
+      // GBIF/JTS requires the exterior ring to be wound counter-clockwise — reject otherwise.
+      let signedArea = 0;
+      for (let i = 0; i < r.length - 1; i++) signedArea += (r[i+1][0] - r[i][0]) * (r[i+1][1] + r[i][1]);
+      if (signedArea > 0) r = [...r].reverse();
       const wkt = 'POLYGON((' + r.map(c => c[0].toFixed(6) + ' ' + c[1].toFixed(6)).join(',') + '))';
       if (wkt.length <= 3000) return wkt;
     }
@@ -5940,12 +5994,13 @@ document.getElementById('dlCsvBtn').addEventListener('click', () => {
   });
   if (nztcsUnlocked && nztcsData) {
     fields = [...fields, 'nztcs_status', 'nztcs_category', 'nztcs_year'];
-    rows = filtered.map(r => {
+    rows = rows.map(r => {
       const m = lookupNztcs(r);
+      const e = m && !m.conflict ? m.entry : null;
       return Object.assign({}, r, {
-        nztcs_status:   m ? (m.entry.status   || '') : '',
-        nztcs_category: m ? (m.entry.category || '') : '',
-        nztcs_year:     m ? (m.entry.year     || '') : '',
+        nztcs_status:   e ? (e.status   || '') : '',
+        nztcs_category: e ? (e.category || '') : '',
+        nztcs_year:     e ? (e.year     || '') : '',
       });
     });
   }
@@ -6498,8 +6553,8 @@ if (window._pendingShare) {
 }
 
 </script>
-<script src="name-resolver.js"></script>
-<script src="but-is-it-threatened/nzor-source.js"></script>
+<script src="../name-resolver.js"></script>
+<script src="../but-is-it-threatened/nzor-source.js"></script>
 <script src="species-search.js"></script>
 <script src="qeii.js"></script>
 <script src="projects.js"></script>
@@ -6515,24 +6570,117 @@ if (window._pendingShare) {
   </div>
   <div class="changelog-scroll" id="changelogScroll">
     <div class="changelog-version">
-      <span class="changelog-version-tag">v6.60</span>
+      <span class="changelog-version-tag">v6.74</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>QEII draw-to-select — removed simplification option; covenants are always added with their original geometry to avoid double-counting from overlapping simplified shapes</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v6.72</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>QEII simplification bar — opaque dark style, now readable against the map</li>
+        <li>QEII simplification — simplified polygons are buffered ~15m outward after simplification so no edge records are missed when fetching from GBIF</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v6.71</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>QEII draw-to-select — when the selected covenants have complex geometries (avg &gt;30 vertices), a bar appears offering Light (80 vertices), Medium (30 vertices), or Keep original simplification before adding them; simplified shapes export normally in GeoJSON/KML</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v6.70</span>
       <span class="changelog-date">Jun 2026</span>
       <ul>
         <li>Fixed: opening a shared link no longer jumps to the user's GPS location — the geolocation setView is now skipped when a shared state hash is present</li>
       </ul>
     </div>
     <div class="changelog-version">
+      <span class="changelog-version-tag">v6.69</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>Fixed: opening a shared link no longer jumps to the user's GPS location when "Get started" is clicked — geolocation is skipped when a shared state is being restored</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v6.68</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>Brought back the "All" chip in the NZTCS and IUCN filter rows — removing it in v6.64 left no obvious way back to unfiltered once a status chip was active besides re-clicking the same chip</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v6.67</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>Styled the ambiguous-subspecies picker and badge — both were completely unstyled (raw browser default buttons/text), now using the same amber treatment as the species-search ambiguity picker</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v6.66</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>Added a "△?" filter chip to the NZTCS row for species showing the ambiguous-subspecies badge (where conflicting subspecies statuses haven't been resolved with a pick) — filters both the checklist and the map to just those species</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v6.65</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>Fixed "Occurrences CSV" download silently doing nothing once NZTCS was active: building the nztcs_status/category/year columns assumed every NZTCS lookup result has an <code>.entry</code>, but species with an ambiguous (conflicting) NZTCS match return <code>{conflict:true}</code> with no entry, throwing mid-export and aborting the download before the file was ever generated</li>
+        <li>Also fixed the same export silently dropping the polygon_name column whenever NZTCS was active — it was rebuilding rows from the raw filtered records a second time instead of building on the polygon-name-tagged rows from the step above</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v6.64</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>Removed the redundant "All" chip from the NZTCS and IUCN status filter rows — click an active chip again to clear the filter instead</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v6.63</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>Fixed: any polygon whose stored WKT exceeds 3,000 characters (roughly 120+ vertices) and whose source ring winds clockwise — common in catchment/district boundary exports — silently returned zero records instead of fetching anything. GBIF's geometry validator rejects clockwise exterior rings with an HTTP 400, but that error wasn't being surfaced; it just looked like an empty result. <code>getQueryWKT()</code>, which rebuilds a shorter WKT for long polygons, now enforces the same counter-clockwise winding that the initial WKT builder already did — it just wasn't reapplied after re-simplifying for length</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v6.62</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>Fixed "Simplify &amp; add" returning zero GBIF records for complex district-boundary-style polygons — turf.simplify can introduce a self-intersecting (bowtie) ring when aggressively reducing a wiggly coastline, and GBIF silently matches nothing against an invalid WKT polygon instead of erroring. The simplified shape is now run through the same kink-unwrapping already used for KMZ imports before being added to the map</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v6.61</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>Updated the complex-polygon warning text to point at the new "Simplify &amp; add" button instead of suggesting a QGIS round-trip, now that simplification happens in-app</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v6.60</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>Added a "Simplify &amp; add" option to the complex-polygon warning shown for KML uploads with too many vertices — uses turf.simplify (Douglas-Peucker) to bring the shape under the 500-vertex threshold in-app, instead of requiring a round trip through QGIS</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
       <span class="changelog-version-tag">v6.59</span>
       <span class="changelog-date">Jun 2026</span>
       <ul>
-        <li>Added an OpenTopoMap layer ("Topo") to the basemap switcher</li>
+        <li>Fixed "click here to start drawing" hint not following the polygon button when the layer switcher (Map/Greyscale/Satellite/Topo) is opened, leaving the hint pointing at the wrong spot</li>
       </ul>
     </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v6.58</span>
       <span class="changelog-date">Jun 2026</span>
       <ul>
-        <li>Fixed: opening a shared link no longer jumps to the user's GPS location when "Get started" is clicked — geolocation is skipped when a shared state is being restored</li>
+        <li>Added an OpenTopoMap layer ("Topo") alongside Map, Greyscale and Satellite in the basemap switcher</li>
       </ul>
     </div>
     <div class="changelog-version">
