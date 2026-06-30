@@ -145,7 +145,7 @@
 <div class="topbar">
   <div>
     <span class="topbar-title">WhatDat?</span>
-    <span class="topbar-version">v2.0</span>
+    <span class="topbar-version">v2.1</span>
   </div>
   <span class="topbar-re">by <a href="https://www.rutherfordecology.co.nz/" target="_blank"><strong>Rutherford</strong> ecology</a></span>
 </div>
@@ -715,8 +715,10 @@ async function addLibraryMarkersToMap(quizzes) {
     const c = await resolveQuizCoords(q);
     if (!c) continue;
     const absUrl = q.url.startsWith('http') ? q.url : `https://occurd.rutherfordecology.co.nz/whatdat/${q.url}`;
-    L.marker([c.lat, c.lng]).addTo(pickMap)
-      .bindPopup(`<div style="font-family:system-ui;text-align:center"><div style="font-weight:700">${q.description||q.name}</div><a href="${absUrl}" style="color:#1a5940;font-weight:800;text-decoration:none">Play &#8594;</a></div>`);
+    const popup = `<div style="font-family:system-ui;text-align:center"><div style="font-weight:700">${q.description||q.name}</div><a href="${absUrl}" style="color:#1a5940;font-weight:800;text-decoration:none">Play &#8594;</a></div>`;
+    for (const lngOffset of [0, -360, 360]) {
+      L.marker([c.lat, c.lng + lngOffset]).addTo(pickMap).bindPopup(popup);
+    }
   }
 }
 
