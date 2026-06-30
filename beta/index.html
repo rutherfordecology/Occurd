@@ -46,7 +46,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v6.70</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v6.71</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -1068,7 +1068,7 @@ map.on(L.Draw.Event.CREATED, e => {
     }
   } else {
     // If perpetuity layer is active, auto-add any intersecting QEII covenant polygons
-    let _qeiiAdded = 0;
+    const _qeiiPending = []; // { latlngs, name }
     if (window._qeiiState && window._qeiiState.features.length > 0) {
       try {
         const _drawnEntry = polygons.find(p => p.id === id);
@@ -1092,21 +1092,51 @@ map.on(L.Draw.Event.CREATED, e => {
               if (f.geometry.type === 'MultiPolygon') {
                 f.geometry.coordinates.forEach((poly, _i) => {
                   const _ll = poly[0].slice(0, -1).map(c => [c[1], c[0]]);
-                  addPolygon(_ll, _name + (f.geometry.coordinates.length > 1 ? ' (' + (_i + 1) + ')' : ''), []);
-                  _qeiiAdded++;
+                  _qeiiPending.push({ latlngs: _ll, name: _name + (f.geometry.coordinates.length > 1 ? ' (' + (_i + 1) + ')' : '') });
                 });
               } else {
                 const _ll = f.geometry.coordinates[0].slice(0, -1).map(c => [c[1], c[0]]);
-                addPolygon(_ll, _name, []);
-                _qeiiAdded++;
+                _qeiiPending.push({ latlngs: _ll, name: _name });
               }
             } catch(e) {}
           });
         }
       } catch(e) {}
     }
-    if (_qeiiAdded > 0) {
-      setStatus(_qeiiAdded + ' QEII covenant' + (_qeiiAdded === 1 ? '' : 's') + ' added from your selection. Drag corners or fetch when ready.', 'success');
+    if (_qeiiPending.length > 0) {
+      function _addQeiiCovenants(simplifyTarget) {
+        _qeiiPending.forEach(({ latlngs, name }) => {
+          const ll = simplifyTarget ? simplifyLatLngs(latlngs, simplifyTarget) : latlngs;
+          addPolygon(ll, name, []);
+        });
+        const n = _qeiiPending.length;
+        setStatus(n + ' QEII covenant' + (n === 1 ? '' : 's') + ' added. Drag corners or fetch when ready.', 'success');
+        const bar = document.getElementById('_qeiiSimplifyBar');
+        if (bar) bar.remove();
+      }
+
+      // Count total vertices to decide whether to offer simplification
+      const _totalVerts = _qeiiPending.reduce((s, p) => s + p.latlngs.length, 0);
+      const _avgVerts = Math.round(_totalVerts / _qeiiPending.length);
+
+      if (_avgVerts > 30) {
+        // Show simplification offer
+        const bar = document.createElement('div');
+        bar.id = '_qeiiSimplifyBar';
+        bar.style.cssText = 'position:fixed;bottom:60px;left:50%;transform:translateX(-50%);z-index:9999;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;display:flex;align-items:center;gap:10px;font-size:13px;box-shadow:0 2px 12px rgba(0,0,0,0.18);white-space:nowrap;';
+        const n = _qeiiPending.length;
+        bar.innerHTML = '<span style="color:var(--text2);">' + n + ' covenant' + (n===1?'':'s') + ' selected — simplify vertices?</span>' +
+          '<button style="padding:3px 10px;border-radius:5px;border:1px solid var(--border);background:var(--bg3);cursor:pointer;font-size:12px;" id="_qeiiSimLight">Light</button>' +
+          '<button style="padding:3px 10px;border-radius:5px;border:1px solid var(--border);background:var(--bg3);cursor:pointer;font-size:12px;" id="_qeiiSimMed">Medium</button>' +
+          '<button style="padding:3px 10px;border-radius:5px;border:1px solid var(--border);background:var(--bg3);cursor:pointer;font-size:12px;" id="_qeiiSimSkip">Keep original</button>';
+        document.body.appendChild(bar);
+        document.getElementById('_qeiiSimLight').onclick  = () => _addQeiiCovenants(80);
+        document.getElementById('_qeiiSimMed').onclick    = () => _addQeiiCovenants(30);
+        document.getElementById('_qeiiSimSkip').onclick   = () => _addQeiiCovenants(null);
+        setStatus(n + ' QEII covenant' + (n === 1 ? '' : 's') + ' found — choose simplification below.', 'info');
+      } else {
+        _addQeiiCovenants(null);
+      }
     } else {
       setStatus('Drag corners to adjust the polygon, then click Fetch when ready.', 'info');
     }
@@ -6569,6 +6599,13 @@ if (window._pendingShare) {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v6.71</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>QEII draw-to-select — when the selected covenants have complex geometries (avg &gt;30 vertices), a bar appears offering Light (80 vertices), Medium (30 vertices), or Keep original simplification before adding them; simplified shapes export normally in GeoJSON/KML</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v6.70</span>
       <span class="changelog-date">Jun 2026</span>
