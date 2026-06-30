@@ -46,7 +46,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v6.71</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v6.72</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -1106,7 +1106,19 @@ map.on(L.Draw.Event.CREATED, e => {
     if (_qeiiPending.length > 0) {
       function _addQeiiCovenants(simplifyTarget) {
         _qeiiPending.forEach(({ latlngs, name }) => {
-          const ll = simplifyTarget ? simplifyLatLngs(latlngs, simplifyTarget) : latlngs;
+          let ll = latlngs;
+          if (simplifyTarget) {
+            const simplified = simplifyLatLngs(latlngs, simplifyTarget);
+            // Buffer by ~15m to recover any edge clipping from simplification
+            try {
+              const ring = closeRingCoords(simplified.map(llToGeoJSON));
+              const buffered = turf.buffer(turf.polygon([ring]), 0.00015, { units: 'degrees' });
+              const bCoords = buffered.geometry.coordinates[0];
+              ll = bCoords.slice(0, -1).map(c => [c[1], c[0]]);
+            } catch(e) {
+              ll = simplified; // fall back to unbuffered if buffer fails
+            }
+          }
           addPolygon(ll, name, []);
         });
         const n = _qeiiPending.length;
@@ -1123,12 +1135,12 @@ map.on(L.Draw.Event.CREATED, e => {
         // Show simplification offer
         const bar = document.createElement('div');
         bar.id = '_qeiiSimplifyBar';
-        bar.style.cssText = 'position:fixed;bottom:60px;left:50%;transform:translateX(-50%);z-index:9999;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;display:flex;align-items:center;gap:10px;font-size:13px;box-shadow:0 2px 12px rgba(0,0,0,0.18);white-space:nowrap;';
+        bar.style.cssText = 'position:fixed;bottom:60px;left:50%;transform:translateX(-50%);z-index:9999;background:#1a1a1a;border:1px solid #444;border-radius:8px;padding:10px 16px;display:flex;align-items:center;gap:10px;font-size:13px;box-shadow:0 3px 16px rgba(0,0,0,0.55);white-space:nowrap;color:#f0f0f0;';
         const n = _qeiiPending.length;
-        bar.innerHTML = '<span style="color:var(--text2);">' + n + ' covenant' + (n===1?'':'s') + ' selected — simplify vertices?</span>' +
-          '<button style="padding:3px 10px;border-radius:5px;border:1px solid var(--border);background:var(--bg3);cursor:pointer;font-size:12px;" id="_qeiiSimLight">Light</button>' +
-          '<button style="padding:3px 10px;border-radius:5px;border:1px solid var(--border);background:var(--bg3);cursor:pointer;font-size:12px;" id="_qeiiSimMed">Medium</button>' +
-          '<button style="padding:3px 10px;border-radius:5px;border:1px solid var(--border);background:var(--bg3);cursor:pointer;font-size:12px;" id="_qeiiSimSkip">Keep original</button>';
+        bar.innerHTML = '<span>' + n + ' covenant' + (n===1?'':'s') + ' selected — simplify vertices?</span>' +
+          '<button style="padding:4px 12px;border-radius:5px;border:1px solid #666;background:#2e2e2e;color:#f0f0f0;cursor:pointer;font-size:12px;" id="_qeiiSimLight">Light</button>' +
+          '<button style="padding:4px 12px;border-radius:5px;border:1px solid #666;background:#2e2e2e;color:#f0f0f0;cursor:pointer;font-size:12px;" id="_qeiiSimMed">Medium</button>' +
+          '<button style="padding:4px 12px;border-radius:5px;border:1px solid #666;background:#2e2e2e;color:#f0f0f0;cursor:pointer;font-size:12px;" id="_qeiiSimSkip">Keep original</button>';
         document.body.appendChild(bar);
         document.getElementById('_qeiiSimLight').onclick  = () => _addQeiiCovenants(80);
         document.getElementById('_qeiiSimMed').onclick    = () => _addQeiiCovenants(30);
@@ -6599,6 +6611,14 @@ if (window._pendingShare) {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v6.72</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>QEII simplification bar — opaque dark style, now readable against the map</li>
+        <li>QEII simplification — simplified polygons are buffered ~15m outward after simplification so no edge records are missed when fetching from GBIF</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v6.71</span>
       <span class="changelog-date">Jun 2026</span>
