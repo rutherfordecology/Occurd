@@ -17,7 +17,7 @@ window.onunhandledrejection = e => {
 };
 </script>
 <div id="app"></div>
-<script src="engine.js?v=1.11" onerror="document.getElementById('app').innerHTML='<div style=padding:2rem;font-family:sans-serif;color:#8a2c2c>Failed to load engine.js.<br><br><a href=index.html>← Back</a></div>'"></script>
+<script src="engine.js?v=1.12" onerror="document.getElementById('app').innerHTML='<div style=padding:2rem;font-family:sans-serif;color:#8a2c2c>Failed to load engine.js.<br><br><a href=index.html>← Back</a></div>'"></script>
 <script>
 // Common name overrides keyed by lowercase latin name
 const NAME_OVERRIDES = {
@@ -513,28 +513,45 @@ async function boot() {
     PLACE_LAT = COORD_LAT;
     PLACE_LNG = COORD_LNG;
     COUNTRY_CODE = COORD_CC;
-    const PAD_STEPS = [0.05, 0.1, 0.2, 0.5, 1.0, 2.0];
+    // Fine-grained steps: 100m → 50km half-sides
+    const PAD_STEPS = [0.0009, 0.0018, 0.0027, 0.0036, 0.0045, 0.0068, 0.009, 0.018, 0.045, 0.09, 0.225, 0.45, 1.0, 2.0];
+    const MIN_SPECIES = 25;
+    const padLabel = pad => { const m = Math.round(pad * 111000); return m < 1000 ? `${m}m` : `${(m/1000).toFixed(m < 10000 ? 1 : 0)}km`; };
     let foundPad = null;
     for (const pad of PAD_STEPS) {
       PLACE_BBOX = { minLat: COORD_LAT - pad, maxLat: COORD_LAT + pad, minLng: COORD_LNG - pad, maxLng: COORD_LNG + pad };
-      updateLoadingProgress(`Searching within ${Math.round(pad * 111)}km of ${PLACE_NAME}...`);
+      updateLoadingProgress(`Searching within ${padLabel(pad)} of ${PLACE_NAME}...`);
       try {
         const r = await fetch(bboxUrl(PLACE_BBOX, 0));
         const d = await r.json();
         const items = (d.facets?.[0]?.counts || []);
-        if (items.length >= 4) { foundPad = pad; break; }
+        if (items.length >= MIN_SPECIES) { foundPad = pad; break; }
       } catch {}
     }
     if (foundPad !== null) {
+      // foundPad just cleared the threshold — double it so all tiers have a rich pool
+      const expandedPad = Math.min(foundPad * 2, 4.0);
+      PLACE_BBOX = { minLat: COORD_LAT - expandedPad, maxLat: COORD_LAT + expandedPad, minLng: COORD_LNG - expandedPad, maxLng: COORD_LNG + expandedPad };
+      setState({ buffer: Math.round(expandedPad * 111) });
+      updateLoadingProgress(`Loading species within ${padLabel(expandedPad)} of ${PLACE_NAME}...`);
       try { await loadFromGBIF(); return; } catch (err) {
         console.warn('GBIF load failed, falling back to iNat:', err.message);
       }
     }
     setState({ phase: 'loading' });
     for (const pad of PAD_STEPS) {
+      const radiusKm = Math.round(pad * 111);
       try {
-        const birds = await loadFromInat(Math.round(pad * 111));
-        if (birds.length >= 4) { setTiers(birds); setState({ phase: 'intro' }); return; }
+        const birds = await loadFromInat(radiusKm);
+        if (birds.length >= 4) {
+          // Also double for iNat path to get fuller lists
+          const expandedKm = Math.min(radiusKm * 2, Math.round(4.0 * 111));
+          setState({ buffer: expandedKm });
+          const expanded = await loadFromInat(expandedKm).catch(() => birds);
+          setTiers(expanded.length >= 4 ? expanded : birds);
+          setState({ phase: 'intro' });
+          return;
+        }
       } catch {}
     }
     setState({ phase: 'error', loadError: 'Not enough species found near this location.' });
