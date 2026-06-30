@@ -46,7 +46,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v6.73</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v6.74</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -1104,53 +1104,9 @@ map.on(L.Draw.Event.CREATED, e => {
       } catch(e) {}
     }
     if (_qeiiPending.length > 0) {
-      function _addQeiiCovenants(simplifyTarget) {
-        _qeiiPending.forEach(({ latlngs, name }) => {
-          let ll = latlngs;
-          if (simplifyTarget) {
-            // Convex hull of original vertices — guaranteed to contain all original points
-            try {
-              const pts = turf.multiPoint(latlngs.map(llToGeoJSON));
-              const hull = turf.convex(pts);
-              if (hull) {
-                ll = hull.geometry.coordinates[0].slice(0, -1).map(c => [c[1], c[0]]);
-              } else {
-                ll = simplifyLatLngs(latlngs, simplifyTarget);
-              }
-            } catch(e) {
-              ll = simplifyLatLngs(latlngs, simplifyTarget);
-            }
-          }
-          addPolygon(ll, name, []);
-        });
-        const n = _qeiiPending.length;
-        setStatus(n + ' QEII covenant' + (n === 1 ? '' : 's') + ' added. Drag corners or fetch when ready.', 'success');
-        const bar = document.getElementById('_qeiiSimplifyBar');
-        if (bar) bar.remove();
-      }
-
-      // Count total vertices to decide whether to offer simplification
-      const _totalVerts = _qeiiPending.reduce((s, p) => s + p.latlngs.length, 0);
-      const _avgVerts = Math.round(_totalVerts / _qeiiPending.length);
-
-      if (_avgVerts > 30) {
-        // Show simplification offer
-        const bar = document.createElement('div');
-        bar.id = '_qeiiSimplifyBar';
-        bar.style.cssText = 'position:fixed;bottom:60px;left:50%;transform:translateX(-50%);z-index:9999;background:#1a1a1a;border:1px solid #444;border-radius:8px;padding:10px 16px;display:flex;align-items:center;gap:10px;font-size:13px;box-shadow:0 3px 16px rgba(0,0,0,0.55);white-space:nowrap;color:#f0f0f0;';
-        const n = _qeiiPending.length;
-        bar.innerHTML = '<span>' + n + ' covenant' + (n===1?'':'s') + ' selected — simplify vertices?</span>' +
-          '<button style="padding:4px 12px;border-radius:5px;border:1px solid #666;background:#2e2e2e;color:#f0f0f0;cursor:pointer;font-size:12px;" id="_qeiiSimLight">Light</button>' +
-          '<button style="padding:4px 12px;border-radius:5px;border:1px solid #666;background:#2e2e2e;color:#f0f0f0;cursor:pointer;font-size:12px;" id="_qeiiSimMed">Medium</button>' +
-          '<button style="padding:4px 12px;border-radius:5px;border:1px solid #666;background:#2e2e2e;color:#f0f0f0;cursor:pointer;font-size:12px;" id="_qeiiSimSkip">Keep original</button>';
-        document.body.appendChild(bar);
-        document.getElementById('_qeiiSimLight').onclick  = () => _addQeiiCovenants(80);
-        document.getElementById('_qeiiSimMed').onclick    = () => _addQeiiCovenants(30);
-        document.getElementById('_qeiiSimSkip').onclick   = () => _addQeiiCovenants(null);
-        setStatus(n + ' QEII covenant' + (n === 1 ? '' : 's') + ' found — choose simplification below.', 'info');
-      } else {
-        _addQeiiCovenants(null);
-      }
+      _qeiiPending.forEach(({ latlngs, name }) => addPolygon(latlngs, name, []));
+      const n = _qeiiPending.length;
+      setStatus(n + ' QEII covenant' + (n === 1 ? '' : 's') + ' added. Drag corners or fetch when ready.', 'success');
     } else {
       setStatus('Drag corners to adjust the polygon, then click Fetch when ready.', 'info');
     }
@@ -6614,10 +6570,10 @@ if (window._pendingShare) {
   </div>
   <div class="changelog-scroll" id="changelogScroll">
     <div class="changelog-version">
-      <span class="changelog-version-tag">v6.73</span>
+      <span class="changelog-version-tag">v6.74</span>
       <span class="changelog-date">Jun 2026</span>
       <ul>
-        <li>QEII simplification — switched from simplify+buffer to convex hull, guaranteeing the query polygon contains all original covenant vertices so no edge records are missed</li>
+        <li>QEII draw-to-select — removed simplification option; covenants are always added with their original geometry to avoid double-counting from overlapping simplified shapes</li>
       </ul>
     </div>
     <div class="changelog-version">
