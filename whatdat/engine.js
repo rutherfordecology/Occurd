@@ -1,7 +1,7 @@
-// WhatDat? Quiz Engine v1.12
+// WhatDat? Quiz Engine v1.13
 // Shared engine for all quiz pages.
 // Each page calls: initEngine(config)
-const APP_VERSION = 'v1.12';
+const APP_VERSION = 'v1.13';
 window.__engineLoaded = true;
 
 const GH_TOKEN = ['github','pat','11CD5YDQQ0bj2y9dp1UI7X','dOQEr16i0xNnN8iEM3pVloK7E9YJz7sn81NGUBeUuF1QPSQ6QBCEJbLlREp'].join('_');
@@ -957,7 +957,7 @@ function renderQuiz(app) {
     // often the recognisable trait when the exact species isn't obvious, and
     // seeing it on all 4 choices (not just the correct one after answering)
     // reinforces family-level identification as its own skill.
-    const familyLabel = CFG.taxonName === 'Plantae' && matchBird?.family
+    const familyLabel = matchBird?.family
       ? `<span class="opt-family">${matchBird.family}</span>` : '';
     return `<button class="${cls}" ${state.selected?'disabled':''} onclick="selectAnswer('${safe}',event)"><span class="opt-english">${opt}</span>${localLabel}${latinLabel}${familyLabel}</button>`;
   }).join('');
@@ -1034,7 +1034,7 @@ function renderSpeciesList(app, header, sortMode) {
     const countBadge = bird.count ? `<span class="obs-count">${bird.count.toLocaleString()} records</span>` : '';
     const badges = speciesBadges(bird);
     const detailId = `spd-${idx}`;
-    const familyLabel = _spSortMode === 'taxonomy' && bird.family ? `<span class="sp-family">${bird.family}</span>` : '';
+    const familyLabel = bird.family ? `<span class="sp-family">${bird.family}</span>` : '';
     return `<div class="sp-item">
       <div class="sp-name-row">
         <span class="sp-name">${bird.name}</span>
