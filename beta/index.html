@@ -46,7 +46,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v6.72</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v6.73</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -1108,15 +1108,17 @@ map.on(L.Draw.Event.CREATED, e => {
         _qeiiPending.forEach(({ latlngs, name }) => {
           let ll = latlngs;
           if (simplifyTarget) {
-            const simplified = simplifyLatLngs(latlngs, simplifyTarget);
-            // Buffer by ~15m to recover any edge clipping from simplification
+            // Convex hull of original vertices — guaranteed to contain all original points
             try {
-              const ring = closeRingCoords(simplified.map(llToGeoJSON));
-              const buffered = turf.buffer(turf.polygon([ring]), 0.00015, { units: 'degrees' });
-              const bCoords = buffered.geometry.coordinates[0];
-              ll = bCoords.slice(0, -1).map(c => [c[1], c[0]]);
+              const pts = turf.multiPoint(latlngs.map(llToGeoJSON));
+              const hull = turf.convex(pts);
+              if (hull) {
+                ll = hull.geometry.coordinates[0].slice(0, -1).map(c => [c[1], c[0]]);
+              } else {
+                ll = simplifyLatLngs(latlngs, simplifyTarget);
+              }
             } catch(e) {
-              ll = simplified; // fall back to unbuffered if buffer fails
+              ll = simplifyLatLngs(latlngs, simplifyTarget);
             }
           }
           addPolygon(ll, name, []);
@@ -6611,6 +6613,13 @@ if (window._pendingShare) {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v6.73</span>
+      <span class="changelog-date">Jun 2026</span>
+      <ul>
+        <li>QEII simplification — switched from simplify+buffer to convex hull, guaranteeing the query polygon contains all original covenant vertices so no edge records are missed</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v6.72</span>
       <span class="changelog-date">Jun 2026</span>
