@@ -46,7 +46,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v6.74</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v6.78b</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -719,8 +719,8 @@ const topoLayer = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png'
     setTimeout(() => { if (e.tile) e.tile.src = e.tile.src.split('?')[0] + '?retry=1'; }, 2000);
   });
 });
-osmLayer.addTo(map);
-const layersControl = L.control.layers({ 'Map': osmLayer, 'Greyscale': greyscaleLayer, 'Satellite': satelliteLayer, 'Topo': topoLayer }, {}, { position: 'topleft' }).addTo(map);
+satelliteLayer.addTo(map);
+const layersControl = L.control.layers({ 'Satellite': satelliteLayer, 'Map': osmLayer, 'Greyscale': greyscaleLayer, 'Topo': topoLayer }, {}, { position: 'topleft' }).addTo(map);
 // Align draw hint with the actual polygon button after all controls are rendered
 setTimeout(() => { if (typeof window._positionDrawHint === 'function') window._positionDrawHint(); }, 150);
 // The layers control expands/collapses on hover (and tap on touch), shifting the polygon
@@ -753,7 +753,7 @@ L.drawLocal.draw.handlers.polygon.tooltip.end   = 'Double-click to close drawing
 const drawControl = new L.Control.Draw({
   edit: { featureGroup: polyLayer, edit: false, remove: false },
   draw: {
-    polygon: { shapeOptions: { color: '#C8611A', fillColor: '#C8611A', fillOpacity: 0.1, weight: 2 }, showArea: false, allowIntersection: true },
+    polygon: { shapeOptions: { color: '#FF8C00', fillColor: '#FF8C00', fillOpacity: 0.1, weight: 3 }, showArea: false, allowIntersection: true },
     polyline: false, rectangle: false, circle: false, circlemarker: false, marker: false
   }
 }).addTo(map);
