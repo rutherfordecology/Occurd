@@ -73,7 +73,7 @@
   .taxon-clear-btn:hover { border-color: #d47a7a; color: #8a2c2c; }
 
   /* Location button */
-  .map-section { max-width: 900px; margin: 0 auto 28px; }
+  .map-section { max-width: 900px; margin: 0 auto 28px; padding: 0 20px; }
   .map-hint { text-align: center; font-size: 0.85rem; color: #6b6960; margin-bottom: 10px; line-height: 1.5; }
   .map-hint strong { color: #1a5940; }
 
@@ -145,7 +145,7 @@
 <div class="topbar">
   <div>
     <span class="topbar-title">WhatDat?</span>
-    <span class="topbar-version">v2.2</span>
+    <span class="topbar-version">v2.3</span>
   </div>
   <span class="topbar-re">by <a href="https://www.rutherfordecology.co.nz/" target="_blank"><strong>Rutherford</strong> ecology</a></span>
 </div>
@@ -191,18 +191,21 @@
     </div>
   </div>
 
-  <!-- ── Combined map: existing quiz markers + click-anywhere-to-create ─────── -->
-  <div class="map-section">
-    <p class="map-hint">Click a <strong>quiz marker</strong> to play an existing quiz — or <strong>click anywhere</strong> on the map to start a new one<span class="map-header-taxon" id="mapHeaderTaxon"></span></p>
-    <div id="pickMap"></div>
-    <div class="map-search-row">
-      <input id="modalSearchInput" type="text" placeholder="Search for a place, park, or reserve…" onkeydown="if(event.key==='Enter')searchMap()">
-      <button onclick="searchMap()">Search</button>
-    </div>
-    <div class="map-status"><span id="mapStatusText">Click anywhere on the map to find a location.</span></div>
-    <div class="map-places" id="mapPlaces"></div>
-  </div>
+</div><!-- /action-area -->
 
+<!-- ── Combined map: existing quiz markers + click-anywhere-to-create ─────── -->
+<div class="map-section">
+  <p class="map-hint">Click a <strong>quiz marker</strong> to play an existing quiz — or <strong>click anywhere</strong> on the map to start a new one<span class="map-header-taxon" id="mapHeaderTaxon"></span></p>
+  <div id="pickMap"></div>
+  <div class="map-search-row">
+    <input id="modalSearchInput" type="text" placeholder="Search for a place, park, or reserve…" onkeydown="if(event.key==='Enter')searchMap()">
+    <button onclick="searchMap()">Search</button>
+  </div>
+  <div class="map-status"><span id="mapStatusText">Click anywhere on the map to find a location.</span></div>
+  <div class="map-places" id="mapPlaces"></div>
+</div>
+
+<div class="action-area">
   <div class="divider">OR</div>
 
   <!-- ── Species list ──────────────────────────────────────────────────────── -->
@@ -495,11 +498,17 @@ function initMainMap() {
   pickMap = L.map('pickMap', {
     minZoom: 2,
   }).setView([10, 140], 2);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; <a href="https://openstreetmap.org/copyright">OpenStreetMap</a> contributors',
     maxZoom: 18,
     noWrap: false
   }).addTo(pickMap);
+  const esri = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+    attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
+    maxZoom: 18,
+    noWrap: false
+  });
+  L.control.layers({ 'Map': osm, 'Satellite': esri }, {}, { position: 'bottomleft' }).addTo(pickMap);
   pickMap.on('click', onMapClick);
 }
 initMainMap();

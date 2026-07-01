@@ -314,57 +314,61 @@ async function loadFromSpeciesList(names) {
     Promise.resolve(JSON.parse(localStorage.getItem('whatdat_extra_names') || '{}')),
   ]);
 
-  await Promise.all(names.map(async rawName => {
-    const name = rawName.trim();
-    if (!name) return;
-    try {
-      // GBIF species match (good for scientific names)
-      const gr = await fetch(`https://api.gbif.org/v1/species/match?name=${encodeURIComponent(name)}&strict=false`);
-      const gd = await gr.json();
+  // Process in batches of 4 to avoid iNaturalist rate limits
+  const BATCH = 4;
+  for (let i = 0; i < names.length; i += BATCH) {
+    await Promise.all(names.slice(i, i + BATCH).map(async rawName => {
+      const name = rawName.trim();
+      if (!name) return;
+      try {
+        // GBIF species match (good for scientific names)
+        const gr = await fetch(`https://api.gbif.org/v1/species/match?name=${encodeURIComponent(name)}&strict=false`);
+        const gd = await gr.json();
 
-      let latin, latinLower, taxon, gbifData = gd;
+        let latin, latinLower, taxon, gbifData = gd;
 
-      if (gd.matchType !== 'NONE' && gd.rank === 'SPECIES') {
-        // GBIF matched — use it as primary, iNat for photo
-        latin = gd.canonicalName || name;
-        latinLower = latin.toLowerCase();
-        const ir = await fetch(`https://api.inaturalist.org/v1/taxa?q=${encodeURIComponent(latin)}&rank=species&per_page=5`);
-        const id = await ir.json();
-        taxon = id.results?.find(t => t.name.toLowerCase() === latinLower) || id.results?.[0];
-      } else {
-        // GBIF couldn't match — try iNat directly (handles common names much better)
-        const ir = await fetch(`https://api.inaturalist.org/v1/taxa?q=${encodeURIComponent(name)}&rank=species&per_page=5`);
-        const id = await ir.json();
-        taxon = id.results?.[0];
-        if (!taxon) return;
-        latin = taxon.name;
-        latinLower = latin.toLowerCase();
-        gbifData = {}; // no GBIF data available
-      }
+        if (gd.matchType !== 'NONE' && gd.rank === 'SPECIES') {
+          // GBIF matched — use it as primary, iNat for photo
+          latin = gd.canonicalName || name;
+          latinLower = latin.toLowerCase();
+          const ir = await fetch(`https://api.inaturalist.org/v1/taxa?q=${encodeURIComponent(latin)}&rank=species&per_page=5`);
+          const id = await ir.json();
+          taxon = id.results?.find(t => t.name.toLowerCase() === latinLower) || id.results?.[0];
+        } else {
+          // GBIF couldn't match — try iNat directly (handles common names much better)
+          const ir = await fetch(`https://api.inaturalist.org/v1/taxa?q=${encodeURIComponent(name)}&rank=species&per_page=5`);
+          const id = await ir.json();
+          taxon = id.results?.[0];
+          if (!taxon) return;
+          latin = taxon.name;
+          latinLower = latin.toLowerCase();
+          gbifData = {}; // no GBIF data available
+        }
 
-      const commonName = applyNameOverride(latin, gbifData.vernacularName || taxon?.preferred_common_name || latin);
-      const samoan = samoaNames[latinLower]?.samoan || null;
-      const maori  = extraNames[latinLower] || extraNames[name.toLowerCase()] || null;
+        const commonName = applyNameOverride(latin, gbifData.vernacularName || taxon?.preferred_common_name || latin);
+        const samoan = samoaNames[latinLower]?.samoan || null;
+        const maori  = extraNames[latinLower] || extraNames[name.toLowerCase()] || null;
 
-      results.push({
-        name:        commonName,
-        latin,
-        samoan,
-        maori,
-        gbifKey:     gd.usageKey || null,
-        ancestorIds: [gd.classKey, gd.orderKey, gd.familyKey, gd.genusKey].filter(Boolean),
-        family:      gd.family || '',
-        order:       gd.order  || '',
-        count:       1,
-        wikiUrl:     taxon?.wikipedia_url || `https://en.wikipedia.org/wiki/${latin.replace(/ /g,'_')}`,
-        inatId:      taxon?.id || null,
-        defaultPhoto:taxon?.default_photo?.url?.replace('/square.', '/medium.') || null,
-        note:        null,
-      });
-    } catch {}
-    done++;
-    updateLoadingProgress(`Resolving species... (${done}/${names.length})`);
-  }));
+        results.push({
+          name:        commonName,
+          latin,
+          samoan,
+          maori,
+          gbifKey:     gd.usageKey || null,
+          ancestorIds: [gd.classKey, gd.orderKey, gd.familyKey, gd.genusKey].filter(Boolean),
+          family:      gd.family || '',
+          order:       gd.order  || '',
+          count:       1,
+          wikiUrl:     taxon?.wikipedia_url || `https://en.wikipedia.org/wiki/${latin.replace(/ /g,'_')}`,
+          inatId:      taxon?.id || null,
+          defaultPhoto:taxon?.default_photo?.url?.replace('/square.', '/medium.') || null,
+          note:        null,
+        });
+      } catch {}
+      done++;
+      updateLoadingProgress(`Resolving species... (${done}/${names.length})`);
+    }));
+  }
 
   return results;
 }
