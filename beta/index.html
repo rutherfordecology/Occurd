@@ -46,7 +46,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v6.78b</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v6.79b</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -5668,18 +5668,31 @@ runBtn.addEventListener('click', async () => {
 
   if (allFetched.length === 0) { setStatus('No records found for any polygon with these parameters.', 'warning'); setFetchMode(false); return; }
 
-  // Post-fetch spatial clip: if a drawn polygon was used as a study-area boundary,
-  // discard any records that fall outside it (GBIF was queried on the larger KMZ shapes).
-  if (clipTurfPolygons && clipTurfPolygons.length > 0) {
+  // Post-fetch spatial clip. GBIF is queried with an over-covering shape — getQueryWKT
+  // simplifies long polygons to ≤120 pts (tolerance up to 0.1°) and the Invalid-shape
+  // fallback uses the convex hull — so returned records can fall outside the true
+  // polygon. Always clip back to the exact query shapes the user sees on the map.
+  // clipTurfPolygons (KMZ draw-to-select boundary) takes precedence when set.
+  let _clipPolys = (clipTurfPolygons && clipTurfPolygons.length > 0) ? clipTurfPolygons : null;
+  if (!_clipPolys) {
+    _clipPolys = _geomPolys.map(gp => {
+      try {
+        const _rings = [closeRingCoords(gp.latlngs.map(llToGeoJSON))];
+        (gp.holes || []).forEach(h => { if (h && h.length >= 3) _rings.push(closeRingCoords(h.map(llToGeoJSON))); });
+        return turf.polygon(_rings);
+      } catch(e) { return null; }
+    }).filter(Boolean);
+  }
+  if (_clipPolys.length > 0) {
     const before = allFetched.length;
     const clipped = allFetched.filter(r => {
       if (r.decimalLatitude == null || r.decimalLongitude == null) return false;
       const pt = turf.point([r.decimalLongitude, r.decimalLatitude]);
-      return clipTurfPolygons.some(cp => { try { return turf.booleanPointInPolygon(pt, cp); } catch(e) { return true; } });
+      return _clipPolys.some(cp => { try { return turf.booleanPointInPolygon(pt, cp); } catch(e) { return true; } });
     });
     allFetched.length = 0; clipped.forEach(r => allFetched.push(r));
     const removed = before - allFetched.length;
-    if (removed > 0) setStatus('Clipped to drawn area — ' + removed.toLocaleString() + ' record' + (removed === 1 ? '' : 's') + ' outside boundary removed.', 'info');
+    if (removed > 0) setStatus('Clipped to polygon — ' + removed.toLocaleString() + ' record' + (removed === 1 ? '' : 's') + ' outside boundary removed.', 'info');
   }
 
   // ── iNaturalist supplemental fetch (species basket mode only) ────────────
@@ -6569,6 +6582,13 @@ if (window._pendingShare) {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v6.79</span>
+      <span class="changelog-date">Jul 2026</span>
+      <ul>
+        <li>Fixed records plotting outside the polygon on imported/complex shapes — long polygons are simplified before querying GBIF (down to ≤120 pts, up to 0.1° tolerance), so GBIF returned points inside the coarser query shape but outside the true boundary. Fetched records are now always clipped back to the exact on-screen polygon, not only in the KMZ draw-to-select flow</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v6.74</span>
       <span class="changelog-date">Jun 2026</span>
