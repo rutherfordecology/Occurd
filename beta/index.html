@@ -49,7 +49,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v6.86b</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v6.87b</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -3842,7 +3842,7 @@ function makeStackedPopup(stackedRecords) {
 
     return (
       '<div id="' + popupId + '-photo" style="margin-bottom:8px;"></div>' +
-      '<div style="font-size:11px;color:#2a7a58;font-weight:600;margin-bottom:5px;">📍 ' + total + ' records · ' + speciesCount + ' species</div>' +
+      '<div style="font-size:11px;color:#2a7a58;font-weight:600;margin-bottom:5px;"><img src="favicon.svg" alt="" style="height:13px;width:auto;vertical-align:-2px;margin-right:3px;"> ' + total + ' records · ' + speciesCount + ' species</div>' +
       '<div id="' + popupId + '-splist" style="overflow-y:auto;max-height:' + _ps.spListH + ';border-bottom:1px solid #eee;margin-bottom:6px;">' + spItems + '</div>' +
       '<div id="' + popupId + "-detail\"></div>"
     );
@@ -6591,6 +6591,14 @@ if (window._pendingShare) {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v6.87</span>
+      <span class="changelog-date">Jul 2026</span>
+      <ul>
+        <li>Record popups now show the occurd. pin mark instead of a red map pin</li>
+        <li>QEII project menu uses lock / unlock line icons instead of emoji</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v6.86</span>
       <span class="changelog-date">Jul 2026</span>
