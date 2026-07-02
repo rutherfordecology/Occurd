@@ -49,7 +49,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v6.88b</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v6.89b</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -3715,21 +3715,21 @@ window._gbifSelectSpecies = function(pid, spIdx) {
       camBtn = ' <button onclick="window._gbifShowRecordPhoto(\'' + pid + '-photo\',\'' + photoKey + '\')" ' +
         'title="View photo from this record" ' +
         'style="background:none;border:none;cursor:pointer;font-size:13px;vertical-align:middle;padding:0 0 0 3px;line-height:1;opacity:0.75;" ' +
-        'onmouseover="this.style.opacity=\'1\'" onmouseout="this.style.opacity=\'0.75\'">📷</button>';
+        'onmouseover="this.style.opacity=\'1\'" onmouseout="this.style.opacity=\'0.75\'">' + icon('camera', { size: 14 }) + '</button>';
     }
     const isEdna = isEdnaRecord(r);
     const ednaBadge = isEdna ? ' <span title="Environmental DNA record" style="display:inline-block;padding:1px 6px;border-radius:var(--radius-lg);background:#16A34A;color:#fff;font-size:10px;font-weight:700;letter-spacing:0.04em;">eDNA</span>' : '';
     const basisBadge = r.basisOfRecord === 'FOSSIL_SPECIMEN'
       ? ' <span title="Fossil specimen" style="display:inline-block;padding:1px 6px;border-radius:var(--radius-lg);background:#92400e;color:#fff;font-size:11px;">🐚</span>'
       : r.basisOfRecord === 'PRESERVED_SPECIMEN'
-      ? ' <span title="Preserved specimen" style="display:inline-block;padding:1px 6px;border-radius:var(--radius-lg);background:#4b5563;color:#fff;font-size:11px;">📄</span>'
+      ? ' <span title="Preserved specimen" style="display:inline-block;padding:1px 6px;border-radius:var(--radius-lg);background:#4b5563;color:#fff;font-size:11px;">' + icon('file', { size: 11 }) + '</span>'
       : '';
     // TK/BC label line
     const _tkSpName = r.species || r.scientificName || '';
     const _recHasTk = _tkSpeciesNames.size > 0 && _tkSpName && _tkSpeciesNames.has(_tkSpName);
     const _tkRecLine = _recHasTk
       ? '<div style="margin-top:4px;font-size:11px;color:#6b7280;display:flex;align-items:center;gap:4px;">' +
-        '<span>🏷️</span>' +
+        '<span style="display:inline-flex;">' + icon('tag', { size: 13 }) + '</span>' +
         (_tkProjectUrl
           ? '<a href="' + _tkProjectUrl + '" target="_blank" rel="noopener" style="color:#2a7a58;">TK/BC conditions ↗</a>'
           : '<span style="color:#2a7a58;">Traditional Knowledge / Biocultural label</span>') +
@@ -4823,7 +4823,7 @@ function buildChecklist(records) {
       row.dataset.iucn = iucnUnlocked ? (iucnStatus || '') : '';
       const iucnBadge = iucnUnlocked ? iucnBadgeHtml(iucnStatus) : '';
       const tkBadge = _tkSpeciesNames.has(name)
-        ? '<span class="tk-badge" title="Traditional Knowledge / Biocultural label — Local Contexts">🏷️</span>' : '';
+        ? '<span class="tk-badge" title="Traditional Knowledge / Biocultural label — Local Contexts">' + icon('tag', { size: 12 }) + '</span>' : '';
       const _checked = !hiddenSpecies.has(name);
       row.innerHTML =
         '<div class="cl-row-top">' +
@@ -6592,6 +6592,13 @@ if (window._pendingShare) {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v6.89</span>
+      <span class="changelog-date">Jul 2026</span>
+      <ul>
+        <li>Record popups — photo button, preserved-specimen badge and Traditional Knowledge badges now use line icons instead of emoji</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v6.88</span>
       <span class="changelog-date">Jul 2026</span>
