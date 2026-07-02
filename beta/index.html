@@ -49,7 +49,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v6.87b</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v6.88b</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -78,14 +78,15 @@
       <div class="section-label collapsible" data-section="s1">1 · Define area <span class="section-chevron">▾</span></div>
       <div class="section-body" id="s1">
         <div style="position:relative;margin-bottom:10px;">
-          <input type="text" id="mapSearch" placeholder="🔍 Search for a place…" autocomplete="off"
-            style="width:100%;box-sizing:border-box;padding:7px 10px;font-size:13px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--font-sans);background:var(--surface);color:var(--text);outline:none;"
+          <span data-icon="search" data-icon-size="15" style="position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--text3);pointer-events:none;z-index:1;"></span>
+          <input type="text" id="mapSearch" placeholder="Search for a place…" autocomplete="off"
+            style="width:100%;box-sizing:border-box;padding:7px 10px 7px 31px;font-size:13px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--font-sans);background:var(--surface);color:var(--text);outline:none;"
             onfocus="this.style.borderColor='var(--green)'" onblur="this.style.borderColor='var(--border)'">
           <div id="mapSearchResults" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:0 4px 12px rgba(0,0,0,0.1);z-index:2000;max-height:200px;overflow-y:auto;margin-top:2px;"></div>
         </div>
         <div id="kmzBadge" style="display:none;margin-bottom:5px;padding:5px 8px;background:var(--green-light);border:1px solid var(--green);border-radius:var(--radius);font-size:11px;align-items:center;justify-content:space-between;gap:6px;">
-          <span id="kmzBadgeText" onclick="reenterBrowseMode();renderBrowseList('');updateBrowseSelCount();" style="color:var(--text2);cursor:pointer;text-decoration:underline dotted;text-underline-offset:2px;" title="Click to re-open KMZ selection">&#128506; <span id="kmzBadgeInner"></span></span>
-          <button id="kmzBadgeClearBtn" style="background:none;border:none;cursor:pointer;font-size:13px;color:var(--text3);padding:0 2px;line-height:1;flex-shrink:0;" title="Clear KMZ from memory">&#x2715;</button>
+          <span id="kmzBadgeText" onclick="reenterBrowseMode();renderBrowseList('');updateBrowseSelCount();" style="color:var(--text2);cursor:pointer;text-decoration:underline dotted;text-underline-offset:2px;" title="Click to re-open KMZ selection"><span data-icon="map" data-icon-size="13" style="vertical-align:-2px;margin-right:3px;"></span><span id="kmzBadgeInner"></span></span>
+          <button id="kmzBadgeClearBtn" style="background:none;border:none;cursor:pointer;font-size:13px;color:var(--text3);padding:0 2px;line-height:1;flex-shrink:0;display:inline-flex;align-items:center;" title="Clear KMZ from memory"><span data-icon="x" data-icon-size="12"></span></button>
         </div>
         <div class="drop-zone" id="dropZone" style="padding:10px;">
           <input type="file" id="fileInput" accept=".kml,.kmz,.csv,.zip" multiple>
@@ -291,7 +292,7 @@
     </div>
 
     <div class="sidebar-section" id="nerdToolsSection" style="display:none;">
-      <div class="section-label collapsible" data-section="sNerd" style="margin-bottom:0;">🔬 Tech tools <span class="section-chevron">▾</span></div>
+      <div class="section-label collapsible" data-section="sNerd" style="margin-bottom:0;"><span style="display:inline-flex;align-items:center;gap:5px;"><span data-icon="flask" data-icon-size="14"></span>Tech tools</span> <span class="section-chevron">▾</span></div>
       <div class="section-body" id="sNerd">
         <div style="margin-bottom:0.5rem;">
           <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.07em;color:var(--text3);margin-bottom:4px;">Timeline view</div>
@@ -2006,9 +2007,9 @@ function renderPolyList() {
     const el = document.createElement('div'); el.className = 'poly-item';
     const topRow = document.createElement('div'); topRow.className = 'poly-item-row';
     topRow.innerHTML =
-      '<span class="poly-item-name" title="Click to rename">&#10003; ' + p.label + '</span>' +
+      '<span class="poly-item-name" title="Click to rename"><span style="vertical-align:-2px;margin-right:3px;">' + icon('check', { size: 13 }) + '</span>' + p.label + '</span>' +
       '<span class="poly-item-count">' + p.latlngs.length + ' pts</span>' +
-      '<span class="poly-remove" data-id="' + p.id + '">&#x2715;</span>';
+      '<span class="poly-remove" data-id="' + p.id + '">' + icon('x', { size: 13 }) + '</span>';
     el.appendChild(topRow);
     const bufRow = document.createElement('div'); bufRow.className = 'poly-buffer-row';
     const _obscId = 'obscured-' + p.id;
@@ -2055,8 +2056,8 @@ function renderPolyList() {
     const sciSuffix = (p.sciName && p.sciName.toLowerCase() !== p.name.toLowerCase())
       ? ' <em style="opacity:0.65;font-style:italic;">(' + p.sciName + ')</em>' : '';
     topRow.innerHTML =
-      '<span class="poly-item-name">&#128269; ' + p.name + sciSuffix + '</span>' +
-      '<span class="poly-remove" data-id="' + p.id + '">&#x2715;</span>';
+      '<span class="poly-item-name"><span style="vertical-align:-2px;margin-right:3px;">' + icon('search', { size: 13 }) + '</span>' + p.name + sciSuffix + '</span>' +
+      '<span class="poly-remove" data-id="' + p.id + '">' + icon('x', { size: 13 }) + '</span>';
     topRow.querySelector('.poly-remove').addEventListener('click', () => removePolygon(p.id));
     el.appendChild(topRow);
     polyList.appendChild(el);
@@ -6591,6 +6592,13 @@ if (window._pendingShare) {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v6.88</span>
+      <span class="changelog-date">Jul 2026</span>
+      <ul>
+        <li>More icon rollout — place-search field, KMZ badge, Tech tools label, and the saved-areas list (polygon, species and remove markers) now use line icons instead of emoji</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v6.87</span>
       <span class="changelog-date">Jul 2026</span>
