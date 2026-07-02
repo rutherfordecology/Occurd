@@ -49,7 +49,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v6.82b</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v6.83b</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -90,7 +90,7 @@
         <div class="drop-zone" id="dropZone" style="padding:10px;">
           <input type="file" id="fileInput" accept=".kml,.kmz,.csv,.zip" multiple>
           <div style="display:flex;align-items:center;gap:8px;justify-content:center;">
-            <span style="font-size:18px;">&#128506;</span>
+            <span style="font-size:18px;color:var(--text3);"><span data-icon="map" data-icon-size="22"></span></span>
             <span id="dropZoneLabel" style="font-size:12px;color:var(--text2);">Drop <strong>KML/KMZ</strong> or <strong>GBIF CSV/ZIP</strong> here, or <span style="color:var(--green);text-decoration:underline;cursor:pointer;">browse</span> — or draw on the map</span>
           </div>
           <div id="dropZoneProgress" style="display:none;align-items:center;justify-content:center;gap:6px;font-size:11.5px;color:var(--green-dark);font-weight:600;margin-top:6px;">
@@ -246,7 +246,7 @@
 
         <!-- Data quality summary -->
         <div class="quality-box" id="qualityBox">
-          &#9888; precision &gt;1.5 km = <span class="quality-val" id="qHighUncert">-</span>
+          <span data-icon="warning" data-icon-size="13" style="vertical-align:-2px;margin-right:3px"></span>precision &gt;1.5 km = <span class="quality-val" id="qHighUncert">-</span>
           <div style="font-size:11px;opacity:0.75;margin-top:2px;">low-precision GBIF records shown with a red ring; obscured iNat records with an orange ring</div>
         </div>
 
@@ -276,7 +276,7 @@
             onmouseover="this.style.background='var(--green-light)'"
             onmouseout="this.style.background='none'"
             title="Copy a link that recreates this polygon and filters — recipient clicks Fetch to reproduce the results">
-            &#128279; Copy this search
+            <span data-icon="link" data-icon-size="14" style="vertical-align:-2px;margin-right:4px"></span>Copy this search
           </button>
         </div>
       </div><!-- /s4 -->
@@ -405,8 +405,8 @@
         <div style="display:flex;align-items:center;gap:6px;">
           <button class="cl-nztcs-btn" id="clNztcsBtn" title="Click to activate NZTCS conservation status" style="display:none;">NZTCS</button>
           <button class="cl-nztcs-btn" id="clIucnBtn" title="Click to activate IUCN Red List status" style="display:none;">IUCN</button>
-          <button class="cl-nztcs-btn" id="clTkBtn" title="Filter to records with Traditional Knowledge or Biocultural labels" style="display:none;">🏷️ TK/BC</button>
-          <button class="cl-close-mobile" onclick="toggleChecklist()" title="Close checklist">✕ Close</button>
+          <button class="cl-nztcs-btn" id="clTkBtn" title="Filter to records with Traditional Knowledge or Biocultural labels" style="display:none;"><span data-icon="tag" data-icon-size="13" style="vertical-align:-2px;margin-right:3px"></span>TK/BC</button>
+          <button class="cl-close-mobile" onclick="toggleChecklist()" title="Close checklist"><span data-icon="x" data-icon-size="13" style="vertical-align:-2px;margin-right:3px"></span>Close</button>
         </div>
       </div>
       <div class="cl-selected-info" id="clSelectedInfo">
@@ -467,7 +467,7 @@
 <!-- Share modal -->
 <div class="modal-overlay" id="shareModal">
   <div class="modal" style="max-width:480px;width:92%;padding:1.5rem;">
-    <h2 style="margin:0 0 0.75rem;font-size:16px;">&#128279; Share this search</h2>
+    <h2 style="margin:0 0 0.75rem;font-size:16px;display:flex;align-items:center;gap:6px;"><span data-icon="link" data-icon-size="17"></span>Share this search</h2>
     <p style="font-size:12px;color:var(--text2);margin:0 0 0.75rem;">Anyone with this link can reproduce your polygon, filters and date range — they just click Fetch to load results.</p>
     <div style="display:flex;gap:6px;align-items:stretch;">
       <input id="shareUrlInput" type="text" readonly
@@ -493,7 +493,7 @@
 <!-- About modal -->
 <div class="modal-overlay" id="aboutModal">
   <div class="modal about-modal" style="max-width:520px;max-height:85vh;overflow-y:auto;">
-    <h2>&#127807; occurd.</h2>
+    <h2 style="display:flex;align-items:center;gap:7px;"><span data-icon="leaf" data-icon-size="18"></span>occurd.</h2>
     <p>A free, browser-based tool that lets ecologists, conservation planners, and environmental consultants find biodiversity records from <a href="https://www.gbif.org" target="_blank" style="color:var(--green);">GBIF</a> for any user-defined polygon — with no login, no software to install, and no account required.</p>
 
     <h3>How it works</h3>
@@ -514,7 +514,7 @@
 
     <h3>Licence &amp; source</h3>
     <p><span class="licence-badge">CC BY-NC</span> Free to use and adapt for non-commercial purposes. View source on <a href="https://github.com/rutherfordecology/occurd" target="_blank" style="color:var(--green);">GitHub</a>.</p>
-    <p style="margin-top:0.6rem;font-style:italic;">Find this useful? If you're using it for commercial work, supporting the developer is a legitimate business expense. And if you're just here because biodiversity data is genuinely interesting — that's worth a coffee too. <a href="https://buymeacoffee.com/rutherfordecology" target="_blank" style="color:#d4a84b;font-weight:500;">&#9749; Buy me a coffee</a></p>
+    <p style="margin-top:0.6rem;font-style:italic;">Find this useful? If you're using it for commercial work, supporting the developer is a legitimate business expense. And if you're just here because biodiversity data is genuinely interesting — that's worth a coffee too. <a href="https://buymeacoffee.com/rutherfordecology" target="_blank" style="color:#d4a84b;font-weight:500;"><span data-icon="coffee" data-icon-size="14" style="vertical-align:-2px;margin-right:3px"></span>Buy me a coffee</a></p>
 
     <h3>Built by</h3>
     <p><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank" style="color:var(--green);">Rutherford Ecology</a> &mdash; <a href="mailto:rutherfordecology@gmail.com" style="color:var(--green);">rutherfordecology@gmail.com</a></p>
@@ -535,7 +535,7 @@
 <div class="modal-overlay" id="nerdsModal" style="z-index:10000;">
   <div class="modal" style="max-width:640px;width:92%;max-height:85vh;overflow-y:auto;padding:1.75rem;">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.1rem;">
-      <h2 style="margin:0;">&#128220; Nerd notes</h2>
+      <h2 style="margin:0;display:flex;align-items:center;gap:6px;"><span data-icon="list" data-icon-size="17"></span>Nerd notes</h2>
       <button id="nerdsClose" style="background:none;border:none;cursor:pointer;font-size:20px;color:var(--text3);line-height:1;padding:2px 6px;border-radius:var(--radius-sm);" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text3)'" title="Close">&#x2715;</button>
     </div>
     <div style="font-size:13px;color:var(--text2);line-height:1.75;">
@@ -571,11 +571,11 @@
 <!-- NZTCS beta disclaimer modal -->
 <div class="modal-overlay" id="nztcsBetaModal">
   <div class="modal" style="max-width:420px;">
-    <h2 style="margin-bottom:0.5rem;">🧪 NZTCS status — Beta</h2>
+    <h2 style="margin-bottom:0.5rem;display:flex;align-items:center;gap:6px;"><span data-icon="flask" data-icon-size="17"></span>NZTCS status — Beta</h2>
     <p style="margin-bottom:0.8rem;">This feature displays NZ Threat Classification System conservation status badges in the species checklist.</p>
     <p style="margin-bottom:0.4rem;">Due to inconsistencies in taxonomic nomenclature between GBIF and NZTCS, <strong>some badges may be incorrect</strong>. Name changes, rank disagreements, and subspecies mismatches can all cause errors.</p>
     <p style="margin-bottom:0.4rem;">iNaturalist obscures the exact location of threatened and user-obscured species, placing the record anywhere within a <strong>0.2° × 0.2° grid square</strong>. This means rare species <em>inside</em> your polygon may not appear in results, and some records may appear despite the true observation being <em>outside</em> your polygon.</p>
-    <p style="margin-bottom:0.8rem;"><a href="#" id="nztcsNerdsLink" style="color:var(--green-dark);font-size:12px;font-weight:600;text-decoration:none;">📋 Nerd notes →</a></p>
+    <p style="margin-bottom:0.8rem;"><a href="#" id="nztcsNerdsLink" style="color:var(--green-dark);font-size:12px;font-weight:600;text-decoration:none;"><span data-icon="list" data-icon-size="13" style="vertical-align:-2px;margin-right:3px"></span>Nerd notes →</a></p>
     <p style="margin-bottom:1rem;">Please check findings carefully and <a href="mailto:rutherfordecology@gmail.com" style="color:var(--green-dark);">let us know</a> if anything appears out of order.</p>
     <div class="modal-btns">
       <button class="modal-btn primary" id="nztcsBetaAcceptBtn">I understand — continue</button>
@@ -619,7 +619,7 @@
         <li>Use as a starting point only — not authoritative data for regulatory purposes.</li>
         <li>Recent observations from eBird, iNaturalist and similar platforms may take weeks to months to appear in GBIF.</li>
       </ul>
-      <p style="font-size:12px;color:var(--text3);line-height:1.6;margin-bottom:1rem;">If this tool saves you a whole lot of time, feel free to <a href="https://buymeacoffee.com/rutherfordecology" target="_blank" style="color:#d4a84b;font-weight:500;">&#9749; buy me a coffee</a>.</p>
+      <p style="font-size:12px;color:var(--text3);line-height:1.6;margin-bottom:1rem;">If this tool saves you a whole lot of time, feel free to <a href="https://buymeacoffee.com/rutherfordecology" target="_blank" style="color:#d4a84b;font-weight:500;"><span data-icon="coffee" data-icon-size="14" style="vertical-align:-2px;margin-right:3px"></span>buy me a coffee</a>.</p>
       <button class="modal-btn primary" id="disclaimerAccept" style="width:100%;padding:11px;font-size:14px;">Get started &rarr;</button>
     </div>
 
@@ -6586,10 +6586,17 @@ if (window._pendingShare) {
 <div class="changelog-overlay" id="changelogOverlay"></div>
 <div class="changelog-panel" id="changelogPanel">
   <div class="changelog-header">
-    <span class="changelog-title">&#128221; Changelog — occurd.</span>
+    <span class="changelog-title" style="display:inline-flex;align-items:center;gap:6px;"><span data-icon="edit" data-icon-size="15"></span>Changelog — occurd.</span>
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v6.83</span>
+      <span class="changelog-date">Jul 2026</span>
+      <ul>
+        <li>More of the icon rollout — replaced emoji across the dialogs, drop-zone and secondary buttons (map, warning, copy/share, leaf, nerd notes, changelog, close, TK/BC, coffee) with the line-icon set</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v6.82</span>
       <span class="changelog-date">Jul 2026</span>
