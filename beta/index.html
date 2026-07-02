@@ -49,7 +49,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v6.81b</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v6.82b</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -330,7 +330,12 @@
       <p class="note">
         Queries the <a href="https://techdocs.gbif.org/en/openapi/v1/occurrence" target="_blank">GBIF occurrence search API</a> — no login required. For more information visit the <a href="https://www.gbif.org" target="_blank">GBIF portal</a>.
       </p>
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:0.6rem;">
+      <div style="margin:0.6rem 0 0.5rem;display:flex;flex-wrap:wrap;gap:6px 12px;font-size:11px;">
+        <a href="../whatdat/" target="_blank" style="color:var(--green);font-weight:700;text-decoration:none;display:inline-flex;align-items:center;gap:4px;"><span data-icon="target" data-icon-size="14"></span>WhatDat?</a>
+        <a href="../looklike/" target="_blank" style="color:var(--green);font-weight:700;text-decoration:none;display:inline-flex;align-items:center;gap:4px;"><span data-icon="eye" data-icon-size="14"></span>LookLike</a>
+        <a href="https://rutherfordecology.github.io/WhatDatBird/" target="_blank" style="color:var(--green);font-weight:700;text-decoration:none;display:inline-flex;align-items:center;gap:4px;"><span data-icon="bird" data-icon-size="14"></span>WhatDatBird?</a>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:0.4rem;">
         <span class="note">© Rutherford Ecology</span>
         <div style="display:flex;align-items:center;gap:4px;position:relative;">
           <button id="changelogBtn" style="background:none;border:none;cursor:pointer;font-size:11px;color:var(--text3);font-family:var(--font-sans);padding:2px 4px;border-radius:var(--radius-sm);display:inline-flex;align-items:center;gap:4px;" onmouseover="this.style.color='var(--green)'" onmouseout="this.style.color='var(--text3)'"><span data-icon="edit" data-icon-size="14"></span>Changelog</button>
@@ -601,7 +606,7 @@
     <div style="background:var(--green-dark);padding:2rem 2rem 1.5rem;text-align:center;">
       <img src="occurd-logo.png" alt="occurd." style="width:100%;max-width:260px;height:auto;filter:brightness(0) invert(1);opacity:0.95;margin-bottom:12px;display:block;margin-left:auto;margin-right:auto;transform:translateX(25px);">
       <img src="logo.png" alt="Rutherford Ecology" style="width:100%;max-width:200px;height:auto;filter:brightness(0) invert(1);opacity:0.7;margin-bottom:10px;display:block;margin-left:auto;margin-right:auto;">
-      <div style="font-size:13px;font-weight:400;color:rgba(255,255,255,0.6);font-family:var(--font-sans);letter-spacing:0.01em;">by <strong style="font-weight:700;color:rgba(255,255,255,0.85);">Rutherford</strong> <em style="font-style:normal;font-weight:300;">ecology</em></div>
+      <div style="font-size:13px;font-weight:400;color:rgba(255,255,255,0.6);font-family:var(--font-brand);letter-spacing:0.01em;">by <strong style="font-weight:700;color:rgba(255,255,255,0.85);">Rutherford</strong> <em style="font-style:normal;font-weight:300;">ecology</em></div>
     </div>
 
     <!-- Disclaimer body -->
@@ -6585,6 +6590,14 @@ if (window._pendingShare) {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v6.82</span>
+      <span class="changelog-date">Jul 2026</span>
+      <ul>
+        <li>Restored the "Rutherford ecology" wordmark to its original typeface (the rest of the interface keeps the new one)</li>
+        <li>Added the WhatDat, LookLike and WhatDatBird links back to the sidebar footer, now with matching line icons</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v6.81</span>
       <span class="changelog-date">Jul 2026</span>

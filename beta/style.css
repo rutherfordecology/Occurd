@@ -11,12 +11,13 @@ html { height: 100%; }
   --red: #8a2c2c; --red-light: #faf0f0; --red-mid: #d47a7a;
   --radius-sm: 4px; --radius: 6px; --radius-lg: 12px; --radius-pill: 999px;
   --font-sans: 'Inter Tight', system-ui, -apple-system, sans-serif;
+  --font-brand: system-ui, -apple-system, sans-serif;
 }
 body { font-family: var(--font-sans); background: var(--bg); color: var(--text); height: 100vh; overflow: hidden; display: flex; flex-direction: column; font-size: 14px; margin: 0; }
 
 header { background: var(--green-dark); color: white; padding: 0 1.5rem; display: flex; align-items: center; justify-content: space-between; height: 52px; flex-shrink: 0; position: relative; }
 .occ-loading-msg { position:absolute;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(255,255,255,0.55);font-style:italic;max-width:min(520px,42vw);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;pointer-events:none;transition:opacity 0.4s ease;opacity:0.8; }
-.header-brand { display: flex; align-items: center; gap: 10px; flex-wrap: nowrap; white-space: nowrap; }
+.header-brand { display: flex; align-items: center; gap: 10px; flex-wrap: nowrap; white-space: nowrap; font-family: var(--font-brand); }
 .header-brand h1 { font-size: 16px; color: white; margin: 0; }
 .header-brand h1 strong { font-weight: 700; }
 .header-brand h1 em { font-weight: 300; font-style: normal; }
