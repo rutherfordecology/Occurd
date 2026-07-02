@@ -15,7 +15,7 @@
     const menu = document.getElementById('projectsMenu');
     if (!wrap || !btn || !menu) return;
 
-    _addItem(menu, 'qeii', '🔐', 'QEII', 'Enter access key for QEII covenant layer');
+    _addItem(menu, 'qeii', icon('lock', { size: 14 }), 'QEII', 'Enter access key for QEII covenant layer');
 
     btn.addEventListener('click', e => {
       e.stopPropagation();
@@ -39,7 +39,7 @@
       'transition:background 0.08s;',
     ].join(';');
     item.innerHTML =
-      `<span id="projectIcon_${id}" style="font-size:14px;flex-shrink:0;">${icon}</span>` +
+      `<span id="projectIcon_${id}" style="display:inline-flex;align-items:center;flex-shrink:0;color:var(--green-dark);">${icon}</span>` +
       `<span id="projectLabel_${id}">${label}</span>`;
     item.addEventListener('mouseover', () => { item.style.background = 'var(--surface2)'; });
     item.addEventListener('mouseout',  () => { item.style.background = ''; });
@@ -104,7 +104,7 @@
   // ── Activate / deactivate ─────────────────────────────────────────────────
   function _activate(id) {
     _unlocked[id] = true;
-    _setIcon(id, '🔓');
+    _setIcon(id, icon('unlock', { size: 14 }));
     const menu = document.getElementById('projectsMenu');
     if (menu) menu.style.display = 'none';
     if (id === 'qeii') {
@@ -114,10 +114,10 @@
 
   function _deactivate(id) {
     _unlocked[id] = false;
-    _setIcon(id, '🔐');
+    _setIcon(id, icon('lock', { size: 14 }));
   }
 
-  function _setIcon(id, icon) { const el = document.getElementById('projectIcon_' + id); if (el) el.textContent = icon; }
+  function _setIcon(id, icon) { const el = document.getElementById('projectIcon_' + id); if (el) el.innerHTML = icon; }
 
   // ── Init ──────────────────────────────────────────────────────────────────
   if (document.readyState === 'loading') {
