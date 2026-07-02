@@ -49,7 +49,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v6.84b</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v6.85b</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -4070,13 +4070,13 @@ function toggleClustering(checked) {
 }
 
 function _syncRainbowBtn() {
-  const grad = tlRainbow ? 'linear-gradient(90deg,hsl(0,85%,48%),hsl(60,85%,48%),hsl(120,85%,48%),hsl(180,85%,48%),hsl(240,85%,48%),hsl(270,85%,48%))' : '';
   ['btnTlRainbow', 'btnTlRainbowSb'].forEach(id => {
     const btn = document.getElementById(id);
     if (!btn) return;
-    btn.style.background = grad;
-    btn.style.color      = tlRainbow ? '#fff' : '';
-    btn.style.border     = tlRainbow ? '1px solid transparent' : '';
+    btn.style.background = tlRainbow ? 'var(--green-light)' : 'none';
+    btn.style.color      = tlRainbow ? 'var(--green-dark)' : 'var(--text3)';
+    btn.style.border     = tlRainbow ? '1px solid var(--green)' : '1px solid var(--border)';
+    btn.style.fontWeight = tlRainbow ? '700' : '600';
   });
 }
 
@@ -4104,9 +4104,10 @@ function _syncEffortBtn() {
   ['btnTlEffort', 'btnTlEffortSb'].forEach(id => {
     const btn = document.getElementById(id);
     if (!btn) return;
-    btn.style.background = tlEffortMode ? 'var(--green-dark)' : '';
-    btn.style.color      = tlEffortMode ? '#fff' : '';
-    btn.style.border     = tlEffortMode ? '1px solid transparent' : '';
+    btn.style.background = tlEffortMode ? 'var(--green-light)' : 'none';
+    btn.style.color      = tlEffortMode ? 'var(--green-dark)' : 'var(--text3)';
+    btn.style.border     = tlEffortMode ? '1px solid var(--green)' : '1px solid var(--border)';
+    btn.style.fontWeight = tlEffortMode ? '700' : '600';
   });
 }
 
@@ -6590,6 +6591,13 @@ if (window._pendingShare) {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v6.85</span>
+      <span class="changelog-date">Jul 2026</span>
+      <ul>
+        <li>Timeline options — "Colour by year" and "Normalise by effort" now share one consistent style: a light pill that turns bold green when active. Fixed a bug where toggling one off left it with a stray black border</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v6.84</span>
       <span class="changelog-date">Jul 2026</span>
