@@ -15,6 +15,9 @@
 <meta name="twitter:description" content="Draw a polygon, fetch biodiversity occurrence records from GBIF, filter by taxon group, and export as CSV, GeoJSON or KML. Free, no login required.">
 <meta name="twitter:image" content="https://rutherfordecology.github.io/Occurd/medialogo.jpg">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@300;400;500;600;700&display=swap">
 <!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-R44YC1W3XD"></script>
 <script>
@@ -32,7 +35,6 @@
 <body>
 <!-- Mobile warning -->
 <div class="mobile-banner" id="mobileBanner">
-  <div class="mobile-banner-icon">🗺️</div>
   <h2>Best on a larger screen</h2>
   <p>occurd. uses a polygon drawing tool and interactive map that need a tablet or desktop to work properly.</p>
   <button class="mobile-banner-btn" onclick="document.getElementById('mobileBanner').style.display='none'">Continue anyway</button>
@@ -46,7 +48,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v6.79b</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v6.80b</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -55,7 +57,7 @@
       <button id="projectsDropBtn" class="about-btn" title="Project-specific layers">&#128273; Projects &#9662;</button>
       <div id="projectsMenu" style="
         display:none;position:absolute;right:0;top:calc(100% + 6px);
-        background:#fff;border:1px solid var(--border);border-radius:8px;
+        background:#fff;border:1px solid var(--border);border-radius:var(--radius);
         box-shadow:0 4px 18px rgba(0,0,0,0.16);z-index:99999;min-width:220px;overflow:hidden;">
       </div>
     </div>
@@ -207,7 +209,7 @@
       <div class="section-label collapsible" data-section="s3">3 · Fetch data <span class="section-chevron">▾</span></div>
       <div class="section-body" id="s3">
         <!-- Shown only in Big Data mode (?bigdata param) -->
-        <div id="bigdataCreds" style="display:none;margin-bottom:10px;padding:10px 12px;background:#f3f2ee;border-radius:10px;">
+        <div id="bigdataCreds" style="display:none;margin-bottom:10px;padding:10px 12px;background:#f3f2ee;border-radius:var(--radius-lg);">
           <p style="font-size:0.72rem;font-weight:800;color:#6b6960;letter-spacing:0.06em;text-transform:uppercase;margin:0 0 8px;">GBIF credentials</p>
           <input id="gbifCredsUser" type="text" autocomplete="username" placeholder="GBIF username"
             style="width:100%;padding:7px 10px;border:1.5px solid #dddbd3;border-radius:7px;font-size:0.82rem;font-family:inherit;outline:none;margin-bottom:6px;box-sizing:border-box;">
@@ -282,7 +284,7 @@
     <div class="filter-section" id="filterSection">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.4rem;">
         <div class="section-label" style="margin-bottom:0;">Filter by taxon group</div>
-        <button id="selectAllChipsBtn" style="background:none;border:none;cursor:pointer;font-size:11px;color:var(--green);font-family:var(--font-sans);padding:2px 4px;border-radius:3px;font-weight:500;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">Deselect all</button>
+        <button id="selectAllChipsBtn" style="background:none;border:none;cursor:pointer;font-size:11px;color:var(--green);font-family:var(--font-sans);padding:2px 4px;border-radius:var(--radius-sm);font-weight:500;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">Deselect all</button>
       </div>
       <div class="filter-chips" id="filterChips"></div>
     </div>
@@ -330,7 +332,7 @@
       <div style="display:flex;align-items:center;justify-content:space-between;margin-top:0.6rem;">
         <span class="note">© Rutherford Ecology</span>
         <div style="display:flex;align-items:center;gap:4px;position:relative;">
-          <button id="changelogBtn" style="background:none;border:none;cursor:pointer;font-size:11px;color:var(--text3);font-family:var(--font-sans);padding:2px 4px;border-radius:3px;" onmouseover="this.style.color='var(--green)'" onmouseout="this.style.color='var(--text3)'">&#128221; Changelog</button>
+          <button id="changelogBtn" style="background:none;border:none;cursor:pointer;font-size:11px;color:var(--text3);font-family:var(--font-sans);padding:2px 4px;border-radius:var(--radius-sm);" onmouseover="this.style.color='var(--green)'" onmouseout="this.style.color='var(--text3)'">&#128221; Changelog</button>
         </div>
       </div>
     </div>
@@ -342,7 +344,7 @@
     <div id="timelinePanel">
       <button id="tlCloseBtn" onclick="setViewMode('points')" title="Close timeline"
         style="position:absolute;top:6px;right:10px;z-index:5;background:none;border:none;cursor:pointer;
-               font-size:13px;color:var(--text3);font-family:var(--font-sans);padding:2px 6px;border-radius:3px;"
+               font-size:13px;color:var(--text3);font-family:var(--font-sans);padding:2px 6px;border-radius:var(--radius-sm);"
         onmouseover="this.style.color='var(--green)'" onmouseout="this.style.color='var(--text3)'">&#x2715; Close</button>
       <div id="timelineChartWrap" style="position:relative;">
         <svg id="timelineChart" width="100%" height="170"></svg>
@@ -364,7 +366,7 @@
       onclick="document.querySelector('.leaflet-draw-draw-polygon').click(); hideDrawHint();">
       <div style="
         background:var(--green-dark); color:#fff; font-size:12px; font-weight:500;
-        padding:6px 10px; border-radius:20px; white-space:nowrap;
+        padding:6px 10px; border-radius:var(--radius-pill); white-space:nowrap;
         box-shadow:0 2px 8px rgba(0,0,0,0.25); line-height:1.3;">
         ← Click here to start drawing
       </div>
@@ -528,7 +530,7 @@
   <div class="modal" style="max-width:640px;width:92%;max-height:85vh;overflow-y:auto;padding:1.75rem;">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.1rem;">
       <h2 style="margin:0;">&#128220; Nerd notes</h2>
-      <button id="nerdsClose" style="background:none;border:none;cursor:pointer;font-size:20px;color:var(--text3);line-height:1;padding:2px 6px;border-radius:4px;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text3)'" title="Close">&#x2715;</button>
+      <button id="nerdsClose" style="background:none;border:none;cursor:pointer;font-size:20px;color:var(--text3);line-height:1;padding:2px 6px;border-radius:var(--radius-sm);" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text3)'" title="Close">&#x2715;</button>
     </div>
     <div style="font-size:13px;color:var(--text2);line-height:1.75;">
 
@@ -922,7 +924,7 @@ cancelDrawBtn.addEventListener('click', onCancelDraw);
   function showResults(items) {
     if (!items.length) { results.style.display = 'none'; return; }
     results.innerHTML = items.map((item, i) =>
-      '<div data-i="' + i + '" style="padding:7px 10px;font-size:12px;cursor:pointer;border-bottom:0.5px solid var(--border);line-height:1.4;">' +
+      '<div data-i="' + i + '" style="padding:7px 10px;font-size:12px;cursor:pointer;border-bottom:1px solid var(--border);line-height:1.4;">' +
       '<span style="font-weight:500;">' + item.display_name.split(',')[0] + '</span>' +
       '<span style="color:var(--text3);"> · ' + item.display_name.split(',').slice(1, 3).join(',').trim() + '</span>' +
       '</div>'
@@ -1388,7 +1390,7 @@ function setStatus(msg, type, withCancel) {
   if (withCancel) {
     statusBar.innerHTML = msg +
       ' <button onclick="fetchAbortFlag=true;this.textContent=\'Cancelling…\';this.disabled=true;" ' +
-      'style="margin-left:8px;background:none;border:1px solid currentColor;border-radius:3px;' +
+      'style="margin-left:8px;background:none;border:1px solid currentColor;border-radius:var(--radius-sm);' +
       'padding:2px 8px;cursor:pointer;font-size:11px;font-family:var(--font-sans);color:inherit;font-weight:600;">Cancel</button>';
   } else {
     if (/<[a-z][\s\S]*>/i.test(msg)) statusBar.innerHTML = msg;
@@ -1703,7 +1705,7 @@ function restoreFromShare(state) {
 
   // Banner
   const banner = document.createElement('div');
-  banner.style.cssText = 'position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:9999;background:var(--green-dark);color:#fff;font-size:12px;font-weight:600;font-family:var(--font-sans);padding:7px 16px;border-radius:20px;box-shadow:0 2px 10px rgba(0,0,0,0.2);pointer-events:none;';
+  banner.style.cssText = 'position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:9999;background:var(--green-dark);color:#fff;font-size:12px;font-weight:600;font-family:var(--font-sans);padding:7px 16px;border-radius:var(--radius-pill);box-shadow:0 2px 10px rgba(0,0,0,0.2);pointer-events:none;';
   banner.textContent = 'Shared search loaded — fetching results…';
   document.body.appendChild(banner);
   setTimeout(() => banner.remove(), 4000);
@@ -3370,7 +3372,7 @@ function _expandBtn(url, caption) {
   const cap = (caption || '').replace(/'/g, "\\'");
   return '<button onclick="event.stopPropagation();window._gbifOpenLightbox(\'' + url + '\',\'' + cap + '\')" ' +
     'title="Expand photo" ' +
-    'style="position:absolute;top:5px;right:5px;background:rgba(0,0,0,0.45);border:none;color:#fff;border-radius:4px;width:26px;height:26px;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;padding:0;backdrop-filter:blur(2px);" ' +
+    'style="position:absolute;top:5px;right:5px;background:rgba(0,0,0,0.45);border:none;color:#fff;border-radius:var(--radius-sm);width:26px;height:26px;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;padding:0;backdrop-filter:blur(2px);" ' +
     'onmouseover="this.style.background=\'rgba(0,0,0,0.75)\'" onmouseout="this.style.background=\'rgba(0,0,0,0.45)\'">&#x26F6;</button>';
 }
 
@@ -3404,7 +3406,7 @@ function licenceBadge(licenceUrl) {
   else if (lower.includes('by-nd'))   label = 'CC BY-ND';
   else if (lower.includes('by'))      label = 'CC BY';
   else if (lower.includes('cc0') || lower.includes('publicdomain')) label = 'CC0';
-  return '<span style="display:inline-block;font-size:9px;font-weight:600;padding:1px 5px;border-radius:3px;background:#e8f4ef;color:#1a5940;border:0.5px solid #6dba9a;margin-right:4px;">' + label + '</span>';
+  return '<span style="display:inline-block;font-size:9px;font-weight:600;padding:1px 5px;border-radius:var(--radius-sm);background:#e8f4ef;color:#1a5940;border:1px solid #6dba9a;margin-right:4px;">' + label + '</span>';
 }
 
 // Map rendering
@@ -3532,12 +3534,12 @@ function buildRecordPage(rec) {
   const srcLink = sourceLink(rec);
   const isEdna  = isEdnaRecord(rec);
   const ednaBadge = isEdna
-    ? '<span title="Environmental DNA record" style="display:inline-block;padding:1px 7px;border-radius:10px;background:#16A34A;color:#fff;font-size:10px;font-weight:700;letter-spacing:0.04em;">eDNA</span>'
+    ? '<span title="Environmental DNA record" style="display:inline-block;padding:1px 7px;border-radius:var(--radius-lg);background:#16A34A;color:#fff;font-size:10px;font-weight:700;letter-spacing:0.04em;">eDNA</span>'
     : '';
   const basisBadge = rec.basisOfRecord === 'FOSSIL_SPECIMEN'
-    ? '<span title="Fossil specimen" style="display:inline-block;padding:1px 6px;border-radius:10px;background:#92400e;color:#fff;font-size:11px;">\ud83d\udc1a</span>'
+    ? '<span title="Fossil specimen" style="display:inline-block;padding:1px 6px;border-radius:var(--radius-lg);background:#92400e;color:#fff;font-size:11px;">\ud83d\udc1a</span>'
     : rec.basisOfRecord === 'PRESERVED_SPECIMEN'
-    ? '<span title="Preserved specimen" style="display:inline-block;padding:1px 6px;border-radius:10px;background:#4b5563;color:#fff;font-size:11px;">\ud83d\udcc4</span>'
+    ? '<span title="Preserved specimen" style="display:inline-block;padding:1px 6px;border-radius:var(--radius-lg);background:#4b5563;color:#fff;font-size:11px;">\ud83d\udcc4</span>'
     : '';
   const linkItems = [];
   if (gbifId) linkItems.push('<a href="https://www.gbif.org/occurrence/' + gbifId + '" target="_blank" rel="noopener" style="color:#2a7a58;font-size:12px;">GBIF \u2197</a>');
@@ -3607,7 +3609,7 @@ function renderPhotoSlot(slotId, idx) {
   slot.innerHTML =
     '<div style="position:relative;">' +
       '<img src="' + photo.url + '" alt="' + sciName + '" ' +
-        'style="width:100%;height:' + imgH + ';object-fit:cover;border-radius:4px;display:block;" ' +
+        'style="width:100%;height:' + imgH + ';object-fit:cover;border-radius:var(--radius-sm);display:block;" ' +
         'onload="window._gbifFitPhoto(this)" ' +
         'onerror="this.parentElement.parentElement.innerHTML=\'\'">' +
       _expandBtn(photo.url, photo.photographer || '') +
@@ -3665,7 +3667,7 @@ window._gbifShowRecordPhoto = function(slotId, photoKey) {
   slot.innerHTML =
     '<div style="position:relative;">' +
       '<img src="' + gbifThumb(photo.url, 400) + '" alt="" ' +
-      'style="width:100%;height:' + imgH + ';object-fit:cover;border-radius:4px;display:block;" ' +
+      'style="width:100%;height:' + imgH + ';object-fit:cover;border-radius:var(--radius-sm);display:block;" ' +
       'onload="window._gbifFitPhoto(this)" ' +
       'onerror="window._gbifImgFallback(this,\'' + photoKey + '\')"> ' +
       _expandBtn(photo.url, photo.photographer || '') +
@@ -3709,11 +3711,11 @@ window._gbifSelectSpecies = function(pid, spIdx) {
         'onmouseover="this.style.opacity=\'1\'" onmouseout="this.style.opacity=\'0.75\'">📷</button>';
     }
     const isEdna = isEdnaRecord(r);
-    const ednaBadge = isEdna ? ' <span title="Environmental DNA record" style="display:inline-block;padding:1px 6px;border-radius:10px;background:#16A34A;color:#fff;font-size:10px;font-weight:700;letter-spacing:0.04em;">eDNA</span>' : '';
+    const ednaBadge = isEdna ? ' <span title="Environmental DNA record" style="display:inline-block;padding:1px 6px;border-radius:var(--radius-lg);background:#16A34A;color:#fff;font-size:10px;font-weight:700;letter-spacing:0.04em;">eDNA</span>' : '';
     const basisBadge = r.basisOfRecord === 'FOSSIL_SPECIMEN'
-      ? ' <span title="Fossil specimen" style="display:inline-block;padding:1px 6px;border-radius:10px;background:#92400e;color:#fff;font-size:11px;">🐚</span>'
+      ? ' <span title="Fossil specimen" style="display:inline-block;padding:1px 6px;border-radius:var(--radius-lg);background:#92400e;color:#fff;font-size:11px;">🐚</span>'
       : r.basisOfRecord === 'PRESERVED_SPECIMEN'
-      ? ' <span title="Preserved specimen" style="display:inline-block;padding:1px 6px;border-radius:10px;background:#4b5563;color:#fff;font-size:11px;">📄</span>'
+      ? ' <span title="Preserved specimen" style="display:inline-block;padding:1px 6px;border-radius:var(--radius-lg);background:#4b5563;color:#fff;font-size:11px;">📄</span>'
       : '';
     // TK/BC label line
     const _tkSpName = r.species || r.scientificName || '';
@@ -3823,7 +3825,7 @@ function makeStackedPopup(stackedRecords) {
     const spItems = speciesList.map((sp, i) =>
       '<div data-sp="' + i + '" ' +
       'onclick="event.stopPropagation();window._gbifSelectSpecies(\'' + popupId + '\',' + i + ')"' +
-      'style="cursor:pointer;padding:3px 4px;border-radius:3px;font-size:11px;line-height:1.5;' + (i === 0 ? 'background:#e8f4ef;' : '') + '">' +
+      'style="cursor:pointer;padding:3px 4px;border-radius:var(--radius-sm);font-size:11px;line-height:1.5;' + (i === 0 ? 'background:#e8f4ef;' : '') + '">' +
       (sp.common
         ? sp.common + ' <span style="color:#9b9890;font-style:italic;">' + sp.sci + '</span>'
         : '<span style="font-style:italic;color:#555;">' + sp.sci + '</span>'
@@ -3834,7 +3836,7 @@ function makeStackedPopup(stackedRecords) {
 
     return (
       '<div id="' + popupId + '-photo" style="margin-bottom:8px;"></div>' +
-      '<div style="font-size:10.5px;color:#2a7a58;font-weight:600;margin-bottom:5px;">📍 ' + total + ' records · ' + speciesCount + ' species</div>' +
+      '<div style="font-size:11px;color:#2a7a58;font-weight:600;margin-bottom:5px;">📍 ' + total + ' records · ' + speciesCount + ' species</div>' +
       '<div id="' + popupId + '-splist" style="overflow-y:auto;max-height:' + _ps.spListH + ';border-bottom:1px solid #eee;margin-bottom:6px;">' + spItems + '</div>' +
       '<div id="' + popupId + "-detail\"></div>"
     );
@@ -5569,7 +5571,7 @@ runBtn.addEventListener('click', async () => {
           p0attempt++;
           if (p0attempt >= 5) {
             setStatus('Network error — could not reach GBIF after 5 attempts.', 'error');
-            statusBar.innerHTML += ' <button onclick="document.getElementById(\'runBtn\').click()" style="margin-left:8px;background:none;border:1px solid currentColor;border-radius:3px;padding:2px 8px;cursor:pointer;font-size:11px;font-family:var(--font-sans);color:inherit;font-weight:600;">Try again</button>';
+            statusBar.innerHTML += ' <button onclick="document.getElementById(\'runBtn\').click()" style="margin-left:8px;background:none;border:1px solid currentColor;border-radius:var(--radius-sm);padding:2px 8px;cursor:pointer;font-size:11px;font-family:var(--font-sans);color:inherit;font-weight:600;">Try again</button>';
             setFetchMode(false); return;
           }
           if (Date.now() - _fetchStart > 10000) setStatus('GBIF taking a while — retrying (attempt ' + (p0attempt + 1) + '/5)…', 'info');
@@ -5602,7 +5604,7 @@ runBtn.addEventListener('click', async () => {
         } else {
           setStatus('Fetch failed: HTTP ' + res0.status + '. If it keeps failing: ① smaller polygon  ② specific taxa  ③ shorter year range.', 'error');
         }
-        statusBar.innerHTML += ' <button onclick="document.getElementById(\'runBtn\').click()" style="margin-left:8px;background:none;border:1px solid currentColor;border-radius:3px;padding:2px 8px;cursor:pointer;font-size:11px;font-family:var(--font-sans);color:inherit;font-weight:600;">Try again</button>';
+        statusBar.innerHTML += ' <button onclick="document.getElementById(\'runBtn\').click()" style="margin-left:8px;background:none;border:1px solid currentColor;border-radius:var(--radius-sm);padding:2px 8px;cursor:pointer;font-size:11px;font-family:var(--font-sans);color:inherit;font-weight:600;">Try again</button>';
         setFetchMode(false); return;
       }
       totalCount = json0.count;
@@ -5647,7 +5649,7 @@ runBtn.addEventListener('click', async () => {
               break;
             }
             setStatus('Fetch failed after 5 attempts. If it keeps failing: ① smaller polygon  ② specific taxa  ③ shorter year range.', 'error');
-            statusBar.innerHTML += ' <button onclick="document.getElementById(\'runBtn\').click()" style="margin-left:8px;background:none;border:1px solid currentColor;border-radius:3px;padding:2px 8px;cursor:pointer;font-size:11px;font-family:var(--font-sans);color:inherit;font-weight:600;">Try again</button>';
+            statusBar.innerHTML += ' <button onclick="document.getElementById(\'runBtn\').click()" style="margin-left:8px;background:none;border:1px solid currentColor;border-radius:var(--radius-sm);padding:2px 8px;cursor:pointer;font-size:11px;font-family:var(--font-sans);color:inherit;font-weight:600;">Try again</button>';
             setFetchMode(false); return;
           }
           batchJsons.forEach(json => json.results.forEach(r => allFetched.push(_mapOccRecord(poly, r))));
@@ -6582,6 +6584,15 @@ if (window._pendingShare) {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v6.80</span>
+      <span class="changelog-date">Jul 2026</span>
+      <ul>
+        <li>Visual refresh — the whole interface now uses a single clean typeface (Inter Tight) for a more consistent, professional look</li>
+        <li>Tidied up corners and borders — all pop-ups, dialogs and controls now share consistent rounded corners and crisp 1px borders</li>
+        <li>Removed the decorative map icon from the small-screen notice</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v6.79</span>
       <span class="changelog-date">Jul 2026</span>
@@ -8373,7 +8384,7 @@ if (window._pendingShare) {
   <div class="taxo-box">
     <div class="taxo-hdr">
       <span class="taxo-title">Tree of life</span>
-      <button id="taxoBackBtn" style="background:none;border:none;cursor:pointer;font-size:12px;color:var(--text3);padding:2px 6px;border-radius:4px;flex-shrink:0;font-family:var(--font-sans);" disabled title="Go back one level">◀ Back</button>
+      <button id="taxoBackBtn" style="background:none;border:none;cursor:pointer;font-size:12px;color:var(--text3);padding:2px 6px;border-radius:var(--radius-sm);flex-shrink:0;font-family:var(--font-sans);" disabled title="Go back one level">◀ Back</button>
       <span class="taxo-crumb" id="taxoCrumb">Select a kingdom to start</span>
       <span class="taxo-loading-msg" id="taxoLoadingMsg" style="display:none"></span>
       <button class="taxo-x" id="taxoBrowserClose" title="Close">&#215;</button>
