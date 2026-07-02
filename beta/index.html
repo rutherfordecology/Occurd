@@ -49,7 +49,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v6.83b</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v6.84b</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -419,7 +419,7 @@
       <div class="cl-col-header" id="clColHeader">
         <span class="cl-col-species-label">Species</span>
         <span class="cl-looklike-wrap" id="clLooklikeWrap" style="display:none;">
-          <button class="cl-looklike-btn" id="clWhatdatBtn" onclick="openInWhatDat()" title="Quiz these species in WhatDat?">🎯 Quiz</button><button class="cl-looklike-btn" id="clLooklikeBtn" onclick="openInLooklike()" title="Open selected species in LookLike">📷 Photos</button><input type="checkbox" id="clSelAllVisible" title="Select/deselect all visible species" style="accent-color:var(--green);cursor:pointer;">
+          <button class="cl-looklike-btn" id="clWhatdatBtn" onclick="openInWhatDat()" title="Quiz these species in WhatDat?" style="display:inline-flex;align-items:center;gap:3px;"><span data-icon="target" data-icon-size="12"></span>Quiz</button><button class="cl-looklike-btn" id="clLooklikeBtn" onclick="openInLooklike()" title="Open selected species in LookLike" style="display:inline-flex;align-items:center;gap:3px;"><span data-icon="camera" data-icon-size="12"></span>Photos</button><input type="checkbox" id="clSelAllVisible" title="Select/deselect all visible species" style="accent-color:var(--green);cursor:pointer;">
         </span>
         <span class="cl-count-header">#</span>
       </div>
@@ -4889,7 +4889,7 @@ function buildChecklist(records) {
 function _updateLooklikeBtn() {
   const n = document.querySelectorAll('.cl-row .cl-photo-cb:checked').length;
   const btn = document.getElementById('clLooklikeBtn');
-  if (btn) { btn.textContent = '📷'; btn.title = n ? `Open ${n} selected species in LookLike` : 'Open selected species in LookLike'; }
+  if (btn) { btn.innerHTML = icon('camera', { size: 13 }); btn.title = n ? `Open ${n} selected species in LookLike` : 'Open selected species in LookLike'; }
 }
 
 // ── WhatDat? integration ─────────────────────────────────────────────────────
@@ -6590,6 +6590,13 @@ if (window._pendingShare) {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v6.84</span>
+      <span class="changelog-date">Jul 2026</span>
+      <ul>
+        <li>Checklist Quiz and Photos buttons now use the line-icon set instead of emoji</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v6.83</span>
       <span class="changelog-date">Jul 2026</span>
