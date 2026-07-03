@@ -54,7 +54,19 @@
     bird: '<path d="M16 7h.01"/><path d="M3.4 18H12a8 8 0 0 0 8-8V7a4 4 0 0 0-7.28-2.3L2 20"/><path d="M20 7h2"/><path d="M6 13c1.5 1 3 1.5 4.5 1.5"/>',
     award: '<circle cx="12" cy="8" r="6"/><polyline points="8.2 13.2 7 22 12 19 17 22 15.8 13.2"/>',
     volume: '<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.8 5.2a9 9 0 0 1 0 13.6"/>',
-    coffee: '<path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/>'
+    pause: '<rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/>',
+    waveform: '<line x1="4" y1="10" x2="4" y2="14"/><line x1="8" y1="6" x2="8" y2="18"/><line x1="12" y1="3" x2="12" y2="21"/><line x1="16" y1="7" x2="16" y2="17"/><line x1="20" y1="10" x2="20" y2="14"/>',
+    coffee: '<path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/>',
+    // ── taxa / life groups (WhatDat quick-picks) ────────────
+    mammal: '<ellipse cx="9.5" cy="6.5" rx="1.6" ry="3.8"/><ellipse cx="14.5" cy="6.5" rx="1.6" ry="3.8"/><circle cx="12" cy="15" r="5"/><circle cx="10.3" cy="14.5" r=".7" fill="currentColor" stroke="none"/><circle cx="13.7" cy="14.5" r=".7" fill="currentColor" stroke="none"/>',
+    fish: '<path d="M3 12c3-4.5 9-4.5 12 0-3 4.5-9 4.5-12 0z"/><path d="M15 12l6-4v8z"/><circle cx="6.5" cy="11" r=".8" fill="currentColor" stroke="none"/>',
+    shark: '<path d="M3 12.5c4-2.5 9-2.5 13 0-4 2.5-9 2.5-13 0z"/><path d="M16 12.5l5-3v6z"/><path d="M9 10.8 11 6l2.5 4.4"/><circle cx="6.5" cy="12" r=".7" fill="currentColor" stroke="none"/>',
+    reptile: '<path d="M7 20c-2-1.4-1.5-4 .9-4.3 2.3-.3 3.9-1.1 3.9-3.1 0-1.9-1.8-2.7-1.8-4.6 0-1.7 1.4-3 3.3-3"/><circle cx="14" cy="4.6" r="1.5"/><circle cx="14.2" cy="4.3" r=".45" fill="currentColor" stroke="none"/><path d="M15.4 4 17.2 3M16.4 3.5 17.2 3 16.5 2.4"/>',
+    amphibian: '<path d="M4 12.5c0-3.5 3.5-5.5 8-5.5s8 2 8 5.5c0 3-3.5 4.8-8 4.8s-8-1.8-8-4.8z"/><circle cx="8.5" cy="8" r="2"/><circle cx="15.5" cy="8" r="2"/><path d="M8.5 13.5c2 1.5 5 1.5 7 0"/>',
+    insect: '<ellipse cx="12" cy="13" rx="4" ry="5.5"/><line x1="12" y1="7.5" x2="12" y2="18.5"/><circle cx="12" cy="6" r="2"/><path d="M11 4.5 9.5 2.5M13 4.5 14.5 2.5"/><path d="M8 10.5 4 8.5M8 13H4M8 15.5 4 17.5M16 10.5 20 8.5M16 13h4M16 15.5 20 17.5"/>',
+    spider: '<circle cx="12" cy="13" r="3"/><circle cx="12" cy="9" r="1.6"/><path d="M9.2 12 4 9M9 13.2 3.5 13.5M9.2 14.5 4.5 17.5M14.8 12 20 9M15 13.2 20.5 13.5M14.8 14.5 19.5 17.5M10.5 10.5 8 6M13.5 10.5 16 6"/>',
+    fungi: '<path d="M4 11.5a8 5 0 0 1 16 0z"/><line x1="4" y1="11.5" x2="20" y2="11.5"/><path d="M9.5 11.5c0 3.5.2 6-1 8.5h7c-1.2-2.5-1-5-1-8.5"/>',
+    animal: '<ellipse cx="6" cy="10.5" rx="1.4" ry="1.9"/><ellipse cx="9.5" cy="7.5" rx="1.5" ry="2.1"/><ellipse cx="13.5" cy="7.5" rx="1.5" ry="2.1"/><ellipse cx="17" cy="10.5" rx="1.4" ry="1.9"/><path d="M8 15.5c1.2-1.6 6.8-1.6 8 0 1 1.4.3 3.6-1.4 4.2-1.2.4-2.6-.4-3.6-.4s-2.4.8-3.6.4C5.7 19.1 5 16.9 8 15.5z"/>'
   };
 
   var DEFAULT_SIZE = 20;

@@ -1,7 +1,7 @@
 // WhatDat? Quiz Engine v1.13
 // Shared engine for all quiz pages.
 // Each page calls: initEngine(config)
-const APP_VERSION = 'v1.13';
+const APP_VERSION = 'v1.14';
 window.__engineLoaded = true;
 
 const GH_TOKEN = ['github','pat','11CD5YDQQ0bj2y9dp1UI7X','dOQEr16i0xNnN8iEM3pVloK7E9YJz7sn81NGUBeUuF1QPSQ6QBCEJbLlREp'].join('_');
@@ -372,14 +372,7 @@ function showEncouragement(text) {
   document.body.appendChild(div); setTimeout(()=>div.remove(),1300);
 }
 function burstStars(x,y) {
-  const emojis=['&#11088;','&#10024;','&#128171;','&#127775;'];
-  for(let i=0;i<8;i++) {
-    const el=document.createElement('div'); el.className='star-burst';
-    el.innerHTML=emojis[Math.floor(Math.random()*emojis.length)];
-    const angle=(i/8)*Math.PI*2, dist=60+Math.random()*60;
-    el.style.cssText=`left:${x}px;top:${y}px;--tx:${Math.cos(angle)*dist}px;--ty:${Math.sin(angle)*dist}px;animation-duration:${0.6+Math.random()*0.3}s`;
-    document.body.appendChild(el); setTimeout(()=>el.remove(),1000);
-  }
+  // Emoji star-burst removed — confetti (on win) and text encouragement remain.
 }
 function launchConfetti() {
   for(let i=0;i<60;i++) setTimeout(()=>{
@@ -391,11 +384,8 @@ function launchConfetti() {
 }
 
 function starsForScore(pct) {
-  if(pct>=95) return'&#11088;&#11088;&#11088;&#11088;&#11088;';
-  if(pct>=85) return'&#11088;&#11088;&#11088;&#11088;';
-  if(pct>=70) return'&#11088;&#11088;&#11088;';
-  if(pct>=55) return'&#11088;&#11088;';
-  return'&#11088;';
+  const n = pct>=95?5:pct>=85?4:pct>=70?3:pct>=55?2:1;
+  return icon('star',{size:24}).repeat(n);
 }
 
 function badge(label, cls) { return `<span class="badge ${cls}">${label}</span>`; }
@@ -412,7 +402,7 @@ function render() {
   const isQuiz = state.phase==='quiz';
 
   const brandBtn = `<div class="header-brand"><a href="https://www.rutherfordecology.co.nz/" target="_blank"><span class="by-word">by </span><span class="re-bold">Rutherford</span> <span class="re-light">ecology</span></a></div>`;
-  const taxonTag = CFG.taxonName ? `<div style="display:inline-block;background:#e8f4ef;border:1.5px solid #6dba9a;border-radius:20px;padding:3px 12px;font-size:0.72rem;font-weight:800;color:#1a5940;margin-top:6px;">&#127807; ${CFG.taxonName}</div>` : '';
+  const taxonTag = CFG.taxonName ? `<div style="display:inline-block;background:#e8f4ef;border:1.5px solid #6dba9a;border-radius:20px;padding:3px 12px;font-size:0.72rem;font-weight:800;color:#1a5940;margin-top:6px;">${icon('leaf',{size:13})} ${CFG.taxonName}</div>` : '';
   const header = isQuiz ? '' : state.phase === 'about' ? `
     <div class="header fade">
       <div class="eyebrow">WHATDAT?</div>
@@ -465,25 +455,24 @@ function renderIntro(app, header) {
 
   const modeGrid = `<div class="mode-grid">
     <button class="mode-btn ${state.mode==='easy'?'active':''}" onclick="setMode('easy')">
-      <div class="mode-emoji">&#128054;</div>
       <div class="mode-count" id="mc-easy">${easy.length} SPECIES</div>
       <div class="mode-title">Common</div>
       <div class="mode-desc">The most frequently recorded species here.</div>
     </button>
     <button class="mode-btn ${state.mode==='hard'?'active':''}" ${hasHard?'':'disabled'} onclick="setMode('hard')">
-      <div class="mode-emoji">&#128247;</div>
+      <div class="mode-emoji">${icon('camera',{size:26})}</div>
       <div class="mode-count" id="mc-hard">${hasHard?hard.length+' SPECIES':'Loading...'}</div>
       <div class="mode-title">Recorder</div>
       <div class="mode-desc">The 90% of species you're likely to encounter here.</div>
     </button>
     <button class="mode-btn ${state.mode==='complete'?'active':''}" ${hasComplete?'':'disabled'} onclick="setMode('complete')">
-      <div class="mode-emoji">&#128301;</div>
+      <div class="mode-emoji">${icon('layers',{size:26})}</div>
       <div class="mode-count" id="mc-complete">${hasComplete?complete.length+' SPECIES':'Loading...'}</div>
       <div class="mode-title">Complete</div>
       <div class="mode-desc">Everything ever recorded. Gets progressively harder.</div>
     </button>
     <button class="mode-btn ${state.mode==='rarity'?'active':''}" ${hasRarity?'':'disabled'} ${hasRarity?`onclick="setMode('rarity')"`:''}>
-      <div class="mode-emoji">&#128269;</div>
+      <div class="mode-emoji">${icon('search',{size:26})}</div>
       <div class="mode-count" id="mc-rarity">${hasRarity?rarity.length+' SPECIES':'Not enough species'}</div>
       <div class="mode-title">Rarity</div>
       <div class="mode-desc">The least-recorded species in this area.</div>
@@ -495,26 +484,26 @@ function renderIntro(app, header) {
       <p style="color:#8a2c2c;"><strong>Rarity mode:</strong> These species have very few recorded occurrences in this area. Some may be genuine rarities, others may be misidentifications or data issues. Treat with appropriate scepticism.</p>
     </div>` : '';
 
-  const bufferNote = state.buffer>0 ? `<p class="note-text">&#x1F4E1; Area expanded to ${state.buffer}km radius to find enough species</p>` : '';
+  const bufferNote = state.buffer>0 ? `<p class="note-text">${icon('crosshair',{size:13})} Area expanded to ${state.buffer}km radius to find enough species</p>` : '';
 
   const quizName = CFG.quizName || CFG.placeName;
   app.innerHTML = header + modeGrid + rarityNote + `
-    <button class="btn-primary" onclick="startQuiz()">Let's Go! &#128640;</button>
+    <button class="btn-primary" onclick="startQuiz()">Let's Go!</button>
     ${bufferNote}
     <div class="info-box" style="margin-top:12px;">
-      <p>&#127919; Get your score to <strong>${STREAK_TARGET} to win!</strong> Each correct answer scores +1, wrong answers cost -2. Tricky species keep coming back.</p>
+      <p>${icon('target',{size:15})} Get your score to <strong>${STREAK_TARGET} to win!</strong> Each correct answer scores +1, wrong answers cost -2. Tricky species keep coming back.</p>
     </div>
     <div class="quiz-name-row">
       <span class="quiz-name-label">Quiz name:</span>
       <input class="quiz-name-input" id="quizNameInput" value="${quizName.replace(/"/g,'&quot;')}" placeholder="Name this quiz…">
-      <button class="quiz-name-save" onclick="saveQuizName()">&#10003;</button>
+      <button class="quiz-name-save" onclick="saveQuizName()">${icon('check',{size:16})}</button>
     </div>
-    <button class="btn-secondary" onclick="setState({phase:'species'})">&#128203; Species List</button>
-    ${(CFG.placeId || CFG.coordLat) ? `<button class="btn-secondary" onclick="toggleIntroLeaderboard()">&#127942; Leaderboards</button>
+    <button class="btn-secondary" onclick="setState({phase:'species'})">${icon('list',{size:15})} Species List</button>
+    ${(CFG.placeId || CFG.coordLat) ? `<button class="btn-secondary" onclick="toggleIntroLeaderboard()">${icon('award',{size:15})} Leaderboards</button>
     <div id="introLbPanel" style="display:none;margin-top:12px"></div>` : ''}
-    ${CFG.shareUrl ? `<button class="btn-secondary" onclick="copyShareUrl(this)">&#128279; Share this quiz</button>` : ''}
+    ${CFG.shareUrl ? `<button class="btn-secondary" onclick="copyShareUrl(this)">${icon('link',{size:15})} Share this quiz</button>` : ''}
     ${saveSectionHtml()}
-    <button class="btn-back" onclick="setState({phase:'about'})">&#8505; About WhatDat?</button>
+    <button class="btn-back" onclick="setState({phase:'about'})">${icon('info',{size:15})} About WhatDat?</button>
     <button class="btn-back" onclick="window.location.href='${CFG.backUrl}'">&#8592; Back</button>`;
   if ((CFG.placeId || CFG.coordLat || CFG.shareUrl) && _inLibrary === null) checkInLibrary();
 }
@@ -525,11 +514,11 @@ function renderCelebrate(app, header) {
   const canContinue = birdsLeft > 0;
   app.innerHTML = header + `
     <div class="fade" style="text-align:center;padding:32px 20px;">
-      <div style="font-size:3rem;margin-bottom:12px;">&#127881;</div>
+      <div style="margin-bottom:12px;line-height:0;color:#1a5940;">${icon('award',{size:44})}</div>
       <h2 style="font-size:1.8rem;font-weight:900;color:#1a5940;margin-bottom:8px;">10 points!</h2>
       <p style="color:#6b6960;margin-bottom:28px;">Amazing work — you nailed it!</p>
       ${canContinue ? `
-        <button class="btn-primary" onclick="keepPlaying()" style="margin-bottom:12px;">Keep going for 10 more! &#128640;</button>
+        <button class="btn-primary" onclick="keepPlaying()" style="margin-bottom:12px;">Keep going for 10 more!</button>
         <br>` : ''}
       <button class="btn-secondary" onclick="setState({phase:'result'})">See results</button>
     </div>`;
@@ -552,7 +541,7 @@ function saveQuizName() {
   const h1Span = document.querySelector('.header h1 span');
   if (h1Span && !CFG.title) h1Span.textContent = newName;
   const btn = input.nextElementSibling;
-  if (btn) { btn.textContent = '✓'; setTimeout(() => { btn.textContent = '✓'; }, 1000); }
+  if (btn) { btn.innerHTML = icon('check',{size:16}); }
   syncLibraryName(newName);
 }
 
@@ -781,9 +770,9 @@ function renderResult(app, header) {
 
   const lbSection = canLb ? `
     <div class="lb-entry" id="lbEntry">
-      <div id="lbLocked" style="text-align:center;color:#9b9890;font-size:0.85rem;padding:8px 0">&#128274; Add this quiz to the library to unlock the leaderboard</div>
+      <div id="lbLocked" style="text-align:center;color:#9b9890;font-size:0.85rem;padding:8px 0">${icon('lock',{size:14})} Add this quiz to the library to unlock the leaderboard</div>
       <div id="lbUnlocked" style="display:none">
-        <div class="lb-label">&#127942; Add your score to the leaderboard</div>
+        <div class="lb-label">${icon('award',{size:14})} Add your score to the leaderboard</div>
         <div class="lb-row">
           <input class="lb-input" id="lbName" type="text" maxlength="24" placeholder="Your name" autocomplete="off">
           <button class="lb-submit" onclick="submitScore()">Submit</button>
@@ -803,14 +792,14 @@ function renderResult(app, header) {
 
   app.innerHTML = header + `
     <div class="result">
-      <span class="trophy">&#128214;</span>
+      <span class="trophy">${icon('award',{size:64})}</span>
       <h2>${resultTitle}</h2>
       <div class="star-row">${stars}</div>
       <p class="stat">${state.totalCorrect} correct from ${state.totalSeen} attempts (${acc}%)</p>
       <p class="msg">${resultMsg}</p>
-      <button class="btn-primary" onclick="goIntro()">Try Again &#127919;</button>
+      <button class="btn-primary" onclick="goIntro()">Try Again</button>
       ${saveSection}
-      ${CFG.shareUrl ? `<button class="btn-secondary" onclick="copyShareUrl(this)">&#128279; Share this quiz</button>` : ''}
+      ${CFG.shareUrl ? `<button class="btn-secondary" onclick="copyShareUrl(this)">${icon('link',{size:15})} Share this quiz</button>` : ''}
       ${lbSection}
       <button class="btn-back" onclick="window.location.href='${CFG.backUrl}'">&#8592; Back</button>
     </div>`;
@@ -827,7 +816,7 @@ function saveSectionHtml() {
   const show = _inLibrary === false ? '' : 'none';
   return `
     <div id="saveLibSection">
-      <button class="btn-secondary" id="saveLibBtn" onclick="saveToLibrary()" style="display:${show};">&#128218; Add to Quiz Library</button>
+      <button class="btn-secondary" id="saveLibBtn" onclick="saveToLibrary()" style="display:${show};">${icon('upload',{size:15})} Add to Quiz Library</button>
       <div id="saveLibMsg" style="font-size:0.8rem;color:#2a7a58;margin-top:8px;min-height:1.2em;text-align:center;font-weight:700;"></div>
     </div>`;
 }
@@ -922,9 +911,9 @@ function renderQuiz(app) {
   }).join('');
 
   let imgContent;
-  if(state.imgLoading) imgContent=`<div class="img-placeholder"><div class="icon">&#128247;</div><span>Loading...</span></div>`;
+  if(state.imgLoading) imgContent=`<div class="img-placeholder"><div class="icon">${icon('camera',{size:40})}</div><span>Loading...</span></div>`;
   else if(state.imgUrl) imgContent=`<img src="${state.imgUrl}" alt="mystery species" onerror="imgFailed()" onload="adjustImgPosition(this)"/>`;
-  else imgContent=`<div class="img-placeholder"><div class="icon">&#128247;</div><span>No photo available</span></div>`;
+  else imgContent=`<div class="img-placeholder"><div class="icon">${icon('camera',{size:40})}</div><span>No photo available</span></div>`;
 
   const multi = state.photoUrls.length>1 && !state.imgLoading;
   const carousel = multi ? `
@@ -966,16 +955,16 @@ function renderQuiz(app) {
   if(state.selected) {
     const ok=state.selected===bird.name;
     const noteText=bird.note||'<em style="color:#9b9890">Loading identification note...</em>';
-    const wrongMsg=ok?'':`<div class="wrong-note"><p>&#128204; -2 points. This one will come back after a few species.</p></div>`;
+    const wrongMsg=ok?'':`<div class="wrong-note"><p>-2 points. This one will come back after a few species.</p></div>`;
     fieldNote=`
       <div class="field-note">
         <div class="fn-head">
           <div class="fn-species-name">${bird.name}</div>
           <div class="fn-species-latin">${bird.latin||''}</div>
         </div>
-        <div class="fn-label">&#128269; HOW TO IDENTIFY</div>
+        <div class="fn-label">${icon('search',{size:12})} HOW TO IDENTIFY</div>
         <p class="fn-main">${noteText}</p>
-        ${bird.count?`<p class="fn-count">&#128202; ${bird.count.toLocaleString()} GBIF records in area</p>`:''}
+        ${bird.count?`<p class="fn-count">${bird.count.toLocaleString()} GBIF records in area</p>`:''}
         <p class="inat-credit" style="margin-top:6px">
           <a href="https://www.inaturalist.org/taxa/search?q=${encodeURIComponent(bird.name)}" target="_blank">Photo: iNaturalist</a> - CC licensed &nbsp;|&nbsp;
           <a href="https://www.gbif.org/species/search?q=${encodeURIComponent(bird.latin||bird.name)}" target="_blank">Data: GBIF</a>
@@ -998,10 +987,10 @@ function renderQuiz(app) {
       </div>
       <div class="streak-row">
         <div class="streak-dots">${dots}</div>
-        <span class="streak-label">&#128293; ${state.streak}/${STREAK_TARGET}</span>
+        <span class="streak-label">${state.streak}/${STREAK_TARGET}</span>
       </div>
       <div class="img-box" id="imgBox" ontouchstart="_swipeX=event.touches[0].clientX" ontouchend="if(Math.abs(event.changedTouches[0].clientX-_swipeX)>40){event.changedTouches[0].clientX<_swipeX?nextPhoto():prevPhoto()}">${imgContent}${overlay}${carousel}</div>
-      <p class="question-text">&#128269; What is this?</p>
+      <p class="question-text">${icon('search',{size:15})} What is this?</p>
       <div class="options">${optionsHtml}</div>
       ${fieldNote}
     </div>`;
@@ -1048,13 +1037,13 @@ function renderSpeciesList(app, header, sortMode) {
   }).join('');
 
   const sortLabel = _spSortMode === 'taxonomy' ? 'taxonomic order' : 'observation count';
-  const toggleLabel = _spSortMode === 'taxonomy' ? '&#128202; Sort by count' : '&#128218; Sort by taxonomy';
+  const toggleLabel = _spSortMode === 'taxonomy' ? 'Sort by count' : 'Sort by taxonomy';
 
   app.innerHTML = _spHeader + `
     <div class="fade">
       <button class="btn-secondary" style="margin-bottom:12px" onclick="goIntro()">&#8592; Back</button>
       <div class="info-box" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
-        <p style="margin:0">&#128203; <strong>${birds.length} species</strong> - sorted by ${sortLabel}.</p>
+        <p style="margin:0">${icon('list',{size:14})} <strong>${birds.length} species</strong> - sorted by ${sortLabel}.</p>
         <button class="btn-sort-toggle" onclick="renderSpeciesList(document.getElementById('app'),null,_spSortMode==='taxonomy'?'count':'taxonomy')">${toggleLabel}</button>
       </div>
       ${rows}
@@ -1098,8 +1087,8 @@ async function toggleSpDetail(id, btn) {
   }
 
   const noteHtml = noteText
-    ? `<div class="sp-id-label">&#128269; How to identify</div><p class="sp-id-text">${noteText}</p>`
-    : `<div class="sp-id-label">&#128269; How to identify</div><p class="sp-id-loading">No identification notes available.</p>`;
+    ? `<div class="sp-id-label">${icon('search',{size:13})} How to identify</div><p class="sp-id-text">${noteText}</p>`
+    : `<div class="sp-id-label">${icon('search',{size:13})} How to identify</div><p class="sp-id-loading">No identification notes available.</p>`;
 
   panel.innerHTML = carouselHtml + noteHtml;
 }
@@ -1190,7 +1179,7 @@ function adjustImgPosition(img) {
 }
 function imgFailed() {
   const box=document.getElementById('imgBox');
-  if(box) box.innerHTML=`<div class="img-placeholder"><div class="icon">&#128247;</div><span>No photo available</span></div>`;
+  if(box) box.innerHTML=`<div class="img-placeholder"><div class="icon">${icon('camera',{size:40})}</div><span>No photo available</span></div>`;
 }
 let _photoSliding = false;
 function slidePhoto(newIdx, dir) {
@@ -1341,7 +1330,7 @@ function copyShareUrl(btn) {
     document.body.removeChild(ta);
     btn.innerHTML = '&#10003; Link copied!';
     btn.disabled = true;
-    setTimeout(() => { btn.innerHTML = '&#128279; Share this quiz'; btn.disabled = false; }, 2500);
+    setTimeout(() => { btn.innerHTML = `${icon('link',{size:15})} Share this quiz`; btn.disabled = false; }, 2500);
   });
 }
 
@@ -1365,7 +1354,7 @@ async function loadLeaderboard() {
     const entries = (data.boards?.[key] || []).slice(0, 10);
     if (!entries.length) { board.innerHTML = ''; return; }
     const modeLabel = state.mode==='complete'?'Complete':state.mode==='hard'?'Recorder':state.mode==='rarity'?'Rarity':'Common';
-    board.innerHTML = `<div class="lb-title">&#127942; Leaderboard — ${CFG.placeName} · ${modeLabel}</div>` +
+    board.innerHTML = `<div class="lb-title">${icon('award',{size:14})} Leaderboard — ${CFG.placeName} · ${modeLabel}</div>` +
       entries.map((e, i) => `<div class="lb-row-item">
         <span class="lb-rank">${i + 1}</span>
         <span class="lb-name">${e.name}</span>
@@ -1429,7 +1418,7 @@ async function toggleIntroLeaderboard() {
       const entries = data.boards?.[lbKey] || [];
       if (!entries.length) return '';
       return `<div style="margin-bottom:14px">
-        <div class="lb-title" style="margin-bottom:6px">&#127942; ${label}</div>
+        <div class="lb-title" style="margin-bottom:6px">${icon('award',{size:14})} ${label}</div>
         ${entries.map((e,i) => `<div class="lb-row-item">
           <span class="lb-rank">${i+1}</span>
           <span class="lb-name">${e.name}</span>

@@ -1,5 +1,7 @@
 /* WhatDat? - Shared Quiz Styles */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+/* Line-icons (icons.js) inherit color/size from text; align them with adjacent text. */
+svg[aria-hidden="true"] { vertical-align: middle; }
 body {
   min-height: 100vh; background: #f3f2ee;
   font-family: system-ui, -apple-system, sans-serif;

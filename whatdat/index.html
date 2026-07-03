@@ -5,8 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>WhatDat? - Rutherford Ecology</title>
 <meta name="theme-color" content="#084430">
+<script src="../icons.js"></script>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  svg[aria-hidden="true"] { vertical-align: middle; }
   html, body { min-height: 100vh; background: #f3f2ee; font-family: system-ui, -apple-system, sans-serif; color: #1c1b18; overflow-x: hidden; }
 
   .topbar { background: #084430; padding: 10px 16px; display: flex; align-items: center; justify-content: space-between; width: 100%; }
@@ -145,7 +147,7 @@
 <div class="topbar">
   <div>
     <span class="topbar-title">WhatDat?</span>
-    <span class="topbar-version">v2.4</span>
+    <span class="topbar-version">v2.5</span>
   </div>
   <span class="topbar-re">by <a href="https://www.rutherfordecology.co.nz/" target="_blank"><strong>Rutherford</strong> ecology</a></span>
 </div>
@@ -161,7 +163,7 @@
   <!-- ── Taxon filter ──────────────────────────────────────────────────────── -->
   <div class="taxon-section">
     <button class="taxon-toggle" id="taxonToggleBtn" onclick="toggleTaxonPanel()">
-      <span id="taxonToggleLabel">&#127807; Filter by life group <span style="font-size:0.75rem;color:#9b9890;font-weight:400;">(optional — all life by default)</span></span>
+      <span id="taxonToggleLabel"><span data-icon="leaf" data-icon-size="15" style="vertical-align:-2px"></span> Filter by life group <span style="font-size:0.75rem;color:#9b9890;font-weight:400;">(optional — all life by default)</span></span>
       <span class="taxon-toggle-icon">&#8964;</span>
     </button>
     <div class="taxon-panel" id="taxonPanel">
@@ -185,8 +187,8 @@
       <!-- Confirm bar -->
       <div class="taxon-use-bar" id="taxonUseBar" style="display:none">
         <span class="taxon-use-name" id="taxonUseName"></span>
-        <button class="taxon-clear-btn" onclick="clearTaxon()">&#215; Clear</button>
-        <button class="taxon-use-btn" onclick="confirmTaxon()">&#10003; Use this</button>
+        <button class="taxon-clear-btn" onclick="clearTaxon()"><span data-icon="x" data-icon-size="14" style="vertical-align:-2px"></span> Clear</button>
+        <button class="taxon-use-btn" onclick="confirmTaxon()"><span data-icon="check" data-icon-size="14" style="vertical-align:-2px"></span> Use this</button>
       </div>
     </div>
   </div>
@@ -211,7 +213,7 @@
   <!-- ── Species list ──────────────────────────────────────────────────────── -->
   <div>
     <button class="splist-toggle" id="splistToggleBtn" onclick="toggleSplist()">
-      <span>&#128203; Paste a species list</span>
+      <span><span data-icon="list" data-icon-size="15" style="vertical-align:-2px"></span> Paste a species list</span>
       <span style="font-size:0.85rem;">&#8964;</span>
     </button>
     <div class="splist-panel" id="splistPanel">
@@ -227,7 +229,7 @@
       <label>Species names &mdash; one per line</label>
       <textarea id="splistInput" placeholder="Kiwi&#10;K&#257;k&#257;p&#333;&#10;Tuatara&#10;...&#10;&#10;Works with lists from But Is It Threatened? or LookLike."></textarea>
       <p class="splist-hint">Common or scientific names both work. Each is looked up via GBIF and matched to iNaturalist photos. Great with lists from <a href="../but-is-it-threatened/" target="_blank">But Is It Threatened?</a> or <a href="../looklike/" target="_blank">LookLike</a>.</p>
-      <button class="splist-start-btn" onclick="startSpeciesListQuiz()">&#128640; Start Quiz</button>
+      <button class="splist-start-btn" onclick="startSpeciesListQuiz()">Start Quiz</button>
     </div>
   </div>
 
@@ -242,10 +244,10 @@
   Occurrence data &amp; taxonomy: <a href="https://www.gbif.org" target="_blank">GBIF</a> &mdash;
   <a href="https://www.rutherfordecology.co.nz/" target="_blank">Rutherford Ecology</a>
   <br><br>
-  <a href=".." target="_blank" style="color:#2a7a58;font-weight:700;">&#128506; Occurd</a> &nbsp;&mdash;&nbsp;
-  <a href="../looklike/" target="_blank" style="color:#2a7a58;font-weight:700;">&#128064; LookLike</a> &nbsp;&mdash;&nbsp;
-  <a href="https://rutherfordecology.github.io/WhatDatBird/" target="_blank" style="color:#2a7a58;font-weight:700;">&#128038; WhatDatBird?</a> &nbsp;&mdash;&nbsp;
-  <a href="../but-is-it-threatened/" target="_blank" style="color:#2a7a58;font-weight:700;">&#128247; But Is It Threatened?</a>
+  <a href=".." target="_blank" style="color:#2a7a58;font-weight:700;"><span data-icon="map" data-icon-size="14" style="vertical-align:-2px"></span> Occurd</a> &nbsp;&mdash;&nbsp;
+  <a href="../looklike/" target="_blank" style="color:#2a7a58;font-weight:700;"><span data-icon="eye" data-icon-size="14" style="vertical-align:-2px"></span> LookLike</a> &nbsp;&mdash;&nbsp;
+  <a href="https://rutherfordecology.github.io/WhatDatBird/" target="_blank" style="color:#2a7a58;font-weight:700;"><span data-icon="bird" data-icon-size="14" style="vertical-align:-2px"></span> WhatDatBird?</a> &nbsp;&mdash;&nbsp;
+  <a href="../but-is-it-threatened/" target="_blank" style="color:#2a7a58;font-weight:700;"><span data-icon="camera" data-icon-size="14" style="vertical-align:-2px"></span> But Is It Threatened?</a>
 </footer>
 
 <script>
@@ -257,17 +259,17 @@ const RANK_LABELS = {
 
 // Popular group shortcuts — GBIF backbone keys (stable)
 const POPULAR_GROUPS = [
-  { key:212,  rank:'CLASS',   name:'Aves',            label:'Birds',          icon:'&#128038;' },
-  { key:359,  rank:'CLASS',   name:'Mammalia',        label:'Mammals',        icon:'&#128024;' },
-  { key:204,  rank:'CLASS',   name:'Actinopterygii',  label:'Fish',           icon:'&#128031;' },
-  { key:121,  rank:'CLASS',   name:'Elasmobranchii',  label:'Sharks & Rays',  icon:'&#129416;' },
-  { key:358,  rank:'CLASS',   name:'Reptilia',        label:'Reptiles',       icon:'&#128010;' },
-  { key:131,  rank:'CLASS',   name:'Amphibia',        label:'Amphibians',     icon:'&#128034;' },
-  { key:216,  rank:'CLASS',   name:'Insecta',         label:'Insects',        icon:'&#128027;' },
-  { key:367,  rank:'CLASS',   name:'Arachnida',       label:'Spiders & Mites',icon:'&#128375;' },
-  { key:6,    rank:'KINGDOM', name:'Plantae',         label:'Plants',         icon:'&#127807;' },
-  { key:5,    rank:'KINGDOM', name:'Fungi',           label:'Fungi',          icon:'&#129344;' },
-  { key:1,    rank:'KINGDOM', name:'Animalia',        label:'All Animals',    icon:'&#129436;' },
+  { key:212,  rank:'CLASS',   name:'Aves',            label:'Birds',          icon:'bird' },
+  { key:359,  rank:'CLASS',   name:'Mammalia',        label:'Mammals',        icon:'mammal' },
+  { key:204,  rank:'CLASS',   name:'Actinopterygii',  label:'Fish',           icon:'fish' },
+  { key:121,  rank:'CLASS',   name:'Elasmobranchii',  label:'Sharks & Rays',  icon:'shark' },
+  { key:358,  rank:'CLASS',   name:'Reptilia',        label:'Reptiles',       icon:'reptile' },
+  { key:131,  rank:'CLASS',   name:'Amphibia',        label:'Amphibians',     icon:'amphibian' },
+  { key:216,  rank:'CLASS',   name:'Insecta',         label:'Insects',        icon:'insect' },
+  { key:367,  rank:'CLASS',   name:'Arachnida',       label:'Spiders & Mites',icon:'spider' },
+  { key:6,    rank:'KINGDOM', name:'Plantae',         label:'Plants',         icon:'leaf' },
+  { key:5,    rank:'KINGDOM', name:'Fungi',           label:'Fungi',          icon:'fungi' },
+  { key:1,    rank:'KINGDOM', name:'Animalia',        label:'All Animals',    icon:'animal' },
 ];
 
 // ── UI state ──────────────────────────────────────────────────────────────────
@@ -373,11 +375,11 @@ function updateToggleLabel() {
   if (confirmedTaxon) {
     const rl = RANK_LABELS[confirmedTaxon.rank] || confirmedTaxon.rank;
     btn.classList.add('has-selection');
-    lbl.innerHTML = `&#127807; ${rl}: <span class="taxon-sel-pill"><em>${confirmedTaxon.name}</em> <button onclick="event.stopPropagation();clearTaxon()" title="Remove">&#215;</button></span>`;
+    lbl.innerHTML = `${icon('leaf',{size:15})} ${rl}: <span class="taxon-sel-pill"><em>${confirmedTaxon.name}</em> <button onclick="event.stopPropagation();clearTaxon()" title="Remove">${icon('x',{size:12})}</button></span>`;
     if (mapHdr) mapHdr.textContent = ' — Filtering: ' + confirmedTaxon.name;
   } else {
     btn.classList.remove('has-selection');
-    lbl.innerHTML = `&#127807; Filter by life group <span style="font-size:0.75rem;color:#9b9890;font-weight:400;">(optional — all life by default)</span>`;
+    lbl.innerHTML = `${icon('leaf',{size:15})} Filter by life group <span style="font-size:0.75rem;color:#9b9890;font-weight:400;">(optional — all life by default)</span>`;
     if (mapHdr) mapHdr.textContent = '';
   }
 }
@@ -391,7 +393,7 @@ function buildQuizUrl(base) {
 // Init popular buttons
 document.getElementById('popGrid').innerHTML = POPULAR_GROUPS.map(g =>
   `<button class="pop-btn" id="pop-${g.key}" onclick="quickPick(${g.key},${JSON.stringify(g.name)},${JSON.stringify(g.rank)})">
-    <span>${g.icon}</span>${g.label}
+    <span>${icon(g.icon,{size:18})}</span>${g.label}
   </button>`
 ).join('');
 
@@ -561,7 +563,7 @@ function selectNomResult(i) {
   placesEl().innerHTML = `
     <div class="map-place-item" onclick="goBbox()">
       <div>
-        <div class="map-place-name">&#11088; ${parts.slice(0,2).join(', ')}${confirmedTaxon ? ' — '+confirmedTaxon.name+' only' : ''}</div>
+        <div class="map-place-name">${icon('star',{size:14})} ${parts.slice(0,2).join(', ')}${confirmedTaxon ? ' — '+confirmedTaxon.name+' only' : ''}</div>
         <div class="map-place-type">${p.type || p.class || ''}</div>
       </div>
       <span class="map-place-go">Start Quiz &#8594;</span>
@@ -611,7 +613,7 @@ function renderPlaceList(places, coordOption) {
   const coordHtml = coordOption ? `
     <div class="map-place-item map-place-coord" data-lat="${coordOption._lat}" data-lng="${coordOption._lng}" data-name="${coordOption.display_name}" data-cc="${coordOption._cc||''}">
       <div>
-        <div class="map-place-name">&#x1F4CD; ${coordOption.display_name}</div>
+        <div class="map-place-name">${icon('map-pin',{size:14})} ${coordOption.display_name}</div>
         <div class="map-place-type">Nearest species • expands if needed</div>
       </div>
       <span class="map-place-go">Let&#x2019;s Go &#8594;</span>
@@ -735,7 +737,7 @@ function cardHtml(q) {
   const imgId  = `card-img-${(q.place_id || q.url).toString().replace(/\W/g,'')}`;
   const shareIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>`;
   return `<a class="place-card" href="${absUrl}">
-    <div class="card-img" id="${imgId}"><div class="card-img-ph">&#127807;</div></div>
+    <div class="card-img" id="${imgId}"><div class="card-img-ph">${icon('leaf',{size:40})}</div></div>
     <div class="card-body">
       <div class="card-name">${q.name}</div>
       <div class="card-sub">${q.description||''}</div>
@@ -754,8 +756,13 @@ async function loadTaxonPhoto(taxon, el) {
     const d = await r.json();
     const candidates = (d.results || []).map(o => o.photos?.[0]?.url?.replace('/square.','/medium.')).filter(Boolean);
     const src = candidates.find(u => !_usedPhotoUrls.has(u)) || candidates[0];
-    if (src) { _usedPhotoUrls.add(src); el.innerHTML = `<img src="${src}" loading="lazy" onerror="this.parentElement.innerHTML='<div class=card-img-ph>&#127807;</div>'">`; }
+    if (src) { _usedPhotoUrls.add(src); el.innerHTML = `<img src="${src}" loading="lazy" onerror="taxonPhotoFailed(this)">`; }
   } catch {}
+}
+
+function taxonPhotoFailed(img) {
+  const box = img.parentElement;
+  if (box) box.innerHTML = `<div class="card-img-ph">${icon('leaf',{size:40})}</div>`;
 }
 
 async function loadPlacePhoto(placeId, el) {
