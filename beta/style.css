@@ -180,6 +180,10 @@ header { background: var(--green-dark); color: white; padding: 0 1.5rem; display
 .cl-footer { padding: 7px 10px; font-size: 10px; color: var(--text3); border-top: 1px solid var(--border); background: var(--surface2); flex-shrink: 0; line-height: 1.5; }
 .cl-group-header { padding: 5px 10px; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; background: var(--surface2); color: var(--text2); position: sticky; top: 0; z-index: 1; border-bottom: 1px solid var(--border); transition: background 0.1s; user-select: none; }
 .cl-group-header:hover { background: var(--border); }
+/* Collapsed group: dim the contents only, keeping the header background opaque so
+   stacked sticky headers cover each other cleanly instead of bleeding through. */
+.cl-group-header.cl-collapsed > span,
+.cl-group-header.cl-collapsed .cl-group-selall { opacity: 0.4; }
 .cl-col-header { display: flex; align-items: center; padding: 5px 10px; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text3); border-bottom: 1px solid var(--border); background: var(--surface2); flex-shrink: 0; gap: 0; }
 .cl-col-species-label { flex: 1; }
 .cl-looklike-wrap { display: flex; align-items: center; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; flex-shrink: 0; }
