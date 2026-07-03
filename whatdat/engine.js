@@ -1,7 +1,7 @@
-// WhatDat? Quiz Engine v1.15
+// WhatDat? Quiz Engine v1.16
 // Shared engine for all quiz pages.
 // Each page calls: initEngine(config)
-const APP_VERSION = 'v1.15';
+const APP_VERSION = 'v1.16';
 window.__engineLoaded = true;
 
 const GH_TOKEN = ['github','pat','11CD5YDQQ0bj2y9dp1UI7X','dOQEr16i0xNnN8iEM3pVloK7E9YJz7sn81NGUBeUuF1QPSQ6QBCEJbLlREp'].join('_');
@@ -1170,11 +1170,12 @@ function renderAbout(app, header) {
 // ── Actions ───────────────────────────────────────────────────────────────
 function adjustImgPosition(img) {
   const isPortrait = img.naturalWidth < img.naturalHeight;
+  const box = img.closest('.img-box');
+  if(box) box.classList.toggle('portrait', isPortrait);
   if(isPortrait) {
-    const fullH = img.offsetWidth/(img.naturalWidth/img.naturalHeight);
-    img.style.height=(fullH*0.7)+'px'; img.style.objectPosition='center 15%';
+    img.style.height='100%'; img.style.maxHeight=''; img.style.objectFit='contain'; img.style.objectPosition='center center';
   } else {
-    img.style.height='auto'; img.style.maxHeight='65vw'; img.style.objectPosition='center center';
+    img.style.height='auto'; img.style.maxHeight='65vw'; img.style.objectFit='cover'; img.style.objectPosition='center center';
   }
 }
 function imgFailed() {
@@ -1191,11 +1192,22 @@ function slidePhoto(newIdx, dir) {
   _photoSliding = true;
   box.style.height = box.offsetHeight + 'px';
 
+  // Each image keeps a fit matching its own orientation during the slide so
+  // portrait photos don't flash cropped; the background fills the letterbox
+  // so a contained portrait still occludes the image sliding under it.
+  const slideFit = im => {
+    const portrait = im.naturalWidth && im.naturalWidth < im.naturalHeight;
+    im.style.objectFit = portrait ? 'contain' : 'cover';
+    im.style.objectPosition = portrait ? 'center center' : 'center top';
+  };
   const newImg = document.createElement('img');
   newImg.src = state.photoUrls[newIdx];
   newImg.className = 'slide-in';
-  newImg.style.cssText = `position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;object-position:center top;transform:translateX(${dir>0?'100%':'-100%'});`;
-  curImg.style.cssText = `position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;object-position:center top;`;
+  newImg.style.cssText = `position:absolute;top:0;left:0;width:100%;height:100%;background:#eeede8;transform:translateX(${dir>0?'100%':'-100%'});`;
+  curImg.style.cssText = `position:absolute;top:0;left:0;width:100%;height:100%;background:#eeede8;`;
+  slideFit(curImg);
+  if (newImg.complete) slideFit(newImg);
+  else newImg.onload = () => slideFit(newImg);
   const overlayEl = box.querySelector('.img-overlay');
   if (overlayEl) box.insertBefore(newImg, overlayEl);
   else box.appendChild(newImg);
@@ -1209,6 +1221,8 @@ function slidePhoto(newIdx, dir) {
     newImg.style.cssText = '';
     newImg.className = '';
     box.style.height = '';
+    if (newImg.complete) adjustImgPosition(newImg);
+    else newImg.onload = () => adjustImgPosition(newImg);
     state.photoIdx = newIdx;
     state.imgUrl = state.photoUrls[newIdx];
     box.querySelectorAll('.carousel-dot').forEach((d,i) => d.classList.toggle('active', i===newIdx));

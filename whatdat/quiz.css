@@ -102,6 +102,10 @@ body {
 /* Image */
 .img-box { width:100%; border-radius:var(--radius-lg); overflow:hidden; background:#eeede8; display:flex; align-items:center; justify-content:center; border:1.5px solid #dddbd3; position:relative; margin-bottom:14px; min-height:160px; }
 .img-box img { width:100%; display:block; object-fit:cover; }
+/* Portrait photos: slightly taller box, photo contained whole with space
+   left/right so the subject is never cropped (class set by adjustImgPosition). */
+.img-box.portrait { height:min(72vw, 440px); }
+.img-box.portrait img { width:100%; height:100%; object-fit:contain; object-position:center center; }
 .img-placeholder { color:#9b9890; text-align:center; padding:20px; }
 .img-placeholder .icon { font-size:3rem; margin-bottom:8px; }
 .img-placeholder span { font-size:0.8rem; font-style:italic; display:block; }
