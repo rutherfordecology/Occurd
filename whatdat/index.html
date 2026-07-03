@@ -5,11 +5,15 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>WhatDat? - Rutherford Ecology</title>
 <meta name="theme-color" content="#084430">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@300;400;500;600;700&display=swap">
 <script src="../icons.js"></script>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   svg[aria-hidden="true"] { vertical-align: middle; }
-  html, body { min-height: 100vh; background: #f3f2ee; font-family: system-ui, -apple-system, sans-serif; color: #1c1b18; overflow-x: hidden; }
+  :root { --radius-sm: 4px; --radius: 8px; --radius-lg: 12px; --radius-pill: 999px; --font-sans: 'Inter Tight', system-ui, -apple-system, sans-serif; }
+  html, body { min-height: 100vh; background: #f3f2ee; font-family: var(--font-sans); color: #1c1b18; overflow-x: hidden; }
 
   .topbar { background: #084430; padding: 10px 16px; display: flex; align-items: center; justify-content: space-between; width: 100%; }
   .topbar-title { font-size: 1.05rem; font-weight: 900; color: #fff; }
@@ -29,13 +33,13 @@
   /* ── Taxon panel ─────────────────────────────────────────────────────────── */
   .taxon-section { margin-bottom: 14px; }
 
-  .taxon-toggle { width: 100%; display: flex; align-items: center; justify-content: space-between; padding: 13px 16px; background: #fff; border: 1.5px solid #dddbd3; border-radius: 12px; cursor: pointer; font-family: inherit; font-size: 0.9rem; font-weight: 700; color: #1c1b18; transition: all 0.15s; }
+  .taxon-toggle { width: 100%; display: flex; align-items: center; justify-content: space-between; padding: 13px 16px; background: #fff; border: 1.5px solid #dddbd3; border-radius: var(--radius-lg); cursor: pointer; font-family: inherit; font-size: 0.9rem; font-weight: 700; color: #1c1b18; transition: all 0.15s; }
   .taxon-toggle:hover { border-color: #2a7a58; background: #f8fdf9; }
   .taxon-toggle.has-selection { border-color: #2a7a58; background: #e8f4ef; color: #1a5940; }
   .taxon-toggle.open { border-radius: 12px 12px 0 0; }
   .taxon-toggle-icon { font-size: 1rem; transition: transform 0.2s; flex-shrink: 0; }
   .taxon-toggle.open .taxon-toggle-icon { transform: rotate(180deg); }
-  .taxon-sel-pill { display: inline-flex; align-items: center; gap: 5px; background: #1a5940; color: #fff; border-radius: 20px; padding: 2px 10px 2px 8px; font-size: 0.72rem; font-weight: 800; }
+  .taxon-sel-pill { display: inline-flex; align-items: center; gap: 5px; background: #1a5940; color: #fff; border-radius: var(--radius-pill); padding: 2px 10px 2px 8px; font-size: 0.72rem; font-weight: 800; }
   .taxon-sel-pill button { background: none; border: none; color: rgba(255,255,255,0.7); cursor: pointer; font-size: 0.85rem; padding: 0; line-height: 1; }
   .taxon-sel-pill button:hover { color: #fff; }
 
@@ -46,13 +50,13 @@
   .taxon-popular { padding: 12px 14px 10px; border-bottom: 1px solid #eeede8; }
   .pop-label { font-size: 0.62rem; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: #9b9890; margin-bottom: 8px; }
   .pop-grid { display: flex; flex-wrap: wrap; gap: 6px; }
-  .pop-btn { display: flex; align-items: center; gap: 5px; padding: 5px 12px 5px 8px; background: #f3f2ee; border: 1.5px solid #dddbd3; border-radius: 20px; cursor: pointer; font-family: inherit; font-size: 0.78rem; font-weight: 700; color: #1c1b18; transition: all 0.15s; white-space: nowrap; }
+  .pop-btn { display: flex; align-items: center; gap: 5px; padding: 5px 12px 5px 8px; background: #f3f2ee; border: 1.5px solid #dddbd3; border-radius: var(--radius-pill); cursor: pointer; font-family: inherit; font-size: 0.78rem; font-weight: 700; color: #1c1b18; transition: all 0.15s; white-space: nowrap; }
   .pop-btn:hover { border-color: #2a7a58; background: #e8f4ef; color: #1a5940; }
   .pop-btn.active { border-color: #1a5940; background: #1a5940; color: #fff; }
 
 
   .taxon-search-row { padding: 8px 10px; border-bottom: 1px solid #eeede8; display: flex; gap: 6px; }
-  .taxon-search-row input { flex: 1; padding: 6px 10px; border: 1.5px solid #dddbd3; border-radius: 8px; font-size: 0.85rem; font-family: inherit; outline: none; }
+  .taxon-search-row input { flex: 1; padding: 6px 10px; border: 1.5px solid #dddbd3; border-radius: var(--radius); font-size: 0.85rem; font-family: inherit; outline: none; }
   .taxon-search-row input:focus { border-color: #2a7a58; }
 
   .taxon-list { max-height: 220px; overflow-y: auto; }
@@ -64,14 +68,14 @@
   .taxon-item:hover { background: #f8fdf9; }
   .ti-left { flex: 1; min-width: 0; }
   .ti-name { font-size: 0.86rem; font-weight: 700; color: #1c1b18; font-style: italic; }
-  .ti-rank { display: inline-block; font-size: 0.58rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: #9b9890; background: #f0efeb; border-radius: 8px; padding: 1px 5px; margin-top: 2px; }
+  .ti-rank { display: inline-block; font-size: 0.58rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: #9b9890; background: #f0efeb; border-radius: var(--radius); padding: 1px 5px; margin-top: 2px; }
   .ti-arr { font-size: 0.8rem; color: #c8c6bc; flex-shrink: 0; }
 
   .taxon-use-bar { padding: 10px 14px; border-top: 1px solid #eeede8; display: flex; align-items: center; gap: 8px; }
   .taxon-use-name { flex: 1; font-size: 0.8rem; color: #6b6960; font-style: italic; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .taxon-use-btn { padding: 7px 14px; background: #1a5940; border: none; color: #fff; border-radius: 8px; font-size: 0.8rem; font-weight: 800; cursor: pointer; font-family: inherit; }
+  .taxon-use-btn { padding: 7px 14px; background: #1a5940; border: none; color: #fff; border-radius: var(--radius); font-size: 0.8rem; font-weight: 800; cursor: pointer; font-family: inherit; }
   .taxon-use-btn:hover { background: #2a7a58; }
-  .taxon-clear-btn { padding: 7px 10px; background: none; border: 1.5px solid #dddbd3; color: #9b9890; border-radius: 8px; font-size: 0.8rem; cursor: pointer; font-family: inherit; }
+  .taxon-clear-btn { padding: 7px 10px; background: none; border: 1.5px solid #dddbd3; color: #9b9890; border-radius: var(--radius); font-size: 0.8rem; cursor: pointer; font-family: inherit; }
   .taxon-clear-btn:hover { border-color: #d47a7a; color: #8a2c2c; }
 
   /* Location button */
@@ -83,33 +87,33 @@
   .divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: #dddbd3; }
 
   /* Species list */
-  .splist-toggle { width: 100%; display: flex; align-items: center; justify-content: space-between; padding: 13px 16px; background: #fff; border: 1.5px solid #dddbd3; border-radius: 12px; cursor: pointer; font-family: inherit; font-size: 0.88rem; font-weight: 700; color: #6b6960; transition: all 0.15s; }
+  .splist-toggle { width: 100%; display: flex; align-items: center; justify-content: space-between; padding: 13px 16px; background: #fff; border: 1.5px solid #dddbd3; border-radius: var(--radius-lg); cursor: pointer; font-family: inherit; font-size: 0.88rem; font-weight: 700; color: #6b6960; transition: all 0.15s; }
   .splist-toggle:hover, .splist-toggle.open { border-color: #2a7a58; color: #1a5940; }
   .splist-toggle.open { border-radius: 12px 12px 0 0; }
   .splist-panel { display: none; background: #fff; border: 1.5px solid #2a7a58; border-top: none; border-radius: 0 0 12px 12px; padding: 14px; }
   .splist-panel.open { display: block; }
   .splist-panel label { display: block; font-size: 0.72rem; font-weight: 800; color: #6b6960; margin-bottom: 5px; letter-spacing: 0.06em; text-transform: uppercase; }
-  .splist-panel input[type=text] { width: 100%; padding: 9px 12px; font-size: 0.88rem; font-family: inherit; border: 1.5px solid #dddbd3; border-radius: 8px; outline: none; margin-bottom: 12px; }
+  .splist-panel input[type=text] { width: 100%; padding: 9px 12px; font-size: 0.88rem; font-family: inherit; border: 1.5px solid #dddbd3; border-radius: var(--radius); outline: none; margin-bottom: 12px; }
   .splist-panel input[type=text]:focus { border-color: #2a7a58; }
-  .splist-panel textarea { width: 100%; height: 140px; padding: 10px 12px; font-size: 0.82rem; font-family: inherit; border: 1.5px solid #dddbd3; border-radius: 8px; resize: vertical; outline: none; }
+  .splist-panel textarea { width: 100%; height: 140px; padding: 10px 12px; font-size: 0.82rem; font-family: inherit; border: 1.5px solid #dddbd3; border-radius: var(--radius); resize: vertical; outline: none; }
   .splist-panel textarea:focus { border-color: #2a7a58; }
   .splist-panel textarea::placeholder { color: #c8c6bc; }
   .splist-hint { font-size: 0.72rem; color: #9b9890; margin-top: 8px; line-height: 1.5; }
   .splist-hint a { color: #2a7a58; }
-  .splist-start-btn { width: 100%; margin-top: 12px; padding: 13px; background: #2a7a58; border: none; color: #fff; border-radius: 10px; font-size: 0.95rem; font-weight: 800; cursor: pointer; font-family: inherit; transition: all 0.15s; }
+  .splist-start-btn { width: 100%; margin-top: 12px; padding: 13px; background: #2a7a58; border: none; color: #fff; border-radius: var(--radius); font-size: 0.95rem; font-weight: 800; cursor: pointer; font-family: inherit; transition: all 0.15s; }
   .splist-start-btn:hover { background: #1a5940; }
 
   /* Map modal */
   .map-header-taxon { display: block; font-size: 0.78rem; color: #2a7a58; font-style: italic; margin-top: 2px; }
   .map-search-row { padding: 8px 0; display: flex; gap: 6px; }
-  .map-search-row input { flex: 1; padding: 7px 11px; border: 1px solid #ccc; border-radius: 8px; font-size: 0.88rem; font-family: inherit; outline: none; }
+  .map-search-row input { flex: 1; padding: 7px 11px; border: 1px solid #ccc; border-radius: var(--radius); font-size: 0.88rem; font-family: inherit; outline: none; }
   .map-search-row input:focus { border-color: #1a5940; }
-  .map-search-row button { padding: 7px 13px; background: #1a5940; color: #fff; border: none; border-radius: 8px; font-size: 0.85rem; font-weight: 700; cursor: pointer; }
+  .map-search-row button { padding: 7px 13px; background: #1a5940; color: #fff; border: none; border-radius: var(--radius); font-size: 0.85rem; font-weight: 700; cursor: pointer; }
   .map-search-row button:hover { background: #226b4d; }
-  #pickMap { height: 380px; border-radius: 14px; overflow: hidden; border: 1.5px solid #dddbd3; }
+  #pickMap { height: 380px; border-radius: var(--radius-lg); overflow: hidden; border: 1.5px solid #dddbd3; }
   @media (max-width: 600px) { #pickMap { height: 240px; } }
   .map-status { padding: 8px 2px; font-size: 0.85rem; color: #6b6960; min-height: 30px; display: flex; align-items: center; }
-  .map-places { border: 1px solid #dddbd3; border-radius: 10px; overflow-y: auto; max-height: 200px; }
+  .map-places { border: 1px solid #dddbd3; border-radius: var(--radius); overflow-y: auto; max-height: 200px; }
   .map-place-item { padding: 11px 18px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #f3f2ee; transition: background 0.1s; }
   .map-place-item:last-child { border-bottom: none; }
   .map-place-item:hover, .map-place-item.active { background: #e8f4ef; }
@@ -124,7 +128,7 @@
   /* ── Library ─────────────────────────────────────────────────────────────── */
   .section-label { max-width:900px; margin:0 auto 14px; padding:0 20px; font-size:0.68rem; font-weight:800; letter-spacing:0.12em; text-transform:uppercase; color:#9b9890; }
   .cards-grid { max-width:900px; margin:0 auto 32px; padding:0 20px; display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:14px; }
-  .place-card { background:#fff; border:1.5px solid #dddbd3; border-radius:14px; overflow:hidden; text-decoration:none; color:inherit; transition:all 0.2s; display:block; box-shadow:0 2px 8px rgba(0,0,0,0.04); }
+  .place-card { background:#fff; border:1.5px solid #dddbd3; border-radius:var(--radius-lg); overflow:hidden; text-decoration:none; color:inherit; transition:all 0.2s; display:block; box-shadow:0 2px 8px rgba(0,0,0,0.04); }
   .place-card:hover { border-color:#2a7a58; transform:translateY(-3px); box-shadow:0 8px 24px rgba(42,122,88,0.13); }
   .card-img { height:140px; background:#eeede8; overflow:hidden; display:flex; align-items:center; justify-content:center; }
   .card-img img { width:100%; height:100%; object-fit:cover; object-position:center top; }
@@ -137,7 +141,7 @@
   .card-share { position:absolute; bottom:10px; right:10px; background:none; border:none; padding:4px; cursor:pointer; color:#c8c6bc; line-height:1; border-radius:6px; transition:color 0.15s; }
   .card-share:hover { color:#2a7a58; }
   .card-share svg { display:block; width:16px; height:16px; }
-  .share-toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:#1a5940; color:#fff; padding:10px 20px; border-radius:10px; font-size:0.85rem; font-weight:700; pointer-events:none; opacity:0; transition:opacity 0.2s; z-index:9999; }
+  .share-toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:#1a5940; color:#fff; padding:10px 20px; border-radius:var(--radius); font-size:0.85rem; font-weight:700; pointer-events:none; opacity:0; transition:opacity 0.2s; z-index:9999; }
 </style>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -147,7 +151,7 @@
 <div class="topbar">
   <div>
     <span class="topbar-title">WhatDat?</span>
-    <span class="topbar-version">v2.5</span>
+    <span class="topbar-version">v2.6</span>
   </div>
   <span class="topbar-re">by <a href="https://www.rutherfordecology.co.nz/" target="_blank"><strong>Rutherford</strong> ecology</a></span>
 </div>
@@ -178,7 +182,7 @@
       <div style="padding:8px 12px 4px;">
         <input id="taxonSearchInput" type="text" placeholder="Or type any group… (e.g. Aves, Coleoptera, Rosaceae)"
           autocomplete="off"
-          style="width:100%;box-sizing:border-box;padding:8px 12px;font-size:0.85rem;border:1.5px solid #dddbd3;border-radius:8px;outline:none;font-family:inherit;"
+          style="width:100%;box-sizing:border-box;padding:8px 12px;font-size:0.85rem;border:1.5px solid #dddbd3;border-radius:var(--radius);outline:none;font-family:inherit;"
           oninput="onTaxonSearch(this.value)"
           onfocus="this.style.borderColor='#2a7a58'" onblur="this.style.borderColor='#dddbd3'">
       </div>
@@ -222,7 +226,7 @@
       <label>Fill from a taxon group</label>
       <div style="display:flex;gap:6px;margin-bottom:8px;">
         <input type="text" id="taxonFillInput" placeholder="e.g. Ratitae, Lepidoptera, Felidae…" style="margin-bottom:0;flex:1;" oninput="onTaxonFillSearch(this.value)" autocomplete="off">
-        <button id="taxonFillBtn" onclick="fillFromTaxon()" style="padding:9px 14px;background:#1a5940;color:#fff;border:none;border-radius:8px;font-weight:800;cursor:pointer;font-family:inherit;font-size:0.85rem;white-space:nowrap;">Load</button>
+        <button id="taxonFillBtn" onclick="fillFromTaxon()" style="padding:9px 14px;background:#1a5940;color:#fff;border:none;border-radius:var(--radius);font-weight:800;cursor:pointer;font-family:inherit;font-size:0.85rem;white-space:nowrap;">Load</button>
       </div>
       <div id="taxonFillResults"></div>
       <div id="taxonFillMsg" style="font-size:0.75rem;color:#9b9890;margin-bottom:8px;min-height:1em;"></div>
@@ -725,7 +729,7 @@ async function addLibraryMarkersToMap(quizzes) {
     const c = await resolveQuizCoords(q);
     if (!c) continue;
     const absUrl = q.url.startsWith('http') ? q.url : `https://occurd.rutherfordecology.co.nz/whatdat/${q.url}`;
-    const popup = `<div style="font-family:system-ui;text-align:center"><div style="font-weight:700">${q.description||q.name}</div><a href="${absUrl}" style="color:#1a5940;font-weight:800;text-decoration:none">Play &#8594;</a></div>`;
+    const popup = `<div style="font-family:var(--font-sans);text-align:center"><div style="font-weight:700">${q.description||q.name}</div><a href="${absUrl}" style="color:#1a5940;font-weight:800;text-decoration:none">Play &#8594;</a></div>`;
     for (const lngOffset of [-1440, -1080, -720, -360, 0, 360, 720, 1080, 1440]) {
       L.marker([c.lat, c.lng + lngOffset]).addTo(pickMap).bindPopup(popup);
     }

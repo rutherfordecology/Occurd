@@ -11,6 +11,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>but is it threatened?</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@300;400;500;600;700&display=swap">
   <script src="../icons.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -24,10 +27,12 @@
       --accent-dim:   #5aaa54;
       --text:         #e8f0e8;
       --text-muted:   #7aad8a;
+      --radius-sm: 4px; --radius: 6px; --radius-lg: 12px; --radius-pill: 999px;
+      --font-sans: 'Inter Tight', system-ui, -apple-system, sans-serif;
     }
 
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-family: var(--font-sans);
       background: var(--bg);
       color: var(--text);
       min-height: 100vh;
@@ -51,7 +56,7 @@
     .re-link:hover { color: var(--accent); }
     .bmc-btn {
       display: inline-flex; align-items: center; gap: .4rem;
-      padding: .4rem .9rem; border-radius: 8px;
+      padding: .4rem .9rem; border-radius: var(--radius);
       background: var(--surface2); border: 1px solid var(--border);
       color: var(--text-muted); font-size: .8rem; text-decoration: none;
       white-space: nowrap; transition: border-color .15s, color .15s;
@@ -83,7 +88,7 @@
       padding: 0.85rem 3rem 0.85rem 1.1rem;
       font-size: 1.05rem;
       border: 2px solid var(--border);
-      border-radius: 10px;
+      border-radius: var(--radius);
       background: var(--surface);
       color: var(--text);
       outline: none;
@@ -105,7 +110,7 @@
       top: calc(100% + 4px); left: 0; right: 0;
       background: var(--surface);
       border: 1.5px solid var(--border);
-      border-radius: 10px;
+      border-radius: var(--radius);
       box-shadow: 0 8px 24px rgba(0,0,0,.35);
       overflow: hidden;
       z-index: 100;
@@ -158,7 +163,7 @@
     /* ── NZTCS badges ───────────────────────────────────── */
     .badge {
       font-size: 0.68rem; font-weight: 600;
-      padding: 0.18em 0.55em; border-radius: 4px;
+      padding: 0.18em 0.55em; border-radius: var(--radius-sm);
       white-space: nowrap; letter-spacing: 0.02em; flex-shrink: 0;
     }
     .cat-threatened               { background:#3d1010; color:#e07070; }
@@ -188,7 +193,7 @@
     /* ── Detail panel ───────────────────────────────────── */
     #detail {
       background:var(--surface); border:1.5px solid var(--border);
-      border-radius:12px; padding:1.5rem;
+      border-radius:var(--radius-lg); padding:1.5rem;
     }
     #detail[hidden] { display:none; }
 
@@ -200,7 +205,7 @@
       margin-bottom:1rem; align-items:center;
     }
     .pill {
-      font-size:.78rem; padding:.2em .65em; border-radius:20px;
+      font-size:.78rem; padding:.2em .65em; border-radius:var(--radius-pill);
       background:var(--surface2); color:var(--text-muted); text-transform:capitalize;
     }
     .pill.status-current   { background:#1a3d1e; color:#7fc97a; }
@@ -228,7 +233,7 @@
 
     .nztcs-box {
       margin-top:1.1rem; padding:.9rem 1.1rem;
-      border-radius:8px; border:1.5px solid;
+      border-radius:var(--radius); border:1.5px solid;
     }
     .nztcs-box.cat-threatened              { background:#3d1010; border-color:#7a2020; color:#e07070; }
     .nztcs-box.cat-at-risk                 { background:#2e2000; border-color:#6b4800; color:#f0a830; }
@@ -262,7 +267,7 @@
     .nerd-notes {
       margin-top:1.5rem;
       border:1px solid var(--border);
-      border-radius:8px;
+      border-radius:var(--radius);
       background:var(--surface);
     }
     .nerd-notes summary {
@@ -331,7 +336,7 @@
     /* ── Batch ──────────────────────────────────────────── */
 
     .drop-zone {
-      border:2px dashed var(--border); border-radius:10px;
+      border:2px dashed var(--border); border-radius:var(--radius);
       padding:2rem 1.5rem; text-align:center;
       background:var(--surface); cursor:pointer;
       transition:border-color .15s, background .15s;
@@ -343,7 +348,7 @@
 
     #batch-paste {
       width:100%; min-height:100px; padding:.75rem 1rem;
-      font-size:.88rem; border:1.5px solid var(--border); border-radius:8px;
+      font-size:.88rem; border:1.5px solid var(--border); border-radius:var(--radius);
       background:var(--surface); color:var(--text);
       resize:vertical; font-family:inherit; outline:none;
       transition:border-color .15s;
@@ -355,14 +360,14 @@
     }
     .btn-primary {
       padding:.55rem 1.3rem; background:var(--accent); color:#0d1f0f;
-      border:none; border-radius:8px; cursor:pointer; font-size:.9rem; font-weight:600;
+      border:none; border-radius:var(--radius); cursor:pointer; font-size:.9rem; font-weight:600;
       transition:opacity .15s;
     }
     .btn-primary:hover { opacity:.85; }
     .btn-primary:disabled { opacity:.4; cursor:default; }
     .btn-secondary {
       padding:.55rem 1.1rem; background:var(--surface2); color:var(--text-muted);
-      border:1.5px solid var(--border); border-radius:8px; cursor:pointer; font-size:.9rem;
+      border:1.5px solid var(--border); border-radius:var(--radius); cursor:pointer; font-size:.9rem;
       transition:border-color .15s, color .15s;
     }
     .btn-secondary:hover { border-color:var(--accent); color:var(--text); }
@@ -398,7 +403,7 @@
     .ambig-badge  { background:#2e2000; color:#f0a830; border:1px solid #6b4800; }
     .ambig-pill   { background:#2e2000; color:#f0a830; }
     .ambig-list   { display:flex; flex-direction:column; gap:.5rem; margin-top:.6rem; }
-    .ambig-card   { background:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:.6rem .75rem; }
+    .ambig-card   { background:var(--surface2); border:1px solid var(--border); border-radius:var(--radius); padding:.6rem .75rem; }
     .ambig-sci    { font-weight:500; margin-bottom:.15rem; }
     .ambig-names     { font-size:.8rem; color:var(--text-muted); margin-bottom:.25rem; }
     .subsp-best      { outline:2px solid currentColor; outline-offset:-2px; }
@@ -410,7 +415,7 @@
     .batch-cb, #batch-sel-all { cursor:pointer; width:15px; height:15px; }
     #batch-looklike, #batch-whatdat {
       padding:.55rem 1.1rem; background:var(--accent); color:#0d1f0f;
-      border:none; border-radius:8px; cursor:pointer; font-size:.9rem; font-weight:600;
+      border:none; border-radius:var(--radius); cursor:pointer; font-size:.9rem; font-weight:600;
       transition:opacity .15s;
     }
     #batch-looklike:hover, #batch-whatdat:hover { opacity:.85; }
@@ -423,7 +428,7 @@
 <header>
   <div class="header-logo"><img src="logo.png" alt=""></div>
   <div class="header-meta">
-    <h1>but is it threatened? <span style="font-size:0.65rem;font-weight:400;opacity:0.4;letter-spacing:0.05em;">v1.60</span></h1>
+    <h1>but is it threatened? <span style="font-size:0.65rem;font-weight:400;opacity:0.4;letter-spacing:0.05em;">v1.62</span></h1>
     <p>NZOR names · NZTCS status · by <a href="https://www.rutherfordecology.co.nz/" target="_blank" rel="noopener" class="re-link">Rutherford ecology</a></p>
   </div>
   <a class="bmc-btn" href="https://buymeacoffee.com/rutherfordecology" target="_blank" rel="noopener">☕ Buy me a coffee</a>

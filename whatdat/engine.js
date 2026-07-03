@@ -1,7 +1,7 @@
-// WhatDat? Quiz Engine v1.13
+// WhatDat? Quiz Engine v1.15
 // Shared engine for all quiz pages.
 // Each page calls: initEngine(config)
-const APP_VERSION = 'v1.14';
+const APP_VERSION = 'v1.15';
 window.__engineLoaded = true;
 
 const GH_TOKEN = ['github','pat','11CD5YDQQ0bj2y9dp1UI7X','dOQEr16i0xNnN8iEM3pVloK7E9YJz7sn81NGUBeUuF1QPSQ6QBCEJbLlREp'].join('_');
