@@ -49,7 +49,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v6.90b</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v6.91b</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -635,20 +635,59 @@
 <script src="https://unpkg.com/jszip@3.10.1/dist/jszip.min.js"></script>
 <script>
 // Wraps fetch() for GBIF API calls — retries up to 3× on 429 with a 500 ms back-off.
+// ── Global GBIF request throttle ────────────────────────────────────────────
+// Every GBIF API call (occurrence pagination, per-species photo media, vernacular
+// names, TK detection) funnels through gbifFetch. A single search used to fire a
+// burst of hundreds of these — 2 photo lookups × ~100 species + name lookups —
+// which trips GBIF's "Too many API requests" 429 and breaks the fetch. This queue
+// caps concurrency and enforces a minimum gap between request starts so the app
+// stays under GBIF's rate ceiling no matter how many enrichment calls it wants.
+const GBIF_MAX_CONCURRENT = 4;
+const GBIF_MIN_GAP_MS = 90;
+let _gbifInFlight = 0;
+let _gbifNextSlot = 0;
+const _gbifWaiters = [];
+function _gbifAcquire() {
+  return new Promise(resolve => {
+    const attempt = () => {
+      if (_gbifInFlight < GBIF_MAX_CONCURRENT) {
+        _gbifInFlight++;
+        const now = Date.now();
+        const at = Math.max(now, _gbifNextSlot);
+        _gbifNextSlot = at + GBIF_MIN_GAP_MS;
+        setTimeout(resolve, at - now);
+      } else {
+        _gbifWaiters.push(attempt);
+      }
+    };
+    attempt();
+  });
+}
+function _gbifRelease() {
+  _gbifInFlight--;
+  const next = _gbifWaiters.shift();
+  if (next) next();
+}
+
 async function gbifFetch(url, options) {
   const MAX_RETRIES = 3;
   const DELAY_MS = 500;
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-    const res = await fetch(url, options);
+    await _gbifAcquire();
+    let res;
+    try { res = await fetch(url, options); }
+    finally { _gbifRelease(); }
     if (res.status !== 429) return res;
     if (attempt < MAX_RETRIES) {
       if (typeof setStatus === 'function')
-        setStatus('Beyond the GBIF request limit — retrying in ' + (DELAY_MS / 1000).toFixed(1) + 's…', 'warning');
+        setStatus('GBIF is rate-limiting requests — pausing ' + (DELAY_MS / 1000).toFixed(1) + 's then retrying…', 'warning');
       await new Promise(r => setTimeout(r, DELAY_MS));
     }
   }
   // All retries exhausted — return the last 429 response so callers can handle it
-  return await fetch(url, options);
+  await _gbifAcquire();
+  try { return await fetch(url, options); }
+  finally { _gbifRelease(); }
 }
 
 const COMPLEXITY_THRESHOLD = 500;
@@ -3260,7 +3299,7 @@ async function prefetchPhotos(records) {
   for (let i = 0; i < toFetch.length; i += BATCH) {
     if (_photoPrefetchAbort) return;
     await Promise.all(toFetch.slice(i, i + BATCH).map(({ taxonKey, sciName }) =>
-      fetchSpeciesPhoto(taxonKey, sciName).catch(() => {})
+      fetchSpeciesPhoto(taxonKey, sciName, { skipGbif: true }).catch(() => {})
     ));
     if (!_photoPrefetchAbort && i + BATCH < toFetch.length) {
       await new Promise(r => setTimeout(r, 250));
@@ -3281,10 +3320,10 @@ const _photoSlots    = {}; // slotId   -> {photos:[...], idx:0}
 // sciName → iNat taxon result cache (keyed by taxonKey)
 const inatPhotoCache = {};
 
-async function fetchSpeciesPhoto(taxonKey, sciName) {
+async function fetchSpeciesPhoto(taxonKey, sciName, opts) {
+  opts = opts || {};
   if (!taxonKey) return null;
   if (photoCache[taxonKey] !== undefined) return photoCache[taxonKey];
-  photoCache[taxonKey] = null;
 
   // 1. Try iNaturalist Taxa API — returns the community-curated default taxon photo
   // Strip authorship so "Ondatra zibethicus (Linnaeus, 1766)" → "Ondatra zibethicus"
@@ -3321,7 +3360,14 @@ async function fetchSpeciesPhoto(taxonKey, sciName) {
     } catch(e) {}
   }
 
-  // 2. Fall back to GBIF occurrence media
+  // During bulk prefetch, stop here rather than hitting GBIF. Firing ~2 GBIF
+  // occurrence/search calls per species across the whole checklist is what trips
+  // GBIF's "Too many API requests" 429. Leave the cache unset (not null) so an
+  // opened popup can still try the GBIF fallback lazily, one species at a time.
+  if (opts.skipGbif) return null;
+
+  // 2. Fall back to GBIF occurrence media (lazy — only for popups, not prefetch)
+  photoCache[taxonKey] = null;
   const inatKey = '50c9509d-22c7-4a22-a47d-8c48425ef4a7';
   const attempts = [
     'https://api.gbif.org/v1/occurrence/search?taxonKey=' + taxonKey + '&mediaType=StillImage&datasetKey=' + inatKey + '&limit=5',
@@ -3330,7 +3376,7 @@ async function fetchSpeciesPhoto(taxonKey, sciName) {
   const gbifPhotos = []; const gbifSeen = new Set();
   for (const url of attempts) {
     try {
-      const res = await fetch(url);
+      const res = await gbifFetch(url);
       if (!res.ok) continue;
       const json = await res.json();
       for (const occ of (json.results || [])) {
@@ -5608,7 +5654,7 @@ runBtn.addEventListener('click', async () => {
           break page0;
         }
         if (res0.status === 429) {
-          setStatus('Beyond the GBIF request limit — decrease your time range, area size, or taxa and try again.', 'error');
+          setStatus('GBIF is temporarily rate-limiting requests from your network — too many were sent in a short time. This is temporary and not a problem with your search. Wait about a minute, then try again.', 'error');
         } else {
           setStatus('Fetch failed: HTTP ' + res0.status + '. If it keeps failing: ① smaller polygon  ② specific taxa  ③ shorter year range.', 'error');
         }
@@ -5651,12 +5697,18 @@ runBtn.addEventListener('click', async () => {
               return _gbifPageFetch(bqs);
             }));
           } catch(e) {
+            const _rateLimited = /\b429\b/.test(String(e && e.message));
             if (allFetched.length > 0) {
-              partialLoadWarning = '⚠️ Partial load: ' + allFetched.length.toLocaleString() + ' of ' +
-                totalCount.toLocaleString() + ' records fetched (network error). Results below may be incomplete — refetch to try again.';
+              partialLoadWarning = _rateLimited
+                ? '⚠️ Partial load: ' + allFetched.length.toLocaleString() + ' of ' + totalCount.toLocaleString() +
+                  ' records fetched before GBIF started rate-limiting (too many requests in a short time). Wait about a minute, then refetch to get the rest.'
+                : '⚠️ Partial load: ' + allFetched.length.toLocaleString() + ' of ' + totalCount.toLocaleString() +
+                  ' records fetched (network error). Results below may be incomplete — refetch to try again.';
               break;
             }
-            setStatus('Fetch failed after 5 attempts. If it keeps failing: ① smaller polygon  ② specific taxa  ③ shorter year range.', 'error');
+            setStatus(_rateLimited
+              ? 'GBIF is temporarily rate-limiting requests from your network — too many were sent in a short time. This is temporary and not a problem with your search. Wait about a minute, then try again.'
+              : 'Fetch failed after 5 attempts. If it keeps failing: ① smaller polygon  ② specific taxa  ③ shorter year range.', 'error');
             statusBar.innerHTML += ' <button onclick="document.getElementById(\'runBtn\').click()" style="margin-left:8px;background:none;border:1px solid currentColor;border-radius:var(--radius-sm);padding:2px 8px;cursor:pointer;font-size:11px;font-family:var(--font-sans);color:inherit;font-weight:600;">Try again</button>';
             setFetchMode(false); return;
           }
@@ -6592,6 +6644,13 @@ if (window._pendingShare) {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v6.91</span>
+      <span class="changelog-date">Jul 2026</span>
+      <ul>
+        <li>Fixed searches failing with "Too many API requests" (GBIF rate-limit) in data-sparse regions like Samoa, Rarotonga and the Pacific — the app was firing a burst of hundreds of GBIF requests per search (a photo lookup for every species) which tripped GBIF's limit. Photo prefetch no longer hammers GBIF (uses iNaturalist in bulk, falls back to GBIF only when you open a species), and all GBIF calls are now paced through a shared throttle. Clearer message when GBIF does throttle.</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v6.90</span>
       <span class="changelog-date">Jul 2026</span>
