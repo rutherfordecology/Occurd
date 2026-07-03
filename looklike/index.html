@@ -4,8 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>LookLike — Visual Species Browser</title>
+<script src="../icons.js"></script>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  /* Line-icons (icons.js) inherit color/size from text; align them with adjacent text. */
+  svg[aria-hidden="true"] { vertical-align: middle; }
 
   :root {
     --bg: #162518;
@@ -438,15 +441,15 @@
 
 <header>
   <div class="logo"><img src="Logo-long.png" alt="LookLike?"></div>
-  <div class="header-meta" id="header-meta"><span id="header-label">Visual species photo browser · <a href="https://www.rutherfordecology.co.nz/" target="_blank" rel="noopener" class="re-link"><span class="re-by">by </span><span class="re-name">Rutherford</span><span class="re-by"> ecology</span></a></span> <span class="version">v1.34</span></div>
-  <a class="bmc-btn" href="https://buymeacoffee.com/rutherfordecology" target="_blank" rel="noopener">☕ Buy me a coffee</a>
+  <div class="header-meta" id="header-meta"><span id="header-label">Visual species photo browser · <a href="https://www.rutherfordecology.co.nz/" target="_blank" rel="noopener" class="re-link"><span class="re-by">by </span><span class="re-name">Rutherford</span><span class="re-by"> ecology</span></a></span> <span class="version">v1.35</span></div>
+  <a class="bmc-btn" href="https://buymeacoffee.com/rutherfordecology" target="_blank" rel="noopener"><span data-icon="coffee" data-icon-size="15"></span> Buy me a coffee</a>
   <div id="filter-wrap">
     <input id="filter-input" type="search" placeholder="Filter species…" autocomplete="off">
     <button class="sort-btn active" id="sort-az" title="Sort A–Z">A–Z</button>
     <button class="sort-btn" id="sort-tax" title="Taxonomic order">Taxonomic</button>
   </div>
   <button id="back-btn">← Edit list</button>
-  <button id="whatdat-btn" onclick="openInWhatDat()" style="display:none" title="Quiz these species in WhatDat?">🎯 Quiz</button>
+  <button id="whatdat-btn" onclick="openInWhatDat()" style="display:none" title="Quiz these species in WhatDat?"><span data-icon="target" data-icon-size="14" style="vertical-align:-2px"></span> Quiz</button>
 </header>
 
 <!-- Landing -->
@@ -475,7 +478,7 @@
 <!-- Lightbox -->
 <div id="lightbox">
   <div id="lb-inner">
-    <button id="lb-close">✕</button>
+    <button id="lb-close" aria-label="Close"><span data-icon="x" data-icon-size="18"></span></button>
     <img id="lb-img" src="" alt="">
     <div id="lb-caption"></div>
   </div>
@@ -1041,9 +1044,9 @@ function escHtml(s) {
   Occurrence data: <a href="https://www.gbif.org" target="_blank" style="color:#2a7a58;text-decoration:none;">GBIF</a> &mdash;
   <a href="https://www.rutherfordecology.co.nz/" target="_blank" style="color:#2a7a58;text-decoration:none;">Rutherford Ecology</a>
   <br><br>
-  <a href=".." target="_blank" style="color:#2a7a58;font-weight:700;text-decoration:none;">&#128506; Occurd</a> &nbsp;&mdash;&nbsp;
-  <a href="../whatdat/" target="_blank" style="color:#2a7a58;font-weight:700;text-decoration:none;">&#127919; WhatDat?</a> &nbsp;&mdash;&nbsp;
-  <a href="https://rutherfordecology.github.io/WhatDatBird/" target="_blank" style="color:#2a7a58;font-weight:700;text-decoration:none;">&#128038; WhatDatBird?</a>
+  <a href=".." target="_blank" style="color:#2a7a58;font-weight:700;text-decoration:none;"><span data-icon="map" data-icon-size="15" style="vertical-align:-3px"></span> Occurd</a> &nbsp;&mdash;&nbsp;
+  <a href="../whatdat/" target="_blank" style="color:#2a7a58;font-weight:700;text-decoration:none;"><span data-icon="target" data-icon-size="15" style="vertical-align:-3px"></span> WhatDat?</a> &nbsp;&mdash;&nbsp;
+  <a href="https://rutherfordecology.github.io/WhatDatBird/" target="_blank" style="color:#2a7a58;font-weight:700;text-decoration:none;"><span data-icon="bird" data-icon-size="15" style="vertical-align:-3px"></span> WhatDatBird?</a>
 </footer>
 </body>
 </html>
