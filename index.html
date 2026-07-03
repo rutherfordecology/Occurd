@@ -49,7 +49,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v6.93</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v6.94</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -6588,6 +6588,30 @@ if (window._pendingShare) {
 <script src="taxonomy.js"></script>
 <script src="onboarding.js"></script>
 
+<!-- GBIF rate-limit notice (temporary — GBIF is throttling live geometry fetches from occurd) -->
+<div id="gbifNoticeOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:5000;align-items:center;justify-content:center;padding:20px;">
+  <div style="background:var(--surface);max-width:430px;width:100%;border-radius:var(--radius-lg);box-shadow:0 12px 40px rgba(0,0,0,0.25);padding:22px 24px;font-family:var(--font-sans);box-sizing:border-box;">
+    <h3 style="margin:0 0 10px;font-size:16px;color:var(--text);display:flex;align-items:center;gap:8px;"><span data-icon="warning" data-icon-size="18"></span>GBIF is rate-limiting occurd</h3>
+    <p style="margin:0 0 16px;font-size:13.5px;line-height:1.5;color:var(--text2);">GBIF is currently limiting occurd's live fetch requests, so a standard search may stop partway through. For reliable results right now, please use <strong>Big Data Mode</strong> — it retrieves your dataset through GBIF's bulk download service, which isn't affected (a free GBIF account is required).</p>
+    <div style="display:flex;gap:12px;justify-content:flex-end;align-items:center;">
+      <button id="gbifNoticeDismiss" style="background:none;border:none;cursor:pointer;font-size:13px;color:var(--text3);font-family:var(--font-sans);padding:6px 8px;">Dismiss</button>
+      <a id="gbifNoticeLink" href="./?bigdata" style="background:var(--green);color:#fff;text-decoration:none;border-radius:6px;padding:8px 16px;font-size:13px;font-weight:600;">Go to Big Data Mode &rarr;</a>
+    </div>
+  </div>
+</div>
+<script>
+(function() {
+  if (new URLSearchParams(location.search).has('bigdata')) return; // already in Big Data mode — no notice
+  var ov = document.getElementById('gbifNoticeOverlay');
+  if (!ov || sessionStorage.getItem('gbifNoticeDismissed')) return;
+  ov.style.display = 'flex';
+  function hide() { ov.style.display = 'none'; try { sessionStorage.setItem('gbifNoticeDismissed', '1'); } catch(e){} }
+  document.getElementById('gbifNoticeDismiss').addEventListener('click', hide);
+  document.getElementById('gbifNoticeLink').addEventListener('click', function(){ try { sessionStorage.setItem('gbifNoticeDismissed', '1'); } catch(e){} });
+  ov.addEventListener('click', function(e){ if (e.target === ov) hide(); });
+})();
+</script>
+
 <!-- Changelog panel -->
 <div class="changelog-overlay" id="changelogOverlay"></div>
 <div class="changelog-panel" id="changelogPanel">
@@ -6596,6 +6620,13 @@ if (window._pendingShare) {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v6.94</span>
+      <span class="changelog-date">Jul 2026</span>
+      <ul>
+        <li>Added a start-up notice while GBIF is rate-limiting occurd's live fetch requests — standard searches may currently stop partway through. The notice points you to <strong>Big Data Mode</strong>, which retrieves your dataset through GBIF's bulk download service and isn't affected by the limit. Dismiss it and it stays hidden for the rest of your session; it never shows in Big Data Mode.</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v6.93</span>
       <span class="changelog-date">Jul 2026</span>
