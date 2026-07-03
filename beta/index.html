@@ -49,7 +49,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v6.91b</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v6.92b</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -646,6 +646,7 @@ const GBIF_MAX_CONCURRENT = 4;
 const GBIF_MIN_GAP_MS = 90;
 let _gbifInFlight = 0;
 let _gbifNextSlot = 0;
+let _gbifCooldownUntil = 0;   // circuit breaker: when GBIF 429s, ALL requests pause until this
 const _gbifWaiters = [];
 function _gbifAcquire() {
   return new Promise(resolve => {
@@ -653,7 +654,7 @@ function _gbifAcquire() {
       if (_gbifInFlight < GBIF_MAX_CONCURRENT) {
         _gbifInFlight++;
         const now = Date.now();
-        const at = Math.max(now, _gbifNextSlot);
+        const at = Math.max(now, _gbifNextSlot, _gbifCooldownUntil);
         _gbifNextSlot = at + GBIF_MIN_GAP_MS;
         setTimeout(resolve, at - now);
       } else {
@@ -668,26 +669,32 @@ function _gbifRelease() {
   const next = _gbifWaiters.shift();
   if (next) next();
 }
+// On a 429, pause EVERY queued GBIF request for a real interval rather than
+// letting each call independently hammer — retrying into a rate-limit only
+// extends the block (the "20 identical 429s" storm). Honour Retry-After.
+function _gbifTripCooldown(res) {
+  let ms = 5000;
+  const ra = res && res.headers && parseInt(res.headers.get('Retry-After'), 10);
+  if (ra && !isNaN(ra)) ms = Math.min(ra * 1000, 30000);
+  _gbifCooldownUntil = Math.max(_gbifCooldownUntil, Date.now() + ms);
+  return ms;
+}
 
+// GBIF 429 = "too many requests". Probe gently: at most one retry, and only
+// after the shared cooldown has elapsed — never a burst of retries. Other HTTP
+// statuses are returned as-is for callers to handle.
 async function gbifFetch(url, options) {
-  const MAX_RETRIES = 3;
-  const DELAY_MS = 500;
-  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+  let res;
+  for (let attempt = 0; attempt < 2; attempt++) {
     await _gbifAcquire();
-    let res;
     try { res = await fetch(url, options); }
     finally { _gbifRelease(); }
     if (res.status !== 429) return res;
-    if (attempt < MAX_RETRIES) {
-      if (typeof setStatus === 'function')
-        setStatus('GBIF is rate-limiting requests — pausing ' + (DELAY_MS / 1000).toFixed(1) + 's then retrying…', 'warning');
-      await new Promise(r => setTimeout(r, DELAY_MS));
-    }
+    const ms = _gbifTripCooldown(res);
+    if (attempt === 0 && typeof setStatus === 'function')
+      setStatus('GBIF is rate-limiting requests — pausing ' + Math.round(ms / 1000) + 's…', 'warning');
   }
-  // All retries exhausted — return the last 429 response so callers can handle it
-  await _gbifAcquire();
-  try { return await fetch(url, options); }
-  finally { _gbifRelease(); }
+  return res; // still 429 after the cooldown probe — hand it back for the caller to surface
 }
 
 const COMPLEXITY_THRESHOLD = 500;
@@ -5271,7 +5278,9 @@ function getQueryWKT(poly) {
   return poly.wkt; // fallback — let GBIF handle it
 }
 
-// Fetch one GBIF occurrence page with up to 5 retries
+// Fetch one GBIF occurrence page. Retries genuine network errors up to 5×, but a
+// 429 (rate-limit) is thrown immediately — gbifFetch already waited out GBIF's
+// cooldown, so retrying here would just storm the endpoint and extend the block.
 async function _gbifPageFetch(qs) {
   let attempt = 0;
   while (true) {
@@ -5280,10 +5289,12 @@ async function _gbifPageFetch(qs) {
     try {
       const res = await gbifFetch('https://api.gbif.org/v1/occurrence/search?' + qs, { signal: ctrl.signal });
       clearTimeout(timer);
+      if (res.status === 429) { const e = new Error('HTTP 429'); e.rateLimited = true; throw e; }
       if (!res.ok) throw new Error('HTTP ' + res.status);
       return await res.json();
     } catch(e) {
       clearTimeout(timer);
+      if (e && e.rateLimited) throw e; // don't retry rate-limits — bubble up at once
       attempt++;
       if (attempt >= 5) throw e;
       await new Promise(r => setTimeout(r, Math.min(1000 * Math.pow(2, attempt - 1), 12000)));
@@ -6644,6 +6655,13 @@ if (window._pendingShare) {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v6.92</span>
+      <span class="changelog-date">Jul 2026</span>
+      <ul>
+        <li>Stopped the GBIF rate-limit "retry storm" — when GBIF returned "Too many API requests" the app was retrying each page up to ~20 times, firing dozens of requests that only extended the block. Now a 429 pauses all GBIF requests for a short interval (honouring GBIF's Retry-After), probes once, then stops with a clear message instead of hammering.</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v6.91</span>
       <span class="changelog-date">Jul 2026</span>
