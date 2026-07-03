@@ -109,6 +109,20 @@
       "lat": -13.897490000000001,
       "lng": 188.20412499999998,
       "added": "2026-06-28"
+    },
+    {
+      "name": "Species near Fusagasugá",
+      "continent": "South America",
+      "country": "Colombia",
+      "description": "Species near Fusagasugá",
+      "type": "dynamic",
+      "url": "quiz.html?lat=4.329&lng=-74.36714&place_name=Species%20near%20Fusagasug%C3%A1&country_code=CO",
+      "coord_lat": 4.329,
+      "coord_lng": -74.36714,
+      "photo_taxon": "Espeletia grandiflora",
+      "lat": 4.329,
+      "lng": -74.36714,
+      "added": "2026-07-03"
     }
   ]
 }
