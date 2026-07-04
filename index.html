@@ -49,7 +49,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v6.98</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v6.99</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -3420,11 +3420,25 @@ async function _fetchSpeciesPhotoUncached(taxonKey, sciName) {
           t.name && t.name.toLowerCase() === binomial.toLowerCase()
         );
         // Try the featured default photo first; if it's All Rights Reserved,
-        // fall through to the curated taxon_photos list for the next best option
+        // fall through to the curated taxon_photos list for the next best option.
+        // The /v1/taxa search endpoint only ever returns default_photo — taxon_photos
+        // (the actual curated CC list) is only present on the /v1/taxa/{id} detail
+        // endpoint, so it must be fetched separately once we have a matched taxon id.
         const candidates = [];
         if (taxon && taxon.default_photo) candidates.push(taxon.default_photo);
-        for (const tp of (taxon && taxon.taxon_photos) || []) {
-          if (tp && tp.photo) candidates.push(tp.photo);
+        if (taxon && taxon.id) {
+          try {
+            const detailRes = await fetch('https://api.inaturalist.org/v1/taxa/' + taxon.id);
+            if (detailRes.ok) {
+              const detailJson = await detailRes.json();
+              const detail = (detailJson.results || [])[0];
+              for (const tp of (detail && detail.taxon_photos) || []) {
+                if (tp && tp.photo) candidates.push(tp.photo);
+              }
+            } else {
+              hadFailure = true;
+            }
+          } catch(e) { hadFailure = true; }
         }
         const seenUrls = new Set();
         const allPhotos = candidates
@@ -6769,6 +6783,13 @@ if (window._pendingShare) {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v6.99</span>
+      <span class="changelog-date">Jul 2026</span>
+      <ul>
+        <li>Species photos — fix: iNaturalist's taxa <em>search</em> endpoint only ever returns a species' single "default" photo, never its curated <code>taxon_photos</code> list, so any species whose default photo happened to be All Rights Reserved (e.g. Great Barracuda) showed no photo at all despite having plenty of CC-licensed options. Now fetches the taxon's detail record, which does include the full curated list, to actually get a usable photo</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v6.98</span>
       <span class="changelog-date">Jul 2026</span>
