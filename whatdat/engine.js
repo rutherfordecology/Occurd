@@ -1,7 +1,7 @@
-// WhatDat? Quiz Engine v1.16
+// WhatDat? Quiz Engine v1.17
 // Shared engine for all quiz pages.
 // Each page calls: initEngine(config)
-const APP_VERSION = 'v1.16';
+const APP_VERSION = 'v1.17';
 window.__engineLoaded = true;
 
 const GH_TOKEN = ['github','pat','11CD5YDQQ0bj2y9dp1UI7X','dOQEr16i0xNnN8iEM3pVloK7E9YJz7sn81NGUBeUuF1QPSQ6QBCEJbLlREp'].join('_');
@@ -1174,6 +1174,8 @@ function adjustImgPosition(img) {
   if(box) box.classList.toggle('portrait', isPortrait);
   if(isPortrait) {
     img.style.height='100%'; img.style.maxHeight=''; img.style.objectFit='contain'; img.style.objectPosition='center center';
+  } else if (window.innerWidth <= 500) {
+    img.style.height='100%'; img.style.maxHeight=''; img.style.objectFit='cover'; img.style.objectPosition='center center';
   } else {
     img.style.height='auto'; img.style.maxHeight='65vw'; img.style.objectFit='cover'; img.style.objectPosition='center center';
   }
