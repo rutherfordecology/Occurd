@@ -49,7 +49,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v6.99b</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v7.00b</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -2859,7 +2859,7 @@ function chooseNztcsSubsp(speciesName, optionIndex) {
     if ((rec.species || rec.scientificName) === speciesName) {
       const page = buildRecordPage(rec);
       bodyEl.innerHTML = page.html;
-      setTimeout(() => loadPopupPhoto(page.photoId, rec.taxonKey, rec.scientificName), 30);
+      setTimeout(() => loadPopupPhoto(page.photoId, page.taxonKey, rec.scientificName), 30);
     }
   }
 }
@@ -3320,7 +3320,7 @@ async function lookupCommonNames(records) {
   //    to the same-country occurrence-name vote below, and is upgraded lazily when a
   //    species popup is opened (see lazyLoadCommonName).
   const _vernCounts = {};
-  records.forEach(r => { if (r.taxonKey) _vernCounts[r.taxonKey] = (_vernCounts[r.taxonKey] || 0) + 1; });
+  records.forEach(r => { const k = r.taxonKey || r.speciesKey; if (k) _vernCounts[k] = (_vernCounts[k] || 0) + 1; });
   const VERNACULAR_TOP_N = 25;
   const taxonKeys = Object.keys(_vernCounts).sort((a, b) => _vernCounts[b] - _vernCounts[a]).slice(0, VERNACULAR_TOP_N);
   const total = taxonKeys.length;
@@ -3355,18 +3355,20 @@ async function lookupCommonNames(records) {
   //    Filters: same dominant country, ASCII (for English regions), not a banding code.
   const voteCounts = {};
   records.forEach(r => {
-    if (!r.taxonKey || !r.vernacularName) return;
+    const k = r.taxonKey || r.speciesKey;
+    if (!k || !r.vernacularName) return;
     if (dominantCountry && r.countryCode !== dominantCountry) return;
     const n = r.vernacularName.trim();
     if (!n || isBandingCode(n)) return;
     if (asciiOnly && /[^\x00-\x7FāēīōūĀĒĪŌŪ]/.test(n)) return;
-    if (!voteCounts[r.taxonKey]) voteCounts[r.taxonKey] = {};
-    voteCounts[r.taxonKey][n] = (voteCounts[r.taxonKey][n] || 0) + 1;
+    if (!voteCounts[k]) voteCounts[k] = {};
+    voteCounts[k][n] = (voteCounts[k][n] || 0) + 1;
   });
 
   // 4. Overwrite every record's vernacularName: API preferred → same-country vote → null.
   records.forEach(r => {
-    const cached = r.taxonKey ? commonNameCache[r.taxonKey] : undefined;
+    const k = r.taxonKey || r.speciesKey;
+    const cached = k ? commonNameCache[k] : undefined;
     let apiName = Array.isArray(cached) ? pickVernacularName(cached, dominantCountry, prefLang) : '';
     if (apiName && asciiOnly && /[^\x00-\x7FāēīōūĀĒĪŌŪ]/.test(apiName)) apiName = '';
     if (apiName && isBandingCode(apiName)) apiName = '';
@@ -3376,7 +3378,7 @@ async function lookupCommonNames(records) {
     // a name and didn't, so the occurrence-record names are likely foreign-locale noise.
     const hasApiResults = Array.isArray(cached) && cached.length > 0;
     if (!hasApiResults) {
-      const votes = r.taxonKey ? voteCounts[r.taxonKey] : null;
+      const votes = k ? voteCounts[k] : null;
       if (votes) {
         const top = Object.entries(votes).sort((a, b) => b[1] - a[1])[0];
         if (top) { r.vernacularName = top[0]; return; }
@@ -3399,7 +3401,7 @@ async function prefetchPhotos(records) {
   const seen = new Set();
   const toFetch = [];
   records.forEach(r => {
-    const key = r.taxonKey;
+    const key = r.taxonKey || r.speciesKey;
     if (!key || seen.has(key) || photoCache[key] !== undefined) return;
     seen.add(key);
     toFetch.push({ taxonKey: key, sciName: r.scientificName || r.species || '' });
@@ -3615,7 +3617,7 @@ async function lazyLoadCommonName(taxonKey) {
 // Helper: get the best display name for a record (common name preferred, scientific fallback)
 function getDisplayName(rec) {
   const vn = rec.vernacularName;
-  const common = (vn && !isBandingCode(vn)) ? vn : cachedName(rec.taxonKey);
+  const common = (vn && !isBandingCode(vn)) ? vn : cachedName(rec.taxonKey || rec.speciesKey);
   return common || rec.scientificName || rec.species || 'Unknown';
 }
 
@@ -3684,10 +3686,14 @@ function setInatHref(linkId, id, sciName) {
 }
 
 function buildRecordPage(rec) {
+  // Big Data downloads sometimes leave taxonKey blank where GBIF's name match only
+  // resolved to speciesKey (e.g. ambiguous/synonym scientific names) — fall back to
+  // speciesKey so the record still gets a common name and photo lookup instead of none.
+  const effTaxonKey = rec.taxonKey || rec.speciesKey || null;
   const vn = rec.vernacularName;
-  const common  = (vn && !isBandingCode(vn)) ? vn : cachedName(rec.taxonKey);
+  const common  = (vn && !isBandingCode(vn)) ? vn : cachedName(effTaxonKey);
   const binomial = (rec.scientificName || '').split(/\s+/).slice(0, 2).join(' ');
-  const linkId   = 'inat-nm-' + (rec.taxonKey || Math.random().toString(36).slice(2));
+  const linkId   = 'inat-nm-' + (effTaxonKey || Math.random().toString(36).slice(2));
   const initHref = binomial ? 'https://www.inaturalist.org/taxa/search?q=' + encodeURIComponent(binomial) : '#';
   const linkAttr = ' id="' + linkId + '" href="' + initHref + '" target="_blank" rel="noopener" title="View on iNaturalist map" style="color:inherit;text-decoration:none;border-bottom:1px dotted #aaa;"';
   let nztcsPopupBadge = '';
@@ -3709,7 +3715,7 @@ function buildRecordPage(rec) {
     ? '<div style="font-weight:600;font-size:13px;display:flex;align-items:center;gap:5px;flex-wrap:wrap;"><a' + linkAttr + '>' + common + '</a>' + nztcsPopupBadge + '</div>' +
       '<div style="color:#9b9890;font-size:11px;font-style:italic;margin-top:1px;">' + (rec.scientificName || '') + '</div>'
     : '<div style="font-weight:600;font-size:13px;display:flex;align-items:center;gap:5px;flex-wrap:wrap;"><a' + linkAttr + '>' + (rec.scientificName || 'Unknown') + '</a>' + nztcsPopupBadge + '</div>';
-  setTimeout(() => resolveInatLink(linkId, rec.taxonKey, rec.scientificName), 0);
+  setTimeout(() => resolveInatLink(linkId, effTaxonKey, rec.scientificName), 0);
   const cls     = rec.class ? '<div style="color:#9b9890;font-size:11px;">' + rec.class + '</div>' : '';
   const date    = rec.eventDate   ? '<div style="margin-top:4px;font-size:12px;"><b>Date:</b> ' + rec.eventDate + '</div>' : '';
   const source  = rec.datasetName ? '<div style="font-size:12px;"><b>Source:</b> ' + rec.datasetName + '</div>' : '';
@@ -3754,10 +3760,10 @@ function buildRecordPage(rec) {
       '</div>'
     : '';
   return {
-    html: '<div id="' + photoId + '" data-taxon-key="' + (rec.taxonKey||'') + '" data-sci-name="' + (rec.scientificName||'').replace(/"/g,'&quot;') + '" style="margin-bottom:8px;"></div>' +
+    html: '<div id="' + photoId + '" data-taxon-key="' + (effTaxonKey||'') + '" data-sci-name="' + (rec.scientificName||'').replace(/"/g,'&quot;') + '" style="margin-bottom:8px;"></div>' +
           primary + cls + date + source + uncert + obscuredNote + link + tkLine,
     photoId,
-    taxonKey: rec.taxonKey,
+    taxonKey: effTaxonKey,
     scientificName: rec.scientificName || ''
   };
 }
@@ -3967,7 +3973,7 @@ window._gbifPopupNav = function(pid, dir) {
   if (bodyEl) {
     const page = buildRecordPage(rec);
     bodyEl.innerHTML = page.html;
-    setTimeout(() => loadPopupPhoto(page.photoId, rec.taxonKey, rec.scientificName), 30);
+    setTimeout(() => loadPopupPhoto(page.photoId, page.taxonKey, rec.scientificName), 30);
   }
 };
 
@@ -3999,8 +4005,8 @@ function makeStackedPopup(stackedRecords) {
       const sci = r.scientificName || r.species || '';
       if (!speciesMap.has(sci)) {
         speciesMap.set(sci, {
-          common: (r.vernacularName && !isBandingCode(r.vernacularName)) ? r.vernacularName : cachedName(r.taxonKey),
-          sci, taxonKey: r.taxonKey, records: []
+          common: (r.vernacularName && !isBandingCode(r.vernacularName)) ? r.vernacularName : cachedName(r.taxonKey || r.speciesKey),
+          sci, taxonKey: r.taxonKey || r.speciesKey || null, records: []
         });
       }
       speciesMap.get(sci).records.push(r);
@@ -4014,7 +4020,7 @@ function makeStackedPopup(stackedRecords) {
     const _ps = _popupSize();
     if (!isMulti) {
       const page0 = buildRecordPage(sorted[0]);
-      setTimeout(() => loadPopupPhoto(page0.photoId, sorted[0].taxonKey, sorted[0].scientificName), 50);
+      setTimeout(() => loadPopupPhoto(page0.photoId, page0.taxonKey, sorted[0].scientificName), 50);
       return '<div id="' + popupId + '-body">' + page0.html + '</div>';
     }
 
@@ -4872,12 +4878,12 @@ function buildChecklist(records) {
   records.forEach(r => {
     const g    = getTaxonGroup(r);
     const name = r.species || r.scientificName || 'Unknown';
-    const key  = r.taxonKey || name;
+    const key  = r.taxonKey || r.speciesKey || name;
     if (!byGroup[g]) byGroup[g] = {};
     if (!byGroup[g][name]) byGroup[g][name] = { count: 0, taxonKey: key, common: '', record: r };
     byGroup[g][name].count++;
     if (!byGroup[g][name].common && r.vernacularName && !isBandingCode(r.vernacularName) && !/[^\x00-\x7FāēīōūĀĒĪŌŪ]/.test(r.vernacularName)) byGroup[g][name].common = r.vernacularName;
-    if (!byGroup[g][name].common && r.taxonKey) byGroup[g][name].common = cachedName(r.taxonKey);
+    if (!byGroup[g][name].common && (r.taxonKey || r.speciesKey)) byGroup[g][name].common = cachedName(r.taxonKey || r.speciesKey);
   });
 
   // ── NZ vernacular / Māori name enrichment ────────────────────────────────
@@ -6832,6 +6838,13 @@ if (window._pendingShare) {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v7.00</span>
+      <span class="changelog-date">Jul 2026</span>
+      <ul>
+        <li>Common names and photos — fix: occurrence records with a blank <code>taxonKey</code> (common in Big Data Mode downloads where GBIF's name match only resolved to <code>speciesKey</code>, e.g. ambiguous or synonym scientific names) showed neither a common name nor a photo, since every lookup keyed strictly off taxonKey. All common-name and photo lookups now fall back to speciesKey when taxonKey is missing</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v6.99</span>
       <span class="changelog-date">Jul 2026</span>
