@@ -49,7 +49,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v6.94</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v6.95</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -202,6 +202,11 @@
           <option value="exclude">Exclude low-precision (&gt;1.5 km)</option>
           <option value="only">Only low-precision (&gt;1.5 km)</option>
         </select>
+      </div>
+      <div style="margin-bottom:0.5rem;">
+        <label class="check-row" style="font-size:12.5px;" title="Cross-reference results against GBIF's Traditional Knowledge dataset (Moorea Biocode). Off by default — fires an extra GBIF query per search.">
+          <input type="checkbox" id="tkDetect"><span>Detect Traditional Knowledge records</span>
+        </label>
       </div>
       </div><!-- /s2 -->
 
@@ -3173,8 +3178,15 @@ async function lookupCommonNames(records) {
   const dominantCountry = Object.entries(countryCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || '';
   const prefLang = (dominantCountry && COUNTRY_LANG[dominantCountry]) || 'eng';
 
-  // 2. Fetch GBIF species vernacular name lists, caching the raw results array per taxon
-  const taxonKeys = [...new Set(records.map(r => r.taxonKey).filter(Boolean))];
+  // 2. Fetch GBIF species vernacular name lists, caching the raw results array per taxon.
+  //    Only the most-recorded species are fetched up front — a full search can have 100+
+  //    species = 100+ GBIF calls, which trips GBIF's rate limit. The long tail falls back
+  //    to the same-country occurrence-name vote below, and is upgraded lazily when a
+  //    species popup is opened (see lazyLoadCommonName).
+  const _vernCounts = {};
+  records.forEach(r => { if (r.taxonKey) _vernCounts[r.taxonKey] = (_vernCounts[r.taxonKey] || 0) + 1; });
+  const VERNACULAR_TOP_N = 25;
+  const taxonKeys = Object.keys(_vernCounts).sort((a, b) => _vernCounts[b] - _vernCounts[a]).slice(0, VERNACULAR_TOP_N);
   const total = taxonKeys.length;
   let done = 0;
   const BATCH = 10;
@@ -3423,6 +3435,20 @@ function cachedName(taxonKey) {
   return Array.isArray(r) ? pickVernacularName(r, '', 'eng') : '';
 }
 
+// Lazily fetch + cache one species' GBIF vernacular names when its popup is opened.
+// The search path only pre-fetches the top-N most-recorded species to stay under GBIF's
+// rate limit, so the long tail is resolved on demand here. Fire-and-forget; updates any
+// open name elements tagged data-spname="<taxonKey>".
+async function lazyLoadCommonName(taxonKey) {
+  if (!taxonKey || commonNameCache[taxonKey] !== undefined) return;
+  try {
+    const res = await gbifFetch('https://api.gbif.org/v1/species/' + taxonKey + '/vernacularNames?limit=100');
+    commonNameCache[taxonKey] = res.ok ? ((await res.json()).results || []) : [];
+  } catch(e) { commonNameCache[taxonKey] = []; }
+  const name = cachedName(taxonKey);
+  if (name) document.querySelectorAll('[data-spname="' + taxonKey + '"]').forEach(el => { el.textContent = name; });
+}
+
 // Helper: get the best display name for a record (common name preferred, scientific fallback)
 function getDisplayName(rec) {
   const vn = rec.vernacularName;
@@ -3634,6 +3660,7 @@ window._gbifNavSpeciesPhoto = function(slotId, dir) {
 };
 
 async function loadPopupPhoto(photoId, taxonKey, sciName) {
+  lazyLoadCommonName(taxonKey); // upgrade tail-species common name on demand (fire-and-forget)
   const slot = document.getElementById(photoId);
   if (!slot || slot.dataset.loaded) return;
   slot.dataset.loaded = '1';
@@ -3743,9 +3770,9 @@ window._gbifSelectSpecies = function(pid, spIdx) {
     : recordRowsInner);
 
   const nameHtml = sp.common
-    ? '<div style="font-weight:600;font-size:13px;">' + sp.common + '</div>' +
+    ? '<div style="font-weight:600;font-size:13px;" data-spname="' + (sp.taxonKey || '') + '">' + sp.common + '</div>' +
       '<div style="color:#9b9890;font-size:11px;font-style:italic;margin-top:1px;">' + sp.sci + '</div>'
-    : '<div style="font-weight:600;font-size:13px;font-style:italic;">' + (sp.sci || 'Unknown') + '</div>';
+    : '<div style="font-weight:600;font-size:13px;font-style:italic;" data-spname="' + (sp.taxonKey || '') + '">' + (sp.sci || 'Unknown') + '</div>';
 
   const detailEl = document.getElementById(pid + '-detail');
   if (detailEl) {
@@ -5882,7 +5909,10 @@ runBtn.addEventListener('click', async () => {
   // way to cross-reference (e.g. "Brachyura", "Polychaeta" appear in both).
   _tkSpeciesNames.clear();
   _tkGbifIds.clear();
-  setTimeout(async () => {
+  // TK detection is opt-in (tkDetect checkbox, off by default) — it fires an extra
+  // geometry occurrence/search per polygon and is only relevant to the Moorea Biocode
+  // TK dataset, so skip it entirely unless the user enables it.
+  if (document.getElementById('tkDetect')?.checked) setTimeout(async () => {
     for (const gp of _geomPolys) {
       try {
         const qs = 'geometry=' + encodeURIComponent(getQueryWKT(gp)) +
@@ -6620,6 +6650,13 @@ if (window._pendingShare) {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v6.95</span>
+      <span class="changelog-date">Jul 2026</span>
+      <ul>
+        <li>Cut the number of GBIF requests per search to stay under GBIF's rate limit. Traditional Knowledge detection (an extra GBIF query per search, relevant only to the Moorea Biocode dataset) is now an opt-in checkbox under Coordinate precision, off by default. Common-name lookups — previously one GBIF call per species, so 100+ per search — now fetch up front only for the most-recorded species; the rest use the occurrence-record name and upgrade to the official GBIF common name when you open that species.</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v6.94</span>
       <span class="changelog-date">Jul 2026</span>
