@@ -49,7 +49,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v6.97</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v6.98</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -3383,10 +3383,27 @@ const _photoSlots    = {}; // slotId   -> {photos:[...], idx:0}
 // sciName → iNat taxon result cache (keyed by taxonKey)
 const inatPhotoCache = {};
 
-async function fetchSpeciesPhoto(taxonKey, sciName) {
-  if (!taxonKey) return null;
-  if (photoCache[taxonKey] !== undefined) return photoCache[taxonKey];
-  photoCache[taxonKey] = null;
+// In-flight fetches per taxonKey, so a background prefetch and an on-demand
+// popup open for the same species share one request instead of doubling up.
+const _photoFetchInFlight = {};
+
+function fetchSpeciesPhoto(taxonKey, sciName) {
+  if (!taxonKey) return Promise.resolve(null);
+  if (photoCache[taxonKey] !== undefined) return Promise.resolve(photoCache[taxonKey]);
+  if (_photoFetchInFlight[taxonKey]) return _photoFetchInFlight[taxonKey];
+  const p = _fetchSpeciesPhotoUncached(taxonKey, sciName).finally(() => { delete _photoFetchInFlight[taxonKey]; });
+  _photoFetchInFlight[taxonKey] = p;
+  return p;
+}
+
+// Does the actual work. On a genuinely empty result (both APIs answered, no
+// photo exists) the miss is cached in photoCache so we don't ask again this
+// session. On a network error or a throttled response (e.g. iNaturalist/GBIF
+// rate-limiting a large Big Data species list), the miss is NOT cached —
+// leaving photoCache[taxonKey] unset lets the next popup open or prefetch
+// pass retry instead of a transient hiccup permanently hiding the photo.
+async function _fetchSpeciesPhotoUncached(taxonKey, sciName) {
+  let hadFailure = false;
 
   // 1. Try iNaturalist Taxa API — returns the community-curated default taxon photo
   // Strip authorship so "Ondatra zibethicus (Linnaeus, 1766)" → "Ondatra zibethicus"
@@ -3419,8 +3436,10 @@ async function fetchSpeciesPhoto(taxonKey, sciName) {
           photoCache[taxonKey] = allPhotos[0];
           return photoCache[taxonKey];
         }
+      } else {
+        hadFailure = true; // e.g. 429 rate-limited
       }
-    } catch(e) {}
+    } catch(e) { hadFailure = true; }
   }
 
   // 2. Fall back to GBIF occurrence media
@@ -3433,7 +3452,7 @@ async function fetchSpeciesPhoto(taxonKey, sciName) {
   for (const url of attempts) {
     try {
       const res = await fetch(url);
-      if (!res.ok) continue;
+      if (!res.ok) { hadFailure = true; continue; }
       const json = await res.json();
       for (const occ of (json.results || [])) {
         // Skip unlicensed (All Rights Reserved) media
@@ -3444,7 +3463,7 @@ async function fetchSpeciesPhoto(taxonKey, sciName) {
           if (gbifPhotos.length >= 5) break;
         }
       }
-    } catch(e) {}
+    } catch(e) { hadFailure = true; }
     if (gbifPhotos.length) break; // iNat dataset gave us photos; skip broader search
   }
   if (gbifPhotos.length) {
@@ -3452,6 +3471,7 @@ async function fetchSpeciesPhoto(taxonKey, sciName) {
     photoCache[taxonKey] = gbifPhotos[0];
     return photoCache[taxonKey];
   }
+  if (!hadFailure) photoCache[taxonKey] = null; // confirmed: no photo available anywhere
   return null;
 }
 
@@ -6749,6 +6769,13 @@ if (window._pendingShare) {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v6.98</span>
+      <span class="changelog-date">Jul 2026</span>
+      <ul>
+        <li>Species photos — fix: once iNaturalist or GBIF rate-limited a photo lookup (common on Big Data Mode uploads with large species lists), that species was permanently marked "no photo" for the rest of the session, hiding photos even for well-photographed species. A throttled/failed lookup is no longer cached as a miss, so the next popup open or prefetch pass retries instead of staying stuck</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v6.97</span>
       <span class="changelog-date">Jul 2026</span>

@@ -49,7 +49,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v6.97b</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v6.98b</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -3433,6 +3433,7 @@ async function fetchSpeciesPhoto(taxonKey, sciName, opts) {
   opts = opts || {};
   if (!taxonKey) return null;
   if (photoCache[taxonKey] !== undefined) return photoCache[taxonKey];
+  let hadFailure = false;
 
   // 1. Try iNaturalist Taxa API — returns the community-curated default taxon photo
   // Strip authorship so "Ondatra zibethicus (Linnaeus, 1766)" → "Ondatra zibethicus"
@@ -3465,8 +3466,10 @@ async function fetchSpeciesPhoto(taxonKey, sciName, opts) {
           photoCache[taxonKey] = allPhotos[0];
           return photoCache[taxonKey];
         }
+      } else {
+        hadFailure = true; // e.g. 429 rate-limited
       }
-    } catch(e) {}
+    } catch(e) { hadFailure = true; }
   }
 
   // During bulk prefetch, stop here rather than hitting GBIF. Firing ~2 GBIF
@@ -3476,7 +3479,6 @@ async function fetchSpeciesPhoto(taxonKey, sciName, opts) {
   if (opts.skipGbif) return null;
 
   // 2. Fall back to GBIF occurrence media (lazy — only for popups, not prefetch)
-  photoCache[taxonKey] = null;
   const inatKey = '50c9509d-22c7-4a22-a47d-8c48425ef4a7';
   const attempts = [
     'https://api.gbif.org/v1/occurrence/search?taxonKey=' + taxonKey + '&mediaType=StillImage&datasetKey=' + inatKey + '&limit=5',
@@ -3486,7 +3488,7 @@ async function fetchSpeciesPhoto(taxonKey, sciName, opts) {
   for (const url of attempts) {
     try {
       const res = await gbifFetch(url);
-      if (!res.ok) continue;
+      if (!res.ok) { hadFailure = true; continue; }
       const json = await res.json();
       for (const occ of (json.results || [])) {
         // Skip unlicensed (All Rights Reserved) media
@@ -3497,7 +3499,7 @@ async function fetchSpeciesPhoto(taxonKey, sciName, opts) {
           if (gbifPhotos.length >= 5) break;
         }
       }
-    } catch(e) {}
+    } catch(e) { hadFailure = true; }
     if (gbifPhotos.length) break; // iNat dataset gave us photos; skip broader search
   }
   if (gbifPhotos.length) {
@@ -3505,6 +3507,10 @@ async function fetchSpeciesPhoto(taxonKey, sciName, opts) {
     photoCache[taxonKey] = gbifPhotos[0];
     return photoCache[taxonKey];
   }
+  // Only cache a permanent miss once every attempt above actually answered
+  // (empty result) rather than errored/rate-limited — a transient failure
+  // shouldn't hide a common species' photo for the rest of the session.
+  if (!hadFailure) photoCache[taxonKey] = null;
   return null;
 }
 
@@ -6812,6 +6818,13 @@ if (window._pendingShare) {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v6.98</span>
+      <span class="changelog-date">Jul 2026</span>
+      <ul>
+        <li>Species photos — fix: once iNaturalist or GBIF rate-limited a photo lookup (common on Big Data Mode uploads with large species lists), that species was permanently marked "no photo" for the rest of the session, hiding photos even for well-photographed species. A throttled/failed lookup is no longer cached as a miss, so the next popup open or prefetch pass retries instead of staying stuck</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v6.97</span>
       <span class="changelog-date">Jul 2026</span>
