@@ -57,7 +57,7 @@ header { background: var(--green-dark); color: white; padding: 0 1.5rem; display
 .poly-buf-obscured-row { display: flex; align-items: center; }
 .poly-buf-obscured-label { font-size: 10px; color: var(--text3); cursor: pointer; display: flex; align-items: center; gap: 3px; white-space: nowrap; }
 .poly-buf-obscured-label input { cursor: pointer; accent-color: var(--green-dark); }
-.poly-buf-btns { display: flex; align-items: center; gap: 3px; padding-top: 4px; border-top: 1px solid var(--green-mid); }
+.poly-buf-btns { display: flex; align-items: center; flex-wrap: wrap; gap: 3px; padding-top: 4px; border-top: 1px solid var(--green-mid); }
 .poly-buffer-label { font-size: 10px; color: var(--text3); font-weight: 600; flex-shrink: 0; margin-right: 2px; }
 .poly-buf-btn { font-size: 10px; padding: 2px 6px; border-radius: var(--radius-lg); border: 1px solid var(--green-mid); background: transparent; color: var(--green-dark); cursor: pointer; font-family: var(--font-sans); transition: all 0.12s; white-space: nowrap; line-height: 1.4; }
 .poly-buf-btn:hover { background: var(--green-mid); }
