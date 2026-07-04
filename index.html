@@ -49,7 +49,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v7.01</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v7.02</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -3368,7 +3368,7 @@ async function prefetchPhotos(records) {
   for (let i = 0; i < toFetch.length; i += BATCH) {
     if (_photoPrefetchAbort) return;
     await Promise.all(toFetch.slice(i, i + BATCH).map(({ taxonKey, sciName }) =>
-      fetchSpeciesPhoto(taxonKey, sciName).catch(() => {})
+      fetchSpeciesPhoto(taxonKey, sciName, { prefetch: true }).catch(() => {})
     ));
     if (!_photoPrefetchAbort && i + BATCH < toFetch.length) {
       await new Promise(r => setTimeout(r, 250));
@@ -3393,11 +3393,11 @@ const inatPhotoCache = {};
 // popup open for the same species share one request instead of doubling up.
 const _photoFetchInFlight = {};
 
-function fetchSpeciesPhoto(taxonKey, sciName) {
+function fetchSpeciesPhoto(taxonKey, sciName, opts) {
   if (!taxonKey) return Promise.resolve(null);
   if (photoCache[taxonKey] !== undefined) return Promise.resolve(photoCache[taxonKey]);
   if (_photoFetchInFlight[taxonKey]) return _photoFetchInFlight[taxonKey];
-  const p = _fetchSpeciesPhotoUncached(taxonKey, sciName).finally(() => { delete _photoFetchInFlight[taxonKey]; });
+  const p = _fetchSpeciesPhotoUncached(taxonKey, sciName, opts || {}).finally(() => { delete _photoFetchInFlight[taxonKey]; });
   _photoFetchInFlight[taxonKey] = p;
   return p;
 }
@@ -3408,7 +3408,15 @@ function fetchSpeciesPhoto(taxonKey, sciName) {
 // rate-limiting a large Big Data species list), the miss is NOT cached —
 // leaving photoCache[taxonKey] unset lets the next popup open or prefetch
 // pass retry instead of a transient hiccup permanently hiding the photo.
-async function _fetchSpeciesPhotoUncached(taxonKey, sciName) {
+//
+// opts.prefetch: used for the bulk warm-up pass over an entire (possibly
+// hundreds-of-species) Big Data dataset. Limits each species to a single,
+// cheap iNaturalist search call — skips the extra detail-endpoint call and
+// the GBIF occurrence-search fallback, since doing those for every species
+// up front is what was tripping GBIF/iNaturalist's "too many requests"
+// throttling. Skipped work is done lazily, one species at a time, when a
+// popup for that species is actually opened.
+async function _fetchSpeciesPhotoUncached(taxonKey, sciName, opts) {
   let hadFailure = false;
 
   // 1. Try iNaturalist Taxa API — returns the community-curated default taxon photo
@@ -3432,7 +3440,7 @@ async function _fetchSpeciesPhotoUncached(taxonKey, sciName) {
         // endpoint, so it must be fetched separately once we have a matched taxon id.
         const candidates = [];
         if (taxon && taxon.default_photo) candidates.push(taxon.default_photo);
-        if (taxon && taxon.id) {
+        if (!opts.prefetch && taxon && taxon.id) {
           try {
             const detailRes = await fetch('https://api.inaturalist.org/v1/taxa/' + taxon.id);
             if (detailRes.ok) {
@@ -3462,6 +3470,12 @@ async function _fetchSpeciesPhotoUncached(taxonKey, sciName) {
     } catch(e) { hadFailure = true; }
   }
 
+  // During bulk prefetch, stop here rather than also hitting GBIF — firing up to
+  // 2 more occurrence/search calls per species across a whole Big Data checklist
+  // is what tripped GBIF's "Too many API requests". Leave the cache unset (not a
+  // confirmed miss) so an opened popup can still try the GBIF fallback lazily.
+  if (opts.prefetch) return null;
+
   // 2. Fall back to GBIF occurrence media
   const inatKey = '50c9509d-22c7-4a22-a47d-8c48425ef4a7';
   const attempts = [
@@ -3471,7 +3485,7 @@ async function _fetchSpeciesPhotoUncached(taxonKey, sciName) {
   const gbifPhotos = []; const gbifSeen = new Set();
   for (const url of attempts) {
     try {
-      const res = await fetch(url);
+      const res = await gbifFetch(url);
       if (!res.ok) { hadFailure = true; continue; }
       const json = await res.json();
       for (const occ of (json.results || [])) {
@@ -6796,6 +6810,13 @@ if (window._pendingShare) {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v7.02</span>
+      <span class="changelog-date">Jul 2026</span>
+      <ul>
+        <li>Big Data Mode uploads with large species checklists — fix the actual "too many API requests" trigger: the background photo warm-up was doing a full lookup (iNaturalist search + iNaturalist detail + up to 2 GBIF occurrence searches) for <em>every</em> species in the uploaded dataset, all at once. A checklist of a few hundred species could fire 500+ external requests in seconds. The warm-up pass now does a single cheap iNaturalist search per species; the fuller lookup only runs lazily when a species' popup is actually opened. The GBIF occurrence-search fallback also now goes through the app's existing retry-with-backoff helper instead of a bare request</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v7.01</span>
       <span class="changelog-date">Jul 2026</span>

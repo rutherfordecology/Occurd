@@ -49,7 +49,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v7.01b</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v7.02b</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -3462,7 +3462,11 @@ async function fetchSpeciesPhoto(taxonKey, sciName, opts) {
         // endpoint, so it must be fetched separately once we have a matched taxon id.
         const candidates = [];
         if (taxon && taxon.default_photo) candidates.push(taxon.default_photo);
-        if (taxon && taxon.id) {
+        // Also skipped during bulk prefetch — this is a second iNaturalist call per
+        // species on top of the search above, and firing it for every species in a
+        // large Big Data checklist compounds the same rate-limit risk opts.skipGbif
+        // already guards against below.
+        if (!opts.skipGbif && taxon && taxon.id) {
           try {
             const detailRes = await fetch('https://api.inaturalist.org/v1/taxa/' + taxon.id);
             if (detailRes.ok) {
@@ -6845,6 +6849,13 @@ if (window._pendingShare) {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v7.02</span>
+      <span class="changelog-date">Jul 2026</span>
+      <ul>
+        <li>Big Data Mode uploads with large species checklists — the iNaturalist detail-endpoint call added recently for the curated photo list wasn't gated behind the existing prefetch throttle, so it ran an extra iNaturalist request per species during the bulk warm-up on top of the GBIF calls that throttle already skips. Now skipped during prefetch too, only run lazily when a species' popup is opened</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v7.01</span>
       <span class="changelog-date">Jul 2026</span>
