@@ -49,7 +49,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v7.02b</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v7.03b</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -699,6 +699,65 @@ async function gbifFetch(url, options) {
     if (attempt === 0 && typeof setStatus === 'function')
       setStatus('GBIF is rate-limiting requests — pausing ' + Math.round(ms / 1000) + 's…', 'warning');
   }
+  return res; // still 429 after the cooldown probe — hand it back for the caller to surface
+}
+
+// ── Global iNaturalist request throttle ─────────────────────────────────────
+// Mirrors the GBIF throttle above (photo warm-up + on-demand lookups all funnel
+// through here). iNaturalist rate-limits the same way GBIF does, but under load
+// its 429 response sometimes comes back through their CDN with no CORS header —
+// the browser can't read the status in that case, so fetch() just rejects and
+// devtools reports "blocked by CORS policy" instead of a 429. The circuit
+// breaker below treats a thrown fetch error the same as an observed 429.
+const INAT_MAX_CONCURRENT = 4;
+const INAT_MIN_GAP_MS = 90;
+let _inatInFlight = 0;
+let _inatNextSlot = 0;
+let _inatCooldownUntil = 0;
+const _inatWaiters = [];
+function _inatAcquire() {
+  return new Promise(resolve => {
+    const attempt = () => {
+      if (_inatInFlight < INAT_MAX_CONCURRENT) {
+        _inatInFlight++;
+        const now = Date.now();
+        const at = Math.max(now, _inatNextSlot, _inatCooldownUntil);
+        _inatNextSlot = at + INAT_MIN_GAP_MS;
+        setTimeout(resolve, at - now);
+      } else {
+        _inatWaiters.push(attempt);
+      }
+    };
+    attempt();
+  });
+}
+function _inatRelease() {
+  _inatInFlight--;
+  const next = _inatWaiters.shift();
+  if (next) next();
+}
+function _inatTripCooldown(res) {
+  let ms = 5000;
+  const ra = res && res.headers && parseInt(res.headers.get('Retry-After'), 10);
+  if (ra && !isNaN(ra)) ms = Math.min(ra * 1000, 30000);
+  _inatCooldownUntil = Math.max(_inatCooldownUntil, Date.now() + ms);
+  return ms;
+}
+// Same probe-gently pattern as gbifFetch, but a thrown fetch error (the
+// CORS-masked case above) is treated as a rate-limit signal too.
+async function inatFetch(url, options) {
+  let res, err;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    await _inatAcquire();
+    try { res = await fetch(url, options); err = null; }
+    catch (e) { err = e; res = null; }
+    finally { _inatRelease(); }
+    if (res && res.status !== 429) return res;
+    const ms = _inatTripCooldown(res);
+    if (attempt === 0 && typeof setStatus === 'function')
+      setStatus('iNaturalist is rate-limiting requests — pausing ' + Math.round(ms / 1000) + 's…', 'warning');
+  }
+  if (err) throw err;
   return res; // still 429 after the cooldown probe — hand it back for the caller to surface
 }
 
@@ -3446,7 +3505,7 @@ async function fetchSpeciesPhoto(taxonKey, sciName, opts) {
   const binomial = sciName ? sciName.split(/\s+/).slice(0, 2).join(' ') : null;
   if (binomial) {
     try {
-      const res = await fetch('https://api.inaturalist.org/v1/taxa?q=' + encodeURIComponent(binomial) + '&rank=species&per_page=5&is_active=true');
+      const res = await inatFetch('https://api.inaturalist.org/v1/taxa?q=' + encodeURIComponent(binomial) + '&rank=species&per_page=5&is_active=true');
       if (res.ok) {
         const json = await res.json();
         // Require an exact scientific name match — iNat taxon swaps can return the
@@ -3468,7 +3527,7 @@ async function fetchSpeciesPhoto(taxonKey, sciName, opts) {
         // already guards against below.
         if (!opts.skipGbif && taxon && taxon.id) {
           try {
-            const detailRes = await fetch('https://api.inaturalist.org/v1/taxa/' + taxon.id);
+            const detailRes = await inatFetch('https://api.inaturalist.org/v1/taxa/' + taxon.id);
             if (detailRes.ok) {
               const detailJson = await detailRes.json();
               const detail = (detailJson.results || [])[0];
@@ -3678,7 +3737,7 @@ async function resolveInatLink(linkId, taxonKey, sciName) {
   const binomial = (sciName || '').split(/\s+/).slice(0, 2).join(' ');
   if (!binomial) return;
   try {
-    const res = await fetch('https://api.inaturalist.org/v1/taxa?q=' + encodeURIComponent(binomial) + '&rank=species&per_page=1&is_active=true');
+    const res = await inatFetch('https://api.inaturalist.org/v1/taxa?q=' + encodeURIComponent(binomial) + '&rank=species&per_page=1&is_active=true');
     if (res.ok) {
       const data = await res.json();
       const taxon = (data.results || [])[0];
@@ -5655,7 +5714,7 @@ runBtn.addEventListener('click', async () => {
               _obscParam + _iconicParam + _dateParams +
               '&swlat=' + _swlat + '&swlng=' + _swlng + '&nelat=' + _nelat + '&nelng=' + _nelng +
               '&per_page=200&page=' + _inatPage;
-            const _ir = await fetch(_iu);
+            const _ir = await inatFetch(_iu);
             if (!_ir.ok) break;
             _ij = await _ir.json();
           } catch(e) { break; }
@@ -5967,7 +6026,7 @@ runBtn.addEventListener('click', async () => {
               '&swlat=' + _swlat + '&swlng=' + _swlng +
               '&nelat=' + _nelat + '&nelng=' + _nelng +
               '&per_page=200&page=' + _inatPage;
-            const _ir = await fetch(_inatUrl);
+            const _ir = await inatFetch(_inatUrl);
             if (!_ir.ok) break;
             _inatJson = await _ir.json();
           } catch(e) { break; }
@@ -6817,30 +6876,6 @@ if (window._pendingShare) {
 <script src="taxonomy.js"></script>
 <script src="onboarding.js"></script>
 
-<!-- GBIF rate-limit notice (temporary — GBIF is throttling live geometry fetches from occurd) -->
-<div id="gbifNoticeOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:5000;align-items:center;justify-content:center;padding:20px;">
-  <div style="background:var(--surface);max-width:430px;width:100%;border-radius:var(--radius-lg);box-shadow:0 12px 40px rgba(0,0,0,0.25);padding:22px 24px;font-family:var(--font-sans);box-sizing:border-box;">
-    <h3 style="margin:0 0 10px;font-size:16px;color:var(--text);display:flex;align-items:center;gap:8px;"><span data-icon="warning" data-icon-size="18"></span>GBIF is rate-limiting occurd</h3>
-    <p style="margin:0 0 16px;font-size:13.5px;line-height:1.5;color:var(--text2);">GBIF is currently limiting occurd's live fetch requests, so a standard search may stop partway through. For reliable results right now, please use <strong>Big Data Mode</strong> — it retrieves your dataset through GBIF's bulk download service, which isn't affected (a free GBIF account is required).</p>
-    <div style="display:flex;gap:12px;justify-content:flex-end;align-items:center;">
-      <button id="gbifNoticeDismiss" style="background:none;border:none;cursor:pointer;font-size:13px;color:var(--text3);font-family:var(--font-sans);padding:6px 8px;">Dismiss</button>
-      <a id="gbifNoticeLink" href="./?bigdata" style="background:var(--green);color:#fff;text-decoration:none;border-radius:6px;padding:8px 16px;font-size:13px;font-weight:600;">Go to Big Data Mode &rarr;</a>
-    </div>
-  </div>
-</div>
-<script>
-(function() {
-  if (new URLSearchParams(location.search).has('bigdata')) return; // already in Big Data mode — no notice
-  var ov = document.getElementById('gbifNoticeOverlay');
-  if (!ov || sessionStorage.getItem('gbifNoticeDismissed')) return;
-  ov.style.display = 'flex';
-  function hide() { ov.style.display = 'none'; try { sessionStorage.setItem('gbifNoticeDismissed', '1'); } catch(e){} }
-  document.getElementById('gbifNoticeDismiss').addEventListener('click', hide);
-  document.getElementById('gbifNoticeLink').addEventListener('click', function(){ try { sessionStorage.setItem('gbifNoticeDismissed', '1'); } catch(e){} });
-  ov.addEventListener('click', function(e){ if (e.target === ov) hide(); });
-})();
-</script>
-
 <!-- Changelog panel -->
 <div class="changelog-overlay" id="changelogOverlay"></div>
 <div class="changelog-panel" id="changelogPanel">
@@ -6849,6 +6884,14 @@ if (window._pendingShare) {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v7.03</span>
+      <span class="changelog-date">Jul 2026</span>
+      <ul>
+        <li>iNaturalist lookups (species photos, popup photo detail, obscured-record fetches) now go through the same throttle-and-retry queue as GBIF calls. iNaturalist rate-limits under load the same way GBIF does, but its 429 response sometimes arrives with no CORS header, so the browser couldn't see the real status and reported it as a CORS failure instead — breaking photo warm-up and any search that leaned on iNat data with no visible error explaining why</li>
+        <li>Removed the start-up "GBIF is rate-limiting occurd" notice now that the throttle fixes above are in place</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v7.02</span>
       <span class="changelog-date">Jul 2026</span>
