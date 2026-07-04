@@ -49,7 +49,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v6.95b</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v6.97b</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -195,6 +195,11 @@
           <label class="check-row"><input type="checkbox" id="inclEdna"><span>eDNA</span></label>
         </div>
       </div>
+      <div style="margin-bottom:0.5rem;">
+        <label class="check-row" style="font-size:12.5px;" title="Cross-reference results against GBIF datasets carrying Local Contexts Traditional Knowledge / Biocultural labels. Off by default — only fires an extra GBIF query when your search area is near a known TK dataset.">
+          <input type="checkbox" id="tkDetect"><span>Tag Traditional Knowledge records</span>
+        </label>
+      </div>
       <div style="margin-top:0.5rem;margin-bottom:0.5rem;">
         <label style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;display:block;margin-bottom:0.3rem;">Coordinate precision</label>
         <select id="precisionFilter" style="width:100%;font-size:12.5px;padding:5px 6px;border:1px solid var(--border);border-radius:var(--radius);font-family:inherit;background:var(--surface);color:inherit;">
@@ -202,11 +207,6 @@
           <option value="exclude">Exclude low-precision (&gt;1.5 km)</option>
           <option value="only">Only low-precision (&gt;1.5 km)</option>
         </select>
-      </div>
-      <div style="margin-bottom:0.5rem;">
-        <label class="check-row" style="font-size:12.5px;" title="Cross-reference results against GBIF's Traditional Knowledge dataset (Moorea Biocode). Off by default — fires an extra GBIF query per search.">
-          <input type="checkbox" id="tkDetect"><span>Detect Traditional Knowledge records</span>
-        </label>
       </div>
       </div><!-- /s2 -->
 
@@ -1207,6 +1207,50 @@ let tkFilterActive     = false;
 let _tkSpeciesNames    = new Set(); // species names (display) where ≥1 record has a TK label
 let _tkGbifIds         = new Set(); // gbifIDs of records confirmed to have TK labels
 let _tkProjectUrl      = null;      // Local Contexts Hub project URL, populated after secondary query
+// Known GBIF datasets carrying Local Contexts Traditional Knowledge / Biocultural labels.
+// GBIF's Indigenous Data Governance pilot (2025-26) is expected to add more of these over
+// time (Ecuador/Sarayaku, NZ/Te Whakatōhea are already partnered) — there's no machine-tag
+// or facet that flags TK datasets automatically, so this list has to be maintained by hand
+// as GBIF/Local Contexts publish new ones. Add new dataset keys here when they appear.
+const TK_DATASET_KEYS = ['8b8c78fb-53d7-434c-b800-61f38b30d0c9']; // Moorea Biocode Project
+
+// Each dataset's real geographic extent (registered in its GBIF metadata) is fetched once
+// and cached, so we can skip the per-search TK query entirely for polygons nowhere near any
+// known TK dataset — without hardcoding geography that would go stale as the list above grows.
+let _tkDatasetBboxes = null;
+async function _getTkDatasetBboxes() {
+  if (_tkDatasetBboxes) return _tkDatasetBboxes;
+  const CACHE_KEY = 'occurd_tkDatasetBboxes_v1', CACHE_MS = 7 * 24 * 60 * 60 * 1000;
+  try {
+    const cached = JSON.parse(localStorage.getItem(CACHE_KEY) || 'null');
+    if (cached && cached.fetchedAt && Date.now() - cached.fetchedAt < CACHE_MS &&
+        JSON.stringify(cached.keys) === JSON.stringify(TK_DATASET_KEYS)) {
+      return (_tkDatasetBboxes = cached.bboxes);
+    }
+  } catch(e) {}
+  const bboxes = [];
+  for (const key of TK_DATASET_KEYS) {
+    try {
+      const res = await gbifFetch('https://api.gbif.org/v1/dataset/' + key);
+      if (!res.ok) continue;
+      const json = await res.json();
+      (json.geographicCoverages || []).forEach(gc => {
+        const b = gc.boundingBox;
+        if (b) bboxes.push({ minLat: b.minLatitude, maxLat: b.maxLatitude, minLng: b.minLongitude, maxLng: b.maxLongitude });
+      });
+    } catch(e) {}
+  }
+  _tkDatasetBboxes = bboxes;
+  try { localStorage.setItem(CACHE_KEY, JSON.stringify({ fetchedAt: Date.now(), keys: TK_DATASET_KEYS, bboxes })); } catch(e) {}
+  return bboxes;
+}
+function _bboxOverlapsAny(latlngs, bboxes) {
+  const lats = latlngs.map(ll => ll.lat !== undefined ? ll.lat : ll[0]);
+  const lngs = latlngs.map(ll => ll.lng !== undefined ? ll.lng : ll[1]);
+  const minLat = Math.min(...lats), maxLat = Math.max(...lats);
+  const minLng = Math.min(...lngs), maxLng = Math.max(...lngs);
+  return bboxes.some(b => minLat <= b.maxLat && maxLat >= b.minLat && minLng <= b.maxLng && maxLng >= b.minLng);
+}
 let iucnCache = {};        // speciesKey → status string ('EN','LC',…) or null
 let _iucnFetchAbort = false;
 let allMarkers = [];
@@ -2189,13 +2233,59 @@ async function handleGbifZip(file) {
   await new Promise(r => setTimeout(r, 30)); // let the status render before blocking parse
   try {
     const zip = await JSZip.loadAsync(file);
-    const f = zip.file('occurrence.csv') || Object.values(zip.files).find(f => !f.dir && f.name.endsWith('.csv'));
+    const f = zip.file('occurrence.csv') || Object.values(zip.files).find(f => !f.dir && /(^|\/)occurrence\.(csv|txt)$/i.test(f.name)) || Object.values(zip.files).find(f => !f.dir && f.name.endsWith('.csv'));
     if (!f) { setStatus('No occurrence.csv found inside ' + file.name + '. Is this a GBIF download zip?', 'error'); progressWrap.style.display = 'none'; hideDropZoneProgress(); return; }
     progressLabel.textContent = 'Extracting CSV…';
     showDropZoneProgress('Extracting CSV…');
     const text = await f.async('text');
-    handleGbifCsv(text, file.name);
+    // GBIF's Darwin Core Archive zips split photos into a separate multimedia.txt
+    // extension file (joined on gbifID) — occurrence.csv/txt never carries them.
+    const mediaFile = Object.values(zip.files).find(f => !f.dir && /(^|\/)multimedia\.(csv|txt)$/i.test(f.name));
+    let mediaByGbifId = null;
+    if (mediaFile) {
+      progressLabel.textContent = 'Extracting photos…';
+      showDropZoneProgress('Extracting photos…');
+      try { mediaByGbifId = _parseGbifMultimedia(await mediaFile.async('text')); } catch(e) {}
+    }
+    handleGbifCsv(text, file.name, mediaByGbifId);
   } catch(e) { setStatus('Could not read zip: ' + e.message, 'error'); progressWrap.style.display = 'none'; hideDropZoneProgress(); }
+}
+
+// Parses a GBIF Darwin Core Archive multimedia.txt/csv extension file into
+// gbifID -> {url, licence, photographer} for the first still image per record.
+function _parseGbifMultimedia(text) {
+  const lines = text.split(/\r?\n/);
+  const headerLine = lines[0] || '';
+  const isTabDelim = headerLine.includes('\t');
+  const splitLine  = isTabDelim ? (l => l.split('\t')) : _parseCsvLine;
+  const header = headerLine ? splitLine(headerLine) : [];
+  const idIdx    = header.indexOf('gbifID');
+  const typeIdx  = header.indexOf('type');
+  const identIdx = header.indexOf('identifier');
+  const licIdx   = header.indexOf('license');
+  const rhIdx    = header.indexOf('rightsHolder');
+  const crIdx    = header.indexOf('creator');
+  const fmtIdx   = header.indexOf('format');
+  if (idIdx === -1 || identIdx === -1) return null;
+  const byId = {};
+  for (let i = 1; i < lines.length; i++) {
+    if (!lines[i].trim()) continue;
+    const vals = splitLine(lines[i]);
+    const gbifId = vals[idIdx];
+    if (!gbifId || byId[gbifId]) continue; // keep the first image per record
+    if (typeIdx !== -1 && vals[typeIdx] && vals[typeIdx] !== 'StillImage') continue;
+    const identifier = vals[identIdx];
+    if (!identifier) continue;
+    const format = fmtIdx !== -1 ? vals[fmtIdx] : '';
+    const isTiff = /image\/tiff/i.test(format || '') || /\.tiff?$/i.test(identifier);
+    const url = isTiff ? 'https://api.gbif.org/v1/image/unsafe/800x/' + identifier : identifier;
+    byId[gbifId] = {
+      url,
+      licence: licIdx !== -1 ? (vals[licIdx] || '') : '',
+      photographer: (rhIdx !== -1 && vals[rhIdx]) || (crIdx !== -1 && vals[crIdx]) || ''
+    };
+  }
+  return byId;
 }
 
 async function handleKMZ(file) {
@@ -5966,20 +6056,28 @@ runBtn.addEventListener('click', async () => {
   const _iucnBtn = document.getElementById('clIucnBtn');
   if (_iucnBtn) { _iucnBtn.style.display = ''; updateIucnBtn(); }
 
-  // TK detection — secondary query finds TK records by name. Moorea Biocode records
-  // (the only GBIF TK dataset) are separate from regular occurrence records and don't
-  // share gbifIDs or datasetKeys with main fetch results. Name matching is the only
-  // way to cross-reference (e.g. "Brachyura", "Polychaeta" appear in both).
+  // TK detection — secondary query finds TK records by name. Known TK datasets (see
+  // TK_DATASET_KEYS) are separate from regular occurrence records and don't share gbifIDs
+  // or datasetKeys with main fetch results. Name matching is the only way to cross-reference
+  // (e.g. "Brachyura", "Polychaeta" appear in both).
   _tkSpeciesNames.clear();
   _tkGbifIds.clear();
   // TK detection is opt-in (tkDetect checkbox, off by default) — it fires an extra
-  // geometry occurrence/search per polygon and is only relevant to the Moorea Biocode
-  // TK dataset, so skip it entirely unless the user enables it.
+  // geometry occurrence/search per polygon and is only relevant to the known TK datasets,
+  // so skip it entirely unless the user enables it. Beyond that, each TK dataset's own
+  // registered bbox (fetched once, cached in localStorage) lets us skip the network call
+  // entirely for polygons nowhere near any of them — without hardcoding geography that
+  // would go stale as TK_DATASET_KEYS grows.
   if (document.getElementById('tkDetect')?.checked) setTimeout(async () => {
-    for (const gp of _geomPolys) {
+    const _tkBboxes = await _getTkDatasetBboxes();
+    const _tkCandidatePolys = _tkBboxes.length === 0 ? _geomPolys
+      : _geomPolys.filter(gp => gp.latlngs && gp.latlngs.length && _bboxOverlapsAny(gp.latlngs, _tkBboxes));
+    if (_tkCandidatePolys.length === 0) return;
+    const _tkDatasetQs = TK_DATASET_KEYS.map(k => 'datasetKey=' + encodeURIComponent(k)).join('&');
+    for (const gp of _tkCandidatePolys) {
       try {
         const qs = 'geometry=' + encodeURIComponent(getQueryWKT(gp)) +
-                   '&datasetKey=8b8c78fb-53d7-434c-b800-61f38b30d0c9' +
+                   '&' + _tkDatasetQs +
                    '&hasCoordinate=true&limit=300';
         const res = await gbifFetch('https://api.gbif.org/v1/occurrence/search?' + qs);
         if (!res.ok) continue;
@@ -6136,7 +6234,7 @@ document.getElementById('dlCsvBtn').addEventListener('click', () => {
     fields = [...fields, 'tk_label'];
     rows = rows.map(r => {
       const hasTk = _tkGbifIds.has(String(r.gbifID));
-      return Object.assign({}, r, { tk_label: hasTk ? 'https://localcontextshub.org/projects/71b32571-0176-4627-8e01-4d78818432a7/' : '' });
+      return Object.assign({}, r, { tk_label: hasTk ? (_tkProjectUrl || 'https://localcontextshub.org/') : '' });
     });
   }
   const csvHeader = '# Downloaded from Occurd (https://rutherfordecology.github.io/Occurd/) on ' + new Date().toISOString().split('T')[0] + '\n' +
@@ -6306,7 +6404,7 @@ function _parseCsvLine(line) {
   return out;
 }
 
-async function handleGbifCsv(text, filename) {
+async function handleGbifCsv(text, filename, mediaByGbifId) {
   let lines = text.split(/\r?\n/);
   // strip Occurd's own "# Downloaded from Occurd..." comment header lines so re-uploads work
   while (lines.length && lines[0].startsWith('#')) lines.shift();
@@ -6329,7 +6427,7 @@ async function handleGbifCsv(text, filename) {
     const vals = splitLine(lines[i]);
     const row  = {};
     header.forEach((col, ci) => { row[col] = vals[ci] !== undefined ? vals[ci] : ''; });
-    rows.push(_mapDwcRecord(null, row));
+    rows.push(_mapDwcRecord(null, row, mediaByGbifId));
   }
   if (rows.length === 0) { setStatus('No records found in ' + filename, 'warning'); hideDropZoneProgress(); return; }
 
@@ -6452,12 +6550,13 @@ async function _checkGbifCreds() {
 
 // ── GBIF Big Data — download functions ───────────────────────────────────
 
-function _mapDwcRecord(poly, row) {
+function _mapDwcRecord(poly, row, mediaByGbifId) {
   const lat = parseFloat(row['decimalLatitude']);
   const lng = parseFloat(row['decimalLongitude']);
+  const gbifId = row['gbifID'] || null;
   return {
     polygon_name:                  poly ? (poly.label || null) : null,
-    gbifID:                        row['gbifID']        || null,
+    gbifID:                        gbifId,
     eventDate:                     row['eventDate']     || null,
     year:                          row['year']          || null,
     month:                         row['month']         || null,
@@ -6491,7 +6590,7 @@ function _mapDwcRecord(poly, row) {
     establishmentMeans:            row['establishmentMeans'] || null,
     dynamicProperties:             null,
     iucnRedListCategory:           null,
-    recordPhoto:                   null,
+    recordPhoto:                   (mediaByGbifId && gbifId && mediaByGbifId[gbifId]) || null,
     _polyId:    poly ? poly.id    : null,
     _polyLabel: poly ? poly.label : null,
     _fromDownload: true
@@ -6713,6 +6812,20 @@ if (window._pendingShare) {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v6.97</span>
+      <span class="changelog-date">Jul 2026</span>
+      <ul>
+        <li>Traditional Knowledge detection now scales to more than one GBIF dataset — TK_DATASET_KEYS is a maintained list (currently just Moorea Biocode, with GBIF's Ecuador/NZ Indigenous data governance pilot datasets expected to join it) instead of a single hardcoded key; each dataset's real registered bounding box is fetched once and cached, so the extra GBIF query is skipped entirely for searches nowhere near any known TK dataset — no hardcoded geography to keep updating by hand</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v6.96</span>
+      <span class="changelog-date">Jul 2026</span>
+      <ul>
+        <li>Big Data Mode zip upload — fix: record photos were missing for most occurrences because GBIF's Darwin Core Archive download splits photos into a separate <code>multimedia.txt</code> file (joined on gbifID), which the upload parser never read; it now extracts and attaches this data so the camera-button record photo works the same as a live search</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v6.95</span>
       <span class="changelog-date">Jul 2026</span>
