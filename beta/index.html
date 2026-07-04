@@ -49,7 +49,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v7.05b</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v7.06b</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -1192,7 +1192,7 @@ map.on(L.Draw.Event.CREATED, e => {
       try {
         const _drawnEntry = polygons.find(p => p.id === id);
         if (_drawnEntry) {
-          const _drawnTurf = turf.polygon([closeRingCoords(_drawnEntry.latlngs.map(llToGeoJSON))]);
+          const _drawnTurf = turf.polygon([closeRingCoords(_drawnEntry.latlngs.map(llToGeoJSONNorm))]);
           window._qeiiState.features.forEach(f => {
             if (!f.geometry) return;
             try {
@@ -2451,7 +2451,7 @@ function autoSelectFromDrawn() {
   const drawnTurf = [], drawnBboxes = [];
   polygons.forEach(dp => {
     try {
-      const coords = closeRingCoords(dp.latlngs.map(llToGeoJSON));
+      const coords = closeRingCoords(dp.latlngs.map(llToGeoJSONNorm));
       const tp = turf.polygon([coords]);
       drawnTurf.push(tp);
       drawnBboxes.push(turf.bbox(tp)); // [minLng, minLat, maxLng, maxLat]
@@ -2646,6 +2646,18 @@ function llToGeoJSON(ll) {
   // Convert either [lat,lng] array or {lat,lng} object → GeoJSON [lng,lat]
   return ll.lat !== undefined ? [ll.lng, ll.lat] : [ll[1], ll[0]];
 }
+// Same, but normalises lng to [-180,180]. Leaflet's continuous coordinate system
+// extends past ±180° when the map is panned (e.g. a Samoa/Tonga/Fiji polygon drawn
+// on a Pacific-centred view can store lng as ~188° instead of ~-172°), but GBIF/iNat
+// coordinates are always in standard range — use this wherever raw latlngs are
+// compared against external API data (spatial clips, bounding boxes), or every
+// point silently fails the comparison despite the underlying fetch succeeding.
+function llToGeoJSONNorm(ll) {
+  const [lng, lat] = llToGeoJSON(ll);
+  let n = ((lng % 360) + 360) % 360;
+  if (n > 180) n -= 360;
+  return [n, lat];
+}
 function closeRingCoords(coords) {
   if (coords[0][0] !== coords[coords.length-1][0] || coords[0][1] !== coords[coords.length-1][1])
     return [...coords, coords[0]];
@@ -2684,7 +2696,7 @@ browseAddBtn.addEventListener('click', () => {
   if (doIntersect) {
     // Store drawn polygon(s) as turf clip shapes for post-fetch filtering
     clipTurfPolygons = drawnSnapshot.map(dp => {
-      try { return turf.polygon([closeRingCoords(dp.latlngs.map(llToGeoJSON))]); }
+      try { return turf.polygon([closeRingCoords(dp.latlngs.map(llToGeoJSONNorm))]); }
       catch(e) { return null; }
     }).filter(Boolean);
 
@@ -5694,11 +5706,14 @@ runBtn.addEventListener('click', async () => {
       setStatus('Fetching iNat obscured records' + polyLabel + '…', 'info');
       const lls  = geomPoly.latlngs;
       const _lats = lls.map(ll => ll.lat !== undefined ? ll.lat : ll[0]);
-      const _lngs = lls.map(ll => ll.lng !== undefined ? ll.lng : ll[1]);
+      // Normalised (not raw llToGeoJSON) — iNat's bounding-box search expects standard
+      // [-180,180] longitude, but Leaflet stores lng unwrapped past ±180° when the
+      // polygon was drawn on a panned Pacific view (see llToGeoJSONNorm above).
+      const _lngs = lls.map(ll => llToGeoJSONNorm(ll)[0]);
       const _swlat = Math.min(..._lats), _nelat = Math.max(..._lats);
       const _swlng = Math.min(..._lngs), _nelng = Math.max(..._lngs);
       let _turfClip = null;
-      try { _turfClip = turf.polygon([closeRingCoords(geomPoly.latlngs.map(llToGeoJSON))]); } catch(e) {}
+      try { _turfClip = turf.polygon([closeRingCoords(geomPoly.latlngs.map(llToGeoJSONNorm))]); } catch(e) {}
       const _seenObsIds = new Set();
 
       // Map selected Occurd taxon checkboxes → iNat iconic_taxa values
@@ -5984,8 +5999,8 @@ runBtn.addEventListener('click', async () => {
   if (!_clipPolys) {
     _clipPolys = _geomPolys.map(gp => {
       try {
-        const _rings = [closeRingCoords(gp.latlngs.map(llToGeoJSON))];
-        (gp.holes || []).forEach(h => { if (h && h.length >= 3) _rings.push(closeRingCoords(h.map(llToGeoJSON))); });
+        const _rings = [closeRingCoords(gp.latlngs.map(llToGeoJSONNorm))];
+        (gp.holes || []).forEach(h => { if (h && h.length >= 3) _rings.push(closeRingCoords(h.map(llToGeoJSONNorm))); });
         return turf.polygon(_rings);
       } catch(e) { return null; }
     }).filter(Boolean);
@@ -6020,14 +6035,15 @@ runBtn.addEventListener('click', async () => {
       for (const gp of _geomPolys) {
         const lls = gp.latlngs;
         const _lats = lls.map(ll => ll.lat !== undefined ? ll.lat : ll[0]);
-        const _lngs = lls.map(ll => ll.lng !== undefined ? ll.lng : ll[1]);
+        // Normalised — see llToGeoJSONNorm; iNat's bbox search needs standard [-180,180] lng.
+        const _lngs = lls.map(ll => llToGeoJSONNorm(ll)[0]);
         const _swlat = Math.min(..._lats), _nelat = Math.max(..._lats);
         const _swlng = Math.min(..._lngs), _nelng = Math.max(..._lngs);
 
         // Build turf polygon for client-side clip
         let _turfClip = null;
         try {
-          _turfClip = turf.polygon([closeRingCoords(gp.latlngs.map(llToGeoJSON))]);
+          _turfClip = turf.polygon([closeRingCoords(gp.latlngs.map(llToGeoJSONNorm))]);
         } catch(e) {}
 
         const _sciName = sp.sciName || sp.name;
@@ -6901,6 +6917,13 @@ if (window._pendingShare) {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v7.06</span>
+      <span class="changelog-date">Jul 2026</span>
+      <ul>
+        <li>Fixed real GBIF results being silently discarded to "0 records" for polygons near the antimeridian (Samoa, Tonga, Fiji) drawn on a Pacific-panned map view — Leaflet stores their longitude unwrapped past 180° (e.g. 188° instead of -172°) in that case, and the post-fetch spatial clip compared this directly against GBIF's standard-range coordinates, so every record failed the point-in-polygon test even though the search itself succeeded. The same bug also broke the iNaturalist obscured-records bounding-box search and the QEII/KMZ-intersect features for these locations</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v7.05</span>
       <span class="changelog-date">Jul 2026</span>
