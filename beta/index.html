@@ -49,7 +49,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v7.03b</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v7.04b</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -709,8 +709,8 @@ async function gbifFetch(url, options) {
 // the browser can't read the status in that case, so fetch() just rejects and
 // devtools reports "blocked by CORS policy" instead of a 429. The circuit
 // breaker below treats a thrown fetch error the same as an observed 429.
-const INAT_MAX_CONCURRENT = 4;
-const INAT_MIN_GAP_MS = 90;
+const INAT_MAX_CONCURRENT = 1;
+const INAT_MIN_GAP_MS = 1100;
 let _inatInFlight = 0;
 let _inatNextSlot = 0;
 let _inatCooldownUntil = 0;
@@ -3457,26 +3457,43 @@ const photoListCache = {}; // taxonKey -> [{url,licence,photographer}, ...]
 const inatIdCache    = {}; // taxonKey -> iNaturalist taxon id (integer)
 let _photoPrefetchAbort = false;
 
+// Per-request pacing (~1 req/sec) is enforced globally by inatFetch's
+// throttle queue above, so every call site — this bulk warm-up, popup photo
+// lookups, obscured-record fetches — shares one rate limit instead of each
+// having its own ad-hoc delay. On top of that, species are grouped into
+// chunks with an extra cool-down between them, so a 200+ species checklist
+// backs off periodically for headroom rather than running flat-out for
+// several minutes straight.
+const PHOTO_PREFETCH_CHUNK_SIZE = 40;
+const PHOTO_PREFETCH_CHUNK_PAUSE_MS = 8000;
+
 async function prefetchPhotos(records) {
   // Pre-warm photoCache in the background so popup photos load instantly.
-  // Runs at low priority: batches of 3, 250ms pause between batches.
+  // Most-recorded species first — same reasoning as lookupCommonNames'
+  // VERNACULAR_TOP_N, since photos matter most for the species the user
+  // will actually see first in the checklist.
   _photoPrefetchAbort = false;
   const seen = new Set();
-  const toFetch = [];
+  const counts = {};
   records.forEach(r => {
     const key = r.taxonKey || r.speciesKey;
-    if (!key || seen.has(key) || photoCache[key] !== undefined) return;
+    if (!key || photoCache[key] !== undefined) return;
+    counts[key] = (counts[key] || 0) + 1;
     seen.add(key);
-    toFetch.push({ taxonKey: key, sciName: r.scientificName || r.species || '' });
   });
-  const BATCH = 3;
-  for (let i = 0; i < toFetch.length; i += BATCH) {
+  const toFetch = [...seen]
+    .sort((a, b) => counts[b] - counts[a])
+    .map(key => {
+      const r = records.find(rec => (rec.taxonKey || rec.speciesKey) === key);
+      return { taxonKey: key, sciName: r.scientificName || r.species || '' };
+    });
+  for (let i = 0; i < toFetch.length; i++) {
     if (_photoPrefetchAbort) return;
-    await Promise.all(toFetch.slice(i, i + BATCH).map(({ taxonKey, sciName }) =>
-      fetchSpeciesPhoto(taxonKey, sciName, { skipGbif: true }).catch(() => {})
-    ));
-    if (!_photoPrefetchAbort && i + BATCH < toFetch.length) {
-      await new Promise(r => setTimeout(r, 250));
+    const { taxonKey, sciName } = toFetch[i];
+    await fetchSpeciesPhoto(taxonKey, sciName, { skipGbif: true }).catch(() => {});
+    if (_photoPrefetchAbort) return;
+    if (i + 1 < toFetch.length && (i + 1) % PHOTO_PREFETCH_CHUNK_SIZE === 0) {
+      await new Promise(r => setTimeout(r, PHOTO_PREFETCH_CHUNK_PAUSE_MS));
     }
   }
 }
@@ -6884,6 +6901,14 @@ if (window._pendingShare) {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v7.04</span>
+      <span class="changelog-date">Jul 2026</span>
+      <ul>
+        <li>The iNaturalist throttle queue (added in v7.03) was still initiating up to 4 requests concurrently, ~90ms apart — several times faster than iNaturalist's recommended ~1 req/sec, relying entirely on the reactive 429 cool-down to stay out of trouble under load. Retuned to one request at a time, ~1.1s apart, so the app paces itself proactively instead of waiting to get rate-limited first</li>
+        <li>Photo pre-warm was still running in batches of 3 with a flat 250ms pause between batches — on top of being faster than iNat recommends, it had no back-off for very large checklists. Now processes species one at a time (most-recorded first) through the shared throttle, in chunks of 40 with an extra 8s cool-down between chunks, so a 200+ species checklist backs off periodically instead of running flat-out for minutes on end</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v7.03</span>
       <span class="changelog-date">Jul 2026</span>

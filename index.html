@@ -49,7 +49,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v7.02</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v7.03</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -654,6 +654,67 @@ async function gbifFetch(url, options) {
   }
   // All retries exhausted — return the last 429 response so callers can handle it
   return await fetch(url, options);
+}
+
+// ── Global iNaturalist request throttle ─────────────────────────────────────
+// Every iNat call (species photos, popup photo detail, obscured-record
+// fetches) funnels through here, so the whole app respects iNat's recommended
+// practice of ~1 request/sec (their hard cap is 60–100/min; consistently
+// exceeding it risks an IP block, not just a 429 — see
+// inaturalist.org/pages/api+recommended+practices). A 429 sometimes arrives
+// through their CDN with no CORS header, so the browser can't read the status
+// and devtools reports "blocked by CORS policy" instead of a 429 — the circuit
+// breaker below treats a thrown fetch error the same as an observed 429.
+const INAT_MAX_CONCURRENT = 1;
+const INAT_MIN_GAP_MS = 1100;
+let _inatInFlight = 0;
+let _inatNextSlot = 0;
+let _inatCooldownUntil = 0;
+const _inatWaiters = [];
+function _inatAcquire() {
+  return new Promise(resolve => {
+    const attempt = () => {
+      if (_inatInFlight < INAT_MAX_CONCURRENT) {
+        _inatInFlight++;
+        const now = Date.now();
+        const at = Math.max(now, _inatNextSlot, _inatCooldownUntil);
+        _inatNextSlot = at + INAT_MIN_GAP_MS;
+        setTimeout(resolve, at - now);
+      } else {
+        _inatWaiters.push(attempt);
+      }
+    };
+    attempt();
+  });
+}
+function _inatRelease() {
+  _inatInFlight--;
+  const next = _inatWaiters.shift();
+  if (next) next();
+}
+function _inatTripCooldown(res) {
+  let ms = 5000;
+  const ra = res && res.headers && parseInt(res.headers.get('Retry-After'), 10);
+  if (ra && !isNaN(ra)) ms = Math.min(ra * 1000, 30000);
+  _inatCooldownUntil = Math.max(_inatCooldownUntil, Date.now() + ms);
+  return ms;
+}
+// Same probe-gently pattern as gbifFetch, but a thrown fetch error (the
+// CORS-masked case above) is treated as a rate-limit signal too.
+async function inatFetch(url, options) {
+  let res, err;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    await _inatAcquire();
+    try { res = await fetch(url, options); err = null; }
+    catch (e) { err = e; res = null; }
+    finally { _inatRelease(); }
+    if (res && res.status !== 429) return res;
+    const ms = _inatTripCooldown(res);
+    if (attempt === 0 && typeof setStatus === 'function')
+      setStatus('iNaturalist is rate-limiting requests — pausing ' + Math.round(ms / 1000) + 's…', 'warning');
+  }
+  if (err) throw err;
+  return res; // still 429 after the cooldown probe — hand it back for the caller to surface
 }
 
 const COMPLEXITY_THRESHOLD = 500;
@@ -3352,26 +3413,43 @@ const photoListCache = {}; // taxonKey -> [{url,licence,photographer}, ...]
 const inatIdCache    = {}; // taxonKey -> iNaturalist taxon id (integer)
 let _photoPrefetchAbort = false;
 
+// Per-request pacing (~1 req/sec) is now enforced globally by inatFetch's
+// throttle queue above, so every call site — this bulk warm-up, popup photo
+// lookups, obscured-record fetches — shares one rate limit instead of each
+// having its own ad-hoc delay. On top of that, species are grouped into
+// chunks with an extra cool-down between them, so a 200+ species checklist
+// backs off periodically for headroom rather than running flat-out for
+// several minutes straight.
+const PHOTO_PREFETCH_CHUNK_SIZE = 40;
+const PHOTO_PREFETCH_CHUNK_PAUSE_MS = 8000;
+
 async function prefetchPhotos(records) {
   // Pre-warm photoCache in the background so popup photos load instantly.
-  // Runs at low priority: batches of 3, 250ms pause between batches.
+  // Most-recorded species first — same reasoning as lookupCommonNames'
+  // VERNACULAR_TOP_N, since photos matter most for the species the user
+  // will actually see first in the checklist.
   _photoPrefetchAbort = false;
   const seen = new Set();
-  const toFetch = [];
+  const counts = {};
   records.forEach(r => {
     const key = r.taxonKey || r.speciesKey;
-    if (!key || seen.has(key) || photoCache[key] !== undefined) return;
+    if (!key || photoCache[key] !== undefined) return;
+    counts[key] = (counts[key] || 0) + 1;
     seen.add(key);
-    toFetch.push({ taxonKey: key, sciName: r.scientificName || r.species || '' });
   });
-  const BATCH = 3;
-  for (let i = 0; i < toFetch.length; i += BATCH) {
+  const toFetch = [...seen]
+    .sort((a, b) => counts[b] - counts[a])
+    .map(key => {
+      const r = records.find(rec => (rec.taxonKey || rec.speciesKey) === key);
+      return { taxonKey: key, sciName: r.scientificName || r.species || '' };
+    });
+  for (let i = 0; i < toFetch.length; i++) {
     if (_photoPrefetchAbort) return;
-    await Promise.all(toFetch.slice(i, i + BATCH).map(({ taxonKey, sciName }) =>
-      fetchSpeciesPhoto(taxonKey, sciName, { prefetch: true }).catch(() => {})
-    ));
-    if (!_photoPrefetchAbort && i + BATCH < toFetch.length) {
-      await new Promise(r => setTimeout(r, 250));
+    const { taxonKey, sciName } = toFetch[i];
+    await fetchSpeciesPhoto(taxonKey, sciName, { prefetch: true }).catch(() => {});
+    if (_photoPrefetchAbort) return;
+    if (i + 1 < toFetch.length && (i + 1) % PHOTO_PREFETCH_CHUNK_SIZE === 0) {
+      await new Promise(r => setTimeout(r, PHOTO_PREFETCH_CHUNK_PAUSE_MS));
     }
   }
 }
@@ -3424,7 +3502,7 @@ async function _fetchSpeciesPhotoUncached(taxonKey, sciName, opts) {
   const binomial = sciName ? sciName.split(/\s+/).slice(0, 2).join(' ') : null;
   if (binomial) {
     try {
-      const res = await fetch('https://api.inaturalist.org/v1/taxa?q=' + encodeURIComponent(binomial) + '&rank=species&per_page=5&is_active=true');
+      const res = await inatFetch('https://api.inaturalist.org/v1/taxa?q=' + encodeURIComponent(binomial) + '&rank=species&per_page=5&is_active=true');
       if (res.ok) {
         const json = await res.json();
         // Require an exact scientific name match — iNat taxon swaps can return the
@@ -3442,7 +3520,7 @@ async function _fetchSpeciesPhotoUncached(taxonKey, sciName, opts) {
         if (taxon && taxon.default_photo) candidates.push(taxon.default_photo);
         if (!opts.prefetch && taxon && taxon.id) {
           try {
-            const detailRes = await fetch('https://api.inaturalist.org/v1/taxa/' + taxon.id);
+            const detailRes = await inatFetch('https://api.inaturalist.org/v1/taxa/' + taxon.id);
             if (detailRes.ok) {
               const detailJson = await detailRes.json();
               const detail = (detailJson.results || [])[0];
@@ -3649,7 +3727,7 @@ async function resolveInatLink(linkId, taxonKey, sciName) {
   const binomial = (sciName || '').split(/\s+/).slice(0, 2).join(' ');
   if (!binomial) return;
   try {
-    const res = await fetch('https://api.inaturalist.org/v1/taxa?q=' + encodeURIComponent(binomial) + '&rank=species&per_page=1&is_active=true');
+    const res = await inatFetch('https://api.inaturalist.org/v1/taxa?q=' + encodeURIComponent(binomial) + '&rank=species&per_page=1&is_active=true');
     if (res.ok) {
       const data = await res.json();
       const taxon = (data.results || [])[0];
@@ -5622,7 +5700,7 @@ runBtn.addEventListener('click', async () => {
               _obscParam + _iconicParam + _dateParams +
               '&swlat=' + _swlat + '&swlng=' + _swlng + '&nelat=' + _nelat + '&nelng=' + _nelng +
               '&per_page=200&page=' + _inatPage;
-            const _ir = await fetch(_iu);
+            const _ir = await inatFetch(_iu);
             if (!_ir.ok) break;
             _ij = await _ir.json();
           } catch(e) { break; }
@@ -5928,7 +6006,7 @@ runBtn.addEventListener('click', async () => {
               '&swlat=' + _swlat + '&swlng=' + _swlng +
               '&nelat=' + _nelat + '&nelng=' + _nelng +
               '&per_page=200&page=' + _inatPage;
-            const _ir = await fetch(_inatUrl);
+            const _ir = await inatFetch(_inatUrl);
             if (!_ir.ok) break;
             _inatJson = await _ir.json();
           } catch(e) { break; }
@@ -6810,6 +6888,13 @@ if (window._pendingShare) {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v7.03</span>
+      <span class="changelog-date">Jul 2026</span>
+      <ul>
+        <li>Photo pre-warm was still ~12x over iNaturalist's recommended rate (batches of 3, 250ms apart) even after the v7.02 fix — large checklists still tripped 429s (shown as CORS errors in the browser console, since iNat's 429 responses sometimes arrive with no CORS header). Every iNaturalist call (species photos, popup photo detail, obscured-record fetches) now funnels through a single shared throttle queue — one request at a time, ~1.1s apart, matching iNaturalist's recommended practices — and the bulk photo warm-up processes species in chunks of 40 (most-recorded first) with an extra 8s cool-down between chunks, so a 200+ species checklist backs off periodically instead of hammering iNat continuously for minutes on end</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v7.02</span>
       <span class="changelog-date">Jul 2026</span>
