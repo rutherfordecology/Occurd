@@ -49,7 +49,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v7.06b</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v7.07b</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -1235,6 +1235,9 @@ map.on(L.Draw.Event.CREATED, e => {
 
 // State
 let polygons = [], refLayers = [], clipTurfPolygons = null, allRecords = [], activeFilters = new Set(), hiddenSpecies = new Set();
+// Set of species names matching the checklist search box (null = no search active).
+// Layered into passesFilters() so an isolated species in the list also isolates on the map.
+let speciesSearchNames = null;
 
 const BIGDATA_MODE = new URLSearchParams(location.search).has('bigdata');
 if (BIGDATA_MODE) {
@@ -1709,6 +1712,7 @@ function passesFilters(r) {
   if (!activeFilters.has(getTaxonGroup(r))) return false;
   const _rName = r.species || r.scientificName || '';
   if (_rName && hiddenSpecies.has(_rName)) return false;
+  if (speciesSearchNames && !speciesSearchNames.has(_rName)) return false;
   if (nztcsUnlocked && currentNztcsFilter !== 'all') {
     const allowed = NZTCS_FILTER_GROUPS[currentNztcsFilter] || [];
     if (!allowed.includes(getNztcsFilterStatus(r))) return false;
@@ -1918,7 +1922,7 @@ function applyPostFetchShareState(s) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 function clearResults() {
-  allRecords = []; activeFilters.clear(); hiddenSpecies.clear(); csvData = null; selectedSpecies = null; allMarkers = []; commonNameCache = {};
+  allRecords = []; activeFilters.clear(); hiddenSpecies.clear(); speciesSearchNames = null; csvData = null; selectedSpecies = null; allMarkers = []; commonNameCache = {};
   effortByYear = null; tlEffortMode = false; _effortFetchParams = []; _effortTaxonKeys = []; _syncEffortBtn();
   _clearGhostLayer();
   _photoPrefetchAbort = true;
@@ -4913,7 +4917,10 @@ function _showChecklistHandle(show) {
 }
 
 function filterChecklistSearch() {
-  const q = document.getElementById('clSearchInput').value.toLowerCase();
+  const q = document.getElementById('clSearchInput').value.toLowerCase().trim();
+  // When the search box has text, drive the map from it too: collect the species
+  // names that match so passesFilters() can isolate them on the map, not just the list.
+  const matched = q ? new Set() : null;
   document.querySelectorAll('.cl-row').forEach(row => {
     const text = (row.dataset.species + ' ' + (row.dataset.common || '')).toLowerCase();
     const matchSearch = !q || text.includes(q);
@@ -4928,6 +4935,7 @@ function filterChecklistSearch() {
     }
     const matchTk = !tkFilterActive || _tkSpeciesNames.has(row.dataset.species || '');
     row.classList.toggle('hidden', !matchSearch || !matchNztcs || !matchIucn || !matchTk);
+    if (matched && matchSearch && row.dataset.species) matched.add(row.dataset.species);
   });
   document.querySelectorAll('.cl-group-header').forEach(header => {
     let hasVisible = false, el = header.nextElementSibling;
@@ -4937,6 +4945,24 @@ function filterChecklistSearch() {
     }
     header.style.display = hasVisible ? '' : 'none';
   });
+  // Sync the map to the search unless nothing has loaded yet.
+  if (allRecords.length) {
+    speciesSearchNames = matched;
+    _refreshMapForFilterChange();
+  }
+}
+
+// Re-render markers/heatmap after any change to the active species filters
+// (search box, checkboxes). Mirrors the per-checkbox refresh so the map, the
+// "shown" count and the CSV export all stay in step.
+function _refreshMapForFilterChange() {
+  if (viewMode === 'heat') renderHeatmap(allRecords);
+  else { renderPoints(allRecords); applyTimelineFilter(); }
+  _updateLooklikeBtn();
+  const shown = allRecords.filter(passesFilters);
+  const mShown = document.getElementById('mShown');
+  if (mShown) mShown.textContent = shown.length.toLocaleString();
+  csvData = buildCSV(shown);
 }
 
 function filterChecklistByTaxon() {
@@ -6917,6 +6943,13 @@ if (window._pendingShare) {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v7.07</span>
+      <span class="changelog-date">Jul 2026</span>
+      <ul>
+        <li>The species-checklist search box now filters the map too. Previously, typing a species name isolated it in the checklist but left every other species still plotted on the map; the search now drives both, so an isolated species in the list is isolated on the map. Clearing the box restores your existing checkbox selections</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v7.06</span>
       <span class="changelog-date">Jul 2026</span>
