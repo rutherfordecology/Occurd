@@ -365,6 +365,19 @@ html, body { max-width: 100vw; overflow-x: hidden; }
 .tl-slider-max { z-index:4; top:10px; }
 .tl-track-fill { position:absolute; height:4px; top:10px; background:var(--green-dark); opacity:0.35; border-radius:2px; pointer-events:none; z-index:2; }
 .tl-track-bg { position:absolute; width:100%; height:4px; top:10px; background:var(--border); border-radius:2px; z-index:1; }
+/* ── Geolocate control ──────────────────────────────────────────────────── */
+.geo-locate-btn {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  color: #404040;
+}
+.geo-locate-btn:hover { color: var(--green-dark, #2f6f43); }
+.geo-locate-btn.locating {
+  color: #2a7de1;
+  animation: geo-spin 0.9s linear infinite;
+}
+@keyframes geo-spin { to { transform: rotate(360deg); } }
 /* ─────────────────────────────────────────────────────────────────────────── */
 #drawActionBar {
   display: none;

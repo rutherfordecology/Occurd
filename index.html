@@ -49,7 +49,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v7.08</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v7.09</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -850,6 +850,63 @@ if (_layersControlEl) {
   _layersControlEl.addEventListener('mouseenter', _reposition);
   _layersControlEl.addEventListener('mouseleave', _reposition);
   _layersControlEl.addEventListener('click', _reposition);
+}
+
+// ── Geolocate control ──────────────────────────────────────────
+// A compass/crosshair button that pans the map to the user's current
+// position and drops an accuracy marker. Positioned under the zoom
+// controls, styled to match Leaflet's default control bar.
+let _geoMarker = null, _geoCircle = null;
+const GeoLocateControl = L.Control.extend({
+  options: { position: 'topleft' },
+  onAdd: function () {
+    const bar = L.DomUtil.create('div', 'leaflet-bar leaflet-control geo-locate-bar');
+    const btn = L.DomUtil.create('a', 'geo-locate-btn', bar);
+    btn.href = '#';
+    btn.role = 'button';
+    btn.title = 'Show my location';
+    btn.setAttribute('aria-label', 'Show my location');
+    btn.innerHTML = icon('crosshair', { size: 18 });
+    L.DomEvent.disableClickPropagation(bar);
+    L.DomEvent.on(btn, 'click', function (e) {
+      L.DomEvent.stop(e);
+      locateUser(btn);
+    });
+    return bar;
+  }
+});
+map.addControl(new GeoLocateControl());
+
+function locateUser(btn) {
+  if (!navigator.geolocation) {
+    alert('Geolocation is not supported by this browser.');
+    return;
+  }
+  btn.classList.add('locating');
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      btn.classList.remove('locating');
+      const lat = pos.coords.latitude, lng = pos.coords.longitude;
+      const acc = pos.coords.accuracy || 0;
+      const ll = [lat, lng];
+      if (_geoMarker) map.removeLayer(_geoMarker);
+      if (_geoCircle) map.removeLayer(_geoCircle);
+      _geoCircle = L.circle(ll, { radius: acc, color: '#2a7de1', weight: 1, fillColor: '#2a7de1', fillOpacity: 0.12 }).addTo(map);
+      _geoMarker = L.circleMarker(ll, { radius: 7, color: '#fff', weight: 2, fillColor: '#2a7de1', fillOpacity: 1 }).addTo(map);
+      _geoMarker.bindTooltip('You are here', { direction: 'top', offset: [0, -8] });
+      // Frame the accuracy circle when it's meaningful, otherwise a sensible zoom.
+      if (acc > 0) map.fitBounds(_geoCircle.getBounds(), { maxZoom: 15, padding: [40, 40] });
+      else map.setView(ll, 13);
+    },
+    err => {
+      btn.classList.remove('locating');
+      const msg = err.code === 1
+        ? 'Location access was denied. Enable location permission for this site to use this feature.'
+        : 'Could not determine your location. Please try again.';
+      alert(msg);
+    },
+    { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+  );
 }
 window.addEventListener('load', () => {
   setTimeout(() => map.invalidateSize(), 100);
@@ -6943,6 +7000,13 @@ if (window._pendingShare) {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v7.09</span>
+      <span class="changelog-date">Jul 2026</span>
+      <ul>
+        <li>New geolocate button (crosshair icon) under the zoom controls — click it to pan the map to your current location and drop an accuracy marker. Works any time, unlike the one-off location jump that only happened at page load</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v7.08</span>
       <span class="changelog-date">Jul 2026</span>
