@@ -175,6 +175,17 @@
   }
   #load-btn:hover { background: var(--accent-dim); }
   #load-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  #extract-btn {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text-muted);
+    padding: 9px 20px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s;
+  }
+  #extract-btn:hover { border-color: var(--accent); color: var(--accent); }
   .hint { font-size: 0.78rem; color: var(--text-muted); }
 
   /* ─── Gallery ─── */
@@ -453,7 +464,7 @@
 
 <header>
   <div class="logo"><img src="Logo-long.png" alt="LookLike?"></div>
-  <div class="header-meta" id="header-meta"><span id="header-label">Visual species photo browser · <a href="https://www.rutherfordecology.co.nz/" target="_blank" rel="noopener" class="re-link"><span class="re-by">by </span><span class="re-name">Rutherford</span><span class="re-by"> ecology</span></a></span> <span class="version">v1.43</span></div>
+  <div class="header-meta" id="header-meta"><span id="header-label">Visual species photo browser · <a href="https://www.rutherfordecology.co.nz/" target="_blank" rel="noopener" class="re-link"><span class="re-by">by </span><span class="re-name">Rutherford</span><span class="re-by"> ecology</span></a></span> <span class="version">v1.44</span></div>
   <a class="bmc-btn" href="https://buymeacoffee.com/rutherfordecology" target="_blank" rel="noopener"><span data-icon="coffee" data-icon-size="15"></span> Buy me a coffee</a>
   <div id="filter-wrap">
     <input id="filter-input" type="search" placeholder="Filter species…" autocomplete="off">
@@ -473,8 +484,9 @@
   </div>
   <textarea id="species-input" placeholder="Place your species list or text here… or drag &amp; drop a CSV, TXT, PDF, Word (.docx), or Excel (.xlsx) file"></textarea>
   <div class="load-row">
+    <button id="extract-btn" title="Clean messy pasted text down to just a scientific-name list, before any photo lookup">Extract species list</button>
     <button id="load-btn">Load species</button>
-    <span class="hint">One name per line, or paste/drop any block of text — scientific names are extracted automatically</span>
+    <span class="hint">One name per line, or paste/drop any block of text — click "Extract species list" to clean it up first</span>
   </div>
 </div>
 
@@ -509,6 +521,7 @@ const landing      = document.getElementById('landing');
 const gallery      = document.getElementById('gallery');
 const grid         = document.getElementById('species-grid');
 const loadBtn      = document.getElementById('load-btn');
+const extractBtn   = document.getElementById('extract-btn');
 const backBtn      = document.getElementById('back-btn');
 const input        = document.getElementById('species-input');
 const filterWrap   = document.getElementById('filter-wrap');
@@ -537,7 +550,40 @@ function showLanding() {
   whatdatBtn.classList.remove('visible');
   filterWrap.classList.remove('visible');
   headerLabel.innerHTML = 'Visual species photo browser · <a href="https://www.rutherfordecology.co.nz/" target="_blank" rel="noopener" class="re-link"><span class="re-by">by </span><span class="re-name">Rutherford</span><span class="re-by"> ecology</span></a>';
+  hintEl.textContent = defaultHint;
 }
+
+// ─── Extract species list ───────────────────────────────────────
+// Turns messy pasted text (activity feeds, PDFs, reports full of dates,
+// coordinates, and markdown links) into a clean, deduplicated, one-name-
+// per-line list *before* any photo lookup happens — scans line by line so
+// a genus/epithet pair is never accidentally stitched together across a
+// line break, then keeps only the first sighting of each species.
+function cleanToSpeciesList(raw) {
+  const seen = new Set();
+  const found = [];
+  for (const line of raw.split(/\r?\n/)) {
+    for (const b of extractAllBinomials(line)) {
+      const key = b.toLowerCase();
+      if (!seen.has(key)) { seen.add(key); found.push(b); }
+    }
+  }
+  return found;
+}
+
+const hintEl = document.querySelector('.load-row .hint');
+const defaultHint = hintEl.textContent;
+function runExtractSpecies() {
+  const raw = input.value.trim();
+  if (!raw) return;
+  const species = cleanToSpeciesList(raw);
+  input.value = species.join('\n');
+  hintEl.textContent = species.length
+    ? `Found ${species.length} species — review the list, then click "Load species"`
+    : 'No scientific names found in that text';
+}
+
+extractBtn.addEventListener('click', runExtractSpecies);
 
 // ─── Load ────────────────────────────────────────────────────────
 loadBtn.addEventListener('click', () => {
@@ -588,6 +634,7 @@ async function loadFile(file) {
       const doc = new DOMParser().parseFromString(xml, 'text/xml');
       const texts = [...doc.querySelectorAll('t')].map(el => el.textContent).join(' ');
       input.value = texts;
+      runExtractSpecies();
     } catch(e) {
       alert('Could not read .docx: ' + e.message);
     }
@@ -621,6 +668,7 @@ async function loadFile(file) {
       }
       if (!texts) throw new Error('No text content found in spreadsheet.');
       input.value = texts;
+      runExtractSpecies();
     } catch(e) {
       alert('Could not read .xlsx: ' + e.message);
     }
@@ -644,6 +692,7 @@ async function loadFile(file) {
         pages.push(content.items.map(item => item.str).join(' '));
       }
       input.value = pages.join('\n');
+      runExtractSpecies();
     } catch(e) {
       alert('Could not read PDF: ' + e.message);
     }
