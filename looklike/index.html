@@ -450,12 +450,13 @@
 
 <header>
   <div class="logo"><img src="Logo-long.png" alt="LookLike?"></div>
-  <div class="header-meta" id="header-meta"><span id="header-label">Visual species photo browser · <a href="https://www.rutherfordecology.co.nz/" target="_blank" rel="noopener" class="re-link"><span class="re-by">by </span><span class="re-name">Rutherford</span><span class="re-by"> ecology</span></a></span> <span class="version">v1.38</span></div>
+  <div class="header-meta" id="header-meta"><span id="header-label">Visual species photo browser · <a href="https://www.rutherfordecology.co.nz/" target="_blank" rel="noopener" class="re-link"><span class="re-by">by </span><span class="re-name">Rutherford</span><span class="re-by"> ecology</span></a></span> <span class="version">v1.39</span></div>
   <a class="bmc-btn" href="https://buymeacoffee.com/rutherfordecology" target="_blank" rel="noopener"><span data-icon="coffee" data-icon-size="15"></span> Buy me a coffee</a>
   <div id="filter-wrap">
     <input id="filter-input" type="search" placeholder="Filter species…" autocomplete="off">
     <button class="sort-btn active" id="sort-az" title="Sort A–Z">A–Z</button>
     <button class="sort-btn" id="sort-tax" title="Taxonomic order">Taxonomic</button>
+    <button class="sort-btn" id="hide-nophoto-btn" title="Hide entries with no photo found">Hide no-photo</button>
   </div>
   <button id="back-btn">← Edit list</button>
   <button id="whatdat-btn" onclick="openInWhatDat()" style="display:none" title="Quiz these species in WhatDat?"><span data-icon="target" data-icon-size="14" style="vertical-align:-2px"></span> Quiz</button>
@@ -560,13 +561,26 @@ function openInWhatDat() {
 }
 
 // ─── Filter ──────────────────────────────────────────────────────
-filterInput.addEventListener('input', () => {
+let hideNoPhoto = false;
+const hideNoPhotoBtn = document.getElementById('hide-nophoto-btn');
+
+function applyVisibility() {
   const q = filterInput.value.toLowerCase();
   for (const card of state.cards) {
     if (!card.el) continue;
     const text = (card.name + ' ' + (card.commonName || '')).toLowerCase();
-    card.el.style.display = text.includes(q) ? '' : 'none';
+    const matchesQuery = text.includes(q);
+    const hiddenByNoPhoto = hideNoPhoto && !card.matched;
+    card.el.style.display = (matchesQuery && !hiddenByNoPhoto) ? '' : 'none';
   }
+}
+
+filterInput.addEventListener('input', applyVisibility);
+
+hideNoPhotoBtn.addEventListener('click', () => {
+  hideNoPhoto = !hideNoPhoto;
+  hideNoPhotoBtn.classList.toggle('active', hideNoPhoto);
+  applyVisibility();
 });
 
 // ─── Sort ────────────────────────────────────────────────────────
@@ -653,7 +667,7 @@ function buildGrid(names) {
 
   names.forEach((name, idx) => {
     const card = createCardSkeleton(name, idx);
-    state.cards.push({ name, el: card, commonName: '', inatPhoto: null, gbifPhotos: [], gbifIdx: 0, origIdx: idx });
+    state.cards.push({ name, el: card, commonName: '', inatPhoto: null, gbifPhotos: [], gbifIdx: 0, origIdx: idx, matched: false });
     grid.appendChild(card);
     observer.observe(card);
   });
@@ -731,8 +745,10 @@ async function loadCard(idx) {
     }
     if (photoUrl) {
       renderPhoto(inatSlot, photoUrl, `${card.name} — iNaturalist`, card.name, commonName);
+      card.matched = true;
     } else if (gbifFallback.length) {
       renderPhoto(inatSlot, gbifThumb(gbifFallback[0].url, 500), `${card.name} — GBIF`, card.name, commonName, gbifFallback[0].url);
+      card.matched = true;
     } else {
       renderNoPhoto(inatSlot);
     }
@@ -740,6 +756,7 @@ async function loadCard(idx) {
     el.querySelector('.common-name').textContent = '—';
     if (gbifFallback.length) {
       renderPhoto(inatSlot, gbifThumb(gbifFallback[0].url, 500), `${card.name} — GBIF`, card.name, '', gbifFallback[0].url);
+      card.matched = true;
     } else {
       renderNoPhoto(inatSlot);
     }
@@ -751,12 +768,14 @@ async function loadCard(idx) {
     if (gbifRes.status === 'fulfilled' && gbifRes.value?.length) {
       card.gbifPhotos = gbifRes.value;
       renderGBIFSlot(card, gbifSlot);
+      card.matched = true;
     } else {
       renderNoPhoto(gbifSlot);
     }
   }
 
   updateCardLinks(card);
+  if (hideNoPhoto) applyVisibility();
 }
 
 // ─── Render helpers ──────────────────────────────────────────────
