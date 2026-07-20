@@ -49,7 +49,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v7.07</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v7.08</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -195,6 +195,11 @@
           <label class="check-row"><input type="checkbox" id="inclEdna"><span>eDNA</span></label>
         </div>
       </div>
+      <div style="margin-bottom:0.5rem;">
+        <label class="check-row" style="font-size:12.5px;" title="Cross-reference results against GBIF datasets carrying Local Contexts Traditional Knowledge / Biocultural labels. Off by default — only fires an extra GBIF query when your search area is near a known TK dataset.">
+          <input type="checkbox" id="tkDetect"><span>Tag Traditional Knowledge records</span>
+        </label>
+      </div>
       <div style="margin-top:0.5rem;margin-bottom:0.5rem;">
         <label style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;display:block;margin-bottom:0.3rem;">Coordinate precision</label>
         <select id="precisionFilter" style="width:100%;font-size:12.5px;padding:5px 6px;border:1px solid var(--border);border-radius:var(--radius);font-family:inherit;background:var(--surface);color:inherit;">
@@ -202,11 +207,6 @@
           <option value="exclude">Exclude low-precision (&gt;1.5 km)</option>
           <option value="only">Only low-precision (&gt;1.5 km)</option>
         </select>
-      </div>
-      <div style="margin-bottom:0.5rem;">
-        <label class="check-row" style="font-size:12.5px;" title="Cross-reference results against GBIF datasets carrying Local Contexts Traditional Knowledge / Biocultural labels. Off by default — only fires an extra GBIF query when your search area is near a known TK dataset.">
-          <input type="checkbox" id="tkDetect"><span>Detect Traditional Knowledge records</span>
-        </label>
       </div>
       </div><!-- /s2 -->
 
@@ -703,13 +703,11 @@ async function gbifFetch(url, options) {
 }
 
 // ── Global iNaturalist request throttle ─────────────────────────────────────
-// Every iNat call (species photos, popup photo detail, obscured-record
-// fetches) funnels through here, so the whole app respects iNat's recommended
-// practice of ~1 request/sec (their hard cap is 60–100/min; consistently
-// exceeding it risks an IP block, not just a 429 — see
-// inaturalist.org/pages/api+recommended+practices). A 429 sometimes arrives
-// through their CDN with no CORS header, so the browser can't read the status
-// and devtools reports "blocked by CORS policy" instead of a 429 — the circuit
+// Mirrors the GBIF throttle above (photo warm-up + on-demand lookups all funnel
+// through here). iNaturalist rate-limits the same way GBIF does, but under load
+// its 429 response sometimes comes back through their CDN with no CORS header —
+// the browser can't read the status in that case, so fetch() just rejects and
+// devtools reports "blocked by CORS policy" instead of a 429. The circuit
 // breaker below treats a thrown fetch error the same as an observed 429.
 const INAT_MAX_CONCURRENT = 1;
 const INAT_MIN_GAP_MS = 1100;
@@ -3475,7 +3473,7 @@ const photoListCache = {}; // taxonKey -> [{url,licence,photographer}, ...]
 const inatIdCache    = {}; // taxonKey -> iNaturalist taxon id (integer)
 let _photoPrefetchAbort = false;
 
-// Per-request pacing (~1 req/sec) is now enforced globally by inatFetch's
+// Per-request pacing (~1 req/sec) is enforced globally by inatFetch's
 // throttle queue above, so every call site — this bulk warm-up, popup photo
 // lookups, obscured-record fetches — shares one rate limit instead of each
 // having its own ad-hoc delay. On top of that, species are grouped into
@@ -3508,7 +3506,7 @@ async function prefetchPhotos(records) {
   for (let i = 0; i < toFetch.length; i++) {
     if (_photoPrefetchAbort) return;
     const { taxonKey, sciName } = toFetch[i];
-    await fetchSpeciesPhoto(taxonKey, sciName, { prefetch: true }).catch(() => {});
+    await fetchSpeciesPhoto(taxonKey, sciName, { skipGbif: true }).catch(() => {});
     if (_photoPrefetchAbort) return;
     if (i + 1 < toFetch.length && (i + 1) % PHOTO_PREFETCH_CHUNK_SIZE === 0) {
       await new Promise(r => setTimeout(r, PHOTO_PREFETCH_CHUNK_PAUSE_MS));
@@ -3529,34 +3527,10 @@ const _photoSlots    = {}; // slotId   -> {photos:[...], idx:0}
 // sciName → iNat taxon result cache (keyed by taxonKey)
 const inatPhotoCache = {};
 
-// In-flight fetches per taxonKey, so a background prefetch and an on-demand
-// popup open for the same species share one request instead of doubling up.
-const _photoFetchInFlight = {};
-
-function fetchSpeciesPhoto(taxonKey, sciName, opts) {
-  if (!taxonKey) return Promise.resolve(null);
-  if (photoCache[taxonKey] !== undefined) return Promise.resolve(photoCache[taxonKey]);
-  if (_photoFetchInFlight[taxonKey]) return _photoFetchInFlight[taxonKey];
-  const p = _fetchSpeciesPhotoUncached(taxonKey, sciName, opts || {}).finally(() => { delete _photoFetchInFlight[taxonKey]; });
-  _photoFetchInFlight[taxonKey] = p;
-  return p;
-}
-
-// Does the actual work. On a genuinely empty result (both APIs answered, no
-// photo exists) the miss is cached in photoCache so we don't ask again this
-// session. On a network error or a throttled response (e.g. iNaturalist/GBIF
-// rate-limiting a large Big Data species list), the miss is NOT cached —
-// leaving photoCache[taxonKey] unset lets the next popup open or prefetch
-// pass retry instead of a transient hiccup permanently hiding the photo.
-//
-// opts.prefetch: used for the bulk warm-up pass over an entire (possibly
-// hundreds-of-species) Big Data dataset. Limits each species to a single,
-// cheap iNaturalist search call — skips the extra detail-endpoint call and
-// the GBIF occurrence-search fallback, since doing those for every species
-// up front is what was tripping GBIF/iNaturalist's "too many requests"
-// throttling. Skipped work is done lazily, one species at a time, when a
-// popup for that species is actually opened.
-async function _fetchSpeciesPhotoUncached(taxonKey, sciName, opts) {
+async function fetchSpeciesPhoto(taxonKey, sciName, opts) {
+  opts = opts || {};
+  if (!taxonKey) return null;
+  if (photoCache[taxonKey] !== undefined) return photoCache[taxonKey];
   let hadFailure = false;
 
   // 1. Try iNaturalist Taxa API — returns the community-curated default taxon photo
@@ -3580,7 +3554,11 @@ async function _fetchSpeciesPhotoUncached(taxonKey, sciName, opts) {
         // endpoint, so it must be fetched separately once we have a matched taxon id.
         const candidates = [];
         if (taxon && taxon.default_photo) candidates.push(taxon.default_photo);
-        if (!opts.prefetch && taxon && taxon.id) {
+        // Also skipped during bulk prefetch — this is a second iNaturalist call per
+        // species on top of the search above, and firing it for every species in a
+        // large Big Data checklist compounds the same rate-limit risk opts.skipGbif
+        // already guards against below.
+        if (!opts.skipGbif && taxon && taxon.id) {
           try {
             const detailRes = await inatFetch('https://api.inaturalist.org/v1/taxa/' + taxon.id);
             if (detailRes.ok) {
@@ -3610,13 +3588,13 @@ async function _fetchSpeciesPhotoUncached(taxonKey, sciName, opts) {
     } catch(e) { hadFailure = true; }
   }
 
-  // During bulk prefetch, stop here rather than also hitting GBIF — firing up to
-  // 2 more occurrence/search calls per species across a whole Big Data checklist
-  // is what tripped GBIF's "Too many API requests". Leave the cache unset (not a
-  // confirmed miss) so an opened popup can still try the GBIF fallback lazily.
-  if (opts.prefetch) return null;
+  // During bulk prefetch, stop here rather than hitting GBIF. Firing ~2 GBIF
+  // occurrence/search calls per species across the whole checklist is what trips
+  // GBIF's "Too many API requests" 429. Leave the cache unset (not null) so an
+  // opened popup can still try the GBIF fallback lazily, one species at a time.
+  if (opts.skipGbif) return null;
 
-  // 2. Fall back to GBIF occurrence media
+  // 2. Fall back to GBIF occurrence media (lazy — only for popups, not prefetch)
   const inatKey = '50c9509d-22c7-4a22-a47d-8c48425ef4a7';
   const attempts = [
     'https://api.gbif.org/v1/occurrence/search?taxonKey=' + taxonKey + '&mediaType=StillImage&datasetKey=' + inatKey + '&limit=5',
@@ -3645,7 +3623,10 @@ async function _fetchSpeciesPhotoUncached(taxonKey, sciName, opts) {
     photoCache[taxonKey] = gbifPhotos[0];
     return photoCache[taxonKey];
   }
-  if (!hadFailure) photoCache[taxonKey] = null; // confirmed: no photo available anywhere
+  // Only cache a permanent miss once every attempt above actually answered
+  // (empty result) rather than errored/rate-limited — a transient failure
+  // shouldn't hide a common species' photo for the rest of the session.
+  if (!hadFailure) photoCache[taxonKey] = null;
   return null;
 }
 
@@ -5569,7 +5550,9 @@ function getQueryWKT(poly) {
   return poly.wkt; // fallback — let GBIF handle it
 }
 
-// Fetch one GBIF occurrence page with up to 5 retries
+// Fetch one GBIF occurrence page. Retries genuine network errors up to 5×, but a
+// 429 (rate-limit) is thrown immediately — gbifFetch already waited out GBIF's
+// cooldown, so retrying here would just storm the endpoint and extend the block.
 async function _gbifPageFetch(qs) {
   let attempt = 0;
   while (true) {
@@ -5578,10 +5561,12 @@ async function _gbifPageFetch(qs) {
     try {
       const res = await gbifFetch('https://api.gbif.org/v1/occurrence/search?' + qs, { signal: ctrl.signal });
       clearTimeout(timer);
+      if (res.status === 429) { const e = new Error('HTTP 429'); e.rateLimited = true; throw e; }
       if (!res.ok) throw new Error('HTTP ' + res.status);
       return await res.json();
     } catch(e) {
       clearTimeout(timer);
+      if (e && e.rateLimited) throw e; // don't retry rate-limits — bubble up at once
       attempt++;
       if (attempt >= 5) throw e;
       await new Promise(r => setTimeout(r, Math.min(1000 * Math.pow(2, attempt - 1), 12000)));
@@ -5955,7 +5940,7 @@ runBtn.addEventListener('click', async () => {
           break page0;
         }
         if (res0.status === 429) {
-          setStatus('Beyond the GBIF request limit — decrease your time range, area size, or taxa and try again.', 'error');
+          setStatus('GBIF is temporarily rate-limiting requests from your network — too many were sent in a short time. This is temporary and not a problem with your search. Wait about a minute, then try again.', 'error');
         } else {
           setStatus('Fetch failed: HTTP ' + res0.status + '. If it keeps failing: ① smaller polygon  ② specific taxa  ③ shorter year range.', 'error');
         }
@@ -5998,12 +5983,18 @@ runBtn.addEventListener('click', async () => {
               return _gbifPageFetch(bqs);
             }));
           } catch(e) {
+            const _rateLimited = /\b429\b/.test(String(e && e.message));
             if (allFetched.length > 0) {
-              partialLoadWarning = '⚠️ Partial load: ' + allFetched.length.toLocaleString() + ' of ' +
-                totalCount.toLocaleString() + ' records fetched (network error). Results below may be incomplete — refetch to try again.';
+              partialLoadWarning = _rateLimited
+                ? '⚠️ Partial load: ' + allFetched.length.toLocaleString() + ' of ' + totalCount.toLocaleString() +
+                  ' records fetched before GBIF started rate-limiting (too many requests in a short time). Wait about a minute, then refetch to get the rest.'
+                : '⚠️ Partial load: ' + allFetched.length.toLocaleString() + ' of ' + totalCount.toLocaleString() +
+                  ' records fetched (network error). Results below may be incomplete — refetch to try again.';
               break;
             }
-            setStatus('Fetch failed after 5 attempts. If it keeps failing: ① smaller polygon  ② specific taxa  ③ shorter year range.', 'error');
+            setStatus(_rateLimited
+              ? 'GBIF is temporarily rate-limiting requests from your network — too many were sent in a short time. This is temporary and not a problem with your search. Wait about a minute, then try again.'
+              : 'Fetch failed after 5 attempts. If it keeps failing: ① smaller polygon  ② specific taxa  ③ shorter year range.', 'error');
             statusBar.innerHTML += ' <button onclick="document.getElementById(\'runBtn\').click()" style="margin-left:8px;background:none;border:1px solid currentColor;border-radius:var(--radius-sm);padding:2px 8px;cursor:pointer;font-size:11px;font-family:var(--font-sans);color:inherit;font-weight:600;">Try again</button>';
             setFetchMode(false); return;
           }
@@ -6952,6 +6943,14 @@ if (window._pendingShare) {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v7.08</span>
+      <span class="changelog-date">Jul 2026</span>
+      <ul>
+        <li>On mobile, the map controls (zoom, layers, draw) now sit as a single horizontal toolbar along the top of the map instead of stacking down the left edge, so they no longer end up underneath the species-list sheet that slides up from the bottom</li>
+        <li>Reworked GBIF request handling: on a "Too many API requests" 429, the app now pauses every queued GBIF request together for a real cooldown (honouring GBIF's Retry-After) instead of each call independently retrying and extending the block. A search or Big Data fetch that gets rate-limited now says so plainly and tells you to wait about a minute, rather than a generic failure message</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v7.07</span>
       <span class="changelog-date">Jul 2026</span>

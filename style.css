@@ -331,6 +331,13 @@ html, body { max-width: 100vw; overflow-x: hidden; }
   .metrics { grid-template-columns: repeat(3, 1fr); }
   /* Hide Leaflet's built-in draw action buttons — we provide touch-safe replacements */
   .leaflet-draw-actions { display: none !important; }
+  /* Lay the map controls (zoom / layers / draw) out as a single horizontal
+     toolbar along the top on mobile, so they don't sit under the species-list
+     sheet that rises from the bottom of the map. */
+  .leaflet-top.leaflet-left { display: flex; flex-direction: row; align-items: flex-start; }
+  .leaflet-top.leaflet-left .leaflet-control { clear: none; float: none; }
+  .leaflet-control-zoom { display: inline-flex; }
+  .leaflet-control-zoom a.leaflet-control-zoom-in { border-bottom: none; border-right: 1px solid rgba(0,0,0,0.2); }
   #btnTimeline { display: none !important; }
   .occ-loading-msg { display: none !important; }
   /* Tree of life not available on small screens */
