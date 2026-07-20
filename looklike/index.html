@@ -159,8 +159,14 @@
   #species-input.file-loading { color: var(--text-muted); font-style: italic; }
   .load-row {
     display: flex;
-    gap: 10px;
+    flex-direction: column;
     align-items: center;
+    gap: 10px;
+  }
+  .load-row-buttons {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
   }
   #load-btn {
     background: var(--accent);
@@ -186,7 +192,7 @@
     transition: border-color 0.15s, color 0.15s;
   }
   #extract-btn:hover { border-color: var(--accent); color: var(--accent); }
-  .hint { font-size: 0.78rem; color: var(--text-muted); }
+  .hint { font-size: 0.78rem; color: var(--text-muted); text-align: center; }
 
   /* ─── Gallery ─── */
   #gallery { display: none; padding: 24px; }
@@ -464,7 +470,7 @@
 
 <header>
   <div class="logo"><img src="Logo-long.png" alt="LookLike?"></div>
-  <div class="header-meta" id="header-meta"><span id="header-label">Visual species photo browser · <a href="https://www.rutherfordecology.co.nz/" target="_blank" rel="noopener" class="re-link"><span class="re-by">by </span><span class="re-name">Rutherford</span><span class="re-by"> ecology</span></a></span> <span class="version">v1.44</span></div>
+  <div class="header-meta" id="header-meta"><span id="header-label">Visual species photo browser · <a href="https://www.rutherfordecology.co.nz/" target="_blank" rel="noopener" class="re-link"><span class="re-by">by </span><span class="re-name">Rutherford</span><span class="re-by"> ecology</span></a></span> <span class="version">v1.45</span></div>
   <a class="bmc-btn" href="https://buymeacoffee.com/rutherfordecology" target="_blank" rel="noopener"><span data-icon="coffee" data-icon-size="15"></span> Buy me a coffee</a>
   <div id="filter-wrap">
     <input id="filter-input" type="search" placeholder="Filter species…" autocomplete="off">
@@ -484,8 +490,10 @@
   </div>
   <textarea id="species-input" placeholder="Place your species list or text here… or drag &amp; drop a CSV, TXT, PDF, Word (.docx), or Excel (.xlsx) file"></textarea>
   <div class="load-row">
-    <button id="extract-btn" title="Clean messy pasted text down to just a scientific-name list, before any photo lookup">Extract species list</button>
-    <button id="load-btn">Load species</button>
+    <div class="load-row-buttons">
+      <button id="extract-btn" title="Clean messy pasted text down to just a scientific-name list, before any photo lookup">Extract species list</button>
+      <button id="load-btn">Load species photos</button>
+    </div>
     <span class="hint">One name per line, or paste/drop any block of text — click "Extract species list" to clean it up first</span>
   </div>
 </div>
