@@ -428,16 +428,21 @@
   @media (max-width: 600px) {
     :root { --card-w: 160px; }
     .photos-row { height: 120px; }
-    header { padding: 10px 12px; gap: 8px; flex-wrap: nowrap; overflow: hidden; }
-    .header-meta { min-width: 0; }
+    /* Let the header stack into rows instead of cramming every control into one
+       non-wrapping line (which overflowed and overlapped on narrow screens). */
+    header { padding: 10px 12px; gap: 8px 10px; flex-wrap: wrap; }
+    .header-meta { min-width: 0; flex: 1 1 auto; }
     .re-link, .re-by, .re-name { display: none; }
     .bmc-btn { display: none; }
+    /* Filter + sort take their own full-width row; the input flexes to fill it. */
+    #filter-wrap.visible { flex: 1 1 100%; }
+    #filter-input { flex: 1 1 auto; width: auto; min-width: 0; }
+    .sort-btn { padding: 5px 9px; font-size: 0.72rem; flex-shrink: 0; }
+    /* Edit + Quiz share the next row. */
+    #back-btn, #whatdat-btn { padding: 5px 10px; font-size: 0.78rem; }
     #gallery { padding: 14px; }
     #species-grid { gap: 12px; }
     .landing-hero img { height: 90px; }
-    #filter-input { width: 110px; min-width: 0; }
-    .sort-btn { padding: 5px 7px; font-size: 0.72rem; }
-    #back-btn { padding: 5px 10px; font-size: 0.78rem; }
   }
 </style>
 </head>
@@ -445,7 +450,7 @@
 
 <header>
   <div class="logo"><img src="Logo-long.png" alt="LookLike?"></div>
-  <div class="header-meta" id="header-meta"><span id="header-label">Visual species photo browser · <a href="https://www.rutherfordecology.co.nz/" target="_blank" rel="noopener" class="re-link"><span class="re-by">by </span><span class="re-name">Rutherford</span><span class="re-by"> ecology</span></a></span> <span class="version">v1.37</span></div>
+  <div class="header-meta" id="header-meta"><span id="header-label">Visual species photo browser · <a href="https://www.rutherfordecology.co.nz/" target="_blank" rel="noopener" class="re-link"><span class="re-by">by </span><span class="re-name">Rutherford</span><span class="re-by"> ecology</span></a></span> <span class="version">v1.38</span></div>
   <a class="bmc-btn" href="https://buymeacoffee.com/rutherfordecology" target="_blank" rel="noopener"><span data-icon="coffee" data-icon-size="15"></span> Buy me a coffee</a>
   <div id="filter-wrap">
     <input id="filter-input" type="search" placeholder="Filter species…" autocomplete="off">
