@@ -450,13 +450,13 @@
 
 <header>
   <div class="logo"><img src="Logo-long.png" alt="LookLike?"></div>
-  <div class="header-meta" id="header-meta"><span id="header-label">Visual species photo browser · <a href="https://www.rutherfordecology.co.nz/" target="_blank" rel="noopener" class="re-link"><span class="re-by">by </span><span class="re-name">Rutherford</span><span class="re-by"> ecology</span></a></span> <span class="version">v1.39</span></div>
+  <div class="header-meta" id="header-meta"><span id="header-label">Visual species photo browser · <a href="https://www.rutherfordecology.co.nz/" target="_blank" rel="noopener" class="re-link"><span class="re-by">by </span><span class="re-name">Rutherford</span><span class="re-by"> ecology</span></a></span> <span class="version">v1.40</span></div>
   <a class="bmc-btn" href="https://buymeacoffee.com/rutherfordecology" target="_blank" rel="noopener"><span data-icon="coffee" data-icon-size="15"></span> Buy me a coffee</a>
   <div id="filter-wrap">
     <input id="filter-input" type="search" placeholder="Filter species…" autocomplete="off">
     <button class="sort-btn active" id="sort-az" title="Sort A–Z">A–Z</button>
     <button class="sort-btn" id="sort-tax" title="Taxonomic order">Taxonomic</button>
-    <button class="sort-btn" id="hide-nophoto-btn" title="Hide entries with no photo found">Hide no-photo</button>
+    <button class="sort-btn" id="hide-nophoto-btn" title="Hide non-species entries and species with no photo found">Hide non-species &amp; no-photo</button>
   </div>
   <button id="back-btn">← Edit list</button>
   <button id="whatdat-btn" onclick="openInWhatDat()" style="display:none" title="Quiz these species in WhatDat?"><span data-icon="target" data-icon-size="14" style="vertical-align:-2px"></span> Quiz</button>
@@ -570,7 +570,7 @@ function applyVisibility() {
     if (!card.el) continue;
     const text = (card.name + ' ' + (card.commonName || '')).toLowerCase();
     const matchesQuery = text.includes(q);
-    const hiddenByNoPhoto = hideNoPhoto && !card.matched;
+    const hiddenByNoPhoto = hideNoPhoto && (!card.isSpecies || !card.matched);
     card.el.style.display = (matchesQuery && !hiddenByNoPhoto) ? '' : 'none';
   }
 }
@@ -647,9 +647,31 @@ function _pumpCardLoadQueue() {
   }
 }
 
+// ─── Species-name shape check ─────────────────────────────────────
+// Pasted lists often carry stray header/note rows (e.g. "genus not on list",
+// "this species isn't a match") that have no real Latin binomial at all.
+// Sending those to iNat/GBIF wastes calls and occasionally free-text-matches
+// an unrelated taxon, so screen them out before a card ever loads.
+const NON_GENUS_WORDS = new Set([
+  'the', 'this', 'that', 'these', 'those', 'not', 'no', 'genus', 'species',
+  'probable', 'possible', 'likely', 'list', 'note', 'notes', 'common',
+  'name', 'names', 'unknown', 'unidentified', 'unmatched', 'see', 'check',
+  'tbc', 'tbd', 'na',
+]);
+function looksLikeBinomial(name) {
+  const [genus, epithet] = name.trim().split(/\s+/);
+  if (!genus || !epithet) return false;
+  if (!/^[A-Z][a-z]+$/.test(genus) || !/^[a-z]+$/.test(epithet)) return false;
+  if (NON_GENUS_WORDS.has(genus.toLowerCase()) || NON_GENUS_WORDS.has(epithet.toLowerCase())) return false;
+  return true;
+}
+
 // ─── Grid builder ────────────────────────────────────────────────
 function buildGrid(names) {
-  headerLabel.textContent = `${names.length} species`;
+  const skippedCount = names.filter(n => !looksLikeBinomial(n)).length;
+  headerLabel.textContent = skippedCount
+    ? `${names.length} entries · ${skippedCount} skipped (not species names)`
+    : `${names.length} species`;
 
   // Show explainer only when there are handoff records (dual-photo mode)
   const hasHandoff = state.handoff && Object.keys(state.handoff).length > 0;
@@ -666,10 +688,17 @@ function buildGrid(names) {
   }, { rootMargin: '200px' });
 
   names.forEach((name, idx) => {
+    const isSpecies = looksLikeBinomial(name);
     const card = createCardSkeleton(name, idx);
-    state.cards.push({ name, el: card, commonName: '', inatPhoto: null, gbifPhotos: [], gbifIdx: 0, origIdx: idx, matched: false });
+    state.cards.push({ name, el: card, commonName: '', inatPhoto: null, gbifPhotos: [], gbifIdx: 0, origIdx: idx, matched: false, isSpecies });
     grid.appendChild(card);
-    observer.observe(card);
+    if (isSpecies) {
+      observer.observe(card);
+    } else {
+      card.querySelector('.photos-row').classList.add('single-photo');
+      renderNoPhoto(card.querySelector('[data-slot="inat"]'));
+      card.querySelector('.common-name').textContent = 'Not a species name';
+    }
   });
 }
 
