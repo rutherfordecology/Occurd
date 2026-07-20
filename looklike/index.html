@@ -470,7 +470,7 @@
 
 <header>
   <div class="logo"><img src="Logo-long.png" alt="LookLike?"></div>
-  <div class="header-meta" id="header-meta"><span id="header-label">Visual species photo browser · <a href="https://www.rutherfordecology.co.nz/" target="_blank" rel="noopener" class="re-link"><span class="re-by">by </span><span class="re-name">Rutherford</span><span class="re-by"> ecology</span></a></span> <span class="version">v1.45</span></div>
+  <div class="header-meta" id="header-meta"><span id="header-label">Visual species photo browser · <a href="https://www.rutherfordecology.co.nz/" target="_blank" rel="noopener" class="re-link"><span class="re-by">by </span><span class="re-name">Rutherford</span><span class="re-by"> ecology</span></a></span> <span class="version">v1.46</span></div>
   <a class="bmc-btn" href="https://buymeacoffee.com/rutherfordecology" target="_blank" rel="noopener"><span data-icon="coffee" data-icon-size="15"></span> Buy me a coffee</a>
   <div id="filter-wrap">
     <input id="filter-input" type="search" placeholder="Filter species…" autocomplete="off">
@@ -579,16 +579,60 @@ function cleanToSpeciesList(raw) {
   return found;
 }
 
+// Plain prose is full of "Capitalised-word lowercase-word" pairs that aren't
+// binomials at all ("They swim", "Please report", "New Zealand" → "Zealand
+// provides") — punctuation cues like brackets aren't reliable enough to filter
+// these out. Instead, treat the regex hits as candidates only, and confirm each
+// one against GBIF's backbone taxonomy (species/match) before keeping it — this
+// is the same check GBIF itself uses to resolve a name, so it's authoritative
+// rather than another heuristic guess.
+async function gbifConfirmsSpecies(name) {
+  try {
+    const res = await fetch(`https://api.gbif.org/v1/species/match?name=${encodeURIComponent(name)}&strict=true`);
+    if (!res.ok) return false;
+    const data = await res.json();
+    return (data.matchType === 'EXACT' || data.matchType === 'FUZZY') && data.rank === 'SPECIES';
+  } catch (e) {
+    return false;
+  }
+}
+
+async function validateAgainstGbif(candidates, onProgress) {
+  const CONCURRENCY = 5;
+  const keep = new Array(candidates.length).fill(false);
+  let next = 0, done = 0;
+  async function worker() {
+    while (next < candidates.length) {
+      const i = next++;
+      keep[i] = await gbifConfirmsSpecies(candidates[i]);
+      done++;
+      if (onProgress) onProgress(done, candidates.length);
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(CONCURRENCY, candidates.length) }, worker));
+  return candidates.filter((_, i) => keep[i]);
+}
+
 const hintEl = document.querySelector('.load-row .hint');
 const defaultHint = hintEl.textContent;
-function runExtractSpecies() {
+async function runExtractSpecies() {
   const raw = input.value.trim();
   if (!raw) return;
-  const species = cleanToSpeciesList(raw);
+  const candidates = cleanToSpeciesList(raw);
+  if (!candidates.length) {
+    hintEl.textContent = 'No scientific names found in that text';
+    return;
+  }
+  extractBtn.disabled = true;
+  hintEl.textContent = `Checking ${candidates.length} candidate name${candidates.length === 1 ? '' : 's'} against GBIF…`;
+  const species = await validateAgainstGbif(candidates, (done, total) => {
+    hintEl.textContent = `Checking against GBIF… ${done}/${total}`;
+  });
   input.value = species.join('\n');
   hintEl.textContent = species.length
-    ? `Found ${species.length} species — review the list, then click "Load species"`
-    : 'No scientific names found in that text';
+    ? `Confirmed ${species.length} species — review the list, then click "Load species photos"`
+    : 'No valid species names confirmed in that text';
+  extractBtn.disabled = false;
 }
 
 extractBtn.addEventListener('click', runExtractSpecies);
