@@ -143,7 +143,7 @@
     max-width: 560px;
     height: 220px;
     background: var(--surface);
-    border: 1px solid var(--border);
+    border: 2px dashed var(--border);
     border-radius: var(--radius);
     color: var(--text);
     padding: 14px 16px;
@@ -151,9 +151,12 @@
     font-family: "Courier New", monospace;
     resize: vertical;
     line-height: 1.6;
+    transition: border-color 0.15s, background 0.15s;
   }
-  #species-input:focus { outline: none; border-color: var(--accent); }
+  #species-input:focus { outline: none; border-color: var(--accent); border-style: solid; }
   #species-input::placeholder { color: var(--text-muted); }
+  #species-input.drag-over { border-color: var(--accent); background: var(--surface2); border-style: solid; }
+  #species-input.file-loading { color: var(--text-muted); font-style: italic; }
   .load-row {
     display: flex;
     gap: 10px;
@@ -450,7 +453,7 @@
 
 <header>
   <div class="logo"><img src="Logo-long.png" alt="LookLike?"></div>
-  <div class="header-meta" id="header-meta"><span id="header-label">Visual species photo browser · <a href="https://www.rutherfordecology.co.nz/" target="_blank" rel="noopener" class="re-link"><span class="re-by">by </span><span class="re-name">Rutherford</span><span class="re-by"> ecology</span></a></span> <span class="version">v1.40</span></div>
+  <div class="header-meta" id="header-meta"><span id="header-label">Visual species photo browser · <a href="https://www.rutherfordecology.co.nz/" target="_blank" rel="noopener" class="re-link"><span class="re-by">by </span><span class="re-name">Rutherford</span><span class="re-by"> ecology</span></a></span> <span class="version">v1.43</span></div>
   <a class="bmc-btn" href="https://buymeacoffee.com/rutherfordecology" target="_blank" rel="noopener"><span data-icon="coffee" data-icon-size="15"></span> Buy me a coffee</a>
   <div id="filter-wrap">
     <input id="filter-input" type="search" placeholder="Filter species…" autocomplete="off">
@@ -468,10 +471,10 @@
     <img src="Logo-updown.png" alt="LookLike?">
     <p>Paste a list of scientific names — get an instant photo field guide.</p>
   </div>
-  <textarea id="species-input" placeholder="Acanthurus triostegus&#10;Chaetodon auriga&#10;Chromis viridis&#10;Epinephelus merra&#10;Zanclus cornutus"></textarea>
+  <textarea id="species-input" placeholder="Place your species list or text here… or drag &amp; drop a CSV, TXT, PDF, Word (.docx), or Excel (.xlsx) file"></textarea>
   <div class="load-row">
     <button id="load-btn">Load species</button>
-    <span class="hint">One name per line · scientific names</span>
+    <span class="hint">One name per line, or paste/drop any block of text — scientific names are extracted automatically</span>
   </div>
 </div>
 
@@ -542,15 +545,139 @@ loadBtn.addEventListener('click', () => {
   if (!raw) return;
   const names = raw.split(/[\n,]/).map(s => s.trim()).filter(Boolean);
   if (!names.length) return;
-  state.names = names;
   state.cards = [];
   grid.innerHTML = '';
   filterInput.value = '';
   buildGrid(names);
+  state.names = state.cards.filter(c => c.isSpecies).map(c => c.binomial);
   showGallery();
 });
 
 backBtn.addEventListener('click', showLanding);
+
+// ─── Drag & drop / file upload ─────────────────────────────────────
+// Same file-reading approach as but-is-it-threatened (../but-is-it-threatened/index.html)
+// — dropped files are read into raw text and land directly in the textarea (which
+// doubles as the drop target), then go through the normal load flow (including
+// extractBinomial's non-species filtering).
+input.addEventListener('dragover', e => { e.preventDefault(); input.classList.add('drag-over'); });
+input.addEventListener('dragleave', () => input.classList.remove('drag-over'));
+input.addEventListener('drop', e => {
+  e.preventDefault(); input.classList.remove('drag-over');
+  if (e.dataTransfer.files[0]) loadFile(e.dataTransfer.files[0]);
+});
+
+const defaultPlaceholder = input.placeholder;
+function setLoadingStatus(msg) {
+  if (msg) input.value = '';
+  input.placeholder = msg || defaultPlaceholder;
+  input.classList.toggle('file-loading', !!msg);
+  input.disabled = !!msg;
+}
+
+async function loadFile(file) {
+  const lname = file.name.toLowerCase();
+  if (lname.endsWith('.docx') || file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+    setLoadingStatus('Reading Word document…');
+    try {
+      const JSZip = await loadJSZip();
+      const zip = await JSZip.loadAsync(await file.arrayBuffer());
+      const xmlFile = zip.files['word/document.xml'];
+      if (!xmlFile) throw new Error('No document.xml found inside .docx');
+      const xml = await xmlFile.async('string');
+      const doc = new DOMParser().parseFromString(xml, 'text/xml');
+      const texts = [...doc.querySelectorAll('t')].map(el => el.textContent).join(' ');
+      input.value = texts;
+    } catch(e) {
+      alert('Could not read .docx: ' + e.message);
+    }
+    setLoadingStatus('');
+    return;
+  }
+  if (lname.endsWith('.doc')) {
+    alert('.doc (old Word format) cannot be read in the browser. Please save as .docx, PDF, or plain text and try again.');
+    return;
+  }
+  if (lname.endsWith('.xlsx') || file.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') {
+    setLoadingStatus('Reading Excel file…');
+    try {
+      const JSZip = await loadJSZip();
+      const zip = await JSZip.loadAsync(await file.arrayBuffer());
+      // Extract shared strings (cell text values are stored here)
+      const ssFile = zip.files['xl/sharedStrings.xml'];
+      let texts = '';
+      if (ssFile) {
+        const xml = await ssFile.async('string');
+        const doc = new DOMParser().parseFromString(xml, 'text/xml');
+        texts = [...doc.querySelectorAll('t')].map(el => el.textContent).join(' ');
+      }
+      // Also pull inline strings from sheet1 in case sharedStrings is absent
+      const sheetFile = zip.files['xl/worksheets/sheet1.xml'];
+      if (sheetFile) {
+        const xml = await sheetFile.async('string');
+        const doc = new DOMParser().parseFromString(xml, 'text/xml');
+        const inline = [...doc.querySelectorAll('is t')].map(el => el.textContent).join(' ');
+        if (inline) texts = texts ? texts + ' ' + inline : inline;
+      }
+      if (!texts) throw new Error('No text content found in spreadsheet.');
+      input.value = texts;
+    } catch(e) {
+      alert('Could not read .xlsx: ' + e.message);
+    }
+    setLoadingStatus('');
+    return;
+  }
+  if (lname.endsWith('.xls')) {
+    alert('.xls (old Excel format) cannot be read in the browser. Please save as .xlsx or CSV and try again.');
+    return;
+  }
+  if (file.type === 'application/pdf' || lname.endsWith('.pdf')) {
+    setLoadingStatus('Reading PDF…');
+    try {
+      const pdfjsLib = await loadPdfJs();
+      const arrayBuffer = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      const pages = [];
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const content = await page.getTextContent();
+        pages.push(content.items.map(item => item.str).join(' '));
+      }
+      input.value = pages.join('\n');
+    } catch(e) {
+      alert('Could not read PDF: ' + e.message);
+    }
+    setLoadingStatus('');
+  } else {
+    const reader = new FileReader();
+    reader.onload = e => { input.value = e.target.result; };
+    reader.readAsText(file);
+  }
+}
+
+let _jsZip = null;
+async function loadJSZip() {
+  if (_jsZip) return _jsZip;
+  if (window.JSZip) { _jsZip = window.JSZip; return _jsZip; }
+  await new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = 'https://unpkg.com/jszip@3.10.1/dist/jszip.min.js';
+    s.onload = resolve; s.onerror = reject;
+    document.head.appendChild(s);
+  });
+  _jsZip = window.JSZip;
+  return _jsZip;
+}
+
+let _pdfJs = null;
+async function loadPdfJs() {
+  if (_pdfJs) return _pdfJs;
+  const mod = await import('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.min.mjs');
+  mod.GlobalWorkerOptions.workerSrc =
+    'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.worker.min.mjs';
+  _pdfJs = mod;
+  return mod;
+}
 
 function openInWhatDat() {
   const names = state?.names || [];
@@ -658,20 +785,48 @@ const NON_GENUS_WORDS = new Set([
   'name', 'names', 'unknown', 'unidentified', 'unmatched', 'see', 'check',
   'tbc', 'tbd', 'na',
 ]);
-function looksLikeBinomial(name) {
-  const [genus, epithet] = name.trim().split(/\s+/);
-  if (!genus || !epithet) return false;
-  if (!/^[A-Z][a-z]+$/.test(genus) || !/^[a-z]+$/.test(epithet)) return false;
-  if (NON_GENUS_WORDS.has(genus.toLowerCase()) || NON_GENUS_WORDS.has(epithet.toLowerCase())) return false;
-  return true;
+// Scans the whole line rather than assuming the binomial comes first — pasted
+// lists sometimes lead with the common name instead ("Whitespotted Surgeonfish
+// Acanthurus guttatus1"), and footnote markers often leave a stray digit glued
+// to the epithet with no space, so that's tolerated and stripped here too.
+// Word-length/hyphen rule matches but-is-it-threatened's extractBinomialsFromText
+// (../but-is-it-threatened/index.html) — proven against real pasted species lists;
+// the NON_GENUS_WORDS check is added on top since that regex alone still lets
+// through short capitalised-word phrases like "Probable synonym".
+function extractAllBinomials(text) {
+  const re = /\b([A-Z][a-z]{2,})\s+([a-z][a-z\-]{2,})\d*\b/g;
+  const results = [];
+  let m;
+  while ((m = re.exec(text))) {
+    const [, genus, epithet] = m;
+    if (NON_GENUS_WORDS.has(genus.toLowerCase()) || NON_GENUS_WORDS.has(epithet.toLowerCase())) continue;
+    results.push(`${genus} ${epithet}`);
+  }
+  return results;
+}
+function extractBinomial(name) {
+  return extractAllBinomials(name)[0] || null;
 }
 
 // ─── Grid builder ────────────────────────────────────────────────
 function buildGrid(names) {
-  const skippedCount = names.filter(n => !looksLikeBinomial(n)).length;
+  // File uploads (docx/pdf) often collapse a whole species list into one line with
+  // no newlines between entries — split those out into one card per binomial found,
+  // rather than losing everything after the first match.
+  const entries = [];
+  for (const name of names) {
+    const binomials = extractAllBinomials(name);
+    if (binomials.length > 1) {
+      for (const b of binomials) entries.push({ name: b, binomial: b, isSpecies: true });
+    } else {
+      entries.push({ name, binomial: binomials[0] || null, isSpecies: !!binomials[0] });
+    }
+  }
+
+  const skippedCount = entries.filter(e => !e.isSpecies).length;
   headerLabel.textContent = skippedCount
-    ? `${names.length} entries · ${skippedCount} skipped (not species names)`
-    : `${names.length} species`;
+    ? `${entries.length} entries · ${skippedCount} skipped (not species names)`
+    : `${entries.length} species`;
 
   // Show explainer only when there are handoff records (dual-photo mode)
   const hasHandoff = state.handoff && Object.keys(state.handoff).length > 0;
@@ -687,10 +842,9 @@ function buildGrid(names) {
     }
   }, { rootMargin: '200px' });
 
-  names.forEach((name, idx) => {
-    const isSpecies = looksLikeBinomial(name);
+  entries.forEach(({ name, binomial, isSpecies }, idx) => {
     const card = createCardSkeleton(name, idx);
-    state.cards.push({ name, el: card, commonName: '', inatPhoto: null, gbifPhotos: [], gbifIdx: 0, origIdx: idx, matched: false, isSpecies });
+    state.cards.push({ name, binomial, el: card, commonName: '', inatPhoto: null, gbifPhotos: [], gbifIdx: 0, origIdx: idx, matched: false, isSpecies });
     grid.appendChild(card);
     if (isSpecies) {
       observer.observe(card);
@@ -752,9 +906,9 @@ async function loadCard(idx) {
   // can't match on the first try, fetchINat already makes up to 3 sequential API calls,
   // so waiting until afterward to even start the fallback request roughly doubled load time.
   const [inatRes, gbifRes, gbifFallbackRes] = await Promise.allSettled([
-    fetchINat(card.name),
+    fetchINat(card.binomial),
     gbifPromise,
-    fetchGBIF(card.name),
+    fetchGBIF(card.binomial),
   ]);
   const gbifFallback = gbifFallbackRes.status === 'fulfilled' ? gbifFallbackRes.value : [];
 
