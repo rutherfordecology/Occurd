@@ -49,7 +49,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v7.08b</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v7.11b</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -1249,16 +1249,16 @@ map.on(L.Draw.Event.CREATED, e => {
       try {
         const _drawnEntry = polygons.find(p => p.id === id);
         if (_drawnEntry) {
-          const _drawnTurf = turf.polygon([closeRingCoords(_drawnEntry.latlngs.map(llToGeoJSONNorm))]);
+          const { poly: _drawnTurf, refLng: _drawnRefLng } = llToTurfPolygon(_drawnEntry.latlngs, _drawnEntry.holes);
           window._qeiiState.features.forEach(f => {
             if (!f.geometry) return;
             try {
               const _intersects = (function(geom) {
                 if (geom.type === 'Polygon') {
-                  return turf.booleanIntersects(_drawnTurf, turf.polygon(geom.coordinates));
+                  return turf.booleanIntersects(_drawnTurf, geoJsonPolyToTurfInFrame(geom.coordinates, _drawnRefLng));
                 } else if (geom.type === 'MultiPolygon') {
                   return geom.coordinates.some(poly => {
-                    try { return turf.booleanIntersects(_drawnTurf, turf.polygon(poly)); } catch(e) { return false; }
+                    try { return turf.booleanIntersects(_drawnTurf, geoJsonPolyToTurfInFrame(poly, _drawnRefLng)); } catch(e) { return false; }
                   });
                 }
                 return false;
@@ -2508,35 +2508,39 @@ const browseSelAllBtn= document.getElementById('browseSelAllBtn');
 function autoSelectFromDrawn() {
   if (!polygons.length) return 0;
 
-  // Pre-compute drawn polygon turf objects and their bboxes
-  const drawnTurf = [], drawnBboxes = [];
+  // Pre-compute drawn polygon turf objects and their bboxes. Each carries its own
+  // unwrapped frame (refLng) — a KMZ polygon must be aligned into that frame before
+  // being compared, or dateline-crossing areas match nothing.
+  const drawn = [];
   polygons.forEach(dp => {
     try {
-      const coords = closeRingCoords(dp.latlngs.map(llToGeoJSONNorm));
-      const tp = turf.polygon([coords]);
-      drawnTurf.push(tp);
-      drawnBboxes.push(turf.bbox(tp)); // [minLng, minLat, maxLng, maxLat]
+      const { poly, refLng } = llToTurfPolygon(dp.latlngs, dp.holes);
+      drawn.push({ poly, refLng, bbox: turf.bbox(poly) }); // [minLng, minLat, maxLng, maxLat]
     } catch(e) {}
   });
-  if (!drawnTurf.length) return 0;
+  if (!drawn.length) return 0;
 
   let count = 0;
   browsePolygons.forEach((bp, i) => {
     try {
-      // Quick bbox pre-filter — latlngs are [lat, lng] arrays
-      const lats = bp.latlngs.map(ll => ll[0]);
-      const lngs = bp.latlngs.map(ll => ll[1]);
-      const bb = [Math.min(...lngs), Math.min(...lats), Math.max(...lngs), Math.max(...lats)];
-      const candidates = drawnTurf.filter((_, j) => {
-        const db = drawnBboxes[j];
-        return bb[2] >= db[0] && bb[0] <= db[2] && bb[3] >= db[1] && bb[1] <= db[3];
+      // latlngs are [lat, lng] arrays — unwrap once, then align per drawn polygon
+      const bpUnwrapped = unwrappedRingCoords(bp.latlngs);
+      // Quick bbox pre-filter, evaluated in each drawn polygon's own frame
+      const candidates = [];
+      drawn.forEach(d => {
+        const aligned = alignRingToFrame(bpUnwrapped, d.refLng);
+        const lngs = aligned.map(c => c[0]), lats = aligned.map(c => c[1]);
+        const bb = [Math.min(...lngs), Math.min(...lats), Math.max(...lngs), Math.max(...lats)];
+        const db = d.bbox;
+        if (bb[2] >= db[0] && bb[0] <= db[2] && bb[3] >= db[1] && bb[1] <= db[3]) {
+          candidates.push({ d, aligned });
+        }
       });
       if (!candidates.length) return;
 
       // Full intersection only for bbox candidates
-      const coords = closeRingCoords(bp.latlngs.map(llToGeoJSON));
-      const tp = turf.polygon([coords]);
-      const hits = candidates.some(dt => turf.booleanIntersects(tp, dt));
+      const hits = candidates.some(({ d, aligned }) =>
+        turf.booleanIntersects(turf.polygon([closeRingCoords(aligned)]), d.poly));
       const wasSelected = bp.selected;
       bp.selected = hits;
       if (hits !== wasSelected && bp.layer) {
@@ -2707,17 +2711,97 @@ function llToGeoJSON(ll) {
   // Convert either [lat,lng] array or {lat,lng} object → GeoJSON [lng,lat]
   return ll.lat !== undefined ? [ll.lng, ll.lat] : [ll[1], ll[0]];
 }
-// Same, but normalises lng to [-180,180]. Leaflet's continuous coordinate system
-// extends past ±180° when the map is panned (e.g. a Samoa/Tonga/Fiji polygon drawn
-// on a Pacific-centred view can store lng as ~188° instead of ~-172°), but GBIF/iNat
-// coordinates are always in standard range — use this wherever raw latlngs are
-// compared against external API data (spatial clips, bounding boxes), or every
-// point silently fails the comparison despite the underlying fetch succeeding.
-function llToGeoJSONNorm(ll) {
-  const [lng, lat] = llToGeoJSON(ll);
+// ── Antimeridian-safe geometry ───────────────────────────────────────────────
+// Everything that compares drawn coordinates against API coordinates (spatial
+// clips, bounding boxes, intersection tests) MUST go through the helpers below.
+// Do not wrap longitudes per-vertex into [-180,180] before building a shape: that
+// is correct only when the whole polygon sits past ±180° (Leaflet's continuous
+// coordinates on a panned Pacific view store lng as ~188° instead of ~-172°), and
+// wrong when the ring genuinely straddles 180° — 176 followed by -178 becomes a
+// 352° jump, so turf reads the shape as spanning the globe the long way and every
+// real record inside the drawn area tests as outside it. Both cases are handled
+// here by unwrapping relative to the previous vertex instead.
+//
+// Ring coords unwrapped so consecutive vertices never jump >180° — same approach
+// as the buildCoords helper in latlngsToWKT.
+function unwrapLngLatRing(pairs) {
+  const out = [];
+  let prevLng = null;
+  for (const [rawLng, lat] of pairs) {
+    let lng = ((rawLng % 360) + 360) % 360;
+    if (lng > 180) lng -= 360;
+    if (prevLng !== null) {
+      while (lng - prevLng >  180) lng -= 360;
+      while (lng - prevLng < -180) lng += 360;
+    }
+    prevLng = lng;
+    out.push([lng, lat]);
+  }
+  return out;
+}
+// Same, from Leaflet-style vertices ({lat,lng} objects or [lat,lng] arrays).
+function unwrappedRingCoords(latlngs) {
+  return unwrapLngLatRing(latlngs.map(llToGeoJSON));
+}
+// Wrap a single longitude into [-180,180].
+function wrapLng180(lng) {
   let n = ((lng % 360) + 360) % 360;
-  if (n > 180) n -= 360;
-  return [n, lat];
+  return n > 180 ? n - 360 : n;
+}
+// Translate an already-unwrapped ring by whole turns of 360° so it shares a frame
+// with refLng. Uniform translation, so the ring stays contiguous — use this (not
+// per-vertex wrapping) to compare two shapes that were unwrapped independently.
+function alignRingToFrame(coords, refLng) {
+  let shift = 0;
+  const first = coords[0][0];
+  while (first + shift - refLng >  180) shift -= 360;
+  while (first + shift - refLng < -180) shift += 360;
+  return shift === 0 ? coords : coords.map(([lng, lat]) => [lng + shift, lat]);
+}
+// Bounding box of a drawn shape, in both frames.
+//   minLng/maxLng — unwrapped (maxLng may exceed 180): use for sampling and turf.
+//   swlng/nelng   — wrapped to [-180,180]: use for the iNaturalist bbox query.
+// iNat reads swlng > nelng as a dateline crossing and handles it correctly, but
+// silently clamps any longitude above 180 — so a crossing box must be expressed
+// with wrapped values, in that "inverted" order. Note Math.min/max over
+// independently wrapped longitudes yields the exact inverse of this (the whole
+// globe except the drawn area), which is the bug this replaces.
+function ringBounds(latlngs) {
+  const coords = unwrappedRingCoords(latlngs);
+  const lngs = coords.map(c => c[0]), lats = coords.map(c => c[1]);
+  const minLng = Math.min(...lngs), maxLng = Math.max(...lngs);
+  return {
+    swlat: Math.min(...lats), nelat: Math.max(...lats),
+    minLng, maxLng,
+    swlng: wrapLng180(minLng), nelng: wrapLng180(maxLng),
+  };
+}
+// Build a turf Polygon from lat/lng vertices (+ optional holes) that's safe to test
+// with turf.booleanPointInPolygon/booleanIntersects even when the ring crosses the
+// antimeridian. Query points must be run through llLngForRing() below first so they
+// land in the same unwrapped frame as this polygon.
+function llToTurfPolygon(latlngs, holes) {
+  const outer = closeRingCoords(unwrappedRingCoords(latlngs));
+  const refLng = outer[0][0];
+  const rings = [outer];
+  (holes || []).forEach(h => {
+    if (h && h.length >= 3) rings.push(closeRingCoords(alignRingToFrame(unwrappedRingCoords(h), refLng)));
+  });
+  return { poly: turf.polygon(rings), refLng };
+}
+// Build a turf Polygon from GeoJSON Polygon coordinates ([outerRing, …holes], each
+// [[lng,lat],…]) in the same unwrapped frame as an existing llToTurfPolygon() result,
+// so the two can be intersected.
+function geoJsonPolyToTurfInFrame(coordinates, refLng) {
+  return turf.polygon(coordinates.map(ring =>
+    closeRingCoords(alignRingToFrame(unwrapLngLatRing(ring), refLng))));
+}
+// Shift a raw GeoJSON [lng,lat] query point's longitude to within 180° of a ring's
+// reference longitude, so it lands in the same unwrapped frame as llToTurfPolygon().
+function llLngForRing([lng, lat], refLng) {
+  while (lng - refLng >  180) lng -= 360;
+  while (lng - refLng < -180) lng += 360;
+  return [lng, lat];
 }
 function closeRingCoords(coords) {
   if (coords[0][0] !== coords[coords.length-1][0] || coords[0][1] !== coords[coords.length-1][1])
@@ -2757,7 +2841,7 @@ browseAddBtn.addEventListener('click', () => {
   if (doIntersect) {
     // Store drawn polygon(s) as turf clip shapes for post-fetch filtering
     clipTurfPolygons = drawnSnapshot.map(dp => {
-      try { return turf.polygon([closeRingCoords(dp.latlngs.map(llToGeoJSONNorm))]); }
+      try { return llToTurfPolygon(dp.latlngs, dp.holes); }
       catch(e) { return null; }
     }).filter(Boolean);
 
@@ -5787,16 +5871,17 @@ runBtn.addEventListener('click', async () => {
     const _obscuredOnly = !!(document.getElementById('obscured-' + geomPoly.id) || {checked: geomPoly.obscuredOnly}).checked;
     if (_obscuredOnly) {
       setStatus('Fetching iNat obscured records' + polyLabel + '…', 'info');
-      const lls  = geomPoly.latlngs;
-      const _lats = lls.map(ll => ll.lat !== undefined ? ll.lat : ll[0]);
-      // Normalised (not raw llToGeoJSON) — iNat's bounding-box search expects standard
-      // [-180,180] longitude, but Leaflet stores lng unwrapped past ±180° when the
-      // polygon was drawn on a panned Pacific view (see llToGeoJSONNorm above).
-      const _lngs = lls.map(ll => llToGeoJSONNorm(ll)[0]);
-      const _swlat = Math.min(..._lats), _nelat = Math.max(..._lats);
-      const _swlng = Math.min(..._lngs), _nelng = Math.max(..._lngs);
-      let _turfClip = null;
-      try { _turfClip = turf.polygon([closeRingCoords(geomPoly.latlngs.map(llToGeoJSONNorm))]); } catch(e) {}
+      // ringBounds gives both frames: swlng/nelng wrapped for iNat's bbox query
+      // (which reads sw > ne as a dateline crossing), minLng/maxLng unwrapped for
+      // the scatter sampling and turf test below.
+      const _b = ringBounds(geomPoly.latlngs);
+      const _swlat = _b.swlat, _nelat = _b.nelat;
+      const _swlng = _b.swlng, _nelng = _b.nelng;
+      let _turfClip = null, _clipRefLng = 0;
+      try {
+        const _tc = llToTurfPolygon(geomPoly.latlngs, geomPoly.holes);
+        _turfClip = _tc.poly; _clipRefLng = _tc.refLng;
+      } catch(e) {}
       const _seenObsIds = new Set();
 
       // Map selected Occurd taxon checkboxes → iNat iconic_taxa values
@@ -5845,16 +5930,23 @@ runBtn.addEventListener('click', async () => {
             if (isNaN(_lat) || isNaN(_lng)) continue;
             // Scatter within the polygon shape. Rejection-sample random points in the bbox
             // until one falls inside the polygon (max 20 tries, then use bbox centre).
-            let _jLat = (_swlat + _nelat) / 2, _jLng = (_swlng + _nelng) / 2;
+            // Sample in the unwrapped frame (_b.minLng.._b.maxLng may exceed 180) so a
+            // dateline-crossing area scatters across the shape rather than the globe;
+            // wrap only the chosen point, since stored records use standard range.
+            let _jLat = (_swlat + _nelat) / 2, _jLng = wrapLng180((_b.minLng + _b.maxLng) / 2);
             if (_turfClip) {
               for (let _ji = 0; _ji < 20; _ji++) {
                 const _rLat = _swlat + Math.random() * (_nelat - _swlat);
-                const _rLng = _swlng + Math.random() * (_nelng - _swlng);
-                try { if (turf.booleanPointInPolygon(turf.point([_rLng, _rLat]), _turfClip)) { _jLat = _rLat; _jLng = _rLng; break; } } catch(e) {}
+                const _rLng = _b.minLng + Math.random() * (_b.maxLng - _b.minLng);
+                try {
+                  if (turf.booleanPointInPolygon(turf.point(llLngForRing([_rLng, _rLat], _clipRefLng)), _turfClip)) {
+                    _jLat = _rLat; _jLng = wrapLng180(_rLng); break;
+                  }
+                } catch(e) {}
               }
             } else {
               _jLat = _swlat + Math.random() * (_nelat - _swlat);
-              _jLng = _swlng + Math.random() * (_nelng - _swlng);
+              _jLng = wrapLng180(_b.minLng + Math.random() * (_b.maxLng - _b.minLng));
             }
             const _obsDate = obs.observed_on || '';
             const _yr = _obsDate ? parseInt(_obsDate.substring(0, 4)) : NaN;
@@ -6081,19 +6173,18 @@ runBtn.addEventListener('click', async () => {
   let _clipPolys = (clipTurfPolygons && clipTurfPolygons.length > 0) ? clipTurfPolygons : null;
   if (!_clipPolys) {
     _clipPolys = _geomPolys.map(gp => {
-      try {
-        const _rings = [closeRingCoords(gp.latlngs.map(llToGeoJSONNorm))];
-        (gp.holes || []).forEach(h => { if (h && h.length >= 3) _rings.push(closeRingCoords(h.map(llToGeoJSONNorm))); });
-        return turf.polygon(_rings);
-      } catch(e) { return null; }
+      try { return llToTurfPolygon(gp.latlngs, gp.holes); }
+      catch(e) { return null; }
     }).filter(Boolean);
   }
   if (_clipPolys.length > 0) {
     const before = allFetched.length;
     const clipped = allFetched.filter(r => {
       if (r.decimalLatitude == null || r.decimalLongitude == null) return false;
-      const pt = turf.point([r.decimalLongitude, r.decimalLatitude]);
-      return _clipPolys.some(cp => { try { return turf.booleanPointInPolygon(pt, cp); } catch(e) { return true; } });
+      return _clipPolys.some(cp => {
+        try { return turf.booleanPointInPolygon(turf.point(llLngForRing([r.decimalLongitude, r.decimalLatitude], cp.refLng)), cp.poly); }
+        catch(e) { return true; }
+      });
     });
     allFetched.length = 0; clipped.forEach(r => allFetched.push(r));
     const removed = before - allFetched.length;
@@ -6116,17 +6207,17 @@ runBtn.addEventListener('click', async () => {
     let _inatAdded = 0;
     for (const sp of _speciesEntries) {
       for (const gp of _geomPolys) {
-        const lls = gp.latlngs;
-        const _lats = lls.map(ll => ll.lat !== undefined ? ll.lat : ll[0]);
-        // Normalised — see llToGeoJSONNorm; iNat's bbox search needs standard [-180,180] lng.
-        const _lngs = lls.map(ll => llToGeoJSONNorm(ll)[0]);
-        const _swlat = Math.min(..._lats), _nelat = Math.max(..._lats);
-        const _swlng = Math.min(..._lngs), _nelng = Math.max(..._lngs);
+        // Wrapped bounds for iNat's bbox query — it reads sw > ne as a dateline
+        // crossing, but silently clamps longitudes above 180 (see ringBounds).
+        const _b = ringBounds(gp.latlngs);
+        const _swlat = _b.swlat, _nelat = _b.nelat;
+        const _swlng = _b.swlng, _nelng = _b.nelng;
 
         // Build turf polygon for client-side clip
-        let _turfClip = null;
+        let _turfClip = null, _clipRefLng = 0;
         try {
-          _turfClip = turf.polygon([closeRingCoords(gp.latlngs.map(llToGeoJSONNorm))]);
+          const _tc = llToTurfPolygon(gp.latlngs, gp.holes);
+          _turfClip = _tc.poly; _clipRefLng = _tc.refLng;
         } catch(e) {}
 
         const _sciName = sp.sciName || sp.name;
@@ -6169,7 +6260,7 @@ runBtn.addEventListener('click', async () => {
 
             // Client-side polygon clip
             if (_turfClip) {
-              try { if (!turf.booleanPointInPolygon(turf.point([_lng, _lat]), _turfClip)) continue; }
+              try { if (!turf.booleanPointInPolygon(turf.point(llLngForRing([_lng, _lat], _clipRefLng)), _turfClip)) continue; }
               catch(e) {}
             }
 
@@ -7001,9 +7092,11 @@ if (window._pendingShare) {
   </div>
   <div class="changelog-scroll" id="changelogScroll">
     <div class="changelog-version">
-      <span class="changelog-version-tag">v7.08</span>
+      <span class="changelog-version-tag">v7.11</span>
       <span class="changelog-date">Jul 2026</span>
       <ul>
+        <li>Fixed searches over areas crossing the antimeridian (180°) returning zero records — Fiji, Tonga, Samoa, Kiribati, the Chatham Islands and eastern Russia. Records were fetched from GBIF correctly, then discarded by the boundary clip, which read a dateline-crossing polygon as spanning the globe the long way round so every genuine record tested as outside the drawn area. A Fiji bird search for Jan–Jul 2026 now returns its 812 records instead of none</li>
+        <li>Same correction applied to the iNaturalist obscured-records search, the iNaturalist top-up for observations not yet in GBIF, QEII covenant auto-add, and KMZ polygon auto-select. The iNaturalist searches also had an inverted bounding box across the dateline, asking for 86,848 observations covering the whole globe <em>except</em> Fiji instead of the 1,638 actually there</li>
         <li>New geolocate button (crosshair icon) under the zoom controls — click it to pan the map to your current location and drop an accuracy marker. Works any time, unlike the one-off location jump that only happened at page load</li>
         <li>On mobile, the map controls (zoom, layers, draw, locate) now sit as a single horizontal toolbar along the top of the map instead of stacking down the left edge, so they no longer end up underneath the species-list sheet that slides up from the bottom</li>
       </ul>
