@@ -49,7 +49,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v7.12</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v7.13</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -2124,6 +2124,46 @@ function latlngsToWKT(latlngs, holes) {
   }
   if (leftRing.length < 3 || rightRing.length < 3) return 'POLYGON' + ringWKT(coords);
   return 'MULTIPOLYGON(' + ringWKT(leftRing) + ',' + ringWKT(rightRing) + ')';
+}
+
+// Split a string into its top-level parenthesised groups: "(a),(b)" → ["a","b"].
+function _splitParenGroups(s) {
+  const out = [];
+  let depth = 0, start = -1;
+  for (let i = 0; i < s.length; i++) {
+    const ch = s[i];
+    if (ch === '(') { if (depth === 0) start = i + 1; depth++; }
+    else if (ch === ')') { depth--; if (depth === 0 && start !== -1) out.push(s.slice(start, i)); }
+  }
+  return out;
+}
+
+// Inverse of latlngsToWKT — parse POLYGON/MULTIPOLYGON WKT back into polygon entries
+// [{ latlngs, holes }]. A dateline-crossing shape was serialised as a two-part
+// MULTIPOLYGON, so it comes back as two polygons meeting at 180°; their union is the
+// original area and the download predicate ORs them, so the query is unchanged.
+function parseWktToPolygons(wkt) {
+  if (!wkt) return [];
+  const m = String(wkt).trim().match(/^(MULTIPOLYGON|POLYGON)\s*\((.*)\)$/is);
+  if (!m) return [];
+  const ringToLatLngs = ring => {
+    const pts = ring.split(',').map(pt => {
+      const [lng, lat] = pt.trim().split(/\s+/).map(Number);
+      return (isFinite(lat) && isFinite(lng)) ? { lat, lng } : null;
+    }).filter(Boolean);
+    // Drop the closing duplicate — drawn polygons are stored without it.
+    if (pts.length > 3) {
+      const f = pts[0], l = pts[pts.length - 1];
+      if (Math.abs(f.lat - l.lat) < 1e-9 && Math.abs(f.lng - l.lng) < 1e-9) pts.pop();
+    }
+    return pts;
+  };
+  const toEntry = polyBody => {
+    const rings = _splitParenGroups(polyBody).map(ringToLatLngs).filter(r => r.length >= 3);
+    return rings.length ? { latlngs: rings[0], holes: rings.slice(1) } : null;
+  };
+  const bodies = m[1].toUpperCase() === 'MULTIPOLYGON' ? _splitParenGroups(m[2]) : [m[2]];
+  return bodies.map(toEntry).filter(Boolean);
 }
 
 function addPolygon(latlngs, label, holes, opts) {
@@ -6098,14 +6138,25 @@ runBtn.addEventListener('click', async () => {
       }
       totalCount = json0.count;
       if (totalCount > MAX_RECORDS) {
-        const _dlParams = new URLSearchParams();
-        polygons.filter(p => p.type !== 'species' && p.wkt).forEach(p => _dlParams.append('wkt', p.wkt));
-        getSelectedTaxonKeys().forEach(k => _dlParams.append('taxon', k));
-        const _df = document.getElementById('dateFrom').value;
-        const _dt = document.getElementById('dateTo').value;
-        if (_df) _dlParams.set('dateFrom', _df);
-        if (_dt) _dlParams.set('dateTo', _dt);
-        const _dlUrl = './?bigdata&' + _dlParams.toString();
+        // Carry the whole search across in the share hash — same lossless format the
+        // Share button uses, so polygons (with holes), species entries, dates, taxa,
+        // basis and map view all survive. The older query-param form below is kept as
+        // a fallback for the rare case share state can't be generated.
+        let _dlUrl = null;
+        try {
+          const _st = generateShareState();
+          if (_st) _dlUrl = './?bigdata#s=' + btoa(unescape(encodeURIComponent(JSON.stringify(_st))));
+        } catch(e) {}
+        if (!_dlUrl) {
+          const _dlParams = new URLSearchParams();
+          polygons.filter(p => p.type !== 'species' && p.wkt).forEach(p => _dlParams.append('wkt', p.wkt));
+          getSelectedTaxonKeys().forEach(k => _dlParams.append('taxon', k));
+          const _df = document.getElementById('dateFrom').value;
+          const _dt = document.getElementById('dateTo').value;
+          if (_df) _dlParams.set('dateFrom', _df);
+          if (_dt) _dlParams.set('dateTo', _dt);
+          _dlUrl = './?bigdata&' + _dlParams.toString();
+        }
         statusBar.className = 'status-bar error';
         statusBar.style.display = 'block';
         statusBar.innerHTML = '⚠️ ' + totalCount.toLocaleString() + ' records — too large for live search (limit ' + MAX_RECORDS.toLocaleString() + '). ' +
@@ -7071,11 +7122,57 @@ async function _runGbifDownload(user, pass) {
   setFetchMode(false);
 }
 
+// Ingest ?wkt=…&taxon=…&dateFrom=…&dateTo= deep links. The capped-search nudge link
+// builds this form, and the retired /beta/download/ page forwards it — but until v7.13
+// nothing here read it, so following that link silently dropped the polygon, taxa and
+// dates the user had already set. New nudge links carry full share state in the hash
+// instead; this stays for links already in the wild.
+function _ingestQueryParamDeepLink() {
+  const q    = new URLSearchParams(location.search);
+  const wkts = q.getAll('wkt');
+  const taxa = q.getAll('taxon');
+  const df   = q.get('dateFrom');
+  const dt   = q.get('dateTo');
+  if (!wkts.length && !taxa.length && !df && !dt) return false;
+
+  let added = 0;
+  wkts.forEach(w => {
+    try {
+      parseWktToPolygons(w).forEach(p => {
+        addPolygon(p.latlngs, 'Imported area ' + (added + 1), p.holes);
+        added++;
+      });
+    } catch(e) {}
+  });
+
+  if (df) document.getElementById('dateFrom').value = df;
+  if (dt) document.getElementById('dateTo').value   = dt;
+
+  if (taxa.length) {
+    document.getElementById('taxonAllLabel').classList.remove('selected');
+    const _allCb = document.getElementById('taxonAll');
+    if (_allCb) _allCb.checked = false;
+    taxonCbs().forEach(cb => {
+      const sel = taxa.includes(cb.value);
+      cb.checked = sel;
+      cb.closest('label').classList.toggle('selected', sel);
+    });
+    updateTaxonLabel();
+  }
+  return added > 0 || taxa.length > 0 || !!df || !!dt;
+}
+
 // Restore shared search after everything is initialised
 if (window._pendingShare) {
   restoreFromShare(window._pendingShare);
   window._pendingShare = null;
-  setTimeout(() => document.getElementById('runBtn').click(), 300);
+  // Big Data needs GBIF credentials, so never auto-submit the download — let the user
+  // fill them in against a fully restored query instead.
+  if (!BIGDATA_MODE) setTimeout(() => document.getElementById('runBtn').click(), 300);
+} else if (_ingestQueryParamDeepLink()) {
+  setStatus('Search restored from link — ' + (BIGDATA_MODE
+    ? 'enter your GBIF login above, then download.'
+    : 'review the filters, then fetch.'), 'info');
 }
 
 </script>
@@ -7095,6 +7192,16 @@ if (window._pendingShare) {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v7.13</span>
+      <span class="changelog-date">Jul 2026</span>
+      <ul>
+        <li>The "Occurd Big Data ↗" link shown when a search exceeds 10,000 records now carries your search across. It previously arrived with an empty map — your polygon, taxon groups and dates were all dropped, so you had to redraw and re-enter everything on a page you'd been sent to precisely because your search was already set up. It now uses the same link format as the Share button, so polygons (including holes), single-species entries, dates, taxon groups, record types and map position all come through intact</li>
+        <li>Big Data no longer fires a download the moment a shared link opens — it waits for your GBIF login, with the restored search sitting ready</li>
+        <li>Older links of the previous form still work: the polygon, taxa and dates in them are now read instead of ignored</li>
+        <li>Retired the standalone <code>/beta/download/</code> page, superseded by Big Data mode on the main page. It now redirects there. It had kept its own copy of the date filter, which still had the whole-year bug fixed in v7.12</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v7.12</span>
       <span class="changelog-date">Jul 2026</span>
