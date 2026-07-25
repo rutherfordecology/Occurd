@@ -49,7 +49,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v7.11b</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v7.12b</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -6981,8 +6981,12 @@ function _buildGbifDownloadPredicate(simplifyTol) {
   const subs = [
     ...(geomPredicate  ? [geomPredicate]  : []),
     ...(taxonPredicate ? [taxonPredicate] : []),
-    ...(dateFrom ? [{ type: 'greaterThanOrEquals', key: 'YEAR', value: dateFrom.slice(0, 4) }] : []),
-    ...(dateTo   ? [{ type: 'lessThanOrEquals',    key: 'YEAR', value: dateTo.slice(0, 4)   }] : [])
+    // EVENT_DATE, not YEAR — YEAR truncated both bounds to the year (dateFrom.slice(0,4)),
+    // so a range starting or ending mid-year silently widened to whole years and the
+    // download did not match the live search for the same filters. GBIF date-validates
+    // this value and requires plain YYYY-MM-DD (a time component is rejected).
+    ...(dateFrom ? [{ type: 'greaterThanOrEquals', key: 'EVENT_DATE', value: dateFrom }] : []),
+    ...(dateTo   ? [{ type: 'lessThanOrEquals',    key: 'EVENT_DATE', value: dateTo   }] : [])
   ];
   if (subs.length === 0) return { type: 'isNotNull', parameter: 'OCCURRENCE_ID' };
   if (subs.length === 1) return subs[0];
@@ -7092,9 +7096,10 @@ if (window._pendingShare) {
   </div>
   <div class="changelog-scroll" id="changelogScroll">
     <div class="changelog-version">
-      <span class="changelog-version-tag">v7.11</span>
+      <span class="changelog-version-tag">v7.12</span>
       <span class="changelog-date">Jul 2026</span>
       <ul>
+        <li>Big Data Mode now honours your exact dates. It previously filtered on year only — both ends of your range were truncated to the year — so a range starting or ending mid-year silently widened to whole years and the download didn't match what a normal search returned for the same filters. A Fiji bird request for 15 Jun 2021 – 1 Feb 2026 was fetching 50,815 records instead of the 48,949 actually in that window</li>
         <li>Fixed searches over areas crossing the antimeridian (180°) returning zero records — Fiji, Tonga, Samoa, Kiribati, the Chatham Islands and eastern Russia. Records were fetched from GBIF correctly, then discarded by the boundary clip, which read a dateline-crossing polygon as spanning the globe the long way round so every genuine record tested as outside the drawn area. A Fiji bird search for Jan–Jul 2026 now returns its 812 records instead of none</li>
         <li>Same correction applied to the iNaturalist obscured-records search, the iNaturalist top-up for observations not yet in GBIF, QEII covenant auto-add, and KMZ polygon auto-select. The iNaturalist searches also had an inverted bounding box across the dateline, asking for 86,848 observations covering the whole globe <em>except</em> Fiji instead of the 1,638 actually there</li>
         <li>New geolocate button (crosshair icon) under the zoom controls — click it to pan the map to your current location and drop an accuracy marker. Works any time, unlike the one-off location jump that only happened at page load</li>
