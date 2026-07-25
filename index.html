@@ -49,7 +49,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v7.09</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v7.10</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -2719,6 +2719,45 @@ function llToGeoJSONNorm(ll) {
   if (n > 180) n -= 360;
   return [n, lat];
 }
+// Ring coords for turf, unwrapped so consecutive vertices never jump >180° (same
+// approach as latlngsToWKT's buildCoords). llToGeoJSONNorm alone wraps each point
+// independently into [-180,180], which turns a dateline-crossing ring (Fiji, Tonga,
+// Samoa, Kiribati…) into an inverted, near-global shape when fed straight into
+// turf.polygon — every real point inside the drawn area then fails
+// turf.booleanPointInPolygon against it, even though the underlying fetch succeeded.
+function unwrappedRingCoords(latlngs) {
+  const out = [];
+  let prevLng = null;
+  for (const ll of latlngs) {
+    const [rawLng, lat] = llToGeoJSON(ll);
+    let lng = ((rawLng % 360) + 360) % 360;
+    if (lng > 180) lng -= 360;
+    if (prevLng !== null) {
+      while (lng - prevLng >  180) lng -= 360;
+      while (lng - prevLng < -180) lng += 360;
+    }
+    prevLng = lng;
+    out.push([lng, lat]);
+  }
+  return out;
+}
+// Build a turf Polygon from lat/lng vertices (+ optional holes) that's safe to test
+// with turf.booleanPointInPolygon/booleanIntersects even when the ring crosses the
+// antimeridian. Query points must be run through llLngForRing() below first so they
+// land in the same unwrapped frame as this polygon.
+function llToTurfPolygon(latlngs, holes) {
+  const outer = closeRingCoords(unwrappedRingCoords(latlngs));
+  const rings = [outer];
+  (holes || []).forEach(h => { if (h && h.length >= 3) rings.push(closeRingCoords(unwrappedRingCoords(h))); });
+  return { poly: turf.polygon(rings), refLng: outer[0][0] };
+}
+// Shift a raw GeoJSON [lng,lat] query point's longitude to within 180° of a ring's
+// reference longitude, so it lands in the same unwrapped frame as llToTurfPolygon().
+function llLngForRing([lng, lat], refLng) {
+  while (lng - refLng >  180) lng -= 360;
+  while (lng - refLng < -180) lng += 360;
+  return [lng, lat];
+}
 function closeRingCoords(coords) {
   if (coords[0][0] !== coords[coords.length-1][0] || coords[0][1] !== coords[coords.length-1][1])
     return [...coords, coords[0]];
@@ -2757,7 +2796,7 @@ browseAddBtn.addEventListener('click', () => {
   if (doIntersect) {
     // Store drawn polygon(s) as turf clip shapes for post-fetch filtering
     clipTurfPolygons = drawnSnapshot.map(dp => {
-      try { return turf.polygon([closeRingCoords(dp.latlngs.map(llToGeoJSONNorm))]); }
+      try { return llToTurfPolygon(dp.latlngs, dp.holes); }
       catch(e) { return null; }
     }).filter(Boolean);
 
@@ -6081,19 +6120,18 @@ runBtn.addEventListener('click', async () => {
   let _clipPolys = (clipTurfPolygons && clipTurfPolygons.length > 0) ? clipTurfPolygons : null;
   if (!_clipPolys) {
     _clipPolys = _geomPolys.map(gp => {
-      try {
-        const _rings = [closeRingCoords(gp.latlngs.map(llToGeoJSONNorm))];
-        (gp.holes || []).forEach(h => { if (h && h.length >= 3) _rings.push(closeRingCoords(h.map(llToGeoJSONNorm))); });
-        return turf.polygon(_rings);
-      } catch(e) { return null; }
+      try { return llToTurfPolygon(gp.latlngs, gp.holes); }
+      catch(e) { return null; }
     }).filter(Boolean);
   }
   if (_clipPolys.length > 0) {
     const before = allFetched.length;
     const clipped = allFetched.filter(r => {
       if (r.decimalLatitude == null || r.decimalLongitude == null) return false;
-      const pt = turf.point([r.decimalLongitude, r.decimalLatitude]);
-      return _clipPolys.some(cp => { try { return turf.booleanPointInPolygon(pt, cp); } catch(e) { return true; } });
+      return _clipPolys.some(cp => {
+        try { return turf.booleanPointInPolygon(turf.point(llLngForRing([r.decimalLongitude, r.decimalLatitude], cp.refLng)), cp.poly); }
+        catch(e) { return true; }
+      });
     });
     allFetched.length = 0; clipped.forEach(r => allFetched.push(r));
     const removed = before - allFetched.length;
@@ -7000,6 +7038,13 @@ if (window._pendingShare) {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v7.10</span>
+      <span class="changelog-date">Jul 2026</span>
+      <ul>
+        <li>Fixed searches across the antimeridian (180°) returning zero records — Fiji, Tonga, Samoa, Kiribati, the Chatham Islands and eastern Russia were all affected. The records were fetched from GBIF correctly, then thrown away by the boundary clip that trims results to your drawn area: it read a dateline-crossing polygon as spanning the long way around the globe, so every genuine record inside the area tested as outside it. A Fiji bird search for Jan–Jul 2026 now returns its 812 records instead of none. This only showed up on searches under the 10,000-record cap — anything larger tripped the Big Data Mode cutoff before the clip ran, which is why wider date ranges appeared to work</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v7.09</span>
       <span class="changelog-date">Jul 2026</span>
