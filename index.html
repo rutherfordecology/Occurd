@@ -49,7 +49,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v7.13</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v7.14</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -3499,12 +3499,30 @@ function pickVernacularName(results, countryCode, prefLang) {
   // German compound animal nouns (e.g. "Bisamratte") are sometimes mislabelled as
   // lang:'eng' in regional GBIF checklists. Exclude them from English-language picks.
   const GERMAN_ANIMAL_SUFFIX = /(?:ratte|maus|biber|ente|gans|vogel|eule|falke|adler|fuchs|igel|marder|dachs|wiesel|frosch|hirsch|schwein|kaninchen|taube|meise|drossel|schwalbe|storch|reiher|segler|kranich|specht|bussard)$/i;
-  const pick = (pred) => results.find(v =>
+  const eligible = results.filter(v =>
     v.vernacularName &&
     !isBandingCode(v.vernacularName) &&
-    !(normLang(v.language) === 'eng' && GERMAN_ANIMAL_SUFFIX.test(v.vernacularName)) &&
-    pred(v)
+    !(normLang(v.language) === 'eng' && GERMAN_ANIMAL_SUFFIX.test(v.vernacularName))
   );
+  // GBIF returns the union of every checklist's names, ordered roughly alphabetically, so
+  // taking the first match in a tier hands it to whatever sorts earliest — rainbow trout
+  // came out as "Baiser" (a stray eng-tagged entry) ahead of "Rainbow Trout". Count how
+  // many entries agree on each name instead: a real common name is repeated by many
+  // independent checklists (rainbow trout: 20 vs 3), a one-off oddity is not.
+  const nameVotes = {};
+  eligible.forEach(v => {
+    const k = v.vernacularName.trim().toLowerCase();
+    nameVotes[k] = (nameVotes[k] || 0) + 1;
+  });
+  const votesFor = v => nameVotes[v.vernacularName.trim().toLowerCase()] || 0;
+  // Best-supported name within a tier; ties keep the original list order.
+  const pick = (pred) => {
+    let best = null;
+    for (const v of eligible) {
+      if (pred(v) && (!best || votesFor(v) > votesFor(best))) best = v;
+    }
+    return best;
+  };
   // Proper English common names have every word starting with an uppercase letter
   // (e.g. "Common Mallard") — use this to filter out mislabelled foreign names
   const properCaps = v => v.vernacularName && v.vernacularName.split(/\s+/).every(w => /^[A-Z]/.test(w));
@@ -3524,26 +3542,28 @@ function pickVernacularName(results, countryCode, prefLang) {
   const r3 = pick(v => normLang(v.language) === pl && v.preferred);
   if (r3) return r3.vernacularName;
 
-  // 4. English fallback for non-English regions — preferred:true, properly capitalised
-  if (pl !== 'eng') {
-    const r4a = pick(v => normLang(v.language) === 'eng' && v.preferred && properCaps(v));
-    if (r4a) return r4a.vernacularName;
-    const r4b = pick(v => normLang(v.language) === 'eng' && v.preferred);
-    if (r4b) return r4b.vernacularName;
-  }
-
   // Fallback tiers: non-preferred entries
   if (cc) {
-    const r5 = pick(v => (v.country||'').toUpperCase() === cc);
-    if (r5) return r5.vernacularName;
+    const r4 = pick(v => (v.country||'').toUpperCase() === cc);
+    if (r4) return r4.vernacularName;
   }
-  // Preferred language, non-preferred, properly capitalised
-  const r6 = pick(v => normLang(v.language) === pl && properCaps(v));
+  // 5. Preferred language, non-preferred, properly capitalised
+  const r5 = pick(v => normLang(v.language) === pl && properCaps(v));
+  if (r5) return r5.vernacularName;
+  const r6 = pick(v => normLang(v.language) === pl);
   if (r6) return r6.vernacularName;
-  const r7 = pick(v => normLang(v.language) === pl);
-  if (r7) return r7.vernacularName;
 
-  // English fallback, non-preferred, properly capitalised
+  // 6. English fallback for non-English regions. Below the tiers above, not above them:
+  //    a French search should get "Truite arc-en-ciel" even though the only preferred:true
+  //    entries on the taxon are English ones.
+  if (pl !== 'eng') {
+    const r7a = pick(v => normLang(v.language) === 'eng' && v.preferred && properCaps(v));
+    if (r7a) return r7a.vernacularName;
+    const r7b = pick(v => normLang(v.language) === 'eng' && v.preferred);
+    if (r7b) return r7b.vernacularName;
+  }
+
+  // 7. English fallback, non-preferred, properly capitalised
   const r8 = pick(v => normLang(v.language) === 'eng' && properCaps(v));
   if (r8) return r8.vernacularName;
   const r9 = pick(v => normLang(v.language) === 'eng');
@@ -3589,7 +3609,9 @@ async function lookupCommonNames(records) {
       if (fetchAbortFlag) return;
       if (commonNameCache[key] !== undefined) return;
       try {
-        const res = await gbifFetch('https://api.gbif.org/v1/species/' + key + '/vernacularNames?limit=100');
+        // limit=1000, not 100: well-recorded species have hundreds of names and GBIF returns
+        // the preferred:true entries last, so a truncated page never reaches them.
+        const res = await gbifFetch('https://api.gbif.org/v1/species/' + key + '/vernacularNames?limit=1000');
         // Only cache a confirmed empty result — a failed/rate-limited response leaves
         // the cache unset so lazyLoadCommonName can retry when the popup is opened,
         // instead of the species staying nameless for the rest of the session.
@@ -3888,7 +3910,7 @@ function cachedName(taxonKey) {
 async function lazyLoadCommonName(taxonKey) {
   if (!taxonKey || commonNameCache[taxonKey] !== undefined) return;
   try {
-    const res = await gbifFetch('https://api.gbif.org/v1/species/' + taxonKey + '/vernacularNames?limit=100');
+    const res = await gbifFetch('https://api.gbif.org/v1/species/' + taxonKey + '/vernacularNames?limit=1000');
     // Only cache a confirmed empty result. A rate-limited/failed response leaves the
     // cache unset so the next popup open retries instead of the species staying
     // nameless for the rest of the session (same failure mode as the photo cache).
@@ -7192,6 +7214,15 @@ if (window._pendingShare) {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v7.14</span>
+      <span class="changelog-date">Jul 2026</span>
+      <ul>
+        <li>Common names are now chosen by how many checklists agree on them, rather than by whichever name happened to sort first. Rainbow trout was coming up as "Baiser" — a stray entry from a single checklist. GBIF returns the union of every checklist's names for a species, roughly alphabetically (366 of them for rainbow trout), and the first English-looking one won. The same fault was renaming brown trout to "Amu-darya Trout" and the red fox to "American Cross Fox". Species with short name lists — tui, kea, kererū, longfin eel — were never affected</li>
+        <li>The full name list is now read. Only the first 100 entries were being fetched, and GBIF returns the entries its checklists mark as preferred at the very end, so for well-recorded species the most trustworthy names were never seen at all</li>
+        <li>Searches outside English-speaking regions now keep their own language: a French search gives "Truite arc-en-ciel" instead of falling through to "Rainbow Trout"</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v7.13</span>
       <span class="changelog-date">Jul 2026</span>
