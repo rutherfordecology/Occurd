@@ -49,7 +49,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v7.14</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v7.15</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -158,6 +158,7 @@
             <label class="taxon-item"><input type="checkbox" value="367" class="taxon-cb" data-group="invertebrates"> Arachnida</label>
             <label class="taxon-item"><input type="checkbox" value="crustacea" class="taxon-cb" data-group="invertebrates"> Crustacea</label>
             <label class="taxon-item"><input type="checkbox" value="52" class="taxon-cb" data-group="invertebrates"> Mollusca</label>
+            <label class="taxon-item taxon-sub"><input type="checkbox" value="nudibranchia" class="taxon-cb" data-group="invertebrates"> Nudibranchia (sea slugs)</label>
             <label class="taxon-item"><input type="checkbox" value="50" class="taxon-cb" data-group="invertebrates"> Echinodermata</label>
             <label class="taxon-item"><input type="checkbox" value="43" class="taxon-cb" data-group="invertebrates"> Cnidaria</label>
             <label class="taxon-item"><input type="checkbox" value="42" class="taxon-cb" data-group="invertebrates"> Annelida</label>
@@ -792,7 +793,7 @@ const CB_TO_GROUP = {
   '212': 'Aves', '359': 'Mammalia', 'reptilia': 'Reptilia', '131': 'Amphibia',
   'fish': 'Fish',
   '216': 'Insecta', '367': 'Arachnida', 'crustacea': 'Crustacea',
-  '52': 'Mollusca', '50': 'Echinodermata', '43': 'Cnidaria', '42': 'Annelida',
+  '52': 'Mollusca', 'nudibranchia': 'Mollusca', '50': 'Echinodermata', '43': 'Cnidaria', '42': 'Annelida',
   '1': 'Other',
   'angiosperms': 'Angiosperms', '194': 'Gymnosperms', '7228684': 'Ferns', 'bryophytes': 'Bryophytes',
   'algae': 'Algae', '5': 'Fungi',
@@ -5705,6 +5706,7 @@ function buildTaxonParams(keys) {
     if (key === 'fish')           { ['8VR36','8VSMX','8X6G5','8VQW5'].forEach(k => params.push(['taxonKey', k])); } // Actinopterygii (ray-finned), Sarcopterygii (coelacanths+lungfish, excludes Tetrapoda which COL XR splits out as a sibling), Chondrichthyes (sharks/rays/chimaeras), Cyclostomi (hagfish+lampreys) — replaces the old whole-Chordata fetch + client-side post-filter
     else if (key === 'reptilia')    { params.push(['taxonKey', 'RP']); } // COL XR has a single Reptilia class node (legacy backbone retired 358 in CoL 2022, requiring 4 order keys instead)
     else if (key === 'bryophytes')  { ['BJ5TM','9J9G3','9JHQ8'].forEach(k => params.push(['taxonKey', k])); }  // Bryophyta, Marchantiophyta (liverworts), Anthocerotophyta (hornworts)
+    else if (key === 'nudibranchia'){ params.push(['taxonKey', '7NFD5']); } // Nudibranchia — an order inside Mollusca, so records still colour and group as Mollusca; ticking it alongside Mollusca just re-selects a subset of the same records
     else if (key === 'crustacea')   { ['MC','B8V3R','7NF5R','V9X8L','V9R9L','8H','B8TXJ'].forEach(k => params.push(['taxonKey', k])); } // Malacostraca, Copepoda, Thecostraca, Branchiura, Pentastomida (COL XR splits legacy Maxillopoda into these 4), Branchiopoda, Ostracoda
     else if (key === 'angiosperms') { ['MG','L2L'].forEach(k => params.push(['taxonKey', k])); } // Magnoliopsida (dicots), Liliopsida (monocots)
     else if (key === 'algae')       { ['CGV7L','L2MHG','5H','KZS5S','CNPLM'].forEach(k => params.push(['taxonKey', k])); } // Chlorophyta, Rhodophyta, Ochrophyta, Charophyta, Cyanobacteriota (COL XR's accepted name for Cyanobacteria — '3R' was the demoted synonym key, which missed most records)
@@ -5949,7 +5951,7 @@ runBtn.addEventListener('click', async () => {
       // Map selected Occurd taxon checkboxes → iNat iconic_taxa values
       const _inatIconicMap = {
         '212': 'Aves', '359': 'Mammalia', 'reptilia': 'Reptilia', '131': 'Amphibia', 'fish': 'Actinopterygii',
-        '216': 'Insecta', '367': 'Arachnida', 'crustacea': 'Animalia', '52': 'Mollusca',
+        '216': 'Insecta', '367': 'Arachnida', 'crustacea': 'Animalia', '52': 'Mollusca', 'nudibranchia': 'Mollusca',
         '50': 'Animalia', '43': 'Animalia', '42': 'Animalia', '1': 'Animalia',
         'angiosperms': 'Plantae', '194': 'Plantae', '7228684': 'Plantae', 'bryophytes': 'Plantae',
         'algae': 'Chromista', '5': 'Fungi'
@@ -6417,8 +6419,19 @@ runBtn.addEventListener('click', async () => {
   const requestedGroups = (_speciesEntries.length === 0 && taxonKeys.length > 0)
     ? new Set(taxonKeys.map(k => CB_TO_GROUP[k]).filter(Boolean))
     : null;
+  // Nudibranchia maps to the Mollusca group (it has no group of its own), so the group
+  // check above can't tell a nudibranch from any other mollusc. When Nudibranchia is
+  // ticked without Mollusca, narrow the molluscs down by order. The GBIF query already
+  // restricts to Nudibranchia; this only matters for records that arrive by another
+  // route — the iNat obscured-polygon path, which can't query below iconic-taxon level.
+  const nudibranchOnly = !!requestedGroups && taxonKeys.includes('nudibranchia') && !taxonKeys.includes('52');
   const displayRecords = requestedGroups
-    ? allFetched.filter(r => requestedGroups.has(getTaxonGroup(r)))
+    ? allFetched.filter(r => {
+        const g = getTaxonGroup(r);
+        if (!requestedGroups.has(g)) return false;
+        if (nudibranchOnly && g === 'Mollusca' && (r.order || '').trim() !== 'Nudibranchia') return false;
+        return true;
+      })
     : allFetched;
 
   allRecords = displayRecords;
@@ -7214,6 +7227,13 @@ if (window._pendingShare) {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v7.15</span>
+      <span class="changelog-date">Aug 2026</span>
+      <ul>
+        <li>Added a Nudibranchia (sea slugs) option to the taxon group dropdown, indented under Mollusca. Nudibranchs are a small slice of a very large phylum, so a Mollusca search over a dive site buries them in snails, limpets and bivalves; this searches the order directly. Records still carry the Mollusca colour and checklist heading, and ticking Mollusca as well returns the whole phylum as before</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v7.14</span>
       <span class="changelog-date">Jul 2026</span>

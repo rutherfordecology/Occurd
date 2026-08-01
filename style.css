@@ -410,6 +410,8 @@ html, body { max-width: 100vw; overflow-x: hidden; }
 .taxon-item:hover { color: var(--text); }
 .taxon-item.selected { color: var(--text); font-weight: 500; }
 .taxon-item input[type=checkbox] { display: none; }
+/* Indented sub-entry for a taxon that sits inside the group listed above it (Nudibranchia within Mollusca) */
+.taxon-sub { padding-left: 22px; font-style: italic; }
 .taxon-all { border-bottom: 1px solid var(--border); font-weight: 500; padding: 5px 10px; }
 
 #map-wrap { position: relative; width: 100%; overflow: hidden; }
