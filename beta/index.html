@@ -5706,7 +5706,15 @@ function buildTaxonParams(keys) {
     if (key === 'fish')           { ['8VR36','8VSMX','8X6G5','8VQW5'].forEach(k => params.push(['taxonKey', k])); } // Actinopterygii (ray-finned), Sarcopterygii (coelacanths+lungfish, excludes Tetrapoda which COL XR splits out as a sibling), Chondrichthyes (sharks/rays/chimaeras), Cyclostomi (hagfish+lampreys) — replaces the old whole-Chordata fetch + client-side post-filter
     else if (key === 'reptilia')    { params.push(['taxonKey', 'RP']); } // COL XR has a single Reptilia class node (legacy backbone retired 358 in CoL 2022, requiring 4 order keys instead)
     else if (key === 'bryophytes')  { ['BJ5TM','9J9G3','9JHQ8'].forEach(k => params.push(['taxonKey', k])); }  // Bryophyta, Marchantiophyta (liverworts), Anthocerotophyta (hornworts)
-    else if (key === 'nudibranchia'){ params.push(['taxonKey', '7NFD5']); } // Nudibranchia — an order inside Mollusca, so records still colour and group as Mollusca; ticking it alongside Mollusca just re-selects a subset of the same records
+    // Nudibranchia sits inside Mollusca, so records still colour and group as Mollusca.
+    // Three keys, not one: COL XR's "Nudibranchia" order node holds only the cladobranch
+    // side (aeolids, dendronotids, arminids). The dorids — most of what divers photograph,
+    // Chromodorididae and Dorididae included — hang off the Nudipleura superorder through
+    // the infraorders Doridoidei and Bathydoridoidei instead, bypassing the order node
+    // entirely. Querying 7NFD5 alone returned 1 328 NZ records against 5 111 for all three.
+    // Nudipleura itself is not usable as a single key: it also contains Pleurobranchida,
+    // which are side-gilled slugs, not nudibranchs.
+    else if (key === 'nudibranchia'){ ['7NFD5','7NW28','7NW26'].forEach(k => params.push(['taxonKey', k])); }
     else if (key === 'crustacea')   { ['MC','B8V3R','7NF5R','V9X8L','V9R9L','8H','B8TXJ'].forEach(k => params.push(['taxonKey', k])); } // Malacostraca, Copepoda, Thecostraca, Branchiura, Pentastomida (COL XR splits legacy Maxillopoda into these 4), Branchiopoda, Ostracoda
     else if (key === 'angiosperms') { ['MG','L2L'].forEach(k => params.push(['taxonKey', k])); } // Magnoliopsida (dicots), Liliopsida (monocots)
     else if (key === 'algae')       { ['CGV7L','L2MHG','5H','KZS5S','CNPLM'].forEach(k => params.push(['taxonKey', k])); } // Chlorophyta, Rhodophyta, Ochrophyta, Charophyta, Cyanobacteriota (COL XR's accepted name for Cyanobacteria — '3R' was the demoted synonym key, which missed most records)
@@ -7231,7 +7239,8 @@ if (window._pendingShare) {
       <span class="changelog-version-tag">v7.15</span>
       <span class="changelog-date">Aug 2026</span>
       <ul>
-        <li>Added a Nudibranchia (sea slugs) option to the taxon group dropdown, indented under Mollusca. Nudibranchs are a small slice of a very large phylum, so a Mollusca search over a dive site buries them in snails, limpets and bivalves; this searches the order directly. Records still carry the Mollusca colour and checklist heading, and ticking Mollusca as well returns the whole phylum as before</li>
+        <li>Added a Nudibranchia (sea slugs) option to the taxon group dropdown, indented under Mollusca. Nudibranchs are a small slice of a very large phylum, so a Mollusca search over a dive site buries them in snails, limpets and bivalves; this searches them directly. Records still carry the Mollusca colour and checklist heading, and ticking Mollusca as well returns the whole phylum as before</li>
+        <li>The search covers dorids as well as the cladobranchs. GBIF's current taxonomy files most nudibranch families — Chromodorididae and Dorididae among them — outside its own "Nudibranchia" node, so searching that node alone finds only about a quarter of them: 1,328 records in New Zealand against 5,111 for the full group. Side-gilled slugs (Pleurobranchida), which sit alongside nudibranchs but aren't nudibranchs, stay out</li>
       </ul>
     </div>
     <div class="changelog-version">
