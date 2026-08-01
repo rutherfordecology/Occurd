@@ -49,7 +49,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v7.15</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v7.16</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -5787,8 +5787,34 @@ async function _gbifPageFetch(qs) {
   }
 }
 
+// GBIF fills a record's flat scientificName/species/taxonRank fields from the LEGACY
+// backbone no matter which checklistKey the query carried. Names the old backbone never
+// held — recent descriptions and recombinations, which in practice means marine
+// invertebrates — fall back to the genus there (Tenellia scintillans arrives as
+// "Tenellia A.Costa, 1866", flagged TAXON_ID_NOT_FOUND) even though COL XR, the checklist
+// we actually filter on, resolves them to species. The COL XR result is carried per record
+// in `classifications`, so read the species out of there when the flat field is empty.
+// Records that already have a species name are left alone.
+//
+// Scoped to the name only. taxonKey/speciesKey stay as the legacy numeric keys, since the
+// photo, common-name and NZTCS lookups are built around those.
+function _colxrSpecies(r) {
+  const c = r && r.classifications && r.classifications[COL_XR_CHECKLIST_KEY];
+  const u = c && (c.acceptedUsage || c.usage);
+  if (!u || u.rank !== 'SPECIES') return null;
+  // usage.name carries the authorship ("Tenellia scintillans (M. C. Miller, 1977)"); the
+  // classification array holds the bare binomial, which is what the checklist keys on.
+  const bare = (c.classification || []).find(x => x.rank === 'SPECIES');
+  return {
+    species: (bare && bare.name) || [u.genericName, u.specificEpithet].filter(Boolean).join(' ') || null,
+    scientificName: u.name || null,
+    genus: u.genericName || null
+  };
+}
+
 // Map a raw GBIF occurrence result to the internal record format
 function _mapOccRecord(poly, r) {
+  const _colxr = r.species ? null : _colxrSpecies(r);
   return {
     polygon_name:                  poly.label || null,
     gbifID:                        r.gbifID || null,
@@ -5796,15 +5822,15 @@ function _mapOccRecord(poly, r) {
     year:                          r.year  != null ? String(r.year)  : null,
     month:                         r.month != null ? String(r.month) : null,
     day:                           r.day   != null ? String(r.day)   : null,
-    scientificName:                r.scientificName || null,
+    scientificName:                (_colxr && _colxr.scientificName) || r.scientificName || null,
     vernacularName:                r.vernacularName || null,
     kingdom:                       r.kingdom  || null,
     phylum:                        r.phylum   || null,
     class:                         r.class    || null,
     order:                         r.order    || null,
     family:                        r.family   || null,
-    genus:                         r.genus    || null,
-    species:                       r.species  || null,
+    genus:                         r.genus    || (_colxr && _colxr.genus) || null,
+    species:                       r.species  || (_colxr && _colxr.species) || null,
     decimalLatitude:               r.decimalLatitude  != null ? r.decimalLatitude  : null,
     decimalLongitude:              r.decimalLongitude != null ? r.decimalLongitude : null,
     coordinateUncertaintyInMeters: r.coordinateUncertaintyInMeters != null ? String(r.coordinateUncertaintyInMeters) : null,
@@ -7235,6 +7261,15 @@ if (window._pendingShare) {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v7.16</span>
+      <span class="changelog-date">Aug 2026</span>
+      <ul>
+        <li>Species that GBIF's older taxonomy never carried now keep their names. A record identified as <em>Tenellia scintillans</em> was arriving as "Tenellia A.Costa, 1866" — the genus, with the author string in place of the species. It then had no species name at all, so it sat in the checklist under that string and couldn't be sent to LookLike or the quizzes</li>
+        <li>The cause: GBIF fills a record's name fields from its legacy backbone whatever taxonomy you search under. Occurd searches the current one, which does hold these species — it just reports them in a separate part of each record, which is now read when the main name field comes back empty. Records that already had a species name are untouched</li>
+        <li>Mostly affects recent descriptions and recombinations in marine invertebrates. In a Poor Knights nudibranch search it recovers <em>Bermudella mija</em>, <em>Ceratodoris atkinsonorum</em> and <em>Paliota galactica</em> (described 2023), which had been showing as bare genus and family names. Records genuinely identified only to genus or order still show as such</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v7.15</span>
       <span class="changelog-date">Aug 2026</span>
