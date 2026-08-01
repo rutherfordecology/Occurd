@@ -49,7 +49,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v7.16b</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v7.17b</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -6854,7 +6854,16 @@ async function handleGbifCsv(text, filename, mediaByGbifId) {
   }
   if (rows.length === 0) { setStatus('No records found in ' + filename, 'warning'); hideDropZoneProgress(); return; }
 
-  // If polygons are loaded, filter to records within them
+  // If polygons are loaded, filter to records within them.
+  //
+  // Routed through llToTurfPolygon/llLngForRing, the same antimeridian-safe geometry the
+  // live fetch path clips with. This previously built turf.polygon([ring]) straight from
+  // raw lng/lat, which cost records three ways on an imported bulk download:
+  //   - an area crossing 180° (Chathams, Kermadecs, anything EEZ-wide) was read the long
+  //     way round the globe, so every record actually inside it was discarded
+  //   - holes were never passed, so records sitting in exclusion zones were kept
+  //   - polygons that failed to convert were dropped from the array while the label
+  //     lookup still indexed the unfiltered one, mislabelling records by polygon
   const _geomPolys = polygons.filter(p => p.type !== 'species');
   let displayRows = rows;
   if (_geomPolys.length > 0) {
@@ -6862,26 +6871,24 @@ async function handleGbifCsv(text, filename, mediaByGbifId) {
     progressLabel.textContent = 'Filtering to polygons…';
     showDropZoneProgress('Filtering to polygons…');
     await new Promise(r => setTimeout(r, 30));
+    // Nulls are kept in place so the index still lines up with _geomPolys below.
     const turfPolys = _geomPolys.map(p => {
-      try {
-        const coords = p.latlngs.map(ll => [ll.lng !== undefined ? ll.lng : ll[1], ll.lat !== undefined ? ll.lat : ll[0]]);
-        const ring = [...coords];
-        if (ring[0][0] !== ring[ring.length-1][0] || ring[0][1] !== ring[ring.length-1][1]) ring.push(ring[0]);
-        return turf.polygon([ring]);
-      } catch(e) { return null; }
-    }).filter(Boolean);
-    if (turfPolys.length > 0) {
+      try { return llToTurfPolygon(p.latlngs, p.holes); }
+      catch(e) { return null; }
+    });
+    if (turfPolys.some(Boolean)) {
       displayRows = rows.filter(r => {
         const lat = parseFloat(r.decimalLatitude), lng = parseFloat(r.decimalLongitude);
         if (isNaN(lat) || isNaN(lng)) return false;
-        const pt = turf.point([lng, lat]);
         for (let _pi = 0; _pi < turfPolys.length; _pi++) {
-          try {
-            if (turf.booleanPointInPolygon(pt, turfPolys[_pi])) {
-              r.polygon_name = _geomPolys[_pi].label || '';
-              return true;
-            }
-          } catch(e) {}
+          const cp = turfPolys[_pi];
+          if (!cp) continue;
+          // Keep the record if the test itself throws, as the live path does. A geometry
+          // error should not silently delete rows out of a bulk download.
+          let inside;
+          try { inside = turf.booleanPointInPolygon(turf.point(llLngForRing([lng, lat], cp.refLng)), cp.poly); }
+          catch(e) { inside = true; }
+          if (inside) { r.polygon_name = _geomPolys[_pi].label || ''; return true; }
         }
         return false;
       });
@@ -7261,6 +7268,15 @@ if (window._pendingShare) {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v7.17</span>
+      <span class="changelog-date">Aug 2026</span>
+      <ul>
+        <li>Dropping a downloaded GBIF file back into Occurd no longer mangles areas that cross the 180° meridian. The file was clipped to your polygons using the raw longitudes, so an area spanning the meridian — the Chathams, the Kermadecs, anything covering the whole EEZ — was read as its own mirror image the long way round the globe. Every record genuinely inside the area was thrown away, and records on the far side of the world at the same latitude were kept in their place. Live searches were already handled correctly; this brings imports onto the same geometry</li>
+        <li>Exclusion zones are now honoured on import too. Holes drawn in a polygon were ignored when the file was clipped, so records inside them came through</li>
+        <li>If a polygon can't be processed, records are kept rather than discarded, and per-polygon labels no longer shift onto the wrong area when one of several polygons fails</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v7.16</span>
       <span class="changelog-date">Aug 2026</span>
