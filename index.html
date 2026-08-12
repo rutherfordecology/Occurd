@@ -49,7 +49,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v7.18</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v7.19</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -3008,6 +3008,23 @@ function nztcsNormKey(s) {
 // Epithets are lower case while authorities are capitalised or numeric, so tokens
 // are counted only while they stay lower-case alphabetic. Rank markers (subsp.,
 // var.) are skipped rather than counted.
+// Before raising a subspecies conflict off a taxon key, see whether the record's
+// own name already answers it. A GBIF download identified to Acanthisitta chloris
+// granti still carries the species-level taxon key, because that is what GBIF's
+// backbone matched — so resolving on the key alone reopens a question the record
+// itself has settled. Only accepted when the name matches an NZTCS entry that is
+// one of the competing options, so a vague name still leaves the conflict standing.
+function nztcsByRecordName(rec, options) {
+  if (!options || !options.length) return null;
+  for (const n of [rec.species, rec.scientificName]) {
+    const k = nztcsNormKey(n);
+    if (!k) continue;
+    const e = nztcsData[k];
+    if (e && options.some(o => o.name === e.name)) return e;
+  }
+  return null;
+}
+
 function nztcsRankDepth(name) {
   const parts = String(name || '').replace(/\([^)]*\)/g, ' ').trim().split(/\s+/);
   if (!parts[0]) return 0;
@@ -3040,11 +3057,18 @@ function lookupNztcs(rec) {
       // to Apteryx australis australis behind a four-way picker.
       const bin = (e.name || '').toLowerCase().split(/\s+/).slice(0, 2).join(' ');
       const bc = bin && nztcsData['conflict:' + bin];
-      if (bc && nztcsRankDepth(e.name) < 3) return { conflict: true, options: bc.options };
+      if (bc && nztcsRankDepth(e.name) < 3) {
+        return nztcsByRecordName(rec, bc.options)
+          ? { entry: nztcsByRecordName(rec, bc.options), certain: true }
+          : { conflict: true, options: bc.options };
+      }
       return { entry: e, certain: true };
     }
     const c = nztcsData['gbifconflict:' + k];
-    if (c) return { conflict: true, options: c.options };
+    if (c) {
+      const byName = nztcsByRecordName(rec, c.options);
+      return byName ? { entry: byName, certain: true } : { conflict: true, options: c.options };
+    }
   }
   // 2. Exact name-based lookup — also reliable
   const candidates = [
@@ -3066,7 +3090,10 @@ function lookupNztcs(rec) {
         const bin = (parts[0] + ' ' + parts[1]).toLowerCase();
         if (nztcsData[bin]) return { entry: nztcsData[bin], certain: false };
         const cb = nztcsData['conflict:' + bin];
-        if (cb) return { conflict: true, options: cb.options };
+        if (cb) {
+          const byName = nztcsByRecordName(rec, cb.options);
+          return byName ? { entry: byName, certain: true } : { conflict: true, options: cb.options };
+        }
       }
     }
   }
@@ -7292,6 +7319,13 @@ if (window._pendingShare) {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v7.19</span>
+      <span class="changelog-date">Aug 2026</span>
+      <ul>
+        <li>The name on the record is now read before a subspecies conflict is raised. A GBIF download identified as <em>Acanthisitta chloris granti</em> still carries the species-level taxon key, because that is what GBIF's backbone matched, so resolving on the key alone reopened a question the record had already answered. Where the record's own name matches one of the competing subspecies, that is taken as the answer. A vague name still leaves the conflict standing</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v7.18</span>
       <span class="changelog-date">Aug 2026</span>
