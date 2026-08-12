@@ -49,7 +49,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v7.17</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v7.18</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -3002,6 +3002,25 @@ function nztcsNormKey(s) {
   return s.toLowerCase().replace(/^["'\s]+|["'\s]+$/g, '').replace(/\s+/g, ' ');
 }
 
+// How many name tokens a NZTCS name carries before its authority:
+//   "Rhipidura fuliginosa"                    -> 2
+//   "Rhipidura fuliginosa penita Bangs, 1911" -> 3
+// Epithets are lower case while authorities are capitalised or numeric, so tokens
+// are counted only while they stay lower-case alphabetic. Rank markers (subsp.,
+// var.) are skipped rather than counted.
+function nztcsRankDepth(name) {
+  const parts = String(name || '').replace(/\([^)]*\)/g, ' ').trim().split(/\s+/);
+  if (!parts[0]) return 0;
+  let n = 1;
+  for (const p of parts.slice(1)) {
+    const t = p.replace(/[.,;]+$/, '');
+    if (/^(subsp|ssp|var|forma|f|cf|aff)$/i.test(t)) continue;
+    if (!/^[a-z-]+$/.test(t)) break;
+    if (++n === 3) break;
+  }
+  return n;
+}
+
 // Returns { entry, certain } | { conflict: true, options: [] } | null.
 // certain=false means the match was via a binomial-prefix fallback and should be flagged with *.
 function lookupNztcs(rec) {
@@ -3013,10 +3032,15 @@ function lookupNztcs(rec) {
   for (const k of keysToTry) {
     const e = nztcsData['gbifkey:' + k];
     if (e) {
-      // Check if this entry's binomial has a known conflict — conflict takes priority
+      // A binomial-level conflict takes priority — unless the entry we matched is
+      // itself a subspecies. A trinomial is already about as determined as a record
+      // gets: it names the subspecies, so there is nothing left to disambiguate
+      // against that binomial's other subspecies. Asking anyway discarded the very
+      // determination that answered the question, and put records already resolved
+      // to Apteryx australis australis behind a four-way picker.
       const bin = (e.name || '').toLowerCase().split(/\s+/).slice(0, 2).join(' ');
       const bc = bin && nztcsData['conflict:' + bin];
-      if (bc) return { conflict: true, options: bc.options };
+      if (bc && nztcsRankDepth(e.name) < 3) return { conflict: true, options: bc.options };
       return { entry: e, certain: true };
     }
     const c = nztcsData['gbifconflict:' + k];
@@ -7268,6 +7292,13 @@ if (window._pendingShare) {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v7.18</span>
+      <span class="changelog-date">Aug 2026</span>
+      <ul>
+        <li>Records already identified to a subspecies keep that identification instead of being asked about again. Where NZTCS lists several subspecies under one name and they differ in threat status, the ⚠? picker was shown even for records determined to one of them — a record of <em>Apteryx australis australis</em>, which has its own unambiguous listing, still came up as "subspecies differ" against the other three tokoeka. A trinomial is about as determined as a record gets, so it is now taken at face value. Records identified only to the species are still flagged, because there the question really is open</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v7.17</span>
       <span class="changelog-date">Aug 2026</span>
