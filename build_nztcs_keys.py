@@ -251,19 +251,26 @@ size_kb = os.path.getsize(NZTCS_JSON) / 1024
 print(f"\nWritten: {NZTCS_JSON} ({size_kb:.1f} KB)")
 
 # ── Spot checks ────────────────────────────────────────────────────────────
-# These four must all resolve. The previous set named Zapornia pusilla, Egretta
-# sacra and Porzana tabuensis, none of which appear in the current NZTCS export
-# at all, so the block printed NOT FOUND on every run and its silence meant
-# nothing. Limosella australis is the one that matters most here: it is the real
-# species in the genus whose key the rank guard now drops, so a status on this
-# line is what proves the guard removed the genus without taking the species
-# with it. The subspecies is there to show ranks below species still resolve.
+# These must all resolve. The previous set checked keys 2474403, 7268804,
+# 7518721 and 2481815, none of which exist in nztcs.json, so the block printed
+# NOT FOUND on every run and its silence meant nothing. The taxa themselves are
+# present and always were — Baillon's crake is here as Zapornia pusilla affinis
+# on 2474628 and 9525904 — so those were stale key IDs, not missing species.
+# Keys are checked against the current data now rather than remembered.
+#
+# Limosella australis matters most: it is the real species in the genus whose
+# key the rank guard drops, so a status on that line is what proves the guard
+# took the genus without taking the species with it. The two subspecies show
+# that ranks below species still resolve, on both the species key and the
+# subspecies usage key.
 print("\nSpot checks (all must resolve):")
 checks = {
     3172213: "Limosella australis — the real species behind the dropped genus",
     2297479: "Pseudaneitea marmoratus — fuzzy match on a gender variant",
     6173961: "Acanthisitta chloris granti — SUBSPECIES rank",
     5687181: "Dactylanthus taylorii — SPECIES rank",
+    2474628: "Zapornia pusilla affinis (Baillon's crake) — speciesKey",
+    9525904: "Zapornia pusilla affinis — subspecies usageKey",
 }
 for gbif_id, label in checks.items():
     k = 'gbifkey:' + str(gbif_id)
