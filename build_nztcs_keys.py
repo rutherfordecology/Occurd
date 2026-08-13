@@ -15,10 +15,9 @@ Usage:
     python build_nztcs_keys.py
 """
 
-import sys, json, re, time
+import sys, os, json, re, time
 sys.stdout.reconfigure(encoding='utf-8')
 
-import openpyxl
 from urllib.request import urlopen
 from urllib.parse import urlencode
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -32,6 +31,22 @@ CONCURRENCY  = 20      # parallel requests
 CONFIDENCE   = 85      # minimum GBIF match confidence to accept
 MATCH_TYPES  = {'EXACT', 'FUZZY'}
 
+# Ranks a match may be accepted at. Confidence says nothing about rank, and that
+# is the trap: NZTCS names undescribed taxa as "Limosella (b) (CHR 515038;
+# Manutahi)". GBIF cannot parse that, strips it back to the bare genus, and
+# returns Limosella at 94% confidence with matchType EXACT — exact, because
+# Limosella really is an exact match for Limosella. Accepting it stamps one
+# species' threat status onto an entire genus, and since GBIF's TAXON_KEY
+# predicate is hierarchical, every record in the genus inherits it: a national
+# download filtered on that key returns all of them as Nationally Critical,
+# while NZTCS separately lists Limosella australis as Not Threatened.
+#
+# 94 NZTCS names match above species rank, polluting 60 keys, 21 of them with a
+# Threatened or At Risk status. A wrong answer is worse than none, so they are
+# dropped rather than resolved to the wrong taxon — an undescribed taxon with no
+# GBIF backbone entry simply has no key, which is the truth.
+ACCEPT_RANKS = {'SPECIES', 'SUBSPECIES', 'VARIETY', 'FORM', 'SUBVARIETY', 'SUBFORM'}
+
 # ── Helpers ────────────────────────────────────────────────────────────────
 
 def clean(s):
@@ -44,23 +59,31 @@ def norm_name(s):
     s = s.strip().strip('"').strip("'").lower()
     return re.sub(r'\s+', ' ', s)
 
-# ── Load NZTCS names from Excel ────────────────────────────────────────────
+# ── Load NZTCS names ───────────────────────────────────────────────────────
+# The spreadsheet is where new names come from, but it lives outside the repo,
+# so a fresh checkout could not run this script at all. Every name already
+# resolved is a key in the cache, and norm_name is pure, so the mapping rebuilds
+# from the cache alone — enough to regenerate nztcs.json without the spreadsheet
+# and without a single API call. Only discovering names not yet seen needs it.
 
-print("Loading NZTCS names from Excel…")
-wb = openpyxl.load_workbook(XLSX, read_only=True, data_only=True)
-ws = wb.active
-headers = [cell.value for cell in next(ws.iter_rows(min_row=1, max_row=1))]
-
-# Collect: canonical key → (original name, NZTCS entry summary)
 name_to_key = {}   # original_name → norm_key (for reverse lookup)
-for row in ws.iter_rows(min_row=2, values_only=True):
-    d = dict(zip(headers, row))
-    name = clean(d.get('Current Species Name'))
-    if name:
-        name_to_key[name] = norm_name(name)
 
-wb.close()
-print(f"  {len(name_to_key)} unique species names")
+if os.path.exists(XLSX):
+    print("Loading NZTCS names from Excel…")
+    import openpyxl
+    wb = openpyxl.load_workbook(XLSX, read_only=True, data_only=True)
+    ws = wb.active
+    headers = [cell.value for cell in next(ws.iter_rows(min_row=1, max_row=1))]
+    for row in ws.iter_rows(min_row=2, values_only=True):
+        d = dict(zip(headers, row))
+        name = clean(d.get('Current Species Name'))
+        if name:
+            name_to_key[name] = norm_name(name)
+    wb.close()
+    print(f"  {len(name_to_key)} unique species names")
+else:
+    print(f"No spreadsheet at {XLSX}")
+    print("  Rebuilding from the match cache — no new names will be discovered.")
 
 # ── Load / seed cache ──────────────────────────────────────────────────────
 
@@ -70,6 +93,11 @@ try:
     print(f"  Cache: {len(cache)} entries already resolved")
 except FileNotFoundError:
     cache = {}
+
+# Whatever the spreadsheet did or did not provide, every cached name is one we
+# have already resolved and can still place.
+for name in cache:
+    name_to_key.setdefault(name, norm_name(name))
 
 # ── GBIF species match ─────────────────────────────────────────────────────
 
@@ -146,7 +174,7 @@ print(f"  Removed {len(old_keys)} stale gbifkey entries")
 #   "gbifkey:{usageKey}"     — exact usage key for this name
 #   "gbifkey:{acceptedKey}"  — accepted name key (handles synonyms)
 
-added = skipped_low_conf = skipped_no_key = 0
+added = skipped_low_conf = skipped_no_key = skipped_rank = 0
 
 # Group entries by speciesKey to detect conflicts before writing
 from collections import defaultdict
@@ -160,6 +188,11 @@ for name, result in cache.items():
     conf = result.get('confidence', 0)
     if conf < CONFIDENCE:
         skipped_low_conf += 1
+        continue
+
+    # A genus is not a species. See ACCEPT_RANKS above.
+    if (result.get('rank') or '').upper() not in ACCEPT_RANKS:
+        skipped_rank += 1
         continue
 
     norm = name_to_key.get(name)
@@ -206,27 +239,48 @@ print(f"  Usage keys added: {usage_added}")
 
 print(f"\nNew gbifkey entries added: {added}")
 print(f"Skipped (low confidence): {skipped_low_conf}")
+print(f"Skipped (matched above species rank): {skipped_rank}")
 print(f"Skipped (name not in nztcs): {skipped_no_key}")
 print(f"Total entries: {len(nztcs)}")
 
 # ── Write updated nztcs.json ───────────────────────────────────────────────
 
-import os
 with open(NZTCS_JSON, 'w', encoding='utf-8') as f:
     json.dump(nztcs, f, ensure_ascii=False, separators=(',', ':'))
 size_kb = os.path.getsize(NZTCS_JSON) / 1024
 print(f"\nWritten: {NZTCS_JSON} ({size_kb:.1f} KB)")
 
 # ── Spot checks ────────────────────────────────────────────────────────────
-print("\nSpot checks (key lookup):")
+# These four must all resolve. The previous set named Zapornia pusilla, Egretta
+# sacra and Porzana tabuensis, none of which appear in the current NZTCS export
+# at all, so the block printed NOT FOUND on every run and its silence meant
+# nothing. Limosella australis is the one that matters most here: it is the real
+# species in the genus whose key the rank guard now drops, so a status on this
+# line is what proves the guard removed the genus without taking the species
+# with it. The subspecies is there to show ranks below species still resolve.
+print("\nSpot checks (all must resolve):")
 checks = {
-    2474403: "Zapornia pusilla (Baillon's crake) — speciesKey",
-    7268804: "Zapornia pusilla affinis — usageKey (if exists)",
-    7518721: "Egretta sacra — speciesKey",
-    2481815: "Porzana tabuensis / Spotless crake",
+    3172213: "Limosella australis — the real species behind the dropped genus",
+    2297479: "Pseudaneitea marmoratus — fuzzy match on a gender variant",
+    6173961: "Acanthisitta chloris granti — SUBSPECIES rank",
+    5687181: "Dactylanthus taylorii — SPECIES rank",
 }
 for gbif_id, label in checks.items():
     k = 'gbifkey:' + str(gbif_id)
     v = nztcs.get(k)
     status = v['status'] if v else 'NOT FOUND'
     print(f"  {gbif_id} ({label}): {status}")
+
+# Genus keys that must NOT be present. Each is a genus GBIF handed back for an
+# NZTCS tag name it could not parse; a status here means the rank guard has
+# stopped working and a whole genus is being called threatened again.
+print("\nGenus keys (all must read NOT FOUND):")
+for gbif_id, label in {
+    3172210: "Limosella — was Nationally Critical",
+    2874465: "Melicytus — was Nationally Endangered",
+    2813988: "Thelymitra — was Nationally Critical",
+    2925668: "Myosotis — was Nationally Endangered",
+    5428316: "Aciphylla — was Nationally Vulnerable",
+}.items():
+    v = nztcs.get('gbifkey:' + str(gbif_id))
+    print(f"  {gbif_id} ({label}): {v['status'] if v else 'NOT FOUND'}")

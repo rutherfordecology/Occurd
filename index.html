@@ -49,7 +49,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v7.19</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v7.20</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -7319,6 +7319,15 @@ if (window._pendingShare) {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v7.20</span>
+      <span class="changelog-date">Aug 2026</span>
+      <ul>
+        <li>A whole genus is no longer badged with one species' threat status. NZTCS names undescribed taxa as <em>Limosella</em> (b) (CHR 515038; Manutahi). GBIF's name matcher cannot parse that, strips it back to the bare genus, and returns <em>Limosella</em> at 94% confidence marked EXACT — exact, because <em>Limosella</em> really is an exact match for <em>Limosella</em>. That genus key was then written in as though it were a species, so every <em>Limosella</em> record in the country inherited Nationally Critical, while NZTCS separately lists <em>Limosella australis</em> as Not Threatened. The same genus was being asserted both ways at once</li>
+        <li>94 NZTCS names matched above species rank this way, giving 60 wrong keys, 21 of them Threatened or At Risk — <em>Melicytus</em>, <em>Thelymitra</em>, <em>Myosotis</em>, <em>Aciphylla</em>, <em>Coriaria</em>, <em>Lejeunea</em> and others, mostly undescribed taxa carrying tag names, plus species whose genus is quoted to show it is uncertain. A match is now accepted only at species rank or below, so those keys are simply absent. An undescribed taxon with no entry in GBIF's backbone has no key, which is the truth; a wrong key is worse than none. Nothing at species rank or below is affected — 14,841 keys remain of 14,901, and the 60 removed were all genus or order</li>
+        <li>None of these was ever flagged as a conflict, because nothing about the match looked uncertain: exactly one NZTCS entry claimed each key and it answered confidently. Only a rank check could catch them</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v7.19</span>
       <span class="changelog-date">Aug 2026</span>
