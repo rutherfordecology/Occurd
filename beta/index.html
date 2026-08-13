@@ -49,7 +49,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v7.17b</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v7.21b</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -3002,6 +3002,42 @@ function nztcsNormKey(s) {
   return s.toLowerCase().replace(/^["'\s]+|["'\s]+$/g, '').replace(/\s+/g, ' ');
 }
 
+// How many name tokens a NZTCS name carries before its authority:
+//   "Rhipidura fuliginosa"                    -> 2
+//   "Rhipidura fuliginosa penita Bangs, 1911" -> 3
+// Epithets are lower case while authorities are capitalised or numeric, so tokens
+// are counted only while they stay lower-case alphabetic. Rank markers (subsp.,
+// var.) are skipped rather than counted.
+// Before raising a subspecies conflict off a taxon key, see whether the record's
+// own name already answers it. A GBIF download identified to Acanthisitta chloris
+// granti still carries the species-level taxon key, because that is what GBIF's
+// backbone matched — so resolving on the key alone reopens a question the record
+// itself has settled. Only accepted when the name matches an NZTCS entry that is
+// one of the competing options, so a vague name still leaves the conflict standing.
+function nztcsByRecordName(rec, options) {
+  if (!options || !options.length) return null;
+  for (const n of [rec.species, rec.scientificName]) {
+    const k = nztcsNormKey(n);
+    if (!k) continue;
+    const e = nztcsData[k];
+    if (e && options.some(o => o.name === e.name)) return e;
+  }
+  return null;
+}
+
+function nztcsRankDepth(name) {
+  const parts = String(name || '').replace(/\([^)]*\)/g, ' ').trim().split(/\s+/);
+  if (!parts[0]) return 0;
+  let n = 1;
+  for (const p of parts.slice(1)) {
+    const t = p.replace(/[.,;]+$/, '');
+    if (/^(subsp|ssp|var|forma|f|cf|aff)$/i.test(t)) continue;
+    if (!/^[a-z-]+$/.test(t)) break;
+    if (++n === 3) break;
+  }
+  return n;
+}
+
 // Returns { entry, certain } | { conflict: true, options: [] } | null.
 // certain=false means the match was via a binomial-prefix fallback and should be flagged with *.
 function lookupNztcs(rec) {
@@ -3013,14 +3049,26 @@ function lookupNztcs(rec) {
   for (const k of keysToTry) {
     const e = nztcsData['gbifkey:' + k];
     if (e) {
-      // Check if this entry's binomial has a known conflict — conflict takes priority
+      // A binomial-level conflict takes priority — unless the entry we matched is
+      // itself a subspecies. A trinomial is already about as determined as a record
+      // gets: it names the subspecies, so there is nothing left to disambiguate
+      // against that binomial's other subspecies. Asking anyway discarded the very
+      // determination that answered the question, and put records already resolved
+      // to Apteryx australis australis behind a four-way picker.
       const bin = (e.name || '').toLowerCase().split(/\s+/).slice(0, 2).join(' ');
       const bc = bin && nztcsData['conflict:' + bin];
-      if (bc) return { conflict: true, options: bc.options };
+      if (bc && nztcsRankDepth(e.name) < 3) {
+        return nztcsByRecordName(rec, bc.options)
+          ? { entry: nztcsByRecordName(rec, bc.options), certain: true }
+          : { conflict: true, options: bc.options };
+      }
       return { entry: e, certain: true };
     }
     const c = nztcsData['gbifconflict:' + k];
-    if (c) return { conflict: true, options: c.options };
+    if (c) {
+      const byName = nztcsByRecordName(rec, c.options);
+      return byName ? { entry: byName, certain: true } : { conflict: true, options: c.options };
+    }
   }
   // 2. Exact name-based lookup — also reliable
   const candidates = [
@@ -3042,7 +3090,10 @@ function lookupNztcs(rec) {
         const bin = (parts[0] + ' ' + parts[1]).toLowerCase();
         if (nztcsData[bin]) return { entry: nztcsData[bin], certain: false };
         const cb = nztcsData['conflict:' + bin];
-        if (cb) return { conflict: true, options: cb.options };
+        if (cb) {
+          const byName = nztcsByRecordName(rec, cb.options);
+          return byName ? { entry: byName, certain: true } : { conflict: true, options: cb.options };
+        }
       }
     }
   }
@@ -5366,11 +5417,7 @@ function buildChecklist(records) {
         e.stopPropagation();
         if (e.target.checked) hiddenSpecies.delete(name);
         else hiddenSpecies.add(name);
-        if (viewMode === 'heat') renderHeatmap(allRecords);
-        else { renderPoints(allRecords); applyTimelineFilter(); }
-        _updateLooklikeBtn();
-        document.getElementById('mShown').textContent = allRecords.filter(passesFilters).length.toLocaleString();
-        csvData = buildCSV(allRecords.filter(passesFilters));
+        _refreshSpeciesVisibility();
       });
       row.addEventListener('click', e => {
         if (e.target.closest('.cl-photo-cb')) return; // checkbox handles its own click
@@ -5379,16 +5426,21 @@ function buildChecklist(records) {
           .filter(r => r.style.display !== 'none')
           .map(r => r.querySelector('.cl-photo-cb'));
         const allSelected = visibleCbs.every(c => c.checked);
+        // Boxes and hiddenSpecies are updated directly, then the map is rebuilt
+        // once — the same approach "select all visible" already takes, and for
+        // the same reason. Dispatching a change event per box fired one full
+        // re-render and CSV rebuild for every other species in the checklist.
+        const setRow = (c, want) => {
+          c.checked = want;
+          const n = c.closest('.cl-row') && c.closest('.cl-row').dataset.species;
+          if (n) { if (want) hiddenSpecies.delete(n); else hiddenSpecies.add(n); }
+        };
         if (allSelected && visibleCbs.length > 1) {
-          // Solo this species: untick everything else, keep/tick this one
-          visibleCbs.forEach(c => {
-            if (c !== cb && c.checked) { c.checked = false; c.dispatchEvent(new Event('change', { bubbles: true })); }
-          });
-          if (!cb.checked) { cb.checked = true; cb.dispatchEvent(new Event('change', { bubbles: true })); }
+          visibleCbs.forEach(c => setRow(c, c === cb));   // solo this species
         } else {
-          cb.checked = !cb.checked;
-          cb.dispatchEvent(new Event('change', { bubbles: true }));
+          setRow(cb, !cb.checked);
         }
+        _refreshSpeciesVisibility();
         document.querySelectorAll('.cl-group-header').forEach(header => _syncGroupCb(header));
         _syncSelAllVisible();
       });
@@ -5414,6 +5466,21 @@ function buildChecklist(records) {
     _iucnFetchAbort = true;
     setTimeout(() => { _iucnFetchAbort = false; fetchIucnStatuses(records); }, 0);
   }
+}
+
+// One rebuild after the set of shown species changes. Every control that can
+// change several species at once funnels through here, so a bulk operation
+// costs a single render rather than one per species. Dispatching a change event
+// per checkbox instead makes the work quadratic: each row's handler re-renders
+// every marker and rebuilds the whole CSV, so one click on a several-hundred
+// species checklist did that several hundred times over and hung the tab.
+function _refreshSpeciesVisibility() {
+  if (viewMode === 'heat') renderHeatmap(allRecords);
+  else { renderPoints(allRecords); applyTimelineFilter(); }
+  _updateLooklikeBtn();
+  const visible = allRecords.filter(passesFilters);   // one scan, not two
+  document.getElementById('mShown').textContent = visible.length.toLocaleString();
+  csvData = buildCSV(visible);
 }
 
 // ── LookLike integration ─────────────────────────────────────────────────────
@@ -5549,11 +5616,7 @@ document.getElementById('clSelAllVisible').addEventListener('change', function()
     }
   });
   document.querySelectorAll('.cl-group-header').forEach(header => _syncGroupCb(header));
-  if (viewMode === 'heat') renderHeatmap(allRecords);
-  else { renderPoints(allRecords); applyTimelineFilter(); }
-  _updateLooklikeBtn();
-  document.getElementById('mShown').textContent = allRecords.filter(passesFilters).length.toLocaleString();
-  csvData = buildCSV(allRecords.filter(passesFilters));
+  _refreshSpeciesVisibility();
 });
 
 function _syncGroupCb(header) {
@@ -7268,6 +7331,38 @@ if (window._pendingShare) {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v7.21</span>
+      <span class="changelog-date">Aug 2026</span>
+      <ul>
+        <li>Clicking a species in the checklist no longer freezes the page. Clicking one species when everything is ticked solos it — the other species are unticked so only that one is left on the map — and each of those was being unticked with its own change event. Every one of those events rebuilt every marker on the map and regenerated the whole download CSV, so a single click on a 529-species checklist did that 528 times over. On a 15,000-record file the tab locked up for over half a minute; on larger sets it stops responding altogether</li>
+        <li>The boxes and the map now update in one pass: one rebuild per click instead of one per species. The same click is 53&nbsp;ms on the file that used to hang it, and the result is unchanged — solo a species and you get exactly its records, click a second to add it, click again to drop it</li>
+        <li>"Select all visible" already worked this way; the species row was the path that had been missed. Both now share the same code, which also stops the visible-record count being recalculated twice on every change</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v7.20</span>
+      <span class="changelog-date">Aug 2026</span>
+      <ul>
+        <li>A whole genus is no longer badged with one species' threat status. NZTCS names undescribed taxa as <em>Limosella</em> (b) (CHR 515038; Manutahi). GBIF's name matcher cannot parse that, strips it back to the bare genus, and returns <em>Limosella</em> at 94% confidence marked EXACT — exact, because <em>Limosella</em> really is an exact match for <em>Limosella</em>. That genus key was then written in as though it were a species, so every <em>Limosella</em> record in the country inherited Nationally Critical, while NZTCS separately lists <em>Limosella australis</em> as Not Threatened. The same genus was being asserted both ways at once</li>
+        <li>94 NZTCS names matched above species rank this way, giving 60 wrong keys, 21 of them Threatened or At Risk — <em>Melicytus</em>, <em>Thelymitra</em>, <em>Myosotis</em>, <em>Aciphylla</em>, <em>Coriaria</em>, <em>Lejeunea</em> and others, mostly undescribed taxa carrying tag names, plus species whose genus is quoted to show it is uncertain. A match is now accepted only at species rank or below, so those keys are simply absent. An undescribed taxon with no entry in GBIF's backbone has no key, which is the truth; a wrong key is worse than none. Nothing at species rank or below is affected — 14,841 keys remain of 14,901, and the 60 removed were all genus or order</li>
+        <li>None of these was ever flagged as a conflict, because nothing about the match looked uncertain: exactly one NZTCS entry claimed each key and it answered confidently. Only a rank check could catch them</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v7.19</span>
+      <span class="changelog-date">Aug 2026</span>
+      <ul>
+        <li>The name on the record is now read before a subspecies conflict is raised. A GBIF download identified as <em>Acanthisitta chloris granti</em> still carries the species-level taxon key, because that is what GBIF's backbone matched, so resolving on the key alone reopened a question the record had already answered. Where the record's own name matches one of the competing subspecies, that is taken as the answer. A vague name still leaves the conflict standing</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v7.18</span>
+      <span class="changelog-date">Aug 2026</span>
+      <ul>
+        <li>Records already identified to a subspecies keep that identification instead of being asked about again. Where NZTCS lists several subspecies under one name and they differ in threat status, the ⚠? picker was shown even for records determined to one of them — a record of <em>Apteryx australis australis</em>, which has its own unambiguous listing, still came up as "subspecies differ" against the other three tokoeka. A trinomial is about as determined as a record gets, so it is now taken at face value. Records identified only to the species are still flagged, because there the question really is open</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v7.17</span>
       <span class="changelog-date">Aug 2026</span>
