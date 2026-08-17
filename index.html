@@ -49,7 +49,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v7.21</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v7.23</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -2971,6 +2971,10 @@ const NZTCS_STATUS_CFG = {
   'Relict':                     { cls:'ar', label:'Re'  },
   'Gradual Decline':            { cls:'ar', label:'GD'  },
   'Serious Decline':            { cls:'ar', label:'SD'  },
+  // Sparse is a 2002/2008-era At Risk status, retired alongside Gradual and
+  // Serious Decline. Those two were carried over; this one was missed, so its
+  // taxa rendered with no badge and fell outside "All Threatened".
+  'Sparse':                     { cls:'ar', label:'Sp'  },
   'Uncommon':                   { cls:'ar', label:'Un'  },
   'Extinct':                    { cls:'ex', label:'Ex'  },
   'Recovering':                 { cls:'rc', label:'Rc'  },
@@ -2979,7 +2983,7 @@ const NZTCS_STATUS_CFG = {
   'Vagrant':                    { cls:'oi', label:'Va'  },
 };
 const NZTCS_FILTER_GROUPS = {
-  'th': ['Nationally Critical', 'Nationally Endangered', 'Nationally Vulnerable', 'Nationally Increasing', 'Declining', 'Naturally Uncommon', 'Relict', 'Gradual Decline', 'Serious Decline', 'Uncommon', 'Recovering', 'Extinct'],
+  'th': ['Nationally Critical', 'Nationally Endangered', 'Nationally Vulnerable', 'Nationally Increasing', 'Declining', 'Naturally Uncommon', 'Relict', 'Gradual Decline', 'Serious Decline', 'Sparse', 'Uncommon', 'Recovering', 'Extinct'],
   'amb': ['__ambiguous__'],
   'nc': ['Nationally Critical'],
   'ne': ['Nationally Endangered'],
@@ -2989,13 +2993,14 @@ const NZTCS_FILTER_GROUPS = {
   're': ['Relict'],
   'gd': ['Gradual Decline'],
   'sd': ['Serious Decline'],
+  'sp': ['Sparse'],
   'un': ['Uncommon'],
   'rc': ['Recovering'],
   'ni': ['Nationally Increasing'],
   'ex': ['Extinct'],
 };
-const NZTCS_FILTER_LABELS = { th:'All Threatened', amb:'△?', nc:'NC', ne:'NE', nv:'NV', de:'De', nu:'NU', re:'Re', gd:'GD', sd:'SD', un:'Un', rc:'Rc', ni:'NI', ex:'Ex' };
-const NZTCS_FILTER_ORDER  = ['th','amb','nc','ne','nv','de','nu','re','gd','sd','un','rc','ni','ex'];
+const NZTCS_FILTER_LABELS = { th:'All Threatened', amb:'△?', nc:'NC', ne:'NE', nv:'NV', de:'De', nu:'NU', re:'Re', gd:'GD', sd:'SD', sp:'Sp', un:'Un', rc:'Rc', ni:'NI', ex:'Ex' };
+const NZTCS_FILTER_ORDER  = ['th','amb','nc','ne','nv','de','nu','re','gd','sd','sp','un','rc','ni','ex'];
 
 function nztcsNormKey(s) {
   if (!s) return null;
@@ -3172,6 +3177,18 @@ function chooseNztcsSubsp(speciesName, optionIndex) {
   }
 }
 
+// Re-render whichever popup is open right now. Leaflet re-runs a popup's content
+// function on every open, so any popup opened after NZTCS is unlocked already
+// picks up the badge. One that was left open across the toggle does not — it
+// keeps its stale content until the user closes and reopens it, which reads as
+// the badge simply being missing. Same in reverse when NZTCS is switched off.
+function refreshOpenPopups() {
+  for (const state of Object.values(window._gbifPopupState || {})) {
+    const p = state && state.popup;
+    if (p && p.isOpen && p.isOpen()) p.update();
+  }
+}
+
 function updateNztcsBtn() {
   const btn = document.getElementById('clNztcsBtn');
   if (!btn) return;
@@ -3269,6 +3286,7 @@ async function loadNztcsData() {
     updateNztcsBtn();
     _lumpNztcsSpeciesNames(allRecords);
     if (allRecords.length > 0) buildChecklist(allRecords);
+    refreshOpenPopups();
     return;
   }
   try {
@@ -3279,6 +3297,7 @@ async function loadNztcsData() {
     updateNztcsBtn();
     _lumpNztcsSpeciesNames(allRecords);
     if (allRecords.length > 0) buildChecklist(allRecords);
+    refreshOpenPopups();
   } catch(err) {
     console.warn('NZTCS load failed:', err);
   }
@@ -3443,6 +3462,7 @@ document.getElementById('clNztcsBtn').addEventListener('click', async () => {
     document.querySelectorAll('.nztcs-fc').forEach(b => b.classList.toggle('active', b.dataset.f === 'all'));
     updateNztcsBtn();
     if (allRecords.length > 0) buildChecklist(allRecords);
+    refreshOpenPopups();
     return;
   }
   document.getElementById('nztcsBetaModal').classList.add('open');
@@ -7331,6 +7351,22 @@ if (window._pendingShare) {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v7.23</span>
+      <span class="changelog-date">Aug 2026</span>
+      <ul>
+        <li>A record popup left open while you switch NZTCS on now picks up the status badge straight away, instead of staying blank until you close and reopen it. Popup content is rebuilt on every open, so any popup opened after unlocking already showed the badge &mdash; but one already on screen at the moment you clicked NZTCS kept its old content, which looked like the badge was missing from the popup altogether. The same applies in reverse when NZTCS is switched off, where a stale badge could linger</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v7.22</span>
+      <span class="changelog-date">Aug 2026</span>
+      <ul>
+        <li>The Sparse threat status is recognised again. Sparse is a 2002/2008-era At Risk status, retired from NZTCS at the same time as Gradual Decline and Serious Decline. Those two were carried across into the status table; Sparse was missed, so its taxa carried no badge and sat outside the &quot;All Threatened&quot; filter despite NZTCS listing them as At Risk</li>
+        <li>Three taxa were affected, all fungi &mdash; <em>Asterinella intensa</em>, <em>Lophodermium kaikawakae</em> and <em>Guignardia korthalsellae</em>. They now badge as Sp, count towards At Risk, and appear under All Threatened, with their own Sp chip alongside GD and SD</li>
+        <li>This also brings the filter into line with the QEII covenant tool, which selects on NZTCS category rather than status and had always included these three. The two now agree on every At Risk and Threatened taxon; they still differ on Extinct, which Occurd includes in All Threatened and the covenant tool deliberately leaves out</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v7.21</span>
       <span class="changelog-date">Aug 2026</span>
