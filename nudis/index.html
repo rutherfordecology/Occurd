@@ -371,7 +371,7 @@
     <button class="icon-btn" data-back="home" aria-label="Back">&#8592;</button>
     <div class="topbar-grow">
       <div class="topbar-title">About</div>
-      <div class="topbar-meta">Nudis Near Me v1.2</div>
+      <div class="topbar-meta">Nudis Near Me v1.3</div>
     </div>
   </div>
   <div class="page prose">
@@ -425,6 +425,7 @@
 
     <h3>Changelog</h3>
     <ul class="changelog">
+      <li><b>v1.3</b> &mdash; Clearer wording when the map takes over: "Turn location on, or pick a spot".</li>
       <li><b>v1.2</b> &mdash; Dropped the emoji from the rockpooling and diving choice; the words carry it on their own.</li>
       <li><b>v1.1</b> &mdash; Down to a single "Let's go" button on the front page: it takes
         your location, and hands over to the map by itself if location is switched off or
@@ -560,7 +561,7 @@
   const goLabel = $('#goLabel');
 
   goBtn.addEventListener('click', function () {
-    if (!navigator.geolocation) return toMap("This browser won't share a location.");
+    if (!navigator.geolocation) return toMap("This browser won't share a location — pick a spot");
 
     goBtn.disabled = true;
     goSpin.hidden = false;
@@ -575,8 +576,8 @@
       function (err) {
         resetGoBtn();
         toMap(err.code === 1
-          ? 'Location is off, so pick a spot instead'
-          : "Couldn't get a fix on you — pick a spot instead");
+          ? 'Turn location on, or pick a spot'
+          : "Couldn't get a fix — turn location on, or pick a spot");
       },
       { enableHighAccuracy: true, timeout: 12000, maximumAge: 60000 }
     );
