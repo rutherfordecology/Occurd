@@ -421,7 +421,7 @@
     <button class="icon-btn" data-back="home" aria-label="Back">&#8592;</button>
     <div class="topbar-grow">
       <div class="topbar-title">About</div>
-      <div class="topbar-meta">Nudis Near Me v1.4</div>
+      <div class="topbar-meta">Nudis Near Me v1.5</div>
     </div>
   </div>
   <div class="page prose">
@@ -486,6 +486,7 @@
 
     <h3>Changelog</h3>
     <ul class="changelog">
+      <li><b>v1.5</b> &mdash; The map plots where you are, so the pin you drop has something to sit against, and the screen just says to pick a spot rather than explaining why it opened.</li>
       <li><b>v1.4</b> &mdash; Settings moved behind a gear, with a search-area slider from 100 m to 50 km on a roughly logarithmic scale (50 km stays the default). New option to sweep 50 km for records iNaturalist has obscured to protect threatened species; those are listed last and flagged, because their published position is randomised by up to about 25 km.</li>
       <li><b>v1.3</b> &mdash; Clearer wording when the map takes over: "Turn location on, or pick a spot".</li>
       <li><b>v1.2</b> &mdash; Dropped the emoji from the rockpooling and diving choice; the words carry it on their own.</li>
@@ -505,8 +506,7 @@
   <div class="topbar">
     <button class="icon-btn" data-back="home" aria-label="Back">&#8592;</button>
     <div class="topbar-grow">
-      <div class="topbar-title">Pick a spot</div>
-      <div class="topbar-meta" id="mapMeta">Tap the map to drop a pin</div>
+      <div class="topbar-title">Pick a spot on the map</div>
     </div>
   </div>
   <div class="page">
@@ -674,7 +674,7 @@
   const goLabel = $('#goLabel');
 
   goBtn.addEventListener('click', function () {
-    if (!navigator.geolocation) return toMap("This browser won't share a location — pick a spot");
+    if (!navigator.geolocation) return toMap();
 
     goBtn.disabled = true;
     goSpin.hidden = false;
@@ -683,14 +683,13 @@
     navigator.geolocation.getCurrentPosition(
       function (pos) {
         resetGoBtn();
+        rememberFix(pos);
         setLocation(pos.coords.latitude, pos.coords.longitude, 'gps');
         show('mode');
       },
-      function (err) {
+      function () {
         resetGoBtn();
-        toMap(err.code === 1
-          ? 'Turn location on, or pick a spot'
-          : "Couldn't get a fix — turn location on, or pick a spot");
+        toMap();
       },
       { enableHighAccuracy: true, timeout: 12000, maximumAge: 60000 }
     );
@@ -702,10 +701,19 @@
     goLabel.textContent = "Let's go";
   }
 
-  function toMap(reason) {
-    $('#mapMeta').textContent = reason || 'Tap the map to drop a pin';
+  function toMap() {
     show('map');
     setTimeout(initMap, 60);
+  }
+
+  /* Keep the last good fix so the map can show "you are here" without asking
+     the browser a second time. */
+  function rememberFix(pos) {
+    state.gps = {
+      lat: pos.coords.latitude,
+      lng: pos.coords.longitude,
+      acc: pos.coords.accuracy || 0
+    };
   }
 
   function setLocation(lat, lng, source) {
@@ -718,6 +726,7 @@
 
   // ── Map picker ──────────────────────────────────────────────────────────
   let map = null, pin = null, pinned = null;
+  let meMarker = null, meCircle = null, meFramed = false;
 
 
   function initMap() {
@@ -735,19 +744,45 @@
           radius: 9, color: '#fdf8f0', weight: 3, fillColor: '#d4145a', fillOpacity: 1
         }).addTo(map);
         $('#btnUsePin').disabled = false;
-        $('#mapMeta').textContent = 'Pin dropped — tap "Use this spot"';
       });
-
-      // Nudge the map towards the user without committing to their location.
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-          p => map.setView([p.coords.latitude, p.coords.longitude], 10),
-          () => {},
-          { timeout: 8000, maximumAge: 300000 }
-        );
-      }
     }
     map.invalidateSize();
+    showMeOnMap();
+  }
+
+  /* Plot where the user is, so the pin they drop has something to sit against.
+     Uses the fix we already hold if there is one; otherwise asks once. A refusal
+     is not worth reporting here — the screen already says to pick a spot. */
+  function showMeOnMap() {
+    if (state.gps) return plotMe(state.gps);
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+      function (p) { rememberFix(p); plotMe(state.gps); },
+      function () {},
+      { timeout: 8000, maximumAge: 300000 }
+    );
+  }
+
+  function plotMe(fix) {
+    if (meMarker) map.removeLayer(meMarker);
+    if (meCircle) map.removeLayer(meCircle);
+
+    if (fix.acc > 0) {
+      meCircle = L.circle([fix.lat, fix.lng], {
+        radius: fix.acc, color: '#4da3ff', weight: 1,
+        fillColor: '#4da3ff', fillOpacity: 0.15
+      }).addTo(map);
+    }
+    meMarker = L.circleMarker([fix.lat, fix.lng], {
+      radius: 7, color: '#fff', weight: 3, fillColor: '#4da3ff', fillOpacity: 1
+    }).addTo(map).bindTooltip('You are here', { direction: 'top', offset: [0, -8] });
+
+    // Only frame the user the first time; don't yank the map while they pan.
+    if (!meFramed) {
+      meFramed = true;
+      if (meCircle) map.fitBounds(meCircle.getBounds(), { maxZoom: 13, padding: [40, 40] });
+      else map.setView([fix.lat, fix.lng], 12);
+    }
   }
 
   $('#btnUsePin').addEventListener('click', function () {
@@ -788,7 +823,7 @@
     if (state.settingsFrom === 'results' && state.mode) go(state.mode);
     else show('mode');
   });
-  $('#btnElsewhere').addEventListener('click', function () { toMap('Tap the map to drop a pin'); });
+  $("#btnElsewhere").addEventListener("click", function () { toMap(); });
 
   async function go(mode) {
     state.mode = mode;
