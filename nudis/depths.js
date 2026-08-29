@@ -23,10 +23,6 @@
                    'genus'         genus-level default from GENUS_ZONES below
                    'general'       widely-reported natural history
 
-   NOTE ON SOURCES: no text, figures, or images have been taken from Willan &
-   Davey's "Super Sea Slugs" (NIWA 2020), which is CC BY-NC-ND. Where a depth
-   range here overlaps that guide it is because a depth range is a fact, and it
-   arrived via the Gisborne document rather than from the guide's wording.
    ──────────────────────────────────────────────────────────────────────────── */
 
 const SPECIES_ZONES = {

@@ -380,15 +380,6 @@
     color: rgba(253,248,240,0.68); margin-top: 2px;
   }
 
-  .changelog { list-style: none; }
-  .changelog li {
-    font-size: 0.88rem; font-weight: 600; line-height: 1.6; color: rgba(253,248,240,0.75);
-    padding: 12px 14px; border-radius: var(--radius);
-    background: rgba(253,248,240,0.06); border: 1px solid rgba(160,95,192,0.3);
-  }
-  .changelog li + li { margin-top: 8px; }
-  .changelog b { color: var(--gold); }
-
   @media (min-width: 700px) { .mode-grid { grid-template-columns: 1fr 1fr; } }
 </style>
 </head>
@@ -421,7 +412,7 @@
     <button class="icon-btn" data-back="home" aria-label="Back">&#8592;</button>
     <div class="topbar-grow">
       <div class="topbar-title">About</div>
-      <div class="topbar-meta">Nudis Near Me v1.5</div>
+      <div class="topbar-meta">Nudis Near Me v1.6</div>
     </div>
   </div>
   <div class="page prose">
@@ -451,8 +442,6 @@
        no depth attributes for them either. So the split is a hand-maintained table in
        <code>depths.js</code>, with a genus-level fallback. Species with no entry are shown
        in both lists and badged <i>depth unknown</i> rather than guessed at.</p>
-    <p>No text, figures, or images have been taken from Willan &amp; Davey's
-       <i>Super Sea Slugs</i> (NIWA, 2020), which is licensed CC BY-NC-ND.</p>
 
     <h3>Photos</h3>
     <p>Photographs come from iNaturalist and are shown only where the photographer has
@@ -484,20 +473,6 @@
       </a>
     </div>
 
-    <h3>Changelog</h3>
-    <ul class="changelog">
-      <li><b>v1.5</b> &mdash; The map plots where you are, so the pin you drop has something to sit against, and the screen just says to pick a spot rather than explaining why it opened.</li>
-      <li><b>v1.4</b> &mdash; Settings moved behind a gear, with a search-area slider from 100 m to 50 km on a roughly logarithmic scale (50 km stays the default). New option to sweep 50 km for records iNaturalist has obscured to protect threatened species; those are listed last and flagged, because their published position is randomised by up to about 25 km.</li>
-      <li><b>v1.3</b> &mdash; Clearer wording when the map takes over: "Turn location on, or pick a spot".</li>
-      <li><b>v1.2</b> &mdash; Dropped the emoji from the rockpooling and diving choice; the words carry it on their own.</li>
-      <li><b>v1.1</b> &mdash; Down to a single "Let's go" button on the front page: it takes
-        your location, and hands over to the map by itself if location is switched off or
-        can't get a fix. The map is still reachable when location does work, from the link
-        under the rockpooling and diving choice.</li>
-      <li><b>v1.0</b> &mdash; First release. Locate-me and click-on-map entry, rockpooling
-        and diving modes, species ranked by nearby record count, expandable cards with
-        recent nearby observations, optional GBIF pass, optional "Needs ID" records.</li>
-    </ul>
   </div>
 </section>
 
