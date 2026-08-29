@@ -183,6 +183,7 @@
   .leaflet-container { background: #2c0f38; font-family: var(--font-body); }
   .map-hint { text-align: center; font-size: 0.86rem; font-weight: 700; color: rgba(253,248,240,0.7); margin: 14px 0; }
   .map-hint b { color: var(--gold); }
+  .locating-dot { display: inline-block; color: var(--gold); }
 
   /* ── Mode chooser ────────────────────────────────────────────────────── */
   .mode-grid { display: grid; gap: 14px; }
@@ -395,7 +396,7 @@
 
     <div class="home-actions">
       <button class="btn btn-primary" id="btnGo">
-        <span class="spin" id="goSpin" hidden>&#9676;</span><span id="goLabel">Let's go</span>
+        <span id="goLabel">Let&rsquo;s go</span>
       </button>
     </div>
 
@@ -412,7 +413,7 @@
     <button class="icon-btn" data-back="home" aria-label="Back">&#8592;</button>
     <div class="topbar-grow">
       <div class="topbar-title">About</div>
-      <div class="topbar-meta">Nudis Near Me v1.6</div>
+      <div class="topbar-meta">Nudis Near Me v1.7</div>
     </div>
   </div>
   <div class="page prose">
@@ -486,7 +487,7 @@
   </div>
   <div class="page">
     <div id="pickMap"></div>
-    <p class="map-hint">Tap anywhere &mdash; somewhere <b>coastal</b> works best.</p>
+    <p class="map-hint" id="mapHint">Tap anywhere &mdash; somewhere <b>coastal</b> works best.</p>
     <button class="btn btn-primary" id="btnUsePin" disabled>Use this spot</button>
   </div>
 </section>
@@ -641,40 +642,12 @@
   const coarse = n => Math.round(n * 1000) / 1000;
 
   // ── Home ────────────────────────────────────────────────────────────────
-  /* One button. It tries for a fix, and quietly hands over to the map when it
-     can't get one — location being switched off is a normal thing to happen,
-     not an error worth shouting about. */
-  const goBtn   = $('#btnGo');
-  const goSpin  = $('#goSpin');
-  const goLabel = $('#goLabel');
-
-  goBtn.addEventListener('click', function () {
-    if (!navigator.geolocation) return toMap();
-
-    goBtn.disabled = true;
-    goSpin.hidden = false;
-    goLabel.textContent = 'Finding you…';
-
-    navigator.geolocation.getCurrentPosition(
-      function (pos) {
-        resetGoBtn();
-        rememberFix(pos);
-        setLocation(pos.coords.latitude, pos.coords.longitude, 'gps');
-        show('mode');
-      },
-      function () {
-        resetGoBtn();
-        toMap();
-      },
-      { enableHighAccuracy: true, timeout: 12000, maximumAge: 60000 }
-    );
-  });
-
-  function resetGoBtn() {
-    goBtn.disabled = false;
-    goSpin.hidden = true;
-    goLabel.textContent = "Let's go";
-  }
+  /* One button, and it goes straight to the map rather than waiting on a fix
+     first. The map is the confirmation step, not a fallback, so it should
+     appear the instant you tap. Locating happens on the map itself and drops
+     the pin when it lands, which also means a permission prompt left sitting
+     unanswered can never strand you on the front page. */
+  $('#btnGo').addEventListener('click', toMap);
 
   function toMap() {
     show('map');
@@ -700,7 +673,7 @@
   }
 
   // ── Map picker ──────────────────────────────────────────────────────────
-  let map = null, pin = null, pinned = null;
+  let map = null, pin = null, pinned = null, pinSource = "pin";
   let meMarker = null, meCircle = null, meFramed = false;
 
 
@@ -712,14 +685,7 @@
         attribution: '&copy; <a href="https://openstreetmap.org/copyright">OpenStreetMap</a> contributors'
       }).addTo(map);
 
-      map.on('click', function (e) {
-        pinned = e.latlng;
-        if (pin) map.removeLayer(pin);
-        pin = L.circleMarker(pinned, {
-          radius: 9, color: '#fdf8f0', weight: 3, fillColor: '#d4145a', fillOpacity: 1
-        }).addTo(map);
-        $('#btnUsePin').disabled = false;
-      });
+      map.on('click', function (e) { dropPin(e.latlng, 'pin'); });
     }
     map.invalidateSize();
     showMeOnMap();
@@ -730,12 +696,20 @@
      is not worth reporting here — the screen already says to pick a spot. */
   function showMeOnMap() {
     if (state.gps) return plotMe(state.gps);
-    if (!navigator.geolocation) return;
+    if (!navigator.geolocation) return setLocating(false);
+
+    setLocating(true);
     navigator.geolocation.getCurrentPosition(
-      function (p) { rememberFix(p); plotMe(state.gps); },
-      function () {},
-      { timeout: 8000, maximumAge: 300000 }
+      function (p) { setLocating(false); rememberFix(p); plotMe(state.gps); },
+      function () { setLocating(false); },
+      { enableHighAccuracy: true, timeout: 12000, maximumAge: 60000 }
     );
+  }
+
+  function setLocating(on) {
+    $('#mapHint').innerHTML = on
+      ? '<span class="spin locating-dot">◌</span> Finding you&hellip; or tap the map to pick a spot.'
+      : 'Tap anywhere &mdash; somewhere <b>coastal</b> works best.';
   }
 
   function plotMe(fix) {
@@ -758,11 +732,25 @@
       if (meCircle) map.fitBounds(meCircle.getBounds(), { maxZoom: 13, padding: [40, 40] });
       else map.setView([fix.lat, fix.lng], 12);
     }
+
+    /* Pre-drop the pin where they are, so the common case is tap "Let's go",
+       tap "Use this spot". Tapping the map still moves it anywhere. */
+    if (!pinned) dropPin(L.latLng(fix.lat, fix.lng), 'gps');
+  }
+
+  function dropPin(latlng, source) {
+    pinned = latlng;
+    pinSource = source;
+    if (pin) map.removeLayer(pin);
+    pin = L.circleMarker(pinned, {
+      radius: 9, color: '#fdf8f0', weight: 3, fillColor: '#d4145a', fillOpacity: 1
+    }).addTo(map);
+    $('#btnUsePin').disabled = false;
   }
 
   $('#btnUsePin').addEventListener('click', function () {
     if (!pinned) return;
-    setLocation(pinned.lat, pinned.lng, 'pin');
+    setLocation(pinned.lat, pinned.lng, pinSource);
     show('mode');
   });
 
