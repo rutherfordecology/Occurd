@@ -196,7 +196,6 @@
   }
   .mode-card:hover { background: rgba(253,248,240,0.15); border-color: var(--gold); transform: translateY(-2px); }
   .mode-card:active { transform: translateY(0); }
-  .mode-emoji { font-size: 2.3rem; line-height: 1; flex-shrink: 0; }
   .mode-name { display: block; font-family: var(--font-display); font-weight: 600; font-size: 1.35rem; }
   .mode-desc { display: block; font-size: 0.85rem; font-weight: 600; color: rgba(253,248,240,0.68); margin-top: 3px; line-height: 1.45; }
 
@@ -372,7 +371,7 @@
     <button class="icon-btn" data-back="home" aria-label="Back">&#8592;</button>
     <div class="topbar-grow">
       <div class="topbar-title">About</div>
-      <div class="topbar-meta">Nudis Near Me v1.1</div>
+      <div class="topbar-meta">Nudis Near Me v1.2</div>
     </div>
   </div>
   <div class="page prose">
@@ -426,6 +425,7 @@
 
     <h3>Changelog</h3>
     <ul class="changelog">
+      <li><b>v1.2</b> &mdash; Dropped the emoji from the rockpooling and diving choice; the words carry it on their own.</li>
       <li><b>v1.1</b> &mdash; Down to a single "Let's go" button on the front page: it takes
         your location, and hands over to the map by itself if location is switched off or
         can't get a fix. The map is still reachable when location does work, from the link
@@ -468,14 +468,12 @@
 
     <div class="mode-grid">
       <button class="mode-card" data-mode="rockpool">
-        <span class="mode-emoji">🪣</span>
         <span>
           <span class="mode-name">Rockpooling</span>
           <span class="mode-desc">Low tide, wet feet. Only the species that reach the intertidal.</span>
         </span>
       </button>
       <button class="mode-card" data-mode="dive">
-        <span class="mode-emoji">🤿</span>
         <span>
           <span class="mode-name">Diving</span>
           <span class="mode-desc">Mask on. Everything recorded nearby, shallow and deep.</span>
@@ -513,8 +511,8 @@
     <button class="icon-btn" id="btnRestart" aria-label="Start again" title="Start again">&#8635;</button>
   </div>
   <div class="mode-pills">
-    <button class="pill" data-mode="rockpool">🪣 Rockpooling</button>
-    <button class="pill" data-mode="dive">🤿 Diving</button>
+    <button class="pill" data-mode="rockpool">Rockpooling</button>
+    <button class="pill" data-mode="dive">Diving</button>
   </div>
   <div class="page" id="resultsPage"></div>
 </section>
