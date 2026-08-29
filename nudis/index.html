@@ -95,13 +95,16 @@
     text-shadow: 0 3px 0 rgba(44,15,56,0.35);
   }
   .home-title .near { color: var(--gold); display: block; }
-  .home-sub {
-    font-size: 1rem; font-weight: 600; line-height: 1.55;
-    color: rgba(253,248,240,0.78);
-    max-width: 21rem; margin: 14px auto 30px;
-  }
+  .home-actions { display: flex; flex-direction: column; gap: 12px; width: min(340px, 100%); margin-top: 8px; }
 
-  .home-actions { display: flex; flex-direction: column; gap: 12px; width: min(340px, 100%); }
+  .text-link {
+    display: block; margin: 18px auto 0; padding: 8px 4px;
+    background: none; border: none; cursor: pointer;
+    font-family: var(--font-body); font-weight: 700; font-size: 0.84rem;
+    color: rgba(253,248,240,0.55); text-decoration: underline;
+    text-underline-offset: 3px; -webkit-tap-highlight-color: transparent;
+  }
+  .text-link:hover { color: var(--cream); }
 
   .btn {
     font-family: var(--font-display); font-weight: 600;
@@ -141,12 +144,6 @@
     -webkit-tap-highlight-color: transparent; transition: all 0.15s;
   }
   .about-link:hover { color: var(--cream); border-color: rgba(253,248,240,0.55); }
-
-  .geo-error {
-    margin-top: 14px; font-size: 0.86rem; font-weight: 700; color: #ffd0e0;
-    background: rgba(212,20,90,0.25); border: 1px solid rgba(240,65,127,0.5);
-    border-radius: var(--radius); padding: 10px 14px; max-width: 340px;
-  }
 
   /* ── Shared chrome ───────────────────────────────────────────────────── */
   .topbar {
@@ -200,8 +197,8 @@
   .mode-card:hover { background: rgba(253,248,240,0.15); border-color: var(--gold); transform: translateY(-2px); }
   .mode-card:active { transform: translateY(0); }
   .mode-emoji { font-size: 2.3rem; line-height: 1; flex-shrink: 0; }
-  .mode-name { font-family: var(--font-display); font-weight: 600; font-size: 1.35rem; }
-  .mode-desc { font-size: 0.85rem; font-weight: 600; color: rgba(253,248,240,0.68); margin-top: 3px; line-height: 1.45; }
+  .mode-name { display: block; font-family: var(--font-display); font-weight: 600; font-size: 1.35rem; }
+  .mode-desc { display: block; font-size: 0.85rem; font-weight: 600; color: rgba(253,248,240,0.68); margin-top: 3px; line-height: 1.45; }
 
   .opt-row {
     margin-top: 20px; padding: 14px 16px; border-radius: var(--radius);
@@ -355,16 +352,12 @@
     <div class="nudi-art"><img src="nudi-logo.webp" alt="" width="900" height="641"></div>
 
     <h1 class="home-title">Nudis<span class="near">Near Me</span></h1>
-    <p class="home-sub">Sea slugs have been found where you are standing. Let's go and see which ones.</p>
 
     <div class="home-actions">
-      <button class="btn btn-primary" id="btnFindMe">
-        <span id="findMeIcon">&#9678;</span> <span id="findMeLabel">Find me</span>
+      <button class="btn btn-primary" id="btnGo">
+        <span class="spin" id="goSpin" hidden>&#9676;</span><span id="goLabel">Let's go</span>
       </button>
-      <button class="btn btn-ghost" id="btnPickMap">&#9873; Or click on a map</button>
     </div>
-
-    <div class="geo-error" id="geoError" hidden></div>
 
     <p class="home-foot">
       by <a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank" rel="noopener">Rutherford Ecology</a>
@@ -379,7 +372,7 @@
     <button class="icon-btn" data-back="home" aria-label="Back">&#8592;</button>
     <div class="topbar-grow">
       <div class="topbar-title">About</div>
-      <div class="topbar-meta">Nudis Near Me v1.0</div>
+      <div class="topbar-meta">Nudis Near Me v1.1</div>
     </div>
   </div>
   <div class="page prose">
@@ -433,6 +426,10 @@
 
     <h3>Changelog</h3>
     <ul class="changelog">
+      <li><b>v1.1</b> &mdash; Down to a single "Let's go" button on the front page: it takes
+        your location, and hands over to the map by itself if location is switched off or
+        can't get a fix. The map is still reachable when location does work, from the link
+        under the rockpooling and diving choice.</li>
       <li><b>v1.0</b> &mdash; First release. Locate-me and click-on-map entry, rockpooling
         and diving modes, species ranked by nearby record count, expandable cards with
         recent nearby observations, optional GBIF pass, optional "Needs ID" records.</li>
@@ -471,14 +468,14 @@
 
     <div class="mode-grid">
       <button class="mode-card" data-mode="rockpool">
-        <span class="mode-emoji">&#129371;</span>
+        <span class="mode-emoji">🪣</span>
         <span>
           <span class="mode-name">Rockpooling</span>
           <span class="mode-desc">Low tide, wet feet. Only the species that reach the intertidal.</span>
         </span>
       </button>
       <button class="mode-card" data-mode="dive">
-        <span class="mode-emoji">&#129517;</span>
+        <span class="mode-emoji">🤿</span>
         <span>
           <span class="mode-name">Diving</span>
           <span class="mode-desc">Mask on. Everything recorded nearby, shallow and deep.</span>
@@ -500,6 +497,8 @@
         </span>
       </label>
     </div>
+
+    <button class="text-link" id="btnElsewhere">&#9873; Looking somewhere else? Pick it on the map</button>
   </div>
 </section>
 
@@ -514,8 +513,8 @@
     <button class="icon-btn" id="btnRestart" aria-label="Start again" title="Start again">&#8635;</button>
   </div>
   <div class="mode-pills">
-    <button class="pill" data-mode="rockpool">&#129371; Rockpooling</button>
-    <button class="pill" data-mode="dive">&#129517; Diving</button>
+    <button class="pill" data-mode="rockpool">🪣 Rockpooling</button>
+    <button class="pill" data-mode="dive">🤿 Diving</button>
   </div>
   <div class="page" id="resultsPage"></div>
 </section>
@@ -555,44 +554,47 @@
   const coarse = n => Math.round(n * 1000) / 1000;
 
   // ── Home ────────────────────────────────────────────────────────────────
-  const findBtn   = $('#btnFindMe');
-  const findIcon  = $('#findMeIcon');
-  const findLabel = $('#findMeLabel');
-  const geoError  = $('#geoError');
+  /* One button. It tries for a fix, and quietly hands over to the map when it
+     can't get one — location being switched off is a normal thing to happen,
+     not an error worth shouting about. */
+  const goBtn   = $('#btnGo');
+  const goSpin  = $('#goSpin');
+  const goLabel = $('#goLabel');
 
-  findBtn.addEventListener('click', function () {
-    geoError.hidden = true;
-    if (!navigator.geolocation) {
-      return showGeoError("This browser won't share a location. Try the map instead.");
-    }
-    findBtn.disabled = true;
-    findIcon.textContent = '◌';
-    findIcon.classList.add('spin');
-    findLabel.textContent = 'Finding you…';
+  goBtn.addEventListener('click', function () {
+    if (!navigator.geolocation) return toMap("This browser won't share a location.");
+
+    goBtn.disabled = true;
+    goSpin.hidden = false;
+    goLabel.textContent = 'Finding you…';
 
     navigator.geolocation.getCurrentPosition(
       function (pos) {
-        resetFindBtn();
+        resetGoBtn();
         setLocation(pos.coords.latitude, pos.coords.longitude, 'gps');
         show('mode');
       },
       function (err) {
-        resetFindBtn();
-        showGeoError(err.code === 1
-          ? 'Location permission was declined. You can pick a spot on the map instead.'
-          : "Couldn't get a fix on you. Try again, or pick a spot on the map.");
+        resetGoBtn();
+        toMap(err.code === 1
+          ? 'Location is off, so pick a spot instead'
+          : "Couldn't get a fix on you — pick a spot instead");
       },
       { enableHighAccuracy: true, timeout: 12000, maximumAge: 60000 }
     );
   });
 
-  function resetFindBtn() {
-    findBtn.disabled = false;
-    findIcon.classList.remove('spin');
-    findIcon.innerHTML = '&#9678;';
-    findLabel.textContent = 'Find me';
+  function resetGoBtn() {
+    goBtn.disabled = false;
+    goSpin.hidden = true;
+    goLabel.textContent = "Let's go";
   }
-  function showGeoError(msg) { geoError.textContent = msg; geoError.hidden = false; }
+
+  function toMap(reason) {
+    $('#mapMeta').textContent = reason || 'Tap the map to drop a pin';
+    show('map');
+    setTimeout(initMap, 60);
+  }
 
   function setLocation(lat, lng, source) {
     state.lat = coarse(lat);
@@ -605,10 +607,6 @@
   // ── Map picker ──────────────────────────────────────────────────────────
   let map = null, pin = null, pinned = null;
 
-  $('#btnPickMap').addEventListener('click', function () {
-    show('map');
-    setTimeout(initMap, 60);
-  });
 
   function initMap() {
     if (!map) {
@@ -659,6 +657,7 @@
   });
   $('#btnRestart').addEventListener('click', function () { show('home'); });
   $('#btnAbout').addEventListener('click', function () { show('about'); });
+  $('#btnElsewhere').addEventListener('click', function () { toMap('Tap the map to drop a pin'); });
 
   async function go(mode) {
     state.mode = mode;
