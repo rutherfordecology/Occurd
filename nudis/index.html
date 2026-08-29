@@ -199,6 +199,53 @@
   .mode-name { display: block; font-family: var(--font-display); font-weight: 600; font-size: 1.35rem; }
   .mode-desc { display: block; font-size: 0.85rem; font-weight: 600; color: rgba(253,248,240,0.68); margin-top: 3px; line-height: 1.45; }
 
+  /* ── Settings ────────────────────────────────────────────────────────── */
+  .settings-btn { font-size: 1.15rem; }
+
+  .setting {
+    padding: 16px; border-radius: var(--radius-lg); margin-bottom: 12px;
+    background: rgba(44,15,56,0.45); border: 1px solid rgba(160,95,192,0.3);
+  }
+  .setting-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+  .setting-head label {
+    font-family: var(--font-display); font-weight: 600; font-size: 1.08rem; color: var(--cream);
+  }
+  .setting-value {
+    font-family: var(--font-display); font-weight: 600; font-size: 1.25rem;
+    color: var(--gold); white-space: nowrap;
+  }
+  .setting-note {
+    font-size: 0.78rem; font-weight: 600; line-height: 1.55;
+    color: rgba(253,248,240,0.5); margin-top: 12px;
+  }
+
+  input[type="range"] {
+    -webkit-appearance: none; appearance: none; width: 100%; height: 26px;
+    background: none; cursor: pointer; display: block;
+  }
+  input[type="range"]::-webkit-slider-runnable-track {
+    height: 6px; border-radius: 3px;
+    background: linear-gradient(90deg, var(--rose) 0%, var(--gold) 100%);
+  }
+  input[type="range"]::-moz-range-track {
+    height: 6px; border-radius: 3px;
+    background: linear-gradient(90deg, var(--rose) 0%, var(--gold) 100%);
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none;
+    width: 22px; height: 22px; border-radius: 50%; margin-top: -8px;
+    background: var(--cream); border: 3px solid var(--rose);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.35);
+  }
+  input[type="range"]::-moz-range-thumb {
+    width: 22px; height: 22px; border-radius: 50%; border: 3px solid var(--rose);
+    background: var(--cream); box-shadow: 0 2px 6px rgba(0,0,0,0.35);
+  }
+  .scale-ends {
+    display: flex; justify-content: space-between; margin-top: 2px;
+    font-size: 0.7rem; font-weight: 700; color: rgba(253,248,240,0.4);
+  }
+
   .opt-row {
     margin-top: 20px; padding: 14px 16px; border-radius: var(--radius);
     background: rgba(44,15,56,0.45); border: 1px solid rgba(160,95,192,0.3);
@@ -261,6 +308,9 @@
   .badge.dive     { background: rgba(94,160,255,0.22); color: #b9d6ff; }
   .badge.both     { background: rgba(160,95,192,0.3);  color: #e3c6f2; }
   .badge.unknown  { background: rgba(253,248,240,0.09); color: rgba(253,248,240,0.5); }
+  .badge.obscured { background: rgba(240,65,127,0.2); color: #ffb3ce; border: 1px dashed rgba(240,65,127,0.55); }
+  .note-obscured  { display: inline-block; margin-top: 6px; color: #ffb3ce; }
+  .card.is-obscured { border-style: dashed; border-color: rgba(240,65,127,0.45); }
   .chev { flex-shrink: 0; color: rgba(253,248,240,0.4); font-size: 0.8rem; transition: transform 0.2s; }
   .card.open .chev { transform: rotate(180deg); }
 
@@ -371,19 +421,30 @@
     <button class="icon-btn" data-back="home" aria-label="Back">&#8592;</button>
     <div class="topbar-grow">
       <div class="topbar-title">About</div>
-      <div class="topbar-meta">Nudis Near Me v1.3</div>
+      <div class="topbar-meta">Nudis Near Me v1.4</div>
     </div>
   </div>
   <div class="page prose">
     <h3>What it does</h3>
-    <p>It asks iNaturalist which nudibranchs have been recorded <b>within 50 km</b> of you in
-       the <b>last 20 years</b>, then sorts them by how often they turn up &mdash; so the top
+    <p>It asks iNaturalist which nudibranchs have been recorded near you in the
+       <b>last 20 years</b> &mdash; <b>within 50 km</b> unless you change it &mdash; then
+       sorts them by how often they turn up, so the top
        of the list is your best bet. Choosing <b>rockpooling</b> drops the species that only
        live below the tide line; choosing <b>diving</b> keeps everything, because anything
        findable in a rock pool is findable on a dive too.</p>
-    <p>Only Research Grade observations count unless you tick the "Needs ID" option, and
-       there is a second pass you can switch on that adds museum and survey specimens from
-       GBIF.</p>
+    <p>Settings, behind the gear, let you pull the search area anywhere from 50 km down to
+       100 m &mdash; the steps get finer as you go smaller, so you can sit on one reef without
+       losing the ability to sweep a coastline. Only Research Grade observations count unless
+       you tick the "Needs ID" option, and there is a second pass you can switch on that adds
+       museum and survey specimens from GBIF.</p>
+
+    <h3>Obscured records</h3>
+    <p>iNaturalist protects threatened and sensitive species by publishing a randomised
+       position rather than the real one, scattered by up to roughly 25 km. Narrow the search
+       and those records disappear, even when the animal is genuinely at your feet. The
+       obscured option in settings runs a second 50 km sweep just for them and lists what it
+       finds at the bottom, marked with a dashed border, because there is no way to tell from
+       the data whether they are near you or twenty kilometres away.</p>
 
     <h3>Where the shallow/deep split comes from</h3>
     <p>Neither iNaturalist nor GBIF records a usable depth for these animals, and WoRMS has
@@ -425,6 +486,7 @@
 
     <h3>Changelog</h3>
     <ul class="changelog">
+      <li><b>v1.4</b> &mdash; Settings moved behind a gear, with a search-area slider from 100 m to 50 km on a roughly logarithmic scale (50 km stays the default). New option to sweep 50 km for records iNaturalist has obscured to protect threatened species; those are listed last and flagged, because their published position is randomised by up to about 25 km.</li>
       <li><b>v1.3</b> &mdash; Clearer wording when the map takes over: "Turn location on, or pick a spot".</li>
       <li><b>v1.2</b> &mdash; Dropped the emoji from the rockpooling and diving choice; the words carry it on their own.</li>
       <li><b>v1.1</b> &mdash; Down to a single "Let's go" button on the front page: it takes
@@ -462,6 +524,7 @@
       <div class="topbar-title">Nudis Near Me</div>
       <div class="topbar-meta" id="modeMeta"></div>
     </div>
+    <button class="icon-btn settings-btn" data-settings="mode" aria-label="Settings" title="Settings">&#9881;</button>
   </div>
   <div class="page">
     <h2 class="section-title">Are you rockpooling<br>or diving?</h2>
@@ -482,7 +545,48 @@
       </button>
     </div>
 
-    <div class="opt-row">
+    <button class="text-link" id="btnElsewhere">&#9873; Looking somewhere else? Pick it on the map</button>
+  </div>
+</section>
+
+<!-- ══ SETTINGS ══════════════════════════════════════════════════════════ -->
+<section id="screen-settings" class="screen">
+  <div class="topbar">
+    <button class="icon-btn" id="btnSettingsBack" aria-label="Back">&#8592;</button>
+    <div class="topbar-grow">
+      <div class="topbar-title">Settings</div>
+      <div class="topbar-meta">Changes re-run the search</div>
+    </div>
+  </div>
+  <div class="page">
+
+    <div class="setting">
+      <div class="setting-head">
+        <label for="optRadius">Search area</label>
+        <span class="setting-value" id="radiusValue">50 km</span>
+      </div>
+      <input type="range" id="optRadius" min="0" max="16" step="1" value="16">
+      <div class="scale-ends"><span>100 m</span><span>50 km</span></div>
+      <p class="setting-note">
+        The steps get finer at the small end, so you can pin down a single reef or
+        headland without losing the ability to sweep a whole coastline.
+      </p>
+    </div>
+
+    <div class="setting">
+      <label class="opt-line">
+        <input type="checkbox" id="optObscured">
+        <span>Catch obscured records from 50 km
+          <small>iNaturalist hides the true position of threatened and sensitive species,
+          publishing a randomised point up to about 25 km away. Narrow your search and those
+          records vanish, even though the animal may be at your feet. This runs a second,
+          wide pass for them and lists them at the bottom, flagged &mdash; their real location
+          can't be known from the data.</small>
+        </span>
+      </label>
+    </div>
+
+    <div class="setting">
       <label class="opt-line">
         <input type="checkbox" id="optGbif">
         <span>Also check GBIF
@@ -497,7 +601,6 @@
       </label>
     </div>
 
-    <button class="text-link" id="btnElsewhere">&#9873; Looking somewhere else? Pick it on the map</button>
   </div>
 </section>
 
@@ -509,6 +612,7 @@
       <div class="topbar-title" id="resTitle">Near you</div>
       <div class="topbar-meta" id="resMeta"></div>
     </div>
+    <button class="icon-btn settings-btn" data-settings="results" aria-label="Settings" title="Settings">&#9881;</button>
     <button class="icon-btn" id="btnRestart" aria-label="Start again" title="Start again">&#8635;</button>
   </div>
   <div class="mode-pills">
@@ -524,8 +628,13 @@
 (function () {
   'use strict';
 
-  const RADIUS_KM   = 50;
-  const YEARS_BACK  = 20;
+  /* Search radii in km. Roughly logarithmic — fine steps down at the reef-and-
+     headland end, coarse ones out at coastline scale. The slider indexes into
+     this, which keeps every stop a round number instead of 3.7 km. */
+  const RADIUS_STEPS = [0.1, 0.15, 0.2, 0.3, 0.5, 0.75, 1, 1.5, 2, 3, 5, 7.5, 10, 15, 20, 30, 50];
+  const DEFAULT_STEP = RADIUS_STEPS.length - 1;   // 50 km
+  const WIDE_KM      = 50;                        // the obscured sweep is always 50 km
+  const YEARS_BACK   = 20;
   const INAT_TAXON  = 47113;          // Nudibranchia
   const GBIF_TAXON  = 980;            // Nudibranchia
   const MAX_PAGES   = 5;              // 200/page — a very generous ceiling
@@ -536,8 +645,12 @@
     lat: null, lng: null,
     mode: null,
     species: null,        // fetched once per location, filtered per mode
-    fetchKey: null        // lat|lng|gbif|needsId — refetch only when it changes
+    fetchKey: null,       // lat|lng|radius|gbif|needsId|obscured — refetch when it changes
+    settingsFrom: 'mode'  // screen to return to when settings close
   };
+
+  const radiusKm = () => RADIUS_STEPS[+$('#optRadius').value];
+  const fmtKm    = km => km < 1 ? Math.round(km * 1000) + ' m' : (+km.toFixed(1)) + ' km';
 
   const $  = (s, r) => (r || document).querySelector(s);
   const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
@@ -656,6 +769,25 @@
   });
   $('#btnRestart').addEventListener('click', function () { show('home'); });
   $('#btnAbout').addEventListener('click', function () { show('about'); });
+
+  // ── Settings ────────────────────────────────────────────────────────────
+  $$('.settings-btn').forEach(function (b) {
+    b.addEventListener('click', function () {
+      state.settingsFrom = b.dataset.settings;
+      show('settings');
+    });
+  });
+
+  $('#optRadius').addEventListener('input', function () {
+    $('#radiusValue').textContent = fmtKm(radiusKm());
+  });
+
+  /* Coming back from settings re-runs the search when something that affects
+     it has changed; go() no-ops on an unchanged fetchKey, so this is cheap. */
+  $('#btnSettingsBack').addEventListener('click', function () {
+    if (state.settingsFrom === 'results' && state.mode) go(state.mode);
+    else show('mode');
+  });
   $('#btnElsewhere').addEventListener('click', function () { toMap('Tap the map to drop a pin'); });
 
   async function go(mode) {
@@ -664,7 +796,8 @@
     $('#resTitle').textContent = mode === 'dive' ? 'On a dive near you' : 'In the rock pools near you';
     show('results');
 
-    const key = [state.lat, state.lng, $('#optGbif').checked, $('#optNeedsId').checked].join('|');
+    const key = [state.lat, state.lng, radiusKm(), $('#optGbif').checked,
+                 $('#optNeedsId').checked, $('#optObscured').checked].join('|');
     if (state.species && state.fetchKey === key) return render();
 
     renderLoading();
@@ -684,19 +817,39 @@
   }
 
   async function fetchSpecies() {
-    const list = await fetchInat();
+    const list = await fetchInat(radiusKm(), '');
+
+    /* Obscured sweep. iNaturalist publishes a randomised point for threatened
+       and sensitive taxa, so a tight search drops them even when the animal is
+       right there. Only worth running when the main search is tighter than the
+       sweep. geoprivacy and taxon_geoprivacy are ANDed by the API when sent
+       together, so they need separate passes. */
+    if ($('#optObscured').checked && radiusKm() < WIDE_KM) {
+      const seen = new Set(list.map(s => s.name));
+      for (const param of ['&geoprivacy=obscured', '&taxon_geoprivacy=obscured']) {
+        let wide;
+        try { wide = await fetchInat(WIDE_KM, param); } catch (e) { continue; }
+        wide.forEach(function (s) {
+          if (seen.has(s.name)) return;     // already found for certain, close by
+          seen.add(s.name);
+          s.obscured = true;
+          list.push(s);
+        });
+      }
+    }
+
     if ($('#optGbif').checked) await mergeGbif(list);
     return list;
   }
 
-  async function fetchInat() {
+  async function fetchInat(radius, extraParam) {
     const out = [];
     const qg = $('#optNeedsId').checked ? '' : '&quality_grade=research';
     for (let page = 1; page <= MAX_PAGES; page++) {
       const url = 'https://api.inaturalist.org/v1/observations/species_counts' +
         '?taxon_id=' + INAT_TAXON +
-        '&lat=' + state.lat + '&lng=' + state.lng + '&radius=' + RADIUS_KM +
-        '&d1=' + sinceDate() + qg +
+        '&lat=' + state.lat + '&lng=' + state.lng + '&radius=' + radius +
+        '&d1=' + sinceDate() + qg + (extraParam || '') +
         '&per_page=200&page=' + page + '&locale=en';
       const res = await fetch(url);
       if (!res.ok) throw new Error('iNat ' + res.status);
@@ -732,7 +885,7 @@
     const y1 = new Date().getFullYear();
     const url = 'https://api.gbif.org/v1/occurrence/search' +
       '?taxonKey=' + GBIF_TAXON +
-      '&geoDistance=' + state.lat + ',' + state.lng + ',' + RADIUS_KM + 'km' +
+      '&geoDistance=' + state.lat + ',' + state.lng + ',' + radiusKm() + 'km' +
       '&year=' + (y1 - YEARS_BACK) + ',' + y1 +
       '&hasCoordinate=true&hasGeospatialIssue=false' +
       '&limit=0&facet=SCIENTIFIC_NAME&facetLimit=300';
@@ -788,8 +941,8 @@
   function renderLoading() {
     page.innerHTML = '<div class="status"><div class="loader"></div>' +
       '<div class="status-title">Looking under the rocks…</div>' +
-      '<p class="status-text">Pulling every nudibranch recorded within ' + RADIUS_KM +
-      ' km in the last ' + YEARS_BACK + ' years.</p></div>';
+      '<p class="status-text">Pulling every nudibranch recorded within ' + fmtKm(radiusKm()) +
+      ' in the last ' + YEARS_BACK + ' years.</p></div>';
   }
 
   function renderStatus(emoji, title, text) {
@@ -806,19 +959,39 @@
         return Object.assign({}, s, { hab: hab, score: s.count * weight(hab, mode) });
       })
       .filter(function (s) { return inMode(s.hab, mode); })
-      .sort(function (a, b) { return b.score - a.score || b.count - a.count; });
+      /* Obscured records always sort last: they were found by a 50 km sweep and
+         their published position is randomised, so they are a "maybe" against
+         the confirmed nearby ones however many records they carry. */
+      .sort(function (a, b) {
+        return (a.obscured ? 1 : 0) - (b.obscured ? 1 : 0)
+            || b.score - a.score
+            || b.count - a.count;
+      });
 
     if (!rows.length) {
       return renderStatus('🔍', 'Nothing recorded here yet',
         mode === 'rockpool'
-          ? 'No intertidal nudibranchs have been recorded within ' + RADIUS_KM + ' km. Try the diving list, or widen your search by picking a spot nearer the coast.'
-          : 'No nudibranchs have been recorded within ' + RADIUS_KM + ' km in the last ' + YEARS_BACK + ' years. Try a spot closer to the coast.');
+          ? 'No intertidal nudibranchs have been recorded within ' + fmtKm(radiusKm()) + '. Try the diving list, or widen the search area in settings.'
+          : 'No nudibranchs have been recorded within ' + fmtKm(radiusKm()) + ' in the last ' + YEARS_BACK + ' years. Try a wider search area in settings, or a spot closer to the coast.');
     }
 
-    const hidden = (state.species || []).length - rows.length;
-    let html = '<p class="result-note">' + rows.length + ' species, most likely first' +
-      (hidden > 0 ? ' · ' + hidden + ' subtidal-only species hidden' : '') +
-      '.<br>Ordered by how often each has been recorded near here.</p>';
+    const hidden   = (state.species || []).length - rows.length;
+    const obscured = rows.filter(s => s.obscured).length;
+
+    const confirmed = rows.length - obscured;
+    let html = '<p class="result-note">' +
+      (confirmed > 0
+        ? confirmed + ' species within ' + fmtKm(radiusKm()) + ', most likely first' +
+          (hidden > 0 ? ' · ' + hidden + ' subtidal-only hidden' : '') +
+          '.<br>Ordered by how often each has been recorded near here.'
+        : 'Nothing pinned down within ' + fmtKm(radiusKm()) +
+          (hidden > 0 ? ' · ' + hidden + ' subtidal-only hidden' : '') + '.') +
+      (obscured > 0
+        ? '<br><span class="note-obscured">' + (confirmed > 0 ? 'Plus ' : '') + obscured +
+          ' with obscured locations, listed last &mdash; recorded within 50 km, but iNaturalist ' +
+          'randomises where they are shown.</span>'
+        : '') +
+      '</p>';
 
     rows.forEach(function (s, i) { html += cardHtml(s, i + 1); });
     html += attribHtml();
@@ -864,13 +1037,22 @@
     if (hab.tip)  body += '<div class="body-line">' + esc(hab.tip) + '</div>';
     if (hab.basis === 'genus')   body += '<div class="depth-src">Depth band inferred from the genus, not this species.</div>';
     if (hab.basis === 'unknown') body += '<div class="depth-src">No depth entry for this species yet, so it is listed under both modes.</div>';
+    if (s.obscured) body += '<div class="body-line"><span class="lbl">Obscured:</span> ' +
+      'iNaturalist protects this species by publishing a randomised position, so the record ' +
+      'could be anywhere within roughly 25 km of where it is plotted &mdash; possibly right ' +
+      'here, possibly nowhere near. Treat it as worth knowing about rather than worth walking to.</div>';
     if (s.photo && s.photo.attribution) body += '<div class="depth-src">Photo: ' + esc(s.photo.attribution) + '</div>';
 
-    body += '<div class="obs-strip" data-taxon="' + (s.taxonId || '') + '"></div>';
+    /* An obscured species was found by the wide sweep, so its links have to use
+       that radius — at 100 m they would come back empty. */
+    const linkRadius = s.obscured ? WIDE_KM : radiusKm();
+
+    body += '<div class="obs-strip" data-taxon="' + (s.taxonId || '') +
+            '" data-radius="' + linkRadius + '"></div>';
 
     const obsUrl = s.taxonId
       ? 'https://www.inaturalist.org/observations?taxon_id=' + s.taxonId +
-        '&lat=' + state.lat + '&lng=' + state.lng + '&radius=' + RADIUS_KM +
+        '&lat=' + state.lat + '&lng=' + state.lng + '&radius=' + linkRadius +
         '&d1=' + sinceDate()
       : 'https://www.inaturalist.org/search?q=' + encodeURIComponent(s.name);
 
@@ -884,15 +1066,17 @@
       '" target="_blank" rel="noopener">GBIF ↗</a>' +
       '</div>';
 
-    return '<div class="card">' +
+    return '<div class="card' + (s.obscured ? ' is-obscured' : '') + '">' +
       '<div class="card-head">' +
         '<div class="rank">' + rank + '</div>' + thumb +
         '<div class="card-text">' +
           '<div class="sci">' + esc(s.name) + '</div>' +
           (s.common ? '<div class="common">' + esc(s.common) + '</div>' : '') +
           '<div class="badges">' +
-            '<span class="badge records">' + s.count + ' record' + (s.count === 1 ? '' : 's') + ' nearby</span>' +
+            '<span class="badge records">' + s.count + ' record' + (s.count === 1 ? '' : 's') +
+              (s.obscured ? ' within 50 km' : ' nearby') + '</span>' +
             '<span class="badge ' + zoneCls + '">' + zoneTxt + '</span>' +
+            (s.obscured ? '<span class="badge obscured">Location obscured</span>' : '') +
             (s.sources.indexOf('GBIF') > -1 && s.sources.length === 1
               ? '<span class="badge">GBIF only</span>' : '') +
           '</div>' +
@@ -912,7 +1096,7 @@
     const qg = $('#optNeedsId').checked ? '' : '&quality_grade=research';
     const url = 'https://api.inaturalist.org/v1/observations' +
       '?taxon_id=' + strip.dataset.taxon +
-      '&lat=' + state.lat + '&lng=' + state.lng + '&radius=' + RADIUS_KM +
+      '&lat=' + state.lat + '&lng=' + state.lng + '&radius=' + (strip.dataset.radius || radiusKm()) +
       '&d1=' + sinceDate() + qg +
       '&photos=true&order_by=observed_on&order=desc&per_page=8';
     try {
