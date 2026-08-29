@@ -1,0 +1,22 @@
+# Dependencies
+node_modules/
+
+# Caches / scratch / logs
+_gbif_*cache*.json
+scratch_*
+*.log
+
+# Ebbe Nielsen Challenge entry docs — keep local, never publish
+*ebbe-nielsen-description*.md
+
+# NZOR rebuild intermediates (But-Is-It-Threatened)
+but-is-it-threatened/nzor_rebuild/raw_page_*.json
+but-is-it-threatened/nzor_rebuild/*backup*.json
+but-is-it-threatened/nzor_rebuild/collisions.json
+but-is-it-threatened/nzor_rebuild/fetch_all.sh
+
+# NZOR rebuild artefact — 19.7 MB, not loaded at runtime
+but-is-it-threatened/nzor_rebuild/nzor_names_rebuilt.json
+
+# QUiC / QEII covenant species outputs — belong in the qeii-nztcs repo, never here
+New_Threatened_Species_*.csv

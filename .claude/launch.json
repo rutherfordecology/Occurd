@@ -4,8 +4,50 @@
     {
       "name": "favicon-preview",
       "runtimeExecutable": "python",
-      "runtimeArgs": ["-m", "http.server", "7890"],
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "7890"
+      ],
       "port": 7890
+    },
+    {
+      "name": "qeii-tool",
+      "runtimeExecutable": "python",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "7891",
+        "-d",
+        "C:/Users/User/qeii-nztcs"
+      ],
+      "port": 7891
+    },
+    {
+      "name": "nudis",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "--yes",
+        "serve",
+        "--no-clipboard",
+        "-l",
+        "7893",
+        "C:/Users/User/Occurd/nudis"
+      ],
+      "port": 7893
+    },
+    {
+      "name": "forestmonitor",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "--yes",
+        "serve",
+        "--no-clipboard",
+        "-l",
+        "7892",
+        "C:/Users/User/forestmonitor"
+      ],
+      "port": 7892
     }
   ]
 }
