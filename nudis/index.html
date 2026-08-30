@@ -154,9 +154,14 @@
     background: linear-gradient(180deg, #fdf8f0, #f0e7d8);
     border-top: 1px solid rgba(44,15,56,0.18);
     padding: 7px 0 calc(7px + env(safe-area-inset-bottom));
-    opacity: 0; animation: tickerIn 0.6s ease 3s forwards;
+    /* "both" holds the from-state through the short delay, so it slides up from
+       the bottom edge on load rather than flashing in place first. */
+    animation: tickerIn 0.5s cubic-bezier(0.2, 0.9, 0.3, 1.15) 0.2s both;
   }
-  @keyframes tickerIn { to { opacity: 1; } }
+  @keyframes tickerIn {
+    from { opacity: 0; transform: translateY(100%); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
 
   /* Two identical halves; sliding exactly -50% loops without a seam. */
   .ticker-half { display: flex; }
@@ -176,7 +181,7 @@
   .ticker-item::after { content: '★'; color: #c1272d; opacity: 0.55; letter-spacing: 0; }
 
   @media (prefers-reduced-motion: reduce) {
-    .ticker { animation: none; opacity: 1; }
+    .ticker { animation: none; opacity: 1; transform: none; }
     .ticker-track { animation: none; }
   }
 
@@ -532,7 +537,7 @@
     <button class="icon-btn" data-back="home" aria-label="Back">&#8592;</button>
     <div class="topbar-grow">
       <div class="topbar-title">About</div>
-      <div class="topbar-meta">Nudis Near Me v2.3</div>
+      <div class="topbar-meta">Nudis Near Me v2.4</div>
     </div>
   </div>
   <div class="page prose">
