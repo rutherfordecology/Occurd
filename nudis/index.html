@@ -548,7 +548,7 @@
     <button class="icon-btn" data-back="home" aria-label="Back">&#8592;</button>
     <div class="topbar-grow">
       <div class="topbar-title">About</div>
-      <div class="topbar-meta">Nudis Near Me v2.8</div>
+      <div class="topbar-meta">Nudis Near Me v2.9</div>
     </div>
   </div>
   <div class="page prose">
@@ -874,6 +874,10 @@
     $$('.screen').forEach(s => s.classList.remove('active'));
     target.classList.add('active');
     window.scrollTo(0, 0);
+    /* Leaflet measures its container on creation, and a hidden one measures
+       zero — so the map has to be told to re-measure every time this screen
+       comes back, however it was reached. */
+    if (name === 'map') setTimeout(refreshMap, 60);
   }
 
   history.replaceState({ screen: 'home' }, '');
@@ -898,9 +902,14 @@
      unanswered can never strand you on the front page. */
   $('#btnGo').addEventListener('click', toMap);
 
-  function toMap() {
-    show('map');
-    setTimeout(initMap, 60);
+  function toMap() { show('map'); }   // applyScreen wakes the map up
+
+  /* Coming back from a list, the pin you searched from should still be sitting
+     there and be the thing you are looking at, so re-centre on it. */
+  function refreshMap() {
+    if (!map) return initMap();
+    map.invalidateSize();
+    if (pinned) map.setView(pinned, map.getZoom(), { animate: false });
   }
 
   /* Keep the last good fix so the map can show "you are here" without asking
