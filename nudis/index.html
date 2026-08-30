@@ -548,7 +548,7 @@
     <button class="icon-btn" data-back="home" aria-label="Back">&#8592;</button>
     <div class="topbar-grow">
       <div class="topbar-title">About</div>
-      <div class="topbar-meta">Nudis Near Me v2.6</div>
+      <div class="topbar-meta">Nudis Near Me v2.7</div>
     </div>
   </div>
   <div class="page prose">
@@ -601,10 +601,12 @@
     <h3>Photos</h3>
     <p>Photographs come from iNaturalist and are shown only where the photographer has
        applied a Creative Commons licence. Each one is credited, and tapping any photo
-       opens it large. A species' headline photo on iNaturalist is often all rights
-       reserved even when there are freely licensed ones behind it, so the app looks past
-       it for the first usable image. A blank tile means every photo of that species is
-       all rights reserved.</p>
+       opens it large.</p>
+    <p>Finding a usable one takes three goes. A species' headline photo is often all
+       rights reserved, so the app then checks the taxon's photo gallery, and if that is
+       also restricted &mdash; or holds a single image, as happens more than you would
+       think &mdash; it searches the observations themselves filtered by licence. A blank
+       tile means all three came up empty, which is now rare.</p>
 
     <h3>Your location</h3>
     <p>Your position never leaves your device un-rounded &mdash; it is snapped to roughly
@@ -786,6 +788,10 @@
   const { habitatFor, inMode, setGbifZones } = window.NudiDepths;
 
   const SPECIES_RANKS = new Set(['species', 'subspecies', 'variety', 'form', 'hybrid']);
+
+  // Every Creative Commons licence iNaturalist issues. Anything else is all
+  // rights reserved and is not ours to display.
+  const CC_LICENSES = 'cc0,cc-by,cc-by-nc,cc-by-sa,cc-by-nc-sa,cc-by-nd,cc-by-nc-nd';
 
   const PAGE_SIZE   = 25;   // species per page, and the auto-shrink target
   const MIN_AUTO_KM = 1;    // never auto-shrink tighter than this
@@ -1162,7 +1168,10 @@
      so the big version is derived rather than requested separately. */
   function usablePhoto(p) {
     if (!p || !p.license_code) return null;
-    const med = p.medium_url || p.square_url;
+    // Taxon photos carry sized urls; observation photos often only carry the
+    // square one, and the size is just a path segment.
+    const med = p.medium_url || p.square_url ||
+                (p.url ? p.url.replace(/\/(square|small)\./, '/medium.') : null);
     if (!med) return null;
     return {
       thumb: med,
@@ -1195,16 +1204,38 @@
 
       const byId = new Map((json.results || []).map(t => [t.id, t]));
       chunk.forEach(function (s) {
-        const target = s._src || s;
-        target.photoChecked = true;
         const t = byId.get(s.taxonId);
         if (!t) return;
         for (const tp of (t.taxon_photos || [])) {
           const ok = usablePhoto(tp.photo);
-          if (ok) { s.photo = ok; target.photo = ok; filled++; return; }
+          if (ok) { s.photo = ok; (s._src || s).photo = ok; filled++; return; }
         }
       });
     }
+
+    /* taxon_photos is only iNaturalist's small curated gallery for a species —
+       Doris immonda has one photo there, all rights reserved, while 32 of its
+       observations carry CC-licensed ones. So anything still blank gets a
+       licence-filtered observation search. One request per species, hence only
+       for the handful left after the batched pass. */
+    const stillBlank = gaps.filter(s => !s.photo);
+    for (let i = 0; i < stillBlank.length; i += 6) {
+      await Promise.all(stillBlank.slice(i, i + 6).map(async function (s) {
+        try {
+          const url = 'https://api.inaturalist.org/v1/observations' +
+            '?taxon_id=' + s.taxonId + '&photos=true&quality_grade=research' +
+            '&photo_license=' + CC_LICENSES + '&order_by=votes&per_page=1';
+          const res = await fetch(url);
+          if (!res.ok) return;
+          const obs = ((await res.json()).results || [])[0];
+          const ok = usablePhoto(obs && (obs.photos || [])[0]);
+          if (ok) { s.photo = ok; (s._src || s).photo = ok; filled++; }
+        } catch (e) { /* leave it blank */ }
+      }));
+    }
+
+    // Marked only now, so a species gets both passes before we give up on it.
+    gaps.forEach(function (s) { (s._src || s).photoChecked = true; });
     return filled;
   }
 
