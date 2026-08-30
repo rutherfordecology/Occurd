@@ -548,7 +548,7 @@
     <button class="icon-btn" data-back="home" aria-label="Back">&#8592;</button>
     <div class="topbar-grow">
       <div class="topbar-title">About</div>
-      <div class="topbar-meta">Nudis Near Me v3.0</div>
+      <div class="topbar-meta">Nudis Near Me v3.1</div>
     </div>
   </div>
   <div class="page prose">
@@ -709,6 +709,9 @@
         The usual 50 km sits mid-slider, so you can go either way from it. Steps get
         finer as you go smaller, to pin down a single reef or headland, and coarser as
         you go bigger, to sweep a whole coastline.
+        <br><br>At 50 km and below, a search that turns up more than 25 species is
+        narrowed automatically until the list is usable. Set it above 50 km and it is
+        left exactly where you put it.
       </p>
     </div>
 
@@ -800,6 +803,10 @@
 
   const PAGE_SIZE   = 25;   // species per page, and the auto-shrink target
   const MIN_AUTO_KM = 1;    // never auto-shrink tighter than this
+  /* Above this the radius is taken as deliberate and left alone — someone who
+     slides past 50 km meant to sweep wide, so narrowing it would just make the
+     setting look ignored. */
+  const AUTO_SHRINK_MAX_KM = 50;
 
   /* Two GBIF facet queries classify roughly 1,300 nudibranch species worldwide
      by depth. Fetched once per session, then handed to depths.js. */
@@ -1120,6 +1127,8 @@
     state.shrunkFrom = null;
     const want = radiusKm();
     if (state.keepWide) return want;
+    // Deliberately wide: honour it, and skip the probe request entirely.
+    if (want > AUTO_SHRINK_MAX_KM) return want;
 
     const total = await countAt(want);
     if (total <= PAGE_SIZE) return want;
