@@ -548,7 +548,7 @@
     <button class="icon-btn" data-back="home" aria-label="Back">&#8592;</button>
     <div class="topbar-grow">
       <div class="topbar-title">About</div>
-      <div class="topbar-meta">Nudis Near Me v2.5</div>
+      <div class="topbar-meta">Nudis Near Me v2.6</div>
     </div>
   </div>
   <div class="page prose">
@@ -784,6 +784,8 @@
   const MAX_PAGES   = 5;              // 200/page — a very generous ceiling
 
   const { habitatFor, inMode, setGbifZones } = window.NudiDepths;
+
+  const SPECIES_RANKS = new Set(['species', 'subspecies', 'variety', 'form', 'hybrid']);
 
   const PAGE_SIZE   = 25;   // species per page, and the auto-shrink target
   const MIN_AUTO_KM = 1;    // never auto-shrink tighter than this
@@ -1128,6 +1130,12 @@
       rows.forEach(function (r) {
         const t = r.taxon || {};
         if (!t.name) return;
+        /* iNaturalist counts whatever level an observation was identified to, so
+           a record stopped at "Aeolidia" arrives as a bare genus. That is not a
+           species you can go and look for, and such taxa rarely carry a photo,
+           so anything coarser than species is dropped. rank_level: species is
+           10, subspecies and below are lower. */
+        if (t.rank_level != null ? t.rank_level > 10 : !SPECIES_RANKS.has(t.rank)) return;
         out.push({
           name: t.name,
           common: t.preferred_common_name || '',
