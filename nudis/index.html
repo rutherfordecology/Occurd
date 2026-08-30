@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Nudis Near Me &mdash; Rutherford Ecology</title>
-<meta name="description" content="Find the nudibranchs recorded near you, split by whether you are rockpooling or diving.">
+<meta name="description" content="Find the nudibranchs recorded near you anywhere in the world, split by whether you are rockpooling or diving.">
 <meta name="theme-color" content="#3d1147">
 <link rel="icon" href="favicon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -267,6 +267,32 @@
   }
   .pill.active { background: var(--gold); color: var(--ink); border-color: var(--gold); }
 
+  .shrink-note {
+    font-size: 0.8rem; font-weight: 600; line-height: 1.55; text-align: center;
+    color: #ffd894; background: rgba(245,166,35,0.12);
+    border: 1px solid rgba(245,166,35,0.35); border-radius: var(--radius);
+    padding: 10px 14px; margin-bottom: 14px;
+  }
+  .shrink-note b { color: var(--gold); }
+  .inline-link {
+    background: none; border: none; padding: 0; cursor: pointer;
+    font-family: inherit; font-size: inherit; font-weight: 800;
+    color: var(--gold); text-decoration: underline; text-underline-offset: 2px;
+  }
+  .inline-link:hover { color: #ffc45c; }
+
+  .pager { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 18px 0 4px; }
+  .page-btn {
+    padding: 10px 18px; border-radius: var(--radius-pill); cursor: pointer;
+    font-family: var(--font-display); font-weight: 500; font-size: 0.92rem;
+    background: rgba(253,248,240,0.12); color: var(--cream);
+    border: 1.5px solid rgba(253,248,240,0.28);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .page-btn:hover:not([disabled]) { background: var(--gold); color: var(--ink); border-color: var(--gold); }
+  .page-btn[disabled] { opacity: 0.35; cursor: not-allowed; }
+  .page-count { font-size: 0.8rem; font-weight: 700; color: rgba(253,248,240,0.6); white-space: nowrap; }
+
   .result-note {
     font-size: 0.8rem; font-weight: 600; color: rgba(253,248,240,0.6);
     text-align: center; margin-bottom: 16px; line-height: 1.5;
@@ -452,7 +478,7 @@
     <button class="icon-btn" data-back="home" aria-label="Back">&#8592;</button>
     <div class="topbar-grow">
       <div class="topbar-title">About</div>
-      <div class="topbar-meta">Nudis Near Me v1.8</div>
+      <div class="topbar-meta">Nudis Near Me v2.0</div>
     </div>
   </div>
   <div class="page prose">
@@ -469,6 +495,14 @@
        you tick the "Needs ID" option, and there is a second pass you can switch on that adds
        museum and survey specimens from GBIF.</p>
 
+    <h3>Crowded coastlines</h3>
+    <p>It works anywhere in the world, which means it has to cope with places far richer
+       than New Zealand. Fifty kilometres around Anilao in the Philippines turns up over
+       400 species &mdash; a catalogue, not a list you read before getting in the water. So
+       when a search returns more than 25 species the app pulls the radius in until it
+       doesn't, stopping at 1 km. It tells you when it has done this, and you can override
+       it in one tap. If even 1 km is crowded, the list pages 25 at a time.</p>
+
     <h3>Obscured records</h3>
     <p>iNaturalist protects threatened and sensitive species by publishing a randomised
        position rather than the real one, scattered by up to roughly 25 km. Narrow the search
@@ -478,10 +512,21 @@
        the data whether they are near you or twenty kilometres away.</p>
 
     <h3>Where the shallow/deep split comes from</h3>
-    <p>Neither iNaturalist nor GBIF records a usable depth for these animals, and WoRMS has
-       no depth attributes for them either. So the split is a hand-maintained table in
-       <code>depths.js</code>, with a genus-level fallback. Species with no entry are shown
-       in both lists and badged <i>depth unknown</i> rather than guessed at.</p>
+    <p>Three sources, best first. A <b>hand-checked table</b> in <code>depths.js</code>
+       covers New Zealand species and always wins. Behind it sit <b>GBIF occurrence
+       depths</b>, which classify roughly 1,300 species worldwide. Last comes a guess from
+       the <b>genus</b>. Anything still unresolved is shown under both modes and badged
+       <i>depth unknown</i> rather than guessed at. iNaturalist has no depth field at all,
+       and WoRMS holds no depth attributes for these animals.</p>
+    <p>The GBIF layer needs a caveat. The people who record a depth on an observation are
+       overwhelmingly divers &mdash; shore collectors almost never enter one &mdash; so the
+       data leans deep. Asking "is this species <i>mainly</i> shallow?" buries genuine
+       rock-pool animals: <i>Doris wellingtonensis</i> is commonest in the top three metres
+       yet reads as 97% deep in GBIF. So the question asked is "is it recorded shallow
+       <i>at all</i>?". A few shallow records count for a lot; an absence of them counts
+       for little unless there is a pile of deep ones behind it. It errs towards showing
+       you a species, on the grounds that a wasted look under a rock costs less than never
+       being told the animal was at your feet.</p>
 
     <h3>Photos</h3>
     <p>Photographs come from iNaturalist and are shown only where the photographer has
@@ -665,15 +710,67 @@
   const GBIF_TAXON  = 980;            // Nudibranchia
   const MAX_PAGES   = 5;              // 200/page — a very generous ceiling
 
-  const { habitatFor, inMode } = window.NudiDepths;
+  const { habitatFor, inMode, setGbifZones } = window.NudiDepths;
+
+  const PAGE_SIZE   = 25;   // species per page, and the auto-shrink target
+  const MIN_AUTO_KM = 1;    // never auto-shrink tighter than this
+
+  /* Two GBIF facet queries classify roughly 1,300 nudibranch species worldwide
+     by depth. Fetched once per session, then handed to depths.js. */
+  /* Holds the in-flight promise, not a boolean — a plain flag would let the
+     prefetch mark itself done and a later caller sail past a request that has
+     not landed yet, rendering before any depths were known. One failure is not
+     retried; the curated table still works without this. */
+  let gbifDepthsPromise = null;
+
+  function loadGbifDepths() {
+    if (!gbifDepthsPromise) gbifDepthsPromise = fetchGbifDepths();
+    return gbifDepthsPromise;
+  }
+
+  async function fetchGbifDepths() {
+    const base = 'https://api.gbif.org/v1/occurrence/search?taxonKey=' + GBIF_TAXON +
+                 '&hasCoordinate=true&limit=0&facet=SCIENTIFIC_NAME&facetLimit=1200&depth=';
+    try {
+      const [shallow, deep] = await Promise.all([
+        fetch(base + '0,3').then(r => r.json()),
+        fetch(base + '3,11000').then(r => r.json())
+      ]);
+      const zones = {};
+      const add = function (json, key) {
+        const rows = (((json.facets || [])[0] || {}).counts) || [];
+        for (const row of rows) {
+          // GBIF returns "Genus species (Author, year)" — collapse to binomial.
+          const parts = String(row.name).split(/\s+/);
+          if (parts.length < 2 || !/^[a-z-]+$/.test(parts[1])) continue;
+          const bin = parts[0] + ' ' + parts[1];
+          const e = zones[bin] || (zones[bin] = { shallow: 0, deep: 0 });
+          e[key] += row.count;
+        }
+      };
+      add(shallow, 'shallow');
+      add(deep, 'deep');
+      setGbifZones(zones);
+    } catch (e) { /* fall back to the curated table alone */ }
+  }
+
+  /* The radius actually searched, which auto-shrink may pull below the slider. */
+  function searchKm() { return state.radius || radiusKm(); }
 
   const state = {
     lat: null, lng: null,
     mode: null,
     species: null,        // fetched once per location, filtered per mode
     fetchKey: null,       // lat|lng|radius|gbif|needsId|obscured — refetch when it changes
-    settingsFrom: 'mode'  // screen to return to when settings close
+    settingsFrom: 'mode', // screen to return to when settings close
+    radius: null,         // the radius actually searched, after any auto-shrink
+    shrunkFrom: null,     // { from, count } when auto-shrink kicked in
+    keepWide: false,      // set when the user overrides the shrink
+    page: 0               // which block of PAGE_SIZE species is showing
   };
+
+  /* Common names in the user's language where iNaturalist has them. */
+  const LOCALE = (navigator.language || 'en').split('-')[0];
 
   const radiusKm = () => RADIUS_STEPS[+$('#optRadius').value];
   const fmtKm    = km => km < 1 ? Math.round(km * 1000) + ' m' : (+km.toFixed(1)) + ' km';
@@ -729,7 +826,8 @@
 
   function initMap() {
     if (!map) {
-      map = L.map('pickMap', { zoomControl: true }).setView([-38.66, 178.02], 6);
+      // World view until we know better — this is not a New Zealand app any more.
+      map = L.map('pickMap', { zoomControl: true, worldCopyJump: true }).setView([10, 0], 2);
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19,
         attribution: '&copy; <a href="https://openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -798,6 +896,10 @@
     $('#btnUsePin').disabled = false;
   }
 
+  /* Start the depth tables downloading as soon as a location is settled, so they
+     are usually already in hand by the time a mode is picked. */
+  $('#btnUsePin').addEventListener('click', function () { loadGbifDepths(); });
+
   $('#btnUsePin').addEventListener('click', function () {
     if (!pinned) return;
     setLocation(pinned.lat, pinned.lng, pinSource);
@@ -844,12 +946,16 @@
     $('#resTitle').textContent = mode === 'dive' ? 'On a dive near you' : 'In the rock pools near you';
     show('results');
 
-    const key = [state.lat, state.lng, radiusKm(), $('#optGbif').checked,
+    const key = [state.lat, state.lng, radiusKm(), state.keepWide, $('#optGbif').checked,
                  $('#optNeedsId').checked, $('#optObscured').checked].join('|');
     if (state.species && state.fetchKey === key) return render();
 
+    state.page = 0;
     renderLoading();
     try {
+      // The radius decision and the depth table are independent — overlap them.
+      const both = await Promise.all([chooseRadius(), loadGbifDepths()]);
+      state.radius = both[0];
       state.species = await fetchSpecies();
       state.fetchKey = key;
       render();
@@ -860,19 +966,62 @@
   }
 
   // ── Fetching ────────────────────────────────────────────────────────────
+  /* How many species a given radius returns. per_page=1 makes this a count
+     rather than a payload. */
+  async function countAt(radius) {
+    const qg = $('#optNeedsId').checked ? '' : '&quality_grade=research';
+    const url = 'https://api.inaturalist.org/v1/observations/species_counts' +
+      '?taxon_id=' + INAT_TAXON +
+      '&lat=' + state.lat + '&lng=' + state.lng + '&radius=' + radius +
+      '&d1=' + sinceDate() + qg + '&per_page=1';
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('iNat ' + res.status);
+    const json = await res.json();
+    return json.total_results || 0;
+  }
+
+  /* Somewhere like Anilao a 50 km search returns 400+ species, which is a
+     catalogue rather than a list. Pull the radius in until it is manageable,
+     but never below MIN_AUTO_KM — past that, paging takes over. Binary search,
+     since species count rises monotonically with radius: about four small
+     requests instead of one per step. */
+  async function chooseRadius() {
+    state.shrunkFrom = null;
+    const want = radiusKm();
+    if (state.keepWide) return want;
+
+    const total = await countAt(want);
+    if (total <= PAGE_SIZE) return want;
+
+    let lo = RADIUS_STEPS.indexOf(MIN_AUTO_KM);
+    let hi = RADIUS_STEPS.indexOf(want);
+    if (lo < 0 || hi <= lo) return want;
+
+    let best = lo;                                       // the floor, if nothing fits
+    while (lo <= hi) {
+      const mid = (lo + hi) >> 1;
+      const n = await countAt(RADIUS_STEPS[mid]);
+      if (n <= PAGE_SIZE) { best = mid; lo = mid + 1; }   // room to widen
+      else { hi = mid - 1; }
+    }
+    const chosen = RADIUS_STEPS[best];
+    if (chosen !== want) state.shrunkFrom = { from: want, count: total };
+    return chosen;
+  }
+
   function sinceDate() {
     return (new Date().getFullYear() - YEARS_BACK) + '-01-01';
   }
 
   async function fetchSpecies() {
-    const list = await fetchInat(radiusKm(), '');
+    const list = await fetchInat(searchKm(), '');
 
     /* Obscured sweep. iNaturalist publishes a randomised point for threatened
        and sensitive taxa, so a tight search drops them even when the animal is
        right there. Only worth running when the main search is tighter than the
        sweep. geoprivacy and taxon_geoprivacy are ANDed by the API when sent
        together, so they need separate passes. */
-    if ($('#optObscured').checked && radiusKm() < WIDE_KM) {
+    if ($('#optObscured').checked && searchKm() < WIDE_KM) {
       const seen = new Set(list.map(s => s.name));
       for (const param of ['&geoprivacy=obscured', '&taxon_geoprivacy=obscured']) {
         let wide;
@@ -887,8 +1036,7 @@
     }
 
     if ($('#optGbif').checked) await mergeGbif(list);
-    await fillMissingPhotos(list);
-    return list;
+    return list;   // photos are filled per visible page, in render()
   }
 
   async function fetchInat(radius, extraParam) {
@@ -899,7 +1047,7 @@
         '?taxon_id=' + INAT_TAXON +
         '&lat=' + state.lat + '&lng=' + state.lng + '&radius=' + radius +
         '&d1=' + sinceDate() + qg + (extraParam || '') +
-        '&per_page=200&page=' + page + '&locale=en';
+        '&per_page=200&page=' + page + '&locale=' + LOCALE;
       const res = await fetch(url);
       if (!res.ok) throw new Error('iNat ' + res.status);
       const json = await res.json();
@@ -948,36 +1096,42 @@
      usable image. /v1/taxa takes comma-separated ids, so this costs one request
      per 30 species instead of one each. */
   async function fillMissingPhotos(list) {
-    const gaps = list.filter(s => !s.photo && s.taxonId);
-    if (!gaps.length) return;
+    // photoChecked stops a species with no CC photo at all from being looked up
+    // again on every re-render.
+    const gaps = list.filter(s => !s.photo && s.taxonId && !(s._src || s).photoChecked);
+    if (!gaps.length) return 0;
+    let filled = 0;
 
     for (let i = 0; i < gaps.length; i += 30) {
       const chunk = gaps.slice(i, i + 30);
       let json;
       try {
         const res = await fetch('https://api.inaturalist.org/v1/taxa/' +
-          chunk.map(s => s.taxonId).join(',') + '?locale=en');
+          chunk.map(s => s.taxonId).join(',') + '?locale=' + LOCALE);
         if (!res.ok) continue;
         json = await res.json();
       } catch (e) { continue; }
 
       const byId = new Map((json.results || []).map(t => [t.id, t]));
       chunk.forEach(function (s) {
+        const target = s._src || s;
+        target.photoChecked = true;
         const t = byId.get(s.taxonId);
         if (!t) return;
         for (const tp of (t.taxon_photos || [])) {
           const ok = usablePhoto(tp.photo);
-          if (ok) { s.photo = ok; return; }
+          if (ok) { s.photo = ok; target.photo = ok; filled++; return; }
         }
       });
     }
+    return filled;
   }
 
   async function mergeGbif(list) {
     const y1 = new Date().getFullYear();
     const url = 'https://api.gbif.org/v1/occurrence/search' +
       '?taxonKey=' + GBIF_TAXON +
-      '&geoDistance=' + state.lat + ',' + state.lng + ',' + radiusKm() + 'km' +
+      '&geoDistance=' + state.lat + ',' + state.lng + ',' + searchKm() + 'km' +
       '&year=' + (y1 - YEARS_BACK) + ',' + y1 +
       '&hasCoordinate=true&hasGeospatialIssue=false' +
       '&limit=0&facet=SCIENTIFIC_NAME&facetLimit=300';
@@ -1056,12 +1210,14 @@
   });
 
   // ── Rendering ───────────────────────────────────────────────────────────
+  let renderGen = 0;   // bumped each render so stale async callbacks bow out
+
   const page = $('#resultsPage');
 
   function renderLoading() {
     page.innerHTML = '<div class="status"><div class="loader"></div>' +
       '<div class="status-title">Looking under the rocks…</div>' +
-      '<p class="status-text">Pulling every nudibranch recorded within ' + fmtKm(radiusKm()) +
+      '<p class="status-text">Pulling every nudibranch recorded within ' + fmtKm(searchKm()) +
       ' in the last ' + YEARS_BACK + ' years.</p></div>';
   }
 
@@ -1076,7 +1232,9 @@
     const rows = (state.species || [])
       .map(function (s) {
         const hab = habitatFor(s.name);
-        return Object.assign({}, s, { hab: hab, score: s.count * weight(hab, mode) });
+        // _src points back at the stored record so a late-arriving photo sticks
+        // across re-renders rather than being rebuilt away.
+        return Object.assign({}, s, { hab: hab, score: s.count * weight(hab, mode), _src: s });
       })
       .filter(function (s) { return inMode(s.hab, mode); })
       /* Obscured records always sort last: they were found by a 50 km sweep and
@@ -1091,8 +1249,8 @@
     if (!rows.length) {
       return renderStatus('🔍', 'Nothing recorded here yet',
         mode === 'rockpool'
-          ? 'No intertidal nudibranchs have been recorded within ' + fmtKm(radiusKm()) + '. Try the diving list, or widen the search area in settings.'
-          : 'No nudibranchs have been recorded within ' + fmtKm(radiusKm()) + ' in the last ' + YEARS_BACK + ' years. Try a wider search area in settings, or a spot closer to the coast.');
+          ? 'No intertidal nudibranchs have been recorded within ' + fmtKm(searchKm()) + '. Try the diving list, or widen the search area in settings.'
+          : 'No nudibranchs have been recorded within ' + fmtKm(searchKm()) + ' in the last ' + YEARS_BACK + ' years. Try a wider search area in settings, or a spot closer to the coast.');
     }
 
     const hidden   = (state.species || []).length - rows.length;
@@ -1101,10 +1259,10 @@
     const confirmed = rows.length - obscured;
     let html = '<p class="result-note">' +
       (confirmed > 0
-        ? confirmed + ' species within ' + fmtKm(radiusKm()) + ', most likely first' +
+        ? confirmed + ' species within ' + fmtKm(searchKm()) + ', most likely first' +
           (hidden > 0 ? ' · ' + hidden + ' subtidal-only hidden' : '') +
           '.<br>Ordered by how often each has been recorded near here.'
-        : 'Nothing pinned down within ' + fmtKm(radiusKm()) +
+        : 'Nothing pinned down within ' + fmtKm(searchKm()) +
           (hidden > 0 ? ' · ' + hidden + ' subtidal-only hidden' : '') + '.') +
       (obscured > 0
         ? '<br><span class="note-obscured">' + (confirmed > 0 ? 'Plus ' : '') + obscured +
@@ -1113,9 +1271,55 @@
         : '') +
       '</p>';
 
-    rows.forEach(function (s, i) { html += cardHtml(s, i + 1); });
+    if (state.shrunkFrom) {
+      html += '<p class="shrink-note">Narrowed to <b>' + fmtKm(searchKm()) + '</b> &mdash; ' +
+        fmtKm(state.shrunkFrom.from) + ' turned up ' + state.shrunkFrom.count +
+        ' species, too many to be a useful list. ' +
+        '<button class="inline-link" id="btnKeepWide">Search ' +
+        fmtKm(state.shrunkFrom.from) + ' anyway</button></p>';
+    }
+
+    // Page the list rather than rendering hundreds of cards and their photos.
+    const pages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
+    if (state.page >= pages) state.page = pages - 1;
+    const start = state.page * PAGE_SIZE;
+    const slice = rows.slice(start, start + PAGE_SIZE);
+
+    slice.forEach(function (s, i) { html += cardHtml(s, start + i + 1); });
+
+    if (pages > 1) {
+      html += '<div class="pager">' +
+        '<button class="page-btn" id="pagePrev"' + (state.page === 0 ? ' disabled' : '') + '>&larr; Prev</button>' +
+        '<span class="page-count">' + (start + 1) + '&ndash;' + (start + slice.length) +
+          ' of ' + rows.length + '</span>' +
+        '<button class="page-btn" id="pageNext"' + (state.page >= pages - 1 ? ' disabled' : '') + '>Next &rarr;</button>' +
+        '</div>';
+    }
+
     html += attribHtml();
     page.innerHTML = html;
+
+    /* Photos are filled in for the visible page only — it is one request per 30
+       species, so doing it for all 400 of them would be pure waste. */
+    /* The photo pass is async, so a search started in the meantime must win —
+       otherwise this redraws the previous list against the new radius. */
+    const gen = ++renderGen;
+    fillMissingPhotos(slice).then(function (filled) {
+      if (filled && gen === renderGen) render();
+    });
+
+    if (pages > 1) {
+      const turnPage = function (d) { state.page += d; render(); window.scrollTo(0, 0); };
+      const prev = $('#pagePrev'), next = $('#pageNext');
+      if (prev) prev.addEventListener('click', function () { turnPage(-1); });
+      if (next) next.addEventListener('click', function () { turnPage(1); });
+    }
+
+    const keepWide = $('#btnKeepWide');
+    if (keepWide) keepWide.addEventListener('click', function () {
+      state.keepWide = true;
+      go(state.mode);
+    });
 
     $$('img.thumb', page).forEach(function (im) {
       im.addEventListener('click', function (e) {
@@ -1165,6 +1369,12 @@
     let body = '';
     if (depthTxt) body += '<div class="body-line"><span class="lbl">Depth:</span> ' + depthTxt + '</div>';
     if (hab.tip)  body += '<div class="body-line">' + esc(hab.tip) + '</div>';
+    if (hab.basis === 'gbif') {
+      body += '<div class="depth-src">From GBIF depths: recorded ' + hab.shallow +
+        ' time' + (hab.shallow === 1 ? '' : 's') + ' shallower than 3 m, ' + hab.deep +
+        ' deeper. Depth is mostly logged by divers, so shallow records count for more than ' +
+        'their number suggests.</div>';
+    }
     if (hab.basis === 'genus')   body += '<div class="depth-src">Depth band inferred from the genus, not this species.</div>';
     if (hab.basis === 'unknown') body += '<div class="depth-src">No depth entry for this species yet, so it is listed under both modes.</div>';
     if (s.obscured) body += '<div class="body-line"><span class="lbl">Obscured:</span> ' +
@@ -1175,7 +1385,7 @@
 
     /* An obscured species was found by the wide sweep, so its links have to use
        that radius — at 100 m they would come back empty. */
-    const linkRadius = s.obscured ? WIDE_KM : radiusKm();
+    const linkRadius = s.obscured ? WIDE_KM : searchKm();
 
     body += '<div class="obs-strip" data-taxon="' + (s.taxonId || '') +
             '" data-radius="' + linkRadius + '"></div>';
@@ -1226,7 +1436,7 @@
     const qg = $('#optNeedsId').checked ? '' : '&quality_grade=research';
     const url = 'https://api.inaturalist.org/v1/observations' +
       '?taxon_id=' + strip.dataset.taxon +
-      '&lat=' + state.lat + '&lng=' + state.lng + '&radius=' + (strip.dataset.radius || radiusKm()) +
+      '&lat=' + state.lat + '&lng=' + state.lng + '&radius=' + (strip.dataset.radius || searchKm()) +
       '&d1=' + sinceDate() + qg +
       '&photos=true&order_by=observed_on&order=desc&per_page=8';
     try {

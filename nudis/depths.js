@@ -1,12 +1,20 @@
 /* ────────────────────────────────────────────────────────────────────────────
    Nudis Near Me — depth / habitat lookup
    ────────────────────────────────────────────────────────────────────────────
-   This file is the ONLY place the rockpool-vs-dive split is decided. Nothing in
-   the app infers depth from the occurrence records themselves, because neither
-   iNaturalist nor GBIF carries a usable depth field for these species (WoRMS
-   returns no depth attributes for them either — checked).
+   The rockpool-vs-dive split is decided in three layers, best first:
 
-   It is deliberately a plain, hand-editable table. Add to it freely.
+     1. SPECIES_ZONES below — hand-checked, New Zealand. Always wins.
+     2. GBIF occurrence depths — global, fetched at runtime. See the note
+        further down about the diver bias in that data.
+     3. GENUS_ZONES below — a guess from the genus. Tuned to how these genera
+        behave in New Zealand, so treat it as weak elsewhere.
+
+   Anything unresolved is left unknown and shown under both modes rather than
+   guessed at. iNaturalist carries no depth field at all, and WoRMS returns no
+   depth attributes for these species — both checked.
+
+   The two tables here are deliberately plain and hand-editable. Add to them
+   freely; an entry in SPECIES_ZONES overrides whatever GBIF says.
 
    zone:
      'rockpool'  reaches the intertidal and is realistically findable at low
@@ -102,13 +110,63 @@ const GENUS_ZONES = {
   Trapania:      { zone: 'dive' }
 };
 
+/* ────────────────────────────────────────────────────────────────────────────
+   GBIF depth layer — set at runtime, global coverage
+   ────────────────────────────────────────────────────────────────────────────
+   A map of "Genus species" -> { shallow, deep } counts, built from two GBIF
+   facet queries (see loadGbifDepths in index.html). Consulted for species the
+   curated table above doesn't cover.
+
+   IMPORTANT — the bias, and why the thresholds look lopsided: the people who
+   record a depth on an occurrence are overwhelmingly divers. Shore collectors
+   almost never enter one. So depth-bearing records skew deep, and asking "is
+   this species MAINLY shallow?" wrongly buries genuine rock-pool animals —
+   tested against Doris wellingtonensis, which is commonest at 0–3 m yet reads
+   as 97% deep in GBIF.
+
+   So the question asked here is "is it recorded shallow AT ALL?". A handful of
+   shallow records is strong evidence it reaches the intertidal; an absence of
+   them is weak evidence it doesn't, and is only trusted with a lot of deep
+   records behind it. The classifier errs towards showing a species to a
+   rockpooler, because a wasted look under a rock costs less than never being
+   told the animal is at your feet.
+   ──────────────────────────────────────────────────────────────────────────── */
+
+let GBIF_ZONES = null;
+
+function setGbifZones(map) { GBIF_ZONES = map; }
+
+function zoneFromCounts(shallow, deep) {
+  const total = shallow + deep;
+  if (total < 5) return null;                                  // too thin to call
+  if (shallow >= 3 && shallow / total >= 0.5) return 'rockpool';
+  if (shallow >= 3) return 'both';
+  if (shallow === 0 && deep >= 15) return 'dive';
+  return null;
+}
+
 /* Resolve a scientific name to a habitat record.
    Returns { zone, min, max, best, tip, basis } where basis is
-   'species' | 'genus' | 'unknown'. */
+   'species' | 'gbif' | 'genus' | 'unknown'.
+
+   Order is deliberate: a hand-checked species entry beats occurrence data,
+   occurrence data for the actual species beats a guess from its genus. */
 function habitatFor(scientificName) {
   const name = (scientificName || '').trim();
+
   const exact = SPECIES_ZONES[name];
   if (exact) return Object.assign({ basis: 'species' }, exact);
+
+  if (GBIF_ZONES) {
+    const c = GBIF_ZONES[name];
+    if (c) {
+      const zone = zoneFromCounts(c.shallow, c.deep);
+      if (zone) return {
+        zone: zone, min: null, max: null, best: null, tip: null,
+        basis: 'gbif', shallow: c.shallow, deep: c.deep
+      };
+    }
+  }
 
   const genus = name.split(/\s+/)[0];
   const byGenus = GENUS_ZONES[genus];
@@ -125,4 +183,4 @@ function inMode(hab, mode) {
   return hab.zone !== 'dive';
 }
 
-window.NudiDepths = { SPECIES_ZONES, GENUS_ZONES, habitatFor, inMode };
+window.NudiDepths = { SPECIES_ZONES, GENUS_ZONES, habitatFor, inMode, setGbifZones, zoneFromCounts };
