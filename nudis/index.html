@@ -66,14 +66,14 @@
   .screen.active { display: block; }
 
   /* ── Home ────────────────────────────────────────────────────────────── */
+  #screen-home { position: relative; }   /* anchors the ticker to the foot */
   .home-wrap {
     min-height: 100dvh;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
     text-align: center;
-    padding: 40px 22px calc(18px + env(safe-area-inset-bottom));
+    padding: 40px 22px calc(58px + env(safe-area-inset-bottom));
   }
-  .hero-art { position: relative; width: min(330px, 80vw); margin-bottom: 4px; }
-  .nudi-art { width: 100%; color: var(--cream); }
+  .nudi-art { width: min(330px, 80vw); color: var(--cream); margin-bottom: 4px; }
   .nudi-art svg, .nudi-art img {
     width: 100%; height: auto; display: block;
     animation: drift 7s ease-in-out infinite;
@@ -146,26 +146,38 @@
   }
   .about-link:hover { color: var(--cream); border-color: rgba(253,248,240,0.55); }
 
-  /* Slapped over the top-left of the slug a beat after the page settles. The
-     stamp is drawn for white paper, so red-on-plum would be muddy — the cream
-     disc behind it keeps the ink honest and reads as stamped on card. */
-  .stamp {
-    position: absolute; left: 20%; top: -34%;
-    width: 50%; height: auto; z-index: 2;
-    border-radius: 50%;
-    background: radial-gradient(circle, #fdf8f0 0%, #fdf8f0 68%, rgba(253,248,240,0) 72%);
-    box-shadow: 0 6px 18px rgba(20,6,26,0.4);
-    opacity: 0;
-    animation: stampIn 0.5s cubic-bezier(0.18, 1.5, 0.4, 1) 3s forwards;
+  /* Endorsement ticker along the foot of the front page. Cream tape with red
+     ink, echoing the stamp it replaced. Fades in once the page has settled. */
+  .ticker {
+    position: absolute; left: 0; right: 0; bottom: 0; z-index: 3;
+    overflow: hidden; width: 100%;
+    background: linear-gradient(180deg, #fdf8f0, #f0e7d8);
+    border-top: 1px solid rgba(44,15,56,0.18);
+    padding: 7px 0 calc(7px + env(safe-area-inset-bottom));
+    opacity: 0; animation: tickerIn 0.6s ease 3s forwards;
   }
-  /* Comes down hard, overshoots slightly, settles — a stamp being pressed. */
-  @keyframes stampIn {
-    0%   { opacity: 0;    transform: rotate(-13deg) scale(1.8); }
-    55%  { opacity: 1;    transform: rotate(-7deg)  scale(0.92); }
-    100% { opacity: 0.94; transform: rotate(-7deg)  scale(1); }
+  @keyframes tickerIn { to { opacity: 1; } }
+
+  /* Two identical halves; sliding exactly -50% loops without a seam. */
+  .ticker-half { display: flex; }
+  .ticker-track {
+    display: flex; width: max-content;
+    animation: tickerRoll 38s linear infinite;
   }
+  @keyframes tickerRoll { to { transform: translateX(-50%); } }
+
+  .ticker-item {
+    display: inline-flex; align-items: center; gap: 12px;
+    padding: 0 18px; white-space: nowrap;
+    font-family: var(--font-display); font-weight: 600;
+    font-size: 0.74rem; letter-spacing: 0.16em; text-transform: uppercase;
+    color: #c1272d;
+  }
+  .ticker-item::after { content: '★'; color: #c1272d; opacity: 0.55; letter-spacing: 0; }
+
   @media (prefers-reduced-motion: reduce) {
-    .stamp { animation: none; opacity: 0.94; transform: rotate(-7deg); }
+    .ticker { animation: none; opacity: 1; }
+    .ticker-track { animation: none; }
   }
 
   /* ── Shared chrome ───────────────────────────────────────────────────── */
@@ -478,11 +490,7 @@
 <!-- ══ HOME ══════════════════════════════════════════════════════════════ -->
 <section id="screen-home" class="screen active">
   <div class="home-wrap">
-    <div class="hero-art">
-      <div class="nudi-art"><img src="nudi-logo.webp" alt="" width="900" height="641"></div>
-      <img class="stamp" src="stamp.webp" width="420" height="425"
-           alt="Endorsed by the Nudibranch Appreciation Club">
-    </div>
+    <div class="nudi-art"><img src="nudi-logo.webp" alt="" width="900" height="641"></div>
 
     <h1 class="home-title">Nudis<span class="near">Near Me</span></h1>
 
@@ -497,6 +505,25 @@
     </p>
     <button class="about-link" id="btnAbout">About</button>
   </div>
+
+  <!-- Halves must stay identical for the loop to be seamless; the second is
+       aria-hidden so it isn't read out twice. -->
+  <div class="ticker">
+    <div class="ticker-track">
+      <div class="ticker-half">
+        <span class="ticker-item">Endorsed by the Nudibranch Appreciation Club</span>
+        <span class="ticker-item">Endorsed by the Nudibranch Appreciation Club</span>
+        <span class="ticker-item">Endorsed by the Nudibranch Appreciation Club</span>
+        <span class="ticker-item">Endorsed by the Nudibranch Appreciation Club</span>
+      </div>
+      <div class="ticker-half" aria-hidden="true">
+        <span class="ticker-item">Endorsed by the Nudibranch Appreciation Club</span>
+        <span class="ticker-item">Endorsed by the Nudibranch Appreciation Club</span>
+        <span class="ticker-item">Endorsed by the Nudibranch Appreciation Club</span>
+        <span class="ticker-item">Endorsed by the Nudibranch Appreciation Club</span>
+      </div>
+    </div>
+  </div>
 </section>
 
 <!-- ══ ABOUT ═════════════════════════════════════════════════════════════ -->
@@ -505,7 +532,7 @@
     <button class="icon-btn" data-back="home" aria-label="Back">&#8592;</button>
     <div class="topbar-grow">
       <div class="topbar-title">About</div>
-      <div class="topbar-meta">Nudis Near Me v2.2</div>
+      <div class="topbar-meta">Nudis Near Me v2.3</div>
     </div>
   </div>
   <div class="page prose">
