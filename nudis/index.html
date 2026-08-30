@@ -548,7 +548,7 @@
     <button class="icon-btn" data-back="home" aria-label="Back">&#8592;</button>
     <div class="topbar-grow">
       <div class="topbar-title">About</div>
-      <div class="topbar-meta">Nudis Near Me v2.9</div>
+      <div class="topbar-meta">Nudis Near Me v3.0</div>
     </div>
   </div>
   <div class="page prose">
@@ -703,11 +703,12 @@
         <label for="optRadius">Search area</label>
         <span class="setting-value" id="radiusValue">50 km</span>
       </div>
-      <input type="range" id="optRadius" min="0" max="16" step="1" value="16">
-      <div class="scale-ends"><span>100 m</span><span>50 km</span></div>
+      <input type="range" id="optRadius" min="0" step="1">
+      <div class="scale-ends"><span>100 m</span><span>50 km</span><span>500 km</span></div>
       <p class="setting-note">
-        The steps get finer at the small end, so you can pin down a single reef or
-        headland without losing the ability to sweep a whole coastline.
+        The usual 50 km sits mid-slider, so you can go either way from it. Steps get
+        finer as you go smaller, to pin down a single reef or headland, and coarser as
+        you go bigger, to sweep a whole coastline.
       </p>
     </div>
 
@@ -777,8 +778,12 @@
   /* Search radii in km. Roughly logarithmic — fine steps down at the reef-and-
      headland end, coarse ones out at coastline scale. The slider indexes into
      this, which keeps every stop a round number instead of 3.7 km. */
-  const RADIUS_STEPS = [0.1, 0.15, 0.2, 0.3, 0.5, 0.75, 1, 1.5, 2, 3, 5, 7.5, 10, 15, 20, 30, 50];
-  const DEFAULT_STEP = RADIUS_STEPS.length - 1;   // 50 km
+  const RADIUS_STEPS = [
+    0.1, 0.2, 0.3, 0.5, 1, 2, 3, 5, 10, 25,   // finer at the reef-and-headland end
+    50,                                        // the default, deliberately mid-slider
+    60, 75, 100, 125, 150, 200, 250, 300, 400, 500
+  ];
+  const DEFAULT_STEP = RADIUS_STEPS.indexOf(50);
   const WIDE_KM      = 50;                        // the obscured sweep is always 50 km
   const YEARS_BACK   = 20;
   const INAT_TAXON  = 47113;          // Nudibranchia
@@ -1044,6 +1049,15 @@
       show('settings');
     });
   });
+
+  /* Driven off RADIUS_STEPS so the slider's range and default cannot drift away
+     from the array behind it. */
+  (function initRadiusSlider() {
+    const el = $('#optRadius');
+    el.max = String(RADIUS_STEPS.length - 1);
+    el.value = String(DEFAULT_STEP);
+    $('#radiusValue').textContent = fmtKm(radiusKm());
+  })();
 
   $('#optRadius').addEventListener('input', function () {
     $('#radiusValue').textContent = fmtKm(radiusKm());
