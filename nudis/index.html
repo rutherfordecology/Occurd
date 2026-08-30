@@ -287,13 +287,52 @@
     color: rgba(253,248,240,0.45);
   }
   .thumb {
-    width: 62px; height: 62px; border-radius: 12px; flex-shrink: 0;
+    width: clamp(84px, 24vw, 108px); height: clamp(84px, 24vw, 108px);
+    border-radius: 14px; flex-shrink: 0;
     object-fit: cover; background: rgba(44,15,56,0.6);
     border: 1px solid rgba(160,95,192,0.4);
   }
+  img.thumb { cursor: zoom-in; transition: transform 0.12s ease, border-color 0.15s ease; }
+  img.thumb:hover { border-color: var(--gold); transform: scale(1.03); }
   .thumb-blank {
     display: flex; align-items: center; justify-content: center;
-    font-size: 1.5rem; color: rgba(253,248,240,0.3);
+    font-size: 1.7rem; color: rgba(253,248,240,0.3);
+  }
+
+  /* ── Lightbox ────────────────────────────────────────────────────────── */
+  .lightbox {
+    position: fixed; inset: 0; z-index: 2000; display: none;
+    background: rgba(20,6,26,0.94);
+    padding: calc(12px + env(safe-area-inset-top)) 12px calc(12px + env(safe-area-inset-bottom));
+    flex-direction: column; align-items: center; justify-content: center;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .lightbox.open { display: flex; }
+  .lightbox img {
+    max-width: 100%; max-height: calc(100dvh - 150px);
+    width: auto; height: auto; object-fit: contain;
+    border-radius: 12px; box-shadow: 0 12px 40px rgba(0,0,0,0.55);
+  }
+  .lb-caption {
+    margin-top: 12px; max-width: 46rem; text-align: center;
+    font-size: 0.78rem; font-weight: 600; line-height: 1.5;
+    color: rgba(253,248,240,0.65);
+  }
+  .lb-caption .lb-name {
+    display: block; font-family: var(--font-display); font-weight: 600;
+    font-size: 1.15rem; font-style: italic; color: var(--cream); margin-bottom: 4px;
+  }
+  .lb-close {
+    position: absolute; top: calc(10px + env(safe-area-inset-top)); right: 12px;
+    width: 44px; height: 44px; border-radius: 50%; cursor: pointer;
+    background: rgba(253,248,240,0.14); border: 1px solid rgba(253,248,240,0.3);
+    color: var(--cream); font-size: 1.5rem; line-height: 1;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .lb-close:hover { background: rgba(253,248,240,0.26); }
+  .lb-spin {
+    position: absolute; font-size: 2rem; color: rgba(253,248,240,0.4);
+    pointer-events: none;
   }
   .card-text { flex: 1; min-width: 0; }
   .sci { font-family: var(--font-display); font-weight: 500; font-size: 1.02rem; font-style: italic; color: var(--cream); line-height: 1.25; }
@@ -322,8 +361,8 @@
   .depth-src { font-size: 0.7rem; font-weight: 700; color: rgba(253,248,240,0.4); margin-top: 5px; }
 
   .obs-strip { display: flex; gap: 8px; overflow-x: auto; padding: 12px 0 4px; -webkit-overflow-scrolling: touch; }
-  .obs { flex-shrink: 0; width: 84px; text-decoration: none; }
-  .obs img { width: 84px; height: 84px; object-fit: cover; border-radius: 10px; border: 1px solid rgba(160,95,192,0.4); display: block; }
+  .obs { flex-shrink: 0; width: 108px; text-decoration: none; }
+  .obs img { width: 108px; height: 108px; cursor: zoom-in; object-fit: cover; border-radius: 10px; border: 1px solid rgba(160,95,192,0.4); display: block; }
   .obs-date { font-size: 0.64rem; font-weight: 700; color: rgba(253,248,240,0.6); margin-top: 4px; }
   .obs-who  { font-size: 0.62rem; font-weight: 600; color: rgba(253,248,240,0.38); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
@@ -413,7 +452,7 @@
     <button class="icon-btn" data-back="home" aria-label="Back">&#8592;</button>
     <div class="topbar-grow">
       <div class="topbar-title">About</div>
-      <div class="topbar-meta">Nudis Near Me v1.7</div>
+      <div class="topbar-meta">Nudis Near Me v1.8</div>
     </div>
   </div>
   <div class="page prose">
@@ -446,8 +485,11 @@
 
     <h3>Photos</h3>
     <p>Photographs come from iNaturalist and are shown only where the photographer has
-       applied a Creative Commons licence. Each one is credited. All-rights-reserved images
-       are skipped, which is why a few species show a blank thumbnail.</p>
+       applied a Creative Commons licence. Each one is credited, and tapping any photo
+       opens it large. A species' headline photo on iNaturalist is often all rights
+       reserved even when there are freely licensed ones behind it, so the app looks past
+       it for the first usable image. A blank tile means every photo of that species is
+       all rights reserved.</p>
 
     <h3>Your location</h3>
     <p>Your position never leaves your device un-rounded &mdash; it is snapped to roughly
@@ -597,6 +639,14 @@
   </div>
   <div class="page" id="resultsPage"></div>
 </section>
+
+<!-- ══ LIGHTBOX ══════════════════════════════════════════════════════════ -->
+<div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Photo">
+  <button class="lb-close" id="lbClose" aria-label="Close">&times;</button>
+  <span class="lb-spin spin" id="lbSpin">&#9676;</span>
+  <img id="lbImg" alt="">
+  <p class="lb-caption" id="lbCaption"></p>
+</div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="depths.js"></script>
@@ -837,6 +887,7 @@
     }
 
     if ($('#optGbif').checked) await mergeGbif(list);
+    await fillMissingPhotos(list);
     return list;
   }
 
@@ -874,9 +925,52 @@
   /* Only show a photo we are entitled to show: iNat leaves license_code null on
      all-rights-reserved images, so those are skipped rather than hotlinked. */
   function photoOf(taxon) {
-    const p = taxon.default_photo;
+    return usablePhoto(taxon.default_photo);
+  }
+
+  /* iNat leaves license_code null on all-rights-reserved images, so those are
+     skipped rather than hotlinked. URL sizes are interchangeable path segments,
+     so the big version is derived rather than requested separately. */
+  function usablePhoto(p) {
     if (!p || !p.license_code) return null;
-    return { url: p.medium_url || p.square_url, attribution: p.attribution || '' };
+    const med = p.medium_url || p.square_url;
+    if (!med) return null;
+    return {
+      thumb: med,
+      large: p.large_url || med.replace(/\/(medium|small|square)\./, '/large.'),
+      attribution: p.attribution || ''
+    };
+  }
+
+  /* A species' default photo is often all-rights-reserved even when the taxon
+     has plenty of CC ones behind it — Aphelodoris luctuosa is the local example.
+     Rather than show a blank tile, look through taxon_photos for the first
+     usable image. /v1/taxa takes comma-separated ids, so this costs one request
+     per 30 species instead of one each. */
+  async function fillMissingPhotos(list) {
+    const gaps = list.filter(s => !s.photo && s.taxonId);
+    if (!gaps.length) return;
+
+    for (let i = 0; i < gaps.length; i += 30) {
+      const chunk = gaps.slice(i, i + 30);
+      let json;
+      try {
+        const res = await fetch('https://api.inaturalist.org/v1/taxa/' +
+          chunk.map(s => s.taxonId).join(',') + '?locale=en');
+        if (!res.ok) continue;
+        json = await res.json();
+      } catch (e) { continue; }
+
+      const byId = new Map((json.results || []).map(t => [t.id, t]));
+      chunk.forEach(function (s) {
+        const t = byId.get(s.taxonId);
+        if (!t) return;
+        for (const tp of (t.taxon_photos || [])) {
+          const ok = usablePhoto(tp.photo);
+          if (ok) { s.photo = ok; return; }
+        }
+      });
+    }
   }
 
   async function mergeGbif(list) {
@@ -932,6 +1026,34 @@
     if (hab.zone === 'rockpool')                    return 0.85;
     return 0.85;                                    // unknown
   }
+
+  // ── Lightbox ────────────────────────────────────────────────────────────
+  const lb = $('#lightbox'), lbImg = $('#lbImg'), lbSpin = $('#lbSpin'), lbCap = $('#lbCaption');
+
+  function openLightbox(src, name, credit) {
+    lbImg.removeAttribute('src');          // don't flash the previous photo
+    lbSpin.hidden = false;
+    lbCap.innerHTML = (name ? '<span class="lb-name">' + esc(name) + '</span>' : '') + esc(credit || '');
+    lbImg.onload = lbImg.onerror = function () { lbSpin.hidden = true; };
+    lbImg.src = src;
+    lb.classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeLightbox() {
+    lb.classList.remove('open');
+    lbImg.removeAttribute('src');
+    document.body.style.overflow = '';
+  }
+
+  // Tapping the backdrop closes; tapping the photo itself does not.
+  lb.addEventListener('click', function (e) {
+    if (e.target === lbImg) return;
+    closeLightbox();
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && lb.classList.contains('open')) closeLightbox();
+  });
 
   // ── Rendering ───────────────────────────────────────────────────────────
   const page = $('#resultsPage');
@@ -995,6 +1117,13 @@
     html += attribHtml();
     page.innerHTML = html;
 
+    $$('img.thumb', page).forEach(function (im) {
+      im.addEventListener('click', function (e) {
+        e.stopPropagation();           // opening the photo shouldn't also expand the card
+        openLightbox(im.dataset.large, im.dataset.name, im.dataset.credit);
+      });
+    });
+
     $$('.card-head', page).forEach(function (h) {
       h.addEventListener('click', function () {
         const card = h.parentElement;
@@ -1021,7 +1150,10 @@
     const zoneTxt = ZONE_LABEL[hab.zone] || 'Depth unknown';
 
     const thumb = s.photo
-      ? '<img class="thumb" src="' + esc(s.photo.url) + '" alt="" loading="lazy">'
+      ? '<img class="thumb" src="' + esc(s.photo.thumb) + '" alt="' + esc(s.name) + '" loading="lazy"' +
+        ' data-large="' + esc(s.photo.large) + '"' +
+        ' data-name="' + esc(s.name) + '"' +
+        ' data-credit="' + esc(s.photo.attribution) + '">'
       : '<div class="thumb thumb-blank">◌</div>';
 
     let depthTxt = '';
@@ -1106,13 +1238,27 @@
         if (!ph || !ph.license_code) return '';
         const img = (ph.url || '').replace('/square.', '/small.');
         const date = o.observed_on_details ? o.observed_on_details.date : (o.observed_on || '');
+        const big = (ph.url || '').replace(/\/(square|small|medium)\./, '/large.');
+        const who = o.user ? o.user.login : '';
         return '<a class="obs" href="https://www.inaturalist.org/observations/' + o.id +
           '" target="_blank" rel="noopener" title="' + esc(ph.attribution || '') + '">' +
-          '<img src="' + esc(img) + '" alt="" loading="lazy">' +
+          '<img src="' + esc(img) + '" alt="" loading="lazy"' +
+            ' data-large="' + esc(big) + '"' +
+            ' data-name="' + esc(date ? date + ' · ' + who : who) + '"' +
+            ' data-credit="' + esc(ph.attribution || '') + '">' +
           '<div class="obs-date">' + esc(date) + '</div>' +
-          '<div class="obs-who">' + esc(o.user ? o.user.login : '') + '</div></a>';
+          '<div class="obs-who">' + esc(who) + '</div></a>';
       }).join('');
       strip.innerHTML = html;
+
+      /* Tap the photo to enlarge it; the surrounding link still goes to the
+         observation on iNaturalist. */
+      $$('img', strip).forEach(function (im) {
+        im.addEventListener('click', function (e) {
+          e.preventDefault(); e.stopPropagation();
+          openLightbox(im.dataset.large, im.dataset.name, im.dataset.credit);
+        });
+      });
     } catch (e) { /* the card still works without the strip */ }
   }
 
