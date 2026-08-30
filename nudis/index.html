@@ -548,7 +548,7 @@
     <button class="icon-btn" data-back="home" aria-label="Back">&#8592;</button>
     <div class="topbar-grow">
       <div class="topbar-title">About</div>
-      <div class="topbar-meta">Nudis Near Me v2.7</div>
+      <div class="topbar-meta">Nudis Near Me v2.8</div>
     </div>
   </div>
   <div class="page prose">
@@ -859,11 +859,32 @@
   const $  = (s, r) => (r || document).querySelector(s);
   const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
 
+  /* Screens are swapped in place rather than being separate pages, so without
+     this the phone's back button finds nothing to go back to and leaves the app
+     entirely. Every screen change pushes a history entry; popstate puts the
+     screen back without pushing another. */
   function show(name) {
+    applyScreen(name);
+    history.pushState({ screen: name }, '');
+  }
+
+  function applyScreen(name) {
+    const target = $('#screen-' + name);
+    if (!target) return;
     $$('.screen').forEach(s => s.classList.remove('active'));
-    $('#screen-' + name).classList.add('active');
+    target.classList.add('active');
     window.scrollTo(0, 0);
   }
+
+  history.replaceState({ screen: 'home' }, '');
+
+  window.addEventListener('popstate', function (e) {
+    const st = e.state || { screen: 'home' };
+    // The lightbox is its own history entry, so back closes the photo first
+    // rather than jumping a whole screen.
+    if (lightboxOpen() && !st.lightbox) closeLightboxNow();
+    applyScreen(st.screen || 'home');
+  });
 
   /* Round to ~100 m before anything leaves the device. Irrelevant at a 50 km
      radius, and keeps a precise home address out of third-party query logs. */
@@ -995,8 +1016,14 @@
     p.addEventListener('click', function () { go(p.dataset.mode); });
   });
 
+  /* Rewind rather than pushing a new entry, so the on-screen arrow and the
+     phone's back button agree instead of walking in opposite directions.
+     data-back is the fallback if there is no history to rewind into. */
   $$('[data-back]').forEach(function (b) {
-    b.addEventListener('click', function () { show(b.dataset.back); });
+    b.addEventListener('click', function () {
+      if (history.state && history.state.screen !== 'home') history.back();
+      else show(b.dataset.back);
+    });
   });
   $('#btnRestart').addEventListener('click', function () { show('home'); });
   $('#btnAbout').addEventListener('click', function () { show('about'); });
@@ -1296,6 +1323,8 @@
   // ── Lightbox ────────────────────────────────────────────────────────────
   const lb = $('#lightbox'), lbImg = $('#lbImg'), lbSpin = $('#lbSpin'), lbCap = $('#lbCaption');
 
+  function lightboxOpen() { return lb.classList.contains('open'); }
+
   function openLightbox(src, name, credit) {
     lbImg.removeAttribute('src');          // don't flash the previous photo
     lbSpin.hidden = false;
@@ -1304,9 +1333,19 @@
     lbImg.src = src;
     lb.classList.add('open');
     document.body.style.overflow = 'hidden';
+
+    const screen = (document.querySelector('.screen.active') || {}).id || 'screen-home';
+    history.pushState({ screen: screen.replace('screen-', ''), lightbox: true }, '');
   }
 
+  /* Closing by tap or Escape rewinds the history entry the photo added, so the
+     back button doesn't have to be pressed twice to leave the screen. */
   function closeLightbox() {
+    if (history.state && history.state.lightbox) return history.back();
+    closeLightboxNow();
+  }
+
+  function closeLightboxNow() {
     lb.classList.remove('open');
     lbImg.removeAttribute('src');
     document.body.style.overflow = '';
