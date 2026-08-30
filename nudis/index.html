@@ -486,6 +486,17 @@
     color: rgba(253,248,240,0.68); margin-top: 2px;
   }
 
+  /* Drawn in red for white paper, so it sits on a cream disc rather than going
+     muddy against the plum. */
+  .stamp {
+    display: block; width: clamp(160px, 46vw, 200px); height: auto;
+    margin: 34px auto 4px; transform: rotate(-6deg);
+    border-radius: 50%;
+    background: radial-gradient(circle, #fdf8f0 0%, #fdf8f0 68%, rgba(253,248,240,0) 72%);
+    box-shadow: 0 6px 18px rgba(20,6,26,0.35);
+    opacity: 0.94;
+  }
+
   @media (min-width: 700px) { .mode-grid { grid-template-columns: 1fr 1fr; } }
 </style>
 </head>
@@ -537,7 +548,7 @@
     <button class="icon-btn" data-back="home" aria-label="Back">&#8592;</button>
     <div class="topbar-grow">
       <div class="topbar-title">About</div>
-      <div class="topbar-meta">Nudis Near Me v2.4</div>
+      <div class="topbar-meta">Nudis Near Me v2.5</div>
     </div>
   </div>
   <div class="page prose">
@@ -619,6 +630,9 @@
         <span class="app-desc">A photo ID quiz for any organism. Pick your taxa and see how you go.</span>
       </a>
     </div>
+
+    <img class="stamp" src="stamp.webp" width="420" height="425"
+         alt="Endorsed by the Nudibranch Appreciation Club">
 
   </div>
 </section>
