@@ -92,20 +92,8 @@
     text-align: center;
     padding: 40px 22px calc(58px + env(safe-area-inset-bottom));
   }
-  .nudi-art { width: min(330px, 80vw); color: var(--cream); margin-bottom: 4px; }
-  .nudi-art svg, .nudi-art img {
-    width: 100%; height: auto; display: block;
-    animation: drift 7s ease-in-out infinite;
-  }
-  /* A slow suspended-in-water drift. Deliberately small — it should read as
-     alive out of the corner of your eye, not as a bouncing GIF. */
-  @keyframes drift {
-    0%, 100% { transform: translateY(0)      rotate(0deg); }
-    50%      { transform: translateY(-9px)   rotate(-1.1deg); }
-  }
-  @media (prefers-reduced-motion: reduce) {
-    .nudi-art svg, .nudi-art img { animation: none; }
-  }
+  .hero-art { width: min(236px, 58vw); color: var(--cream); margin-bottom: 6px; }
+  .hero-art svg, .hero-art img { width: 100%; height: auto; display: block; }
 
   .home-title {
     font-family: var(--font-display); font-weight: 600;
@@ -476,7 +464,7 @@
 <!-- ══ HOME ══════════════════════════════════════════════════════════════ -->
 <section id="screen-home" class="screen active">
   <div class="home-wrap">
-    <div class="nudi-art"><img src="gecko-logo.webp" alt="" width="900" height="641"></div>
+    <div class="hero-art"><img src="gecko-logo.webp" alt="" width="760" height="878"></div>
 
     <h1 class="home-title">Lizards<span class="near">Near Me</span></h1>
 
@@ -502,7 +490,7 @@
     <button class="icon-btn" data-back="home" aria-label="Back">&#8592;</button>
     <div class="topbar-grow">
       <div class="topbar-title">About</div>
-      <div class="topbar-meta">Lizards Near Me v1.0</div>
+      <div class="topbar-meta">Lizards Near Me v1.1</div>
     </div>
   </div>
   <div class="page prose">
