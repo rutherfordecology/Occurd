@@ -49,7 +49,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v7.26b</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v7.27b</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -2251,7 +2251,12 @@ function renderPolyList() {
 
   const geomPolys     = polygons.filter(p => p.type !== 'species');
   const speciesPolys  = polygons.filter(p => p.type === 'species');
-  const showHeaders   = geomPolys.length > 0 && speciesPolys.length > 0;
+  // Taxon groups are chosen two sections further down the sidebar, and the only sign one
+  // was on was the dropdown's own label — which reads "3 groups selected" past three, and
+  // scrolls out of sight once the parameters section is collapsed. Listing them here puts
+  // them beside the polygons and species picks, so the whole search reads in one place.
+  const taxonSel      = selectedTaxonEntries();
+  const showHeaders   = [geomPolys, speciesPolys, taxonSel].filter(a => a.length > 0).length > 1;
 
   function addGroupLabel(text) {
     const lbl = document.createElement('div');
@@ -2320,10 +2325,29 @@ function renderPolyList() {
     polyList.appendChild(el);
   }
 
-  if (showHeaders) addGroupLabel('Polygons');
+  function renderTaxon(t) {
+    const el = document.createElement('div'); el.className = 'poly-item taxon-entry';
+    const topRow = document.createElement('div'); topRow.className = 'poly-item-row';
+    topRow.innerHTML =
+      '<span class="poly-item-name"><span style="vertical-align:-2px;margin-right:3px;">' + icon('filter', { size: 13 }) + '</span>' + t.label + '</span>' +
+      '<span class="poly-remove" title="Remove this taxon group from the search">' + icon('x', { size: 13 }) + '</span>';
+    // Deselecting the last one leaves nothing ticked, which is the same search as all
+    // taxa — getSelectedTaxonKeys() returns [] either way, and the label says so.
+    topRow.querySelector('.poly-remove').addEventListener('click', () => {
+      t.cb.closest('label').classList.remove('selected');
+      t.cb.checked = false;
+      updateTaxonLabel();
+    });
+    el.appendChild(topRow);
+    polyList.appendChild(el);
+  }
+
+  if (showHeaders && geomPolys.length)    addGroupLabel('Polygons');
   geomPolys.forEach(renderGeom);
-  if (showHeaders) addGroupLabel('Species');
+  if (showHeaders && speciesPolys.length) addGroupLabel('Species');
   speciesPolys.forEach(renderSpecies);
+  if (showHeaders && taxonSel.length)     addGroupLabel('Taxon groups');
+  taxonSel.forEach(renderTaxon);
 }
 
 // Create a new polygon that is a buffered version of an existing polygon
@@ -5714,6 +5738,17 @@ function updateTaxonLabel() {
     selected.length <= 3 ? selected.map(cb => cb.closest('label').textContent.trim()).join(', ') :
     selected.length + ' groups selected';
   document.getElementById('taxonTriggerLabel').textContent = label;
+  renderPolyList(); // the selection is listed under Define area too
+}
+
+// The taxon groups currently ticked, with the label text as the dropdown shows it.
+// The 'selected' class is the source of truth here, not the checkbox's own state — the
+// dropdown's click handlers preventDefault and drive the class instead.
+function selectedTaxonEntries() {
+  if (document.getElementById('taxonAllLabel').classList.contains('selected')) return [];
+  return taxonCbs()
+    .filter(cb => cb.closest('label').classList.contains('selected'))
+    .map(cb => ({ cb, label: cb.closest('label').textContent.trim() }));
 }
 
 function getSelectedTaxonKeys() {
@@ -7462,6 +7497,14 @@ if (window._pendingShare) {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v7.27</span>
+      <span class="changelog-date">Aug 2026</span>
+      <ul>
+        <li>Taxon groups you pick now show as their own entries under <em>Define area</em>, alongside the polygons and species picks, each with an &times; to drop it. Until now the only sign a group filter was on was the dropdown&rsquo;s own label &mdash; which collapses to &quot;4 groups selected&quot; past three, and scrolls out of sight the moment the parameters section is collapsed. The filter was being applied to the fetch the whole time; there was just nothing to see</li>
+        <li>Removing the last group leaves the search on all taxa, which is what an empty selection has always meant</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v7.26</span>
       <span class="changelog-date">Aug 2026</span>
