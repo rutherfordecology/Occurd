@@ -69,9 +69,9 @@ const GENUS_ACTIVITY = {
      sea snake carried down on warm currents and washed ashore — eleven records
      in the country. Timing is not really the point for a beach-cast animal, so
      both are listed under either mode. */
-  Hydrophis:     { when: 'day', byDay: true, venomous: true,
+  Hydrophis:     { when: 'day', byDay: true,
                    tip: 'Yellow-bellied sea snake. A rare vagrant, almost always found washed up. Highly venomous — do not handle it, alive or dead, and report it to DOC on 0800 362 468.' },
-  Laticauda:     { when: 'day', byDay: true, venomous: true,
+  Laticauda:     { when: 'day', byDay: true,
                    tip: 'Sea krait. An extremely rare vagrant. Highly venomous — do not handle it, alive or dead, and report it to DOC on 0800 362 468.' }
 };
 
@@ -91,6 +91,44 @@ const NOT_LIZARDS = new Set([
 
 function isExcluded(scientificName) {
   return NOT_LIZARDS.has(String(scientificName || '').split(/\s+/)[0]);
+}
+
+/* ────────────────────────────────────────────────────────────────────────────
+   Venom — worked out from the tree, not a species list
+   ────────────────────────────────────────────────────────────────────────────
+   This runs anywhere in the world, so a hand-written list of dangerous species
+   would be both enormous and, much worse, silently incomplete. Instead it reads
+   the family off iNaturalist's ancestry, which comes back with every result.
+
+   Three families are venomous throughout — no member of them is safe to pick
+   up. A handful of rear-fanged colubrids are also dangerous and are named
+   individually, because their family as a whole is not. Everything else that is
+   a snake still gets a quieter note, on the grounds that a stranger's ability
+   to identify a snake in the field is not something to bet a hand on.
+   ──────────────────────────────────────────────────────────────────────────── */
+
+const SERPENTES        = 85553;
+const VENOMOUS_FAMILIES = {
+  30403:   'Elapidae',          // cobras, mambas, taipans, coral and sea snakes
+  30667:   'Viperidae',         // vipers, adders, rattlesnakes
+  1148893: 'Atractaspididae'    // burrowing asps
+};
+
+/* Dangerously venomous genera inside otherwise harmless families. */
+const VENOMOUS_GENERA = new Set([
+  'Dispholidus',   // boomslang
+  'Thelotornis',   // twig snakes
+  'Rhabdophis'     // keelbacks
+]);
+
+/* Returns 'high' for a seriously venomous animal, 'snake' for any other snake,
+   or null. ancestorIds comes straight from the iNaturalist taxon. */
+function venomLevel(scientificName, ancestorIds) {
+  const ids = ancestorIds || [];
+  for (const id of ids) if (VENOMOUS_FAMILIES[id]) return 'high';
+  if (VENOMOUS_GENERA.has(String(scientificName || '').split(/\s+/)[0])) return 'high';
+  if (ids.indexOf(SERPENTES) !== -1) return 'snake';
+  return null;
 }
 
 /* Resolve a name to an activity record.
@@ -120,5 +158,5 @@ function inMode(act, mode) {
 
 window.LizardActivity = {
   GENUS_ACTIVITY, SPECIES_ACTIVITY, NOT_LIZARDS,
-  activityFor, inMode, isExcluded
+  activityFor, inMode, isExcluded, venomLevel
 };

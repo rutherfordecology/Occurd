@@ -399,6 +399,7 @@
   .body-line { font-size: 0.86rem; font-weight: 600; color: rgba(244,248,238,0.8); line-height: 1.55; margin-top: 12px; }
   .body-line .lbl { color: var(--orchid-2); font-weight: 800; }
   .warn-line { color: #ffcaa8; font-weight: 800; }
+  .badge.venom { background: rgba(196,98,45,0.35); color: #ffd0b0; border: 1px solid rgba(224,127,66,0.6); }
   .depth-src { font-size: 0.7rem; font-weight: 700; color: rgba(244,248,238,0.4); margin-top: 5px; }
 
   .obs-strip { display: flex; gap: 8px; overflow-x: auto; padding: 12px 0 4px; -webkit-overflow-scrolling: touch; }
@@ -496,7 +497,7 @@
     <button class="icon-btn" data-back="home" aria-label="Back">&#8592;</button>
     <div class="topbar-grow">
       <div class="topbar-title">About</div>
-      <div class="topbar-meta">Lizards Near Me v1.2</div>
+      <div class="topbar-meta">Lizards Near Me v1.3</div>
     </div>
   </div>
   <div class="page prose">
@@ -513,21 +514,33 @@
        and they are highly venomous, so the card says so. Marine turtles are filtered
        out, being neither.</p>
 
-    <h3>Why the search area starts at 50 km</h3>
-    <p>This is the important thing to understand about lizard records in New Zealand.
-       <b>More than half of them have a deliberately falsified location.</b> The
-       Department of Conservation and iNaturalist obscure threatened species, and green
-       geckos in particular are poached for the overseas pet trade, so their published
-       position is shifted randomly by up to about 25 kilometres.</p>
-    <p>Of 16,000 research-grade reptile records in New Zealand, around 8,600 are obscured
-       this way. Near Wellington, 18 of the 20 species you would be shown are there
-       because of an obscured record. Searching a tight radius would therefore be
-       theatre: it would look precise and be wrong. Starting at 50 km means the
-       displacement is always smaller than the search, so the records land inside it
-       honestly. Anything obscured is flagged on its card.</p>
-    <p>So read this as <i>lizards living around here</i>, not <i>lizards at your feet</i>.
-       That is genuinely all the data can support, and it is the right answer anyway
-       &mdash; these are protected animals, and several are poaching targets.</p>
+    <h3>Why the search area starts at 20 km</h3>
+    <p>This is the important thing to understand about lizard records. <b>Many of them
+       have a deliberately falsified location.</b> Conservation agencies and iNaturalist
+       obscure threatened species, and some &mdash; green geckos in New Zealand, for
+       instance &mdash; are poached for the overseas pet trade. Their published position
+       is shifted randomly by up to about 25 kilometres.</p>
+    <p>In New Zealand that covers more than half of all reptile records: around 8,600 of
+       16,000. Near Wellington, 18 of the 20 species you would be shown are there because
+       of an obscured record. So a tight search would be theatre &mdash; it would look
+       precise and be wrong.</p>
+    <p>20 km is the floor. At 50 km and above, the displacement always lands inside the
+       search, so nothing goes missing. Below that, the app quietly sweeps out to 50 km
+       for the protected records and adds back anything the tight search would have lost.
+       Either way, read this as <i>lizards living around here</i>, not <i>lizards at your
+       feet</i>. That is all the data can support, and it is the right answer anyway
+       &mdash; many of these are protected, and several are poaching targets.</p>
+
+    <h3>Snakes, and venom</h3>
+    <p>New Zealand has no land snakes; most of the world does. Where the app finds one it
+       says so, and where that snake belongs to a family that is venomous throughout
+       &mdash; the elapids, the vipers, the burrowing asps &mdash; the card carries a
+       warning. A few dangerous rear-fanged colubrids are named individually, since their
+       family as a whole is harmless.</p>
+    <p>This is read off the family in iNaturalist's own taxonomy rather than a
+       hand-written list of species, because a list would be enormous and, far worse,
+       quietly incomplete. Any other snake still gets a milder note. Nothing here is an
+       identification: do not handle a snake on the strength of an app.</p>
 
     <h3>Day or night</h3>
     <p>New Zealand's herpetofauna divides along genus lines almost perfectly, so this is
@@ -599,7 +612,7 @@
   </div>
   <div class="page">
     <div id="pickMap"></div>
-    <p class="map-hint" id="mapHint">The dashed circle is the <b>50 km</b> search area. Tap to move it.</p>
+    <p class="map-hint" id="mapHint">The dashed circle is the search area. Tap to move it.</p>
     <button class="btn btn-primary" id="btnUsePin" disabled>Use this spot</button>
   </div>
 </section>
@@ -654,11 +667,11 @@
         <span class="setting-value" id="radiusValue">50 km</span>
       </div>
       <input type="range" id="optRadius" min="0" step="1">
-      <div class="scale-ends"><span>50 km</span><span>500 km</span></div>
+      <div class="scale-ends"><span>20 km</span><span>50 km</span><span>500 km</span></div>
       <p class="setting-note">
-        50 km is the minimum, and deliberately so &mdash; obscured records are displaced by
-        up to about 25 km, so anything tighter would look precise and be wrong. The
-        About page explains why.
+        20 km is the minimum. Protected records are displaced by up to about 25 km, so
+        below 50 km the app sweeps wider to catch them and flags what it finds. The
+        About page explains.
       </p>
     </div>
 
@@ -715,16 +728,18 @@
 (function () {
   'use strict';
 
-  /* Search radii in km. 50 km is the floor, not a default — obscured records are
-     displaced by up to ~25 km, so a tighter search would look precise and be wrong. */
-  const RADIUS_STEPS = [50, 60, 75, 100, 125, 150, 200, 250, 300, 400, 500];
-  const DEFAULT_STEP = 0;
+  /* Search radii in km. 20 km is the floor. Below 50 km an obscured record can
+     be displaced clean outside the search, so the wide sweep below puts them
+     back — see fetchSpecies. */
+  const RADIUS_STEPS = [20, 30, 50, 75, 100, 150, 200, 300, 500];
+  const DEFAULT_STEP = RADIUS_STEPS.indexOf(50);
+  const WIDE_KM      = 50;   // how far the obscured sweep reaches
   const YEARS_BACK   = 20;
   const INAT_TAXON  = 26036;          // Reptilia — geckos, skinks and tuatara
   const GBIF_TAXON  = 11592253;       // Squamata
   const MAX_PAGES   = 5;              // 200/page — a very generous ceiling
 
-  const { activityFor, inMode, isExcluded } = window.LizardActivity;
+  const { activityFor, inMode, isExcluded, venomLevel } = window.LizardActivity;
 
   const SPECIES_RANKS = new Set(['species', 'subspecies', 'variety', 'form', 'hybrid']);
 
@@ -1031,19 +1046,22 @@
   async function fetchSpecies() {
     const list = await fetchInat(searchKm(), '');
 
-    /* More than half of New Zealand's lizard records have a randomised position
-       — DOC and iNaturalist protect threatened species, and green geckos are
-       actively poached. Because the search is never tighter than 50 km and the
-       displacement is at most about 25 km, those records already fall inside
-       the results; no separate sweep is needed to find them. What they do need
-       is flagging, so nobody reads a hit as "this is here". geoprivacy and
-       taxon_geoprivacy are ANDed by the API when sent together, so they run as
-       separate passes. */
+    /* Most lizard records worth protecting carry a randomised position, shifted
+       by up to about 25 km. At 50 km or more that displacement lands inside the
+       search anyway, so the passes below only flag what is already there. Below
+       50 km they have to reach further out, or an obscured species sitting at
+       your feet would simply be missing. geoprivacy and taxon_geoprivacy are
+       ANDed by the API when sent together, so they run separately. */
+    const sweepKm = Math.max(searchKm(), WIDE_KM);
+    const known = new Set(list.map(s => s.name));
     const obscuredNames = new Set();
     for (const param of ['&geoprivacy=obscured', '&taxon_geoprivacy=obscured']) {
-      try {
-        (await fetchInat(searchKm(), param)).forEach(s => obscuredNames.add(s.name));
-      } catch (e) { /* the list is still usable unflagged */ }
+      let found;
+      try { found = await fetchInat(sweepKm, param); } catch (e) { continue; }
+      found.forEach(function (s) {
+        obscuredNames.add(s.name);
+        if (!known.has(s.name)) { known.add(s.name); s.obscured = true; list.push(s); }
+      });
     }
     list.forEach(function (s) { if (obscuredNames.has(s.name)) s.obscured = true; });
 
@@ -1081,6 +1099,7 @@
           common: t.preferred_common_name || '',
           rank: t.rank,
           taxonId: t.id,
+          ancestors: t.ancestor_ids || [],
           count: r.count || 0,
           photo: photoOf(t),
           sources: ['iNaturalist']
@@ -1289,9 +1308,10 @@
     const rows = (state.species || [])
       .map(function (s) {
         const hab = activityFor(s.name);
+        const venom = venomLevel(s.name, s.ancestors);
         // _src points back at the stored record so a late-arriving photo sticks
         // across re-renders rather than being rebuilt away.
-        return Object.assign({}, s, { hab: hab, score: s.count * weight(hab, mode), _src: s });
+        return Object.assign({}, s, { hab: hab, venom: venom, score: s.count * weight(hab, mode), _src: s });
       })
       .filter(function (s) { return inMode(s.hab, mode); })
       /* Straight by likelihood. Unlike the sea slug app, an obscured record here
@@ -1403,7 +1423,15 @@
     let body = '';
     if (whenTxt) body += '<div class="body-line"><span class="lbl">When:</span> ' + whenTxt + '.</div>';
     if (hab.notLizard) body += '<div class="body-line"><span class="lbl">Note:</span> ' + esc(hab.notLizard) + '</div>';
-    if (hab.venomous) body += '<div class="body-line warn-line"><span class="lbl">Venomous:</span> do not handle it, alive or dead.</div>';
+    if (s.venom === 'high') {
+      body += '<div class="body-line warn-line"><span class="lbl">Venomous.</span> ' +
+        'Do not handle it, alive or dead &mdash; a dead snake can still envenomate. ' +
+        'Photograph it from well back.</div>';
+    } else if (s.venom === 'snake') {
+      body += '<div class="body-line warn-line"><span class="lbl">A snake.</span> ' +
+        'Not from a dangerously venomous family, but identifying snakes in the field ' +
+        'is easy to get wrong. Leave it alone.</div>';
+    }
     if (hab.tip)  body += '<div class="body-line">' + esc(hab.tip) + '</div>';
     if (hab.basis === 'genus')   body += '<div class="depth-src">Timing taken from the genus, which is consistent across New Zealand.</div>';
     if (hab.basis === 'unknown') body += '<div class="depth-src">No timing entry for this species yet, so it is listed under both.</div>';
@@ -1415,7 +1443,7 @@
 
     /* An obscured species was found by the wide sweep, so its links have to use
        that radius — at 100 m they would come back empty. */
-    const linkRadius = searchKm();   // obscured records already sit inside this
+    const linkRadius = s.obscured ? Math.max(searchKm(), WIDE_KM) : searchKm();
 
     body += '<div class="obs-strip" data-taxon="' + (s.taxonId || '') +
             '" data-radius="' + linkRadius + '"></div>';
@@ -1446,6 +1474,7 @@
             '<span class="badge records">' + s.count + ' record' + (s.count === 1 ? '' : 's') +
               ' nearby' + '</span>' +
             '<span class="badge ' + zoneCls + '">' + zoneTxt + '</span>' +
+            (s.venom === 'high' ? '<span class="badge venom">Venomous</span>' : '') +
             (s.sources.indexOf('GBIF') > -1 && s.sources.length === 1
               ? '<span class="badge">GBIF only</span>' : '') +
           '</div>' +
