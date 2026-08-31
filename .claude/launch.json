@@ -2,6 +2,19 @@
   "version": "0.0.1",
   "configurations": [
     {
+      "name": "occurd-root",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "--yes",
+        "serve",
+        "--no-clipboard",
+        "-l",
+        "7894",
+        "C:/Users/User/Occurd"
+      ],
+      "port": 7894
+    },
+    {
       "name": "favicon-preview",
       "runtimeExecutable": "python",
       "runtimeArgs": [
