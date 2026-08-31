@@ -62,7 +62,17 @@ const GENUS_ACTIVITY = {
                    tip: 'Emerges at dusk and after dark, though it basks at burrow entrances by day. Sanctuaries and offshore islands.' },
 
   // ── Introduced oddities ──────────────────────────────────────────────────
-  Intellagama:   { when: 'day', byDay: true, tip: 'Eastern water dragon. Introduced, very localised.' }
+  Intellagama:   { when: 'day', byDay: true, tip: 'Eastern water dragon. Introduced, very localised.' },
+
+  /* ── Snakes ───────────────────────────────────────────────────────────────
+     New Zealand has no land snakes at all. What it does get is the occasional
+     sea snake carried down on warm currents and washed ashore — eleven records
+     in the country. Timing is not really the point for a beach-cast animal, so
+     both are listed under either mode. */
+  Hydrophis:     { when: 'day', byDay: true, venomous: true,
+                   tip: 'Yellow-bellied sea snake. A rare vagrant, almost always found washed up. Highly venomous — do not handle it, alive or dead, and report it to DOC on 0800 362 468.' },
+  Laticauda:     { when: 'day', byDay: true, venomous: true,
+                   tip: 'Sea krait. An extremely rare vagrant. Highly venomous — do not handle it, alive or dead, and report it to DOC on 0800 362 468.' }
 };
 
 /* Species-level overrides, for anything that departs from its genus. Empty for
@@ -70,11 +80,12 @@ const GENUS_ACTIVITY = {
    up; a species entry always beats the genus rule. */
 const SPECIES_ACTIVITY = {};
 
-/* Marine reptiles arrive under Reptilia but are not what anyone opening this is
-   looking for, and turn up only as beach-cast or at-sea records. */
+/* Marine turtles arrive under Reptilia but are neither lizards nor snakes, and
+   turn up only as beach-cast or at-sea records. Sea snakes are deliberately NOT
+   excluded — they are the only snakes New Zealand gets, and the front page
+   promises them. */
 const NOT_LIZARDS = new Set([
   'Chelonia', 'Lepidochelys', 'Dermochelys', 'Eretmochelys', 'Caretta',  // marine turtles
-  'Hydrophis', 'Laticauda',                                              // sea snakes
   'Trachemys'                                                            // feral pet slider
 ]);
 

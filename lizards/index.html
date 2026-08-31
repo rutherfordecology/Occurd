@@ -103,6 +103,11 @@
     text-shadow: 0 3px 0 rgba(13,35,24,0.35);
   }
   .home-title .near { color: var(--gold); display: block; }
+  /* Small, because New Zealand's snakes are eleven washed-up sea snakes. */
+  .home-title .also {
+    display: block; font-size: 0.3em; font-weight: 400; line-height: 1.2;
+    letter-spacing: 0.06em; color: rgba(244,248,238,0.55); margin: 2px 0 1px;
+  }
   .home-actions { display: flex; flex-direction: column; gap: 12px; width: min(340px, 100%); margin-top: 8px; }
 
   .text-link {
@@ -393,6 +398,7 @@
   .card.open .card-body { display: block; }
   .body-line { font-size: 0.86rem; font-weight: 600; color: rgba(244,248,238,0.8); line-height: 1.55; margin-top: 12px; }
   .body-line .lbl { color: var(--orchid-2); font-weight: 800; }
+  .warn-line { color: #ffcaa8; font-weight: 800; }
   .depth-src { font-size: 0.7rem; font-weight: 700; color: rgba(244,248,238,0.4); margin-top: 5px; }
 
   .obs-strip { display: flex; gap: 8px; overflow-x: auto; padding: 12px 0 4px; -webkit-overflow-scrolling: touch; }
@@ -466,7 +472,7 @@
   <div class="home-wrap">
     <div class="hero-art"><img src="gecko-logo.webp" alt="" width="760" height="878"></div>
 
-    <h1 class="home-title">Lizards<span class="near">Near Me</span></h1>
+    <h1 class="home-title">Lizards<span class="also">(and snakes)</span><span class="near">Near Me</span></h1>
 
     <div class="home-actions">
       <button class="btn btn-primary" id="btnGo">
@@ -490,7 +496,7 @@
     <button class="icon-btn" data-back="home" aria-label="Back">&#8592;</button>
     <div class="topbar-grow">
       <div class="topbar-title">About</div>
-      <div class="topbar-meta">Lizards Near Me v1.1</div>
+      <div class="topbar-meta">Lizards Near Me v1.2</div>
     </div>
   </div>
   <div class="page prose">
@@ -501,8 +507,11 @@
        skinks and green geckos &mdash; plus the night geckos you can realistically turn
        up under a rock. Choose <b>after dark</b> and you get the geckos that only come
        out once the torch is needed.</p>
-    <p>Geckos, skinks and tuatara. Marine turtles and sea snakes are filtered out; they
-       come under the same branch of the tree but turn up only as beach-cast records.</p>
+    <p>Geckos, skinks and tuatara &mdash; and snakes, in the sense that New Zealand has
+       none on land. What it gets is the occasional sea snake carried down on a warm
+       current and washed ashore: eleven records in the whole country. They are in here,
+       and they are highly venomous, so the card says so. Marine turtles are filtered
+       out, being neither.</p>
 
     <h3>Why the search area starts at 50 km</h3>
     <p>This is the important thing to understand about lizard records in New Zealand.
@@ -1394,6 +1403,7 @@
     let body = '';
     if (whenTxt) body += '<div class="body-line"><span class="lbl">When:</span> ' + whenTxt + '.</div>';
     if (hab.notLizard) body += '<div class="body-line"><span class="lbl">Note:</span> ' + esc(hab.notLizard) + '</div>';
+    if (hab.venomous) body += '<div class="body-line warn-line"><span class="lbl">Venomous:</span> do not handle it, alive or dead.</div>';
     if (hab.tip)  body += '<div class="body-line">' + esc(hab.tip) + '</div>';
     if (hab.basis === 'genus')   body += '<div class="depth-src">Timing taken from the genus, which is consistent across New Zealand.</div>';
     if (hab.basis === 'unknown') body += '<div class="depth-src">No timing entry for this species yet, so it is listed under both.</div>';
