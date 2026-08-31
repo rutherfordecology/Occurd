@@ -49,7 +49,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v7.23</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v7.27</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -528,6 +528,7 @@
 
     <h3>Powered by</h3>
     <p><a href="https://www.gbif.org" target="_blank" style="color:var(--green);">GBIF</a> &amp; <a href="https://www.openstreetmap.org" target="_blank" style="color:var(--green);">OpenStreetMap</a>. All occurrence data is sourced live from GBIF at query time.</p>
+    <p style="font-size:12px;color:var(--text3);margin-top:0.6rem;">Visits are counted with Google Analytics, which sets a cookie. Nothing that identifies you, and none of your query data, is sent. A tracker blocker stops it without affecting the tool.</p>
 
     <h3>Feedback</h3>
     <p>Found a bug or have a suggestion? <a href="mailto:rutherfordecology@gmail.com" style="color:var(--green);">rutherfordecology@gmail.com</a></p>
@@ -2250,7 +2251,12 @@ function renderPolyList() {
 
   const geomPolys     = polygons.filter(p => p.type !== 'species');
   const speciesPolys  = polygons.filter(p => p.type === 'species');
-  const showHeaders   = geomPolys.length > 0 && speciesPolys.length > 0;
+  // Taxon groups are chosen two sections further down the sidebar, and the only sign one
+  // was on was the dropdown's own label — which reads "3 groups selected" past three, and
+  // scrolls out of sight once the parameters section is collapsed. Listing them here puts
+  // them beside the polygons and species picks, so the whole search reads in one place.
+  const taxonSel      = selectedTaxonEntries();
+  const showHeaders   = [geomPolys, speciesPolys, taxonSel].filter(a => a.length > 0).length > 1;
 
   function addGroupLabel(text) {
     const lbl = document.createElement('div');
@@ -2319,10 +2325,29 @@ function renderPolyList() {
     polyList.appendChild(el);
   }
 
-  if (showHeaders) addGroupLabel('Polygons');
+  function renderTaxon(t) {
+    const el = document.createElement('div'); el.className = 'poly-item taxon-entry';
+    const topRow = document.createElement('div'); topRow.className = 'poly-item-row';
+    topRow.innerHTML =
+      '<span class="poly-item-name"><span style="vertical-align:-2px;margin-right:3px;">' + icon('filter', { size: 13 }) + '</span>' + t.label + '</span>' +
+      '<span class="poly-remove" title="Remove this taxon group from the search">' + icon('x', { size: 13 }) + '</span>';
+    // Deselecting the last one leaves nothing ticked, which is the same search as all
+    // taxa — getSelectedTaxonKeys() returns [] either way, and the label says so.
+    topRow.querySelector('.poly-remove').addEventListener('click', () => {
+      t.cb.closest('label').classList.remove('selected');
+      t.cb.checked = false;
+      updateTaxonLabel();
+    });
+    el.appendChild(topRow);
+    polyList.appendChild(el);
+  }
+
+  if (showHeaders && geomPolys.length)    addGroupLabel('Polygons');
   geomPolys.forEach(renderGeom);
-  if (showHeaders) addGroupLabel('Species');
+  if (showHeaders && speciesPolys.length) addGroupLabel('Species');
   speciesPolys.forEach(renderSpecies);
+  if (showHeaders && taxonSel.length)     addGroupLabel('Taxon groups');
+  taxonSel.forEach(renderTaxon);
 }
 
 // Create a new polygon that is a buffered version of an existing polygon
@@ -3021,7 +3046,7 @@ function nztcsNormKey(s) {
 // one of the competing options, so a vague name still leaves the conflict standing.
 function nztcsByRecordName(rec, options) {
   if (!options || !options.length) return null;
-  for (const n of [rec.species, rec.scientificName]) {
+  for (const n of [...(rec._colxrNames || []), rec.species, rec.scientificName]) {
     const k = nztcsNormKey(n);
     if (!k) continue;
     const e = nztcsData[k];
@@ -3075,8 +3100,17 @@ function lookupNztcs(rec) {
       return byName ? { entry: byName, certain: true } : { conflict: true, options: c.options };
     }
   }
-  // 2. Exact name-based lookup — also reliable
+  // 2. Exact name-based lookup — also reliable.
+  // COL XR names lead. They are the record’s own determination at its finest rank, and
+  // they are the names NZTCS itself uses — both follow current taxonomy, while GBIF’s flat
+  // fields are written in whatever the old backbone still calls the taxon. Putting
+  // rec.species first instead loses badges to the difference: NZTCS lists the northern New
+  // Zealand dotterel as Anarhynchus obscurus aquilonius and knows no Charadrius obscurus,
+  // so a record arriving under the old genus falls through every candidate and badges as
+  // nothing at all. Leading with the more precise name also stops a binomial raising a
+  // subspecies conflict the trinomial has already answered.
   const candidates = [
+    ...(rec._colxrNames || []),
     rec.species,
     (rec.genus && rec.specificEpithet) ? rec.genus + ' ' + rec.specificEpithet : null,
     rec.scientificName,
@@ -5704,6 +5738,17 @@ function updateTaxonLabel() {
     selected.length <= 3 ? selected.map(cb => cb.closest('label').textContent.trim()).join(', ') :
     selected.length + ' groups selected';
   document.getElementById('taxonTriggerLabel').textContent = label;
+  renderPolyList(); // the selection is listed under Define area too
+}
+
+// The taxon groups currently ticked, with the label text as the dropdown shows it.
+// The 'selected' class is the source of truth here, not the checkbox's own state — the
+// dropdown's click handlers preventDefault and drive the class instead.
+function selectedTaxonEntries() {
+  if (document.getElementById('taxonAllLabel').classList.contains('selected')) return [];
+  return taxonCbs()
+    .filter(cb => cb.closest('label').classList.contains('selected'))
+    .map(cb => ({ cb, label: cb.closest('label').textContent.trim() }));
 }
 
 function getSelectedTaxonKeys() {
@@ -5872,32 +5917,125 @@ async function _gbifPageFetch(qs) {
 
 // GBIF fills a record's flat scientificName/species/taxonRank fields from the LEGACY
 // backbone no matter which checklistKey the query carried. Names the old backbone never
-// held — recent descriptions and recombinations, which in practice means marine
-// invertebrates — fall back to the genus there (Tenellia scintillans arrives as
-// "Tenellia A.Costa, 1866", flagged TAXON_ID_NOT_FOUND) even though COL XR, the checklist
-// we actually filter on, resolves them to species. The COL XR result is carried per record
-// in `classifications`, so read the species out of there when the flat field is empty.
-// Records that already have a species name are left alone.
+// held fall back to a higher rank there — in practice the genus — even though COL XR, the
+// checklist we actually filter on, resolves them properly. Two families of name hit this:
+// marine invertebrates described or recombined since the old backbone froze (Tenellia
+// scintillans arrives as "Tenellia A.Costa, 1866", flagged TAXON_ID_NOT_FOUND), and the
+// bird genus splits recorders have adopted since. Every New Zealand dotterel, banded
+// dotterel and wrybill entered as Anarhynchus rather than Charadrius arrives as
+// "Anarhynchus Quoy & Gaimard, 1832" — 79 000 New Zealand records of them. The COL XR
+// result is carried per record in `classifications`, so read the name out of there when
+// the flat field is empty. Records that already have a species name are left alone.
 //
-// Scoped to the name only. taxonKey/speciesKey stay as the legacy numeric keys, since the
-// photo, common-name and NZTCS lookups are built around those.
-function _colxrSpecies(r) {
+// Anything COL XR places at species rank or below is usable, not only species: a
+// subspecies determination is the more precise one, and refusing it was what turned a
+// northern New Zealand dotterel — identified on iNaturalist as Anarhynchus obscurus ssp.
+// aquilonius, and resolved by COL XR to exactly that — into a bare genus on the map.
+// A usage with no specific epithet stopped above species in COL XR too and is rejected,
+// so a genus never arrives here dressed as a species.
+//
+// species and genus come from the classification array, not from the usage's own
+// epithets. The array is always written in the accepted frame, so records COL XR accepts
+// under the new genus (Anarhynchus bicinctus bicinctus) and records it treats as synonyms
+// of the old one (Charadrius bicinctus exilis) still group under one species name instead
+// of splitting the checklist in two.
+function _colxrName(r) {
   const c = r && r.classifications && r.classifications[COL_XR_CHECKLIST_KEY];
   const u = c && (c.acceptedUsage || c.usage);
-  if (!u || u.rank !== 'SPECIES') return null;
-  // usage.name carries the authorship ("Tenellia scintillans (M. C. Miller, 1977)"); the
-  // classification array holds the bare binomial, which is what the checklist keys on.
-  const bare = (c.classification || []).find(x => x.rank === 'SPECIES');
+  if (!u || !u.specificEpithet) return null;
+  const clf = c.classification || [];
+  // The classification array holds bare names; usage.name carries the authorship
+  // ("Tenellia scintillans (M. C. Miller, 1977)"), which is what the popup shows.
+  const bare = clf.find(x => x.rank === 'SPECIES');
+  const gen  = clf.find(x => x.rank === 'GENUS');
+  const species = (bare && bare.name) || [u.genericName, u.specificEpithet].join(' ');
   return {
-    species: (bare && bare.name) || [u.genericName, u.specificEpithet].filter(Boolean).join(' ') || null,
+    species,
     scientificName: u.name || null,
-    genus: u.genericName || null
+    genus: (gen && gen.name) || u.genericName || null
   };
+}
+
+// COL XR’s own names for the record, canonical (no authorship), most precise first: the
+// name it was identified as, then the accepted equivalent. Kept for every record, not
+// only repaired ones, because the NZTCS lookup needs them whether or not the legacy
+// backbone managed to name the record — a determination that resolved cleanly there can
+// still be filed under a genus NZTCS no longer uses. Both slots are kept: COL XR and
+// NZTCS do not always pick the same side of a recombination, and only one of them will
+// be a key in the threat table.
+function _colxrCanonicalNames(r) {
+  const c = r && r.classifications && r.classifications[COL_XR_CHECKLIST_KEY];
+  if (!c) return null;
+  const out = [];
+  for (const u of [c.usage, c.acceptedUsage]) {
+    // No specific epithet means the usage stopped at genus or above, and a genus name
+    // must never reach the threat lookup — see the rank guard in _colxrName.
+    if (!u || !u.specificEpithet) continue;
+    const n = [u.genericName, u.specificEpithet, u.infraspecificEpithet].filter(Boolean).join(" ");
+    if (n && !out.includes(n)) out.push(n);
+  }
+  return out.length ? out : null;
+}
+
+// A record repaired above still carries the legacy taxon key the old backbone matched,
+// and that key is the genus — the same wrong answer that made the name wrong. Leaving it
+// is not harmless: the common-name, photo and iNaturalist lookups are all keyed on it, so
+// every repaired record in a search shares one key and inherits the genus's GBIF
+// vernacular name. That is how a northern New Zealand dotterel came back captioned
+// "Lesser Sand Plover" — the first English name GBIF lists against genus Anarhynchus.
+//
+// The legacy backbone does hold these taxa under the old genus (Charadrius obscurus
+// aquilonius = 6095498), so match the repaired name back to it and use the key that
+// returns. v1/species/match is the right endpoint here precisely because it ignores
+// checklist scope: taxonKey and speciesKey are legacy-backbone keys and this is the
+// legacy-backbone matcher. One call per distinct name, so a search pays a handful at most.
+//
+// Only EXACT matches at species rank or below are taken. A loose match is worse than no
+// match — the old backbone answers a name it has never heard with "Animalia", and a
+// kingdom key would caption records exactly as wrongly as the genus one does. Where
+// nothing matches, the record keeps its genus key and reads as it did before.
+const _legacyKeyCache = {}; // repaired name -> { taxonKey, speciesKey } | null
+const _LEGACY_MATCH_RANKS = ['SPECIES', 'SUBSPECIES', 'VARIETY', 'FORM'];
+async function repairFallbackTaxonKeys(records) {
+  const byName = new Map();
+  records.forEach(r => {
+    if (!r._nameFromColXr) return;
+    const key = r.scientificName || r.species;
+    if (!key) return;
+    if (!byName.has(key)) byName.set(key, { species: r.species, records: [] });
+    byName.get(key).records.push(r);
+  });
+  if (byName.size === 0) return;
+  for (const [name, group] of byName) {
+    if (fetchAbortFlag) return;
+    if (!(name in _legacyKeyCache)) {
+      // The full name first, then the bare binomial — COL XR accepts some of these under
+      // the new genus, which the old backbone has never heard of, while the species name
+      // it files them under still matches.
+      let hit = null, answered = false;
+      for (const attempt of [...new Set([name, group.species].filter(Boolean))]) {
+        try {
+          const res = await gbifFetch('https://api.gbif.org/v1/species/match?strict=true&name=' + encodeURIComponent(attempt));
+          if (!res.ok) continue;   // network or rate-limit trouble — leave uncached so it retries
+          const m = await res.json();
+          answered = true;
+          if (m.matchType !== 'EXACT' || !m.usageKey) continue;
+          if (!_LEGACY_MATCH_RANKS.includes(String(m.rank || '').toUpperCase())) continue;
+          hit = { taxonKey: m.usageKey, speciesKey: m.speciesKey || m.usageKey };
+          break;
+        } catch(e) {}
+      }
+      if (answered) _legacyKeyCache[name] = hit;
+      else continue;
+    }
+    const hit = _legacyKeyCache[name];
+    if (hit) group.records.forEach(r => { r.taxonKey = hit.taxonKey; r.speciesKey = hit.speciesKey; });
+  }
 }
 
 // Map a raw GBIF occurrence result to the internal record format
 function _mapOccRecord(poly, r) {
-  const _colxr = r.species ? null : _colxrSpecies(r);
+  const _colxr = r.species ? null : _colxrName(r);
   return {
     polygon_name:                  poly.label || null,
     gbifID:                        r.gbifID || null,
@@ -5912,7 +6050,7 @@ function _mapOccRecord(poly, r) {
     class:                         r.class    || null,
     order:                         r.order    || null,
     family:                        r.family   || null,
-    genus:                         r.genus    || (_colxr && _colxr.genus) || null,
+    genus:                         (_colxr && _colxr.genus) || r.genus || null,
     species:                       r.species  || (_colxr && _colxr.species) || null,
     decimalLatitude:               r.decimalLatitude  != null ? r.decimalLatitude  : null,
     decimalLongitude:              r.decimalLongitude != null ? r.decimalLongitude : null,
@@ -5942,7 +6080,11 @@ function _mapOccRecord(poly, r) {
       return { url, licence: img.license || '', photographer: img.rightsHolder || img.creator || '' };
     })(),
     _polyId:    poly.id,
-    _polyLabel: poly.label
+    _polyLabel: poly.label,
+    // Name came from COL XR, so taxonKey still points at whatever the legacy backbone
+    // settled for — see repairFallbackTaxonKeys.
+    _nameFromColXr: !!_colxr,
+    _colxrNames:    _colxrCanonicalNames(r)
   };
 }
 
@@ -6523,6 +6665,10 @@ runBtn.addEventListener('click', async () => {
   }
   // ─────────────────────────────────────────────────────────────────────────
 
+  // Before common names, not after: the lookup is keyed on taxonKey, so a record whose
+  // name COL XR had to repair needs its key repaired first or it is named off the genus.
+  await repairFallbackTaxonKeys(allFetched);
+  if (fetchAbortFlag) { setStatus('Fetch cancelled.', 'warning'); setFetchMode(false); return; }
   setStatus('Looking up common names...', 'info');
   await lookupCommonNames(allFetched);
   if (fetchAbortFlag) { setStatus('Fetch cancelled.', 'warning'); setFetchMode(false); return; }
@@ -7352,6 +7498,41 @@ if (window._pendingShare) {
   </div>
   <div class="changelog-scroll" id="changelogScroll">
     <div class="changelog-version">
+      <span class="changelog-version-tag">v7.27</span>
+      <span class="changelog-date">Aug 2026</span>
+      <ul>
+        <li>Taxon groups you pick now show as their own entries under <em>Define area</em>, alongside the polygons and species picks, each with an &times; to drop it. Until now the only sign a group filter was on was the dropdown&rsquo;s own label &mdash; which collapses to &quot;4 groups selected&quot; past three, and scrolls out of sight the moment the parameters section is collapsed. The filter was being applied to the fetch the whole time; there was just nothing to see</li>
+        <li>Removing the last group leaves the search on all taxa, which is what an empty selection has always meant</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v7.26</span>
+      <span class="changelog-date">Aug 2026</span>
+      <ul>
+        <li>Added a line to About noting that visits are counted with Google Analytics, which sets a cookie. Nothing that identifies you, and none of your query data, is sent</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v7.25</span>
+      <span class="changelog-date">Aug 2026</span>
+      <ul>
+        <li>NZTCS badges now appear on taxa NZTCS has renamed. The northern New Zealand dotterel is listed as <em>Anarhynchus obscurus aquilonius</em>, Nationally Increasing; GBIF files every record of it under <em>Charadrius</em>. Nothing on the record carried the name NZTCS knows, so the bird showed no threat status at all</li>
+        <li>The gap is a form problem as much as a naming one. NZTCS keys on bare names, and no field on a GBIF record is one: <code>scientificName</code> always drags its authorship along (&quot;<em>Anarhynchus bicinctus bicinctus</em> (Jardine &amp; Selby, 1827)&quot;), and <code>species</code> is a binomial, which cannot answer a subspecies question. COL XR carries the name split into its parts, so the canonical form rebuilds exactly &mdash; in the genus the recorder used and in the accepted one. The threat lookup now tries both, ahead of the other candidates, since they are the record&rsquo;s own determination at its finest rank</li>
+        <li>In a 100-record sample of the genus: 26 northern New Zealand dotterel went from no badge to Nationally Increasing, and 23 banded dotterel and southern New Zealand dotterel went from a subspecies picker to their exact status &mdash; Declining and Nationally Critical &mdash; because the trinomial had already answered the question the picker was asking. The remaining 39 are recorded only to species and correctly still ask which subspecies</li>
+        <li>Where NZTCS uses a name COL XR does not hold on either side, the record still badges as nothing; that needs the threat table itself to learn the older names, which is a separate job. Big Data downloads carry a taxon key but no COL XR result, so they are unchanged</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v7.24</span>
+      <span class="changelog-date">Aug 2026</span>
+      <ul>
+        <li>Records identified to a subspecies no longer land on the map as a bare genus. A northern New Zealand dotterel, recorded on iNaturalist as <em>Anarhynchus obscurus</em> ssp. <em>aquilonius</em>, arrived in occurd as <em>Anarhynchus</em> and nothing more &mdash; and captioned &quot;Lesser Sand Plover&quot;, which is a different bird on a different continent</li>
+        <li>The cause is GBIF filling a record&rsquo;s name fields from its old backbone whichever checklist the query asked for. That backbone predates the move of the dotterels and plovers out of <em>Charadrius</em> into <em>Anarhynchus</em>, so it has nowhere to put the name and stops at the genus. occurd already read the real name out of the COL XR result carried alongside, but only accepted it at species rank, so subspecies determinations &mdash; the more precise ones &mdash; were the ones thrown away. They are now accepted down to subspecies, variety and form</li>
+        <li>The wrong caption had a second cause: the record still carried the genus taxon key, and common names, photos and iNaturalist links are all looked up by that key. Every <em>Anarhynchus</em> record in a search therefore shared one key and inherited whatever English name GBIF lists first against the genus. Repaired names are now matched back to a taxon key of their own, so the dotterel reads as Red-breasted Dotterel (Northern) with its own photo</li>
+        <li>79,000 New Zealand records were affected in this genus alone &mdash; New Zealand dotterel, banded dotterel and wrybill &mdash; alongside the marine invertebrates this repair was originally built for</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
       <span class="changelog-version-tag">v7.23</span>
       <span class="changelog-date">Aug 2026</span>
       <ul>
@@ -7438,10 +7619,13 @@ if (window._pendingShare) {
       <span class="changelog-version-tag">v7.13</span>
       <span class="changelog-date">Jul 2026</span>
       <ul>
-        <li>The "Occurd Big Data ↗" link shown when a search exceeds 10,000 records now carries your search across. It previously arrived with an empty map — your polygon, taxon groups and dates were all dropped, so you had to redraw and re-enter everything on a page you'd been sent to precisely because your search was already set up. It now uses the same link format as the Share button, so polygons (including holes), single-species entries, dates, taxon groups, record types and map position all come through intact</li>
-        <li>Big Data no longer fires a download the moment a shared link opens — it waits for your GBIF login, with the restored search sitting ready</li>
-        <li>Older links of the previous form still work: the polygon, taxa and dates in them are now read instead of ignored</li>
-        <li>Retired the standalone <code>/beta/download/</code> page, superseded by Big Data mode on the main page. It now redirects there. It had kept its own copy of the date filter, which still had the whole-year bug fixed in v7.12</li>
+        <li>The "Occurd Big Data ↗" link shown when a search exceeds 10,000 records now carries your search across. It previously arrived with an empty map — your polygon, taxon groups and dates were all dropped. It now uses the same link format as the Share button, so polygons (including holes), single-species entries, dates, taxon groups, record types and map position all come through intact. Big Data also no longer fires a download the moment such a link opens; it waits for your GBIF login</li>
+        <li>Retired the standalone <code>/beta/download/</code> page, superseded by Big Data mode on the main page. It now redirects there</li>
+        <li>Big Data Mode now honours your exact dates. It previously filtered on year only — both ends of your range were truncated to the year — so a range starting or ending mid-year silently widened to whole years and the download didn't match what a normal search returned for the same filters. A Fiji bird request for 15 Jun 2021 – 1 Feb 2026 was fetching 50,815 records instead of the 48,949 actually in that window</li>
+        <li>Fixed searches over areas crossing the antimeridian (180°) returning zero records — Fiji, Tonga, Samoa, Kiribati, the Chatham Islands and eastern Russia. Records were fetched from GBIF correctly, then discarded by the boundary clip, which read a dateline-crossing polygon as spanning the globe the long way round so every genuine record tested as outside the drawn area. A Fiji bird search for Jan–Jul 2026 now returns its 812 records instead of none</li>
+        <li>Same correction applied to the iNaturalist obscured-records search, the iNaturalist top-up for observations not yet in GBIF, QEII covenant auto-add, and KMZ polygon auto-select. The iNaturalist searches also had an inverted bounding box across the dateline, asking for 86,848 observations covering the whole globe <em>except</em> Fiji instead of the 1,638 actually there</li>
+        <li>New geolocate button (crosshair icon) under the zoom controls — click it to pan the map to your current location and drop an accuracy marker. Works any time, unlike the one-off location jump that only happened at page load</li>
+        <li>On mobile, the map controls (zoom, layers, draw, locate) now sit as a single horizontal toolbar along the top of the map instead of stacking down the left edge, so they no longer end up underneath the species-list sheet that slides up from the bottom</li>
       </ul>
     </div>
     <div class="changelog-version">
@@ -7487,42 +7671,44 @@ if (window._pendingShare) {
       <span class="changelog-version-tag">v7.07</span>
       <span class="changelog-date">Jul 2026</span>
       <ul>
-        <li>Removed the start-up "GBIF is rate-limiting occurd" notice — the throttling that prompted it has cleared, so standard searches run normally again</li>
+        <li>The species-checklist search box now filters the map too. Previously, typing a species name isolated it in the checklist but left every other species still plotted on the map; the search now drives both, so an isolated species in the list is isolated on the map. Clearing the box restores your existing checkbox selections</li>
       </ul>
     </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v7.06</span>
       <span class="changelog-date">Jul 2026</span>
       <ul>
-        <li>The species-checklist search box now filters the map too. Previously, typing a species name isolated it in the checklist but left every other species still plotted on the map; the search now drives both, so an isolated species in the list is isolated on the map. Clearing the box restores your existing checkbox selections</li>
+        <li>Fixed real GBIF results being silently discarded to "0 records" for polygons near the antimeridian (Samoa, Tonga, Fiji) drawn on a Pacific-panned map view — Leaflet stores their longitude unwrapped past 180° (e.g. 188° instead of -172°) in that case, and the post-fetch spatial clip compared this directly against GBIF's standard-range coordinates, so every record failed the point-in-polygon test even though the search itself succeeded. The same bug also broke the iNaturalist obscured-records bounding-box search and the QEII/KMZ-intersect features for these locations</li>
       </ul>
     </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v7.05</span>
       <span class="changelog-date">Jul 2026</span>
       <ul>
-        <li>Fixed real GBIF results being silently discarded to "0 records" for polygons near the antimeridian (Samoa, Tonga, Fiji) drawn on a Pacific-panned map view — Leaflet stores their longitude unwrapped past 180° (e.g. 188° instead of -172°) in that case, and the post-fetch spatial clip compared this directly against GBIF's standard-range coordinates, so every record failed the point-in-polygon test even though the search itself succeeded. The same bug also broke the iNaturalist obscured-records bounding-box search and the QEII/KMZ-intersect features for these locations</li>
+        <li>Fixed the "Add buffer" button row on a drawn polygon overflowing its panel on narrower screens instead of wrapping — the 0.2° buffer option (and sometimes 10 km) could hang off the edge of the sidebar, clipped and unclickable</li>
       </ul>
     </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v7.04</span>
       <span class="changelog-date">Jul 2026</span>
       <ul>
-        <li>Fixed the "Add buffer" button row on a drawn polygon overflowing its panel on narrower screens instead of wrapping — the 0.2° buffer option (and sometimes 10 km) could hang off the edge of the sidebar, clipped and unclickable</li>
+        <li>The iNaturalist throttle queue (added in v7.03) was still initiating up to 4 requests concurrently, ~90ms apart — several times faster than iNaturalist's recommended ~1 req/sec, relying entirely on the reactive 429 cool-down to stay out of trouble under load. Retuned to one request at a time, ~1.1s apart, so the app paces itself proactively instead of waiting to get rate-limited first</li>
+        <li>Photo pre-warm was still running in batches of 3 with a flat 250ms pause between batches — on top of being faster than iNat recommends, it had no back-off for very large checklists. Now processes species one at a time (most-recorded first) through the shared throttle, in chunks of 40 with an extra 8s cool-down between chunks, so a 200+ species checklist backs off periodically instead of running flat-out for minutes on end</li>
       </ul>
     </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v7.03</span>
       <span class="changelog-date">Jul 2026</span>
       <ul>
-        <li>Photo pre-warm was still ~12x over iNaturalist's recommended rate (batches of 3, 250ms apart) even after the v7.02 fix — large checklists still tripped 429s (shown as CORS errors in the browser console, since iNat's 429 responses sometimes arrive with no CORS header). Every iNaturalist call (species photos, popup photo detail, obscured-record fetches) now funnels through a single shared throttle queue — one request at a time, ~1.1s apart, matching iNaturalist's recommended practices — and the bulk photo warm-up processes species in chunks of 40 (most-recorded first) with an extra 8s cool-down between chunks, so a 200+ species checklist backs off periodically instead of hammering iNat continuously for minutes on end</li>
+        <li>iNaturalist lookups (species photos, popup photo detail, obscured-record fetches) now go through the same throttle-and-retry queue as GBIF calls. iNaturalist rate-limits under load the same way GBIF does, but its 429 response sometimes arrives with no CORS header, so the browser couldn't see the real status and reported it as a CORS failure instead — breaking photo warm-up and any search that leaned on iNat data with no visible error explaining why</li>
+        <li>Removed the start-up "GBIF is rate-limiting occurd" notice now that the throttle fixes above are in place</li>
       </ul>
     </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v7.02</span>
       <span class="changelog-date">Jul 2026</span>
       <ul>
-        <li>Big Data Mode uploads with large species checklists — fix the actual "too many API requests" trigger: the background photo warm-up was doing a full lookup (iNaturalist search + iNaturalist detail + up to 2 GBIF occurrence searches) for <em>every</em> species in the uploaded dataset, all at once. A checklist of a few hundred species could fire 500+ external requests in seconds. The warm-up pass now does a single cheap iNaturalist search per species; the fuller lookup only runs lazily when a species' popup is actually opened. The GBIF occurrence-search fallback also now goes through the app's existing retry-with-backoff helper instead of a bare request</li>
+        <li>Big Data Mode uploads with large species checklists — the iNaturalist detail-endpoint call added recently for the curated photo list wasn't gated behind the existing prefetch throttle, so it ran an extra iNaturalist request per species during the bulk warm-up on top of the GBIF calls that throttle already skips. Now skipped during prefetch too, only run lazily when a species' popup is opened</li>
       </ul>
     </div>
     <div class="changelog-version">
@@ -7586,6 +7772,20 @@ if (window._pendingShare) {
       <span class="changelog-date">Jul 2026</span>
       <ul>
         <li>Fixed the species checklist group headers overlapping on mobile when taxa groups were minimised — a minimised header was dimmed by fading the whole (sticky) header, which made its background see-through, so headers piling up at the top of the list bled through one another. The dim now applies to the header's contents only, keeping the background solid.</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v6.92</span>
+      <span class="changelog-date">Jul 2026</span>
+      <ul>
+        <li>Stopped the GBIF rate-limit "retry storm" — when GBIF returned "Too many API requests" the app was retrying each page up to ~20 times, firing dozens of requests that only extended the block. Now a 429 pauses all GBIF requests for a short interval (honouring GBIF's Retry-After), probes once, then stops with a clear message instead of hammering.</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v6.91</span>
+      <span class="changelog-date">Jul 2026</span>
+      <ul>
+        <li>Fixed searches failing with "Too many API requests" (GBIF rate-limit) in data-sparse regions like Samoa, Rarotonga and the Pacific — the app was firing a burst of hundreds of GBIF requests per search (a photo lookup for every species) which tripped GBIF's limit. Photo prefetch no longer hammers GBIF (uses iNaturalist in bulk, falls back to GBIF only when you open a species), and all GBIF calls are now paced through a shared throttle. Clearer message when GBIF does throttle.</li>
       </ul>
     </div>
     <div class="changelog-version">
