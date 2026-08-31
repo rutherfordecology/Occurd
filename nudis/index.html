@@ -160,6 +160,17 @@
   }
   .home-foot a { color: rgba(253,248,240,0.78); text-decoration: none; border-bottom: 1px solid rgba(253,248,240,0.3); }
   .home-foot a:hover { color: #fff; border-bottom-color: #fff; }
+  .foot-sep { opacity: 0.4; margin: 0 5px; }
+  .home-foot a.bmc-link {
+    color: var(--gold); font-weight: 700; white-space: nowrap;
+    border-bottom-color: rgba(245,166,35,0.4);
+  }
+  .home-foot a.bmc-link:hover { color: #ffc45c; border-bottom-color: #ffc45c; }
+  /* On a narrow phone the two halves stack rather than crowding the line. */
+  @media (max-width: 360px) {
+    .foot-sep { display: none; }
+    .home-foot a.bmc-link { display: block; margin-top: 6px; }
+  }
   .about-link {
     margin-top: 12px; padding: 7px 20px; border-radius: var(--radius-pill);
     background: none; border: 1px solid rgba(253,248,240,0.25);
@@ -540,7 +551,9 @@
     </div>
 
     <p class="home-foot">
-      by <a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank" rel="noopener">Rutherford Ecology</a>
+      by <a href="https://www.rutherfordecology.co.nz/" target="_blank" rel="noopener">Rutherford Ecology</a>
+      <span class="foot-sep">&middot;</span>
+      <a class="bmc-link" href="https://buymeacoffee.com/rutherfordecology" target="_blank" rel="noopener">&#9749; Buy me a coffee</a>
     </p>
     <button class="about-link" id="btnAbout">About</button>
   </div>
@@ -571,7 +584,7 @@
     <button class="icon-btn" data-back="home" aria-label="Back">&#8592;</button>
     <div class="topbar-grow">
       <div class="topbar-title">About</div>
-      <div class="topbar-meta">Nudis Near Me v3.2</div>
+      <div class="topbar-meta">Nudis Near Me v3.3</div>
     </div>
   </div>
   <div class="page prose">
