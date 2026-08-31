@@ -602,7 +602,7 @@
   </div>
   <div class="page">
     <div id="pickMap"></div>
-    <p class="map-hint" id="mapHint">Tap anywhere &mdash; somewhere <b>coastal</b> works best.</p>
+    <p class="map-hint" id="mapHint">The dashed circle is the <b>50 km</b> search area. Tap to move it.</p>
     <button class="btn btn-primary" id="btnUsePin" disabled>Use this spot</button>
   </div>
 </section>
@@ -825,7 +825,7 @@
   function refreshMap() {
     if (!map) return initMap();
     map.invalidateSize();
-    if (pinned) map.setView(pinned, map.getZoom(), { animate: false });
+    if (pinned) { drawSearchArea(); map.setView(pinned, map.getZoom(), { animate: false }); }
   }
 
   /* Keep the last good fix so the map can show "you are here" without asking
@@ -848,7 +848,8 @@
 
   // ── Map picker ──────────────────────────────────────────────────────────
   let map = null, pin = null, pinned = null, pinSource = "pin";
-  let meMarker = null, meCircle = null, meFramed = false;
+  let meMarker = null, meFramed = false;
+  let areaCircle = null, areaFramed = false;
 
 
   function initMap() {
@@ -884,19 +885,12 @@
   function setLocating(on) {
     $('#mapHint').innerHTML = on
       ? '<span class="spin locating-dot">◌</span> Finding you&hellip; or tap the map to pick a spot.'
-      : 'Tap anywhere &mdash; somewhere <b>coastal</b> works best.';
+      : 'The dashed circle is the search area. Tap to move it.';
   }
 
   function plotMe(fix) {
     if (meMarker) map.removeLayer(meMarker);
-    if (meCircle) map.removeLayer(meCircle);
 
-    if (fix.acc > 0) {
-      meCircle = L.circle([fix.lat, fix.lng], {
-        radius: fix.acc, color: '#4da3ff', weight: 1,
-        fillColor: '#4da3ff', fillOpacity: 0.15
-      }).addTo(map);
-    }
     meMarker = L.circleMarker([fix.lat, fix.lng], {
       radius: 7, color: '#fff', weight: 3, fillColor: '#4da3ff', fillOpacity: 1
     }).addTo(map).bindTooltip('You are here', { direction: 'top', offset: [0, -8] });
@@ -904,8 +898,7 @@
     // Only frame the user the first time; don't yank the map while they pan.
     if (!meFramed) {
       meFramed = true;
-      if (meCircle) map.fitBounds(meCircle.getBounds(), { maxZoom: 13, padding: [40, 40] });
-      else map.setView([fix.lat, fix.lng], 12);
+      map.setView([fix.lat, fix.lng], 9);
     }
 
     /* Pre-drop the pin where they are, so the common case is tap "Let's go",
@@ -921,6 +914,27 @@
       radius: 9, color: '#f4f8ee', weight: 3, fillColor: '#c4622d', fillOpacity: 1
     }).addTo(map);
     $('#btnUsePin').disabled = false;
+    drawSearchArea();
+  }
+
+  /* The circle is the search, drawn at the radius actually used. Worth showing
+     here more than in most apps: 50 km looks enormous on a map, and that is the
+     honest picture of how precisely a lizard record can be placed. */
+  function drawSearchArea() {
+    if (!pinned) return;
+    if (areaCircle) map.removeLayer(areaCircle);
+    areaCircle = L.circle(pinned, {
+      radius: searchKm() * 1000,
+      color: '#e8b13d', weight: 2, dashArray: '6 5',
+      fillColor: '#e8b13d', fillOpacity: 0.07,
+      interactive: false
+    }).addTo(map);
+    areaCircle.bringToBack();
+
+    if (!areaFramed) {
+      areaFramed = true;
+      map.fitBounds(areaCircle.getBounds(), { padding: [24, 24] });
+    }
   }
 
     $('#btnUsePin').addEventListener('click', function () {
@@ -968,6 +982,7 @@
 
   $('#optRadius').addEventListener('input', function () {
     $('#radiusValue').textContent = fmtKm(radiusKm());
+    if (map && pinned) drawSearchArea();   // keep the circle honest
   });
 
   /* Coming back from settings re-runs the search when something that affects
@@ -1423,7 +1438,7 @@
       '" target="_blank" rel="noopener">GBIF ↗</a>' +
       '</div>';
 
-    return '<div class="card' + (s.obscured ? ' is-obscured' : '') + '">' +
+    return '<div class="card">' +
       '<div class="card-head">' +
         '<div class="rank">' + rank + '</div>' + thumb +
         '<div class="card-text">' +
@@ -1433,7 +1448,6 @@
             '<span class="badge records">' + s.count + ' record' + (s.count === 1 ? '' : 's') +
               ' nearby' + '</span>' +
             '<span class="badge ' + zoneCls + '">' + zoneTxt + '</span>' +
-            (s.obscured ? '<span class="badge obscured">Location obscured</span>' : '') +
             (s.sources.indexOf('GBIF') > -1 && s.sources.length === 1
               ? '<span class="badge">GBIF only</span>' : '') +
           '</div>' +
