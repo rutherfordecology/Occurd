@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Lizards Near Me">
+  <rect width="64" height="64" rx="14" fill="#163a26"/>
+  <g fill="none" stroke="#f4f8ee" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M16 34 C16 27 22 24 30 24 C40 24 48 27 53 24 C57 21 56 15 51 15"/>
+    <path d="M16 34 C16 41 22 44 30 44 C36 44 41 42 46 40"/>
+    <path d="M16 34 C11 34 8 31 8 27 C8 23 12 21 16 22"/>
+    <path d="M28 43 L25 51 M42 39 L46 47"/>
+  </g>
+  <circle cx="12.5" cy="26" r="3" fill="#e8b13d"/>
+  <g fill="#8fd49c">
+    <ellipse cx="26" cy="32" rx="4" ry="2.6"/>
+    <ellipse cx="38" cy="33" rx="3.2" ry="2.2"/>
+  </g>
+</svg>

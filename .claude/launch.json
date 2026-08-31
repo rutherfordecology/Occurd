@@ -2,6 +2,19 @@
   "version": "0.0.1",
   "configurations": [
     {
+      "name": "lizards",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "--yes",
+        "serve",
+        "--no-clipboard",
+        "-l",
+        "7895",
+        "C:/Users/User/Occurd/lizards"
+      ],
+      "port": 7895
+    },
+    {
       "name": "occurd-root",
       "runtimeExecutable": "npx",
       "runtimeArgs": [
