@@ -22,10 +22,10 @@
         "serve",
         "--no-clipboard",
         "-l",
-        "7894",
+        "7896",
         "C:/Users/User/Occurd"
       ],
-      "port": 7894
+      "port": 7896
     },
     {
       "name": "favicon-preview",
