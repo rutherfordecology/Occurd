@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Mermaids Near Me">
+  <rect width="64" height="64" rx="14" fill="#0e3a38"/>
+  <path d="M32 12 C27 12 24 16 24 21 C24 27 30 30 32 36 C34 30 40 27 40 21 C40 16 37 12 32 12 Z"
+        fill="#a9cf72" stroke="#07211f" stroke-width="2.5" stroke-linejoin="round"/>
+  <path d="M32 36 C29 42 22 44 18 42 C22 48 28 50 32 48 C36 50 42 48 46 42 C42 44 35 42 32 36 Z"
+        fill="#7fae4e" stroke="#07211f" stroke-width="2.5" stroke-linejoin="round"/>
+  <path d="M10 55 C16 51 22 59 28 55 C34 51 40 59 46 55 C50 52 54 56 56 55"
+        fill="none" stroke="#9fd9c6" stroke-width="3" stroke-linecap="round"/>
+</svg>

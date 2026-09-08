@@ -2,6 +2,19 @@
   "version": "0.0.1",
   "configurations": [
     {
+      "name": "mermaids",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "--yes",
+        "serve",
+        "--no-clipboard",
+        "-l",
+        "7898",
+        "C:/Users/User/Occurd/mermaids"
+      ],
+      "port": 7898
+    },
+    {
       "name": "oysters",
       "runtimeExecutable": "npx",
       "runtimeArgs": [
