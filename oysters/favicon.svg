@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="The World's Oysters">
+  <rect width="64" height="64" rx="14" fill="#12303c"/>
+  <path d="M10 40 C10 28 20 18 33 18 C46 18 55 27 55 38 C55 45 48 50 38 50 C24 50 10 47 10 40 Z"
+        fill="#8a8c52" stroke="#3d4a24" stroke-width="2.5" stroke-linejoin="round"/>
+  <path d="M14 40 C14 32 22 25 33 25 C43 25 50 31 50 38 C50 43 44 46 37 46 C25 46 14 44 14 40 Z"
+        fill="#f6f1e0" stroke="#3d4a24" stroke-width="2"/>
+  <circle cx="34" cy="38" r="7" fill="#fff" stroke="#3d4a24" stroke-width="2"/>
+  <circle cx="31.5" cy="35.5" r="2.2" fill="#ffffff" opacity="0.9"/>
+</svg>

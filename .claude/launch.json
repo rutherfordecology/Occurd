@@ -2,6 +2,19 @@
   "version": "0.0.1",
   "configurations": [
     {
+      "name": "oysters",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "--yes",
+        "serve",
+        "--no-clipboard",
+        "-l",
+        "7897",
+        "C:/Users/User/Occurd/oysters"
+      ],
+      "port": 7897
+    },
+    {
       "name": "lizards",
       "runtimeExecutable": "npx",
       "runtimeArgs": [
@@ -63,6 +76,19 @@
       "port": 7893
     },
     {
+      "name": "site-assessment",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "--yes",
+        "serve",
+        "--no-clipboard",
+        "-l",
+        "7894",
+        "C:/Users/User/tools/site-assessment"
+      ],
+      "port": 7894
+    },
+    {
       "name": "forestmonitor",
       "runtimeExecutable": "npx",
       "runtimeArgs": [
@@ -71,9 +97,22 @@
         "--no-clipboard",
         "-l",
         "7892",
-        "C:/Users/User/forestmonitor"
+        "C:/Users/User/tools/forestmonitor"
       ],
       "port": 7892
+    },
+    {
+      "name": "auckland-trip-planner",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "--yes",
+        "serve",
+        "--no-clipboard",
+        "-l",
+        "7897",
+        "C:/Users/User/tools/auckland-trip-planner"
+      ],
+      "port": 7897
     }
   ]
 }
