@@ -498,7 +498,7 @@
     <button class="icon-btn" data-back="home" aria-label="Back">&#8592;</button>
     <div class="topbar-grow">
       <div class="topbar-title">About</div>
-      <div class="topbar-meta">The World&rsquo;s Your Oysters v1.1</div>
+      <div class="topbar-meta">The World&rsquo;s Your Oysters v1.2</div>
     </div>
   </div>
   <div class="page prose">
@@ -613,14 +613,11 @@
         <span class="setting-value" id="radiusValue">50 km</span>
       </div>
       <input type="range" id="optRadius" min="0" step="1">
-      <div class="scale-ends"><span>100 m</span><span>50 km</span><span>500 km</span></div>
+      <div class="scale-ends"><span>100 m</span><span>500 km</span></div>
       <p class="setting-note">
-        The usual 50 km sits mid-slider, so you can go either way from it. Steps get
-        finer as you go smaller, to pin down a single reef or headland, and coarser as
-        you go bigger, to sweep a whole coastline.
-        <br><br>At 50 km and below, a search that turns up more than 25 species is
-        narrowed automatically until the list is usable. Set it above 50 km and it is
-        left exactly where you put it.
+        Starts at 200 km, because oysters are sparse: most coasts have only one to
+        three species, and a wider sweep simply finds more of the few there are.
+        Narrow it if you want to know what is on your own stretch of shore.
       </p>
     </div>
 
@@ -688,10 +685,14 @@
      this, which keeps every stop a round number instead of 3.7 km. */
   const RADIUS_STEPS = [
     0.1, 0.2, 0.3, 0.5, 1, 2, 3, 5, 10, 25,   // finer at the reef-and-headland end
-    50,                                        // the default, deliberately mid-slider
+    50,
     60, 75, 100, 125, 150, 200, 250, 300, 400, 500
   ];
-  const DEFAULT_STEP = RADIUS_STEPS.indexOf(50);
+  /* 200 km by default. Oysters are thin on the ground everywhere — 50 km gives
+     one species at Gisborne and three at Auckland, where 200 km gives three and
+     five. The list stays short either way, so there is nothing to be gained by
+     starting tight. */
+  const DEFAULT_STEP = RADIUS_STEPS.indexOf(200);
   const WIDE_KM      = 50;                        // the obscured sweep is always 50 km
   const YEARS_BACK   = 20;
   const INAT_TAXON  = '47582,62590';  // Ostreidae + Pteriidae — true and pearl oysters
