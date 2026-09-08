@@ -1228,7 +1228,7 @@
   function render() {
     const rows = (state.species || [])
       .map(function (s) {
-        const v = verdictFor(s.taxonId, s.ancestors);
+        const v = verdictFor(s.name, s.taxonId, s.ancestors);
         // _src points back at the stored record so a late-arriving photo sticks
         // across re-renders rather than being rebuilt away.
         return Object.assign({}, s, { v: v, score: s.count, _src: s });
