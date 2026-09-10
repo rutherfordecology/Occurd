@@ -49,7 +49,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v7.27</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v7.28</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -1319,8 +1319,8 @@ let effortByYear = null;     // { year → total all-taxa record count } populat
 let _effortFetchParams = []; // geometry+date+basis params saved per geomPoly for effort query
 let _effortTaxonKeys  = []; // taxon keys being searched — used to resolve classKey for effort query
 let doCluster = true;  // group nearby points into numbered clusters
-let _tlYears = [];     // sorted year keys from last renderTimeline (YYYY or YYYYMM)
-let _tlUseMonths = false;
+let _tlYears = [];     // sorted period keys from last renderTimeline (YYYY, YYYYMM or YYYYMMDD)
+let _tlGranularity = 'year'; // 'year' | 'month' | 'day' — bucket size used by the last renderTimeline
 let currentNztcsFilter = 'all';
 let currentIucnFilter  = 'all';
 let tkFilterActive     = false;
@@ -1453,6 +1453,25 @@ const _fromYear = _today.getFullYear() - 5;
 const _fromStr  = _fromYear + '-01-01';
 document.getElementById('dateTo').value   = _todayStr;
 document.getElementById('dateFrom').value = _fromStr;
+
+// Keep "Date to" from landing before "Date from" (same day is fine either way)
+function syncDateRangeGuard() {
+  const dFrom = document.getElementById('dateFrom');
+  const dTo   = document.getElementById('dateTo');
+  dTo.min = dFrom.value || '';
+  dFrom.max = dTo.value || '';
+}
+document.getElementById('dateFrom').addEventListener('change', () => {
+  const dFrom = document.getElementById('dateFrom'), dTo = document.getElementById('dateTo');
+  if (dFrom.value && dTo.value && dFrom.value > dTo.value) dTo.value = dFrom.value;
+  syncDateRangeGuard();
+});
+document.getElementById('dateTo').addEventListener('change', () => {
+  const dFrom = document.getElementById('dateFrom'), dTo = document.getElementById('dateTo');
+  if (dFrom.value && dTo.value && dTo.value < dFrom.value) dFrom.value = dTo.value;
+  syncDateRangeGuard();
+});
+syncDateRangeGuard();
 // Collapsible sidebar sections
 document.querySelectorAll('.section-label.collapsible').forEach(label => {
   label.addEventListener('click', () => {
@@ -1886,6 +1905,7 @@ function restoreFromShare(state) {
   }
   if (state.dateFrom) document.getElementById('dateFrom').value = state.dateFrom;
   if (state.dateTo)   document.getElementById('dateTo').value   = state.dateTo;
+  syncDateRangeGuard();
   // Taxon selection
   if (state.taxa && state.taxa.length > 0) {
     document.getElementById('taxonAllLabel').classList.remove('selected');
@@ -4510,6 +4530,11 @@ function makeMarker(stackedRecords) {
     if (isNaN(y)) return null;
     return y * 100 + (isNaN(m) ? 6 : Math.max(1, Math.min(12, m)));
   }).filter(v => v !== null));
+  marker._yearDays     = new Set(stackedRecords.map(r => {
+    const y = parseInt(r.year), m = parseInt(r.month), d = parseInt(r.day);
+    if (isNaN(y)) return null;
+    return y * 10000 + (isNaN(m) ? 6 : Math.max(1, Math.min(12, m))) * 100 + (isNaN(d) ? 15 : Math.max(1, Math.min(31, d)));
+  }).filter(v => v !== null));
 
   marker.bindPopup(makeStackedPopup(stackedRecords));
   marker._groups       = new Set(groups);
@@ -4641,6 +4666,13 @@ function yearRainbowColour(year, minYr, maxYr) {
   return 'hsl(' + hue + ',85%,48%)';
 }
 
+// Collapse a chart key (YYYY, YYYYMM or YYYYMMDD, per _tlGranularity) down to its year
+function _tlKeyToYear(key) {
+  return _tlGranularity === 'day' ? Math.floor(key / 10000)
+       : _tlGranularity === 'month' ? Math.floor(key / 100)
+       : key;
+}
+
 function applyRainbowToMarkers() {
   if (!tlRainbow) return;
   // Read bounds from slider positions — keep as YYYYMM in month mode for month-level gradient
@@ -4661,9 +4693,12 @@ function applyRainbowToMarkers() {
   allMarkers.forEach(({ marker }) => {
     if (seen.has(marker)) return;
     seen.add(marker);
-    // Use YYYYMM keys in month mode, plain years otherwise
-    const keySet = (_tlUseMonths && marker._yearMonths && marker._yearMonths.size > 0)
-      ? marker._yearMonths : marker._years;
+    // Use YYYYMMDD keys in day mode, YYYYMM in month mode, plain years otherwise
+    const keySet = (_tlGranularity === 'day' && marker._yearDays && marker._yearDays.size > 0)
+      ? marker._yearDays
+      : (_tlGranularity === 'month' && marker._yearMonths && marker._yearMonths.size > 0)
+        ? marker._yearMonths
+        : marker._years;
     if (!keySet || keySet.size === 0) return;
     const key = Math.min(...keySet);
     marker.setStyle({ fillColor: yearRainbowColour(key, minKey, maxKey) });
@@ -4924,26 +4959,49 @@ function renderTimeline(records) {
     return;
   }
   const minYr = Math.min(...allYears), maxYr = Math.max(...allYears);
-  const useMonths = (maxYr - minYr) <= 3;
+
+  // Determine the actual date span (in days) — a small enough span shows individual days
+  // rather than whole months. Missing month/day default to Jan/1st, same as the bucketing below.
+  const dateVals = filtered.map(r => {
+    const y = parseInt(r.year);
+    if (isNaN(y)) return null;
+    const m = Math.max(1, Math.min(12, parseInt(r.month) || 1));
+    const d = Math.max(1, Math.min(31, parseInt(r.day) || 1));
+    return Date.UTC(y, m - 1, d);
+  }).filter(v => v !== null);
+  const minDate = Math.min(...dateVals), maxDate = Math.max(...dateVals);
+  const daySpan = (maxDate - minDate) / 86400000;
+
+  const useDays   = daySpan <= 62;                     // ≤ ~2 months: show individual days
+  const useMonths = !useDays && (maxYr - minYr) <= 3;   // ≤ 3 years: show months
   const MON_ABBR = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
-  // Group by (month or year) × taxon
+  // Group by (day, month or year) × taxon
   const yearData = {};
   filtered.forEach(r => {
     const y = parseInt(r.year);
     if (isNaN(y)) return;
-    const key = useMonths
-      ? (y * 100 + Math.max(1, parseInt(r.month) || 1)) // YYYYMM
-      : y;
+    const m = Math.max(1, Math.min(12, parseInt(r.month) || 1));
+    const key = useDays
+      ? (y * 10000 + m * 100 + Math.max(1, Math.min(31, parseInt(r.day) || 1))) // YYYYMMDD
+      : useMonths
+        ? (y * 100 + m) // YYYYMM
+        : y;
     if (!yearData[key]) yearData[key] = {};
     const g = getTaxonGroup(r);
     yearData[key][g] = (yearData[key][g] || 0) + 1;
   });
 
-  // Fill ALL years (or months) in range so x-axis is evenly spaced —
-  // years with no records get a zero-height bar but keep the spacing correct
+  // Fill ALL days/months/years in range so x-axis is evenly spaced —
+  // periods with no records get a zero-height bar but keep the spacing correct
   // so rainbow colours distribute proportionally across the full time span.
-  if (useMonths) {
+  if (useDays) {
+    for (let t = minDate; t <= maxDate; t += 86400000) {
+      const dObj = new Date(t);
+      const key = dObj.getUTCFullYear() * 10000 + (dObj.getUTCMonth() + 1) * 100 + dObj.getUTCDate();
+      if (!yearData[key]) yearData[key] = {};
+    }
+  } else if (useMonths) {
     for (let y = minYr; y <= maxYr; y++) {
       for (let m = 1; m <= 12; m++) {
         const key = y * 100 + m;
@@ -4962,7 +5020,8 @@ function renderTimeline(records) {
   const totals = years.map(y => Object.values(yearData[y]).reduce((a, b) => a + b, 0));
 
   // Effort normalisation: divide focal count by all-taxa count per year → express as %
-  const effortActive = tlEffortMode && effortByYear && !useMonths;
+  // (effortByYear is keyed by plain year, so it only applies at year-level granularity)
+  const effortActive = tlEffortMode && effortByYear && !useMonths && !useDays;
   const normTotals = effortActive
     ? years.map((yr, i) => { const e = effortByYear[yr] || 0; return e > 0 ? (totals[i] / e) * 100 : 0; })
     : totals;
@@ -4977,17 +5036,17 @@ function renderTimeline(records) {
 
   // Update globals immediately so gradient uses current render's keys (not stale previous render)
   _tlYears = years;
-  _tlUseMonths = useMonths;
+  _tlGranularity = useDays ? 'day' : useMonths ? 'month' : 'year';
 
   // Gradient bounds: read slider positions into current years array
   const _slMinEl = document.getElementById('tlSliderMin');
   const _slMaxEl = document.getElementById('tlSliderMax');
   const gradMinKey = (_tlYears.length > 0 && _slMinEl)
     ? _tlYears[Math.min(parseInt(_slMinEl.value) || 0, _tlYears.length - 1)]
-    : (useMonths ? minYr * 100 + 1 : minYr);
+    : (years.length > 0 ? years[0] : minYr);
   const gradMaxKey = (_tlYears.length > 0 && _slMaxEl)
     ? _tlYears[Math.min(parseInt(_slMaxEl.value) || _tlYears.length - 1, _tlYears.length - 1)]
-    : (useMonths ? maxYr * 100 + 12 : maxYr);
+    : (years.length > 0 ? years[years.length - 1] : maxYr);
   const barW = Math.max(2, Math.min(gap * 0.8, 30));
 
   let svg = '';
@@ -5003,7 +5062,7 @@ function renderTimeline(records) {
 
   // Stacked bars — full colour within range, greyed outside
   years.forEach((yr, xi) => {
-    const yrForCmp = useMonths ? Math.floor(yr / 100) : yr;
+    const yrForCmp = _tlKeyToYear(yr);
     const inRange = (tlFilterMin === null || yrForCmp >= tlFilterMin) && (tlFilterMax === null || yrForCmp <= tlFilterMax);
     const cx = padL + xi * gap + gap / 2;
     let stackY = padT + chartH;
@@ -5025,7 +5084,10 @@ function renderTimeline(records) {
     const every = Math.ceil(years.length / 10);
     if (xi % every === 0 || xi === years.length - 1) {
       let lbl;
-      if (useMonths) {
+      if (useDays) {
+        const lyr = Math.floor(yr / 10000), lmo = Math.floor(yr / 100) % 100 - 1, ldy = yr % 100;
+        lbl = ldy + ' ' + MON_ABBR[lmo] + (maxYr > minYr ? ' ' + String(lyr).slice(2) : '');
+      } else if (useMonths) {
         const lyr = Math.floor(yr / 100), lmo = (yr % 100) - 1;
         lbl = MON_ABBR[lmo] + (maxYr > minYr ? ' ' + String(lyr).slice(2) : '');
       } else {
@@ -5042,7 +5104,7 @@ function renderTimeline(records) {
 
   // Slider cutoff lines — vertical dashes at min/max year positions
   // Convert slider year to nearest chart key (YYYYMM or YYYY)
-  const sliderYearToKey = yr => useMonths ? yr * 100 + 1 : yr;
+  const sliderYearToKey = yr => useDays ? yr * 10000 + 101 : useMonths ? yr * 100 + 1 : yr;
   const yearToX = key => {
     const exact = years.indexOf(key);
     if (exact >= 0) return padL + exact * gap + gap / 2;
@@ -5088,7 +5150,7 @@ function _tlInitSliders() {
   slMin.step = slMax.step = 1;
 
   // Convert current tlFilterMin/Max year values back to indices
-  const toYr = key => _tlUseMonths ? Math.floor(key / 100) : key;
+  const toYr = key => _tlKeyToYear(key);
   const loIdx = tlFilterMin === null ? 0
     : Math.max(0, _tlYears.findIndex(k => toYr(k) >= tlFilterMin));
   let hiIdx = N - 1;
@@ -5119,7 +5181,7 @@ function _tlUpdateTrack() {
   const lo = Math.min(parseInt(slMin.value), parseInt(slMax.value));
   const hi = Math.max(parseInt(slMin.value), parseInt(slMax.value));
   _tlUpdateFill(lo, hi, N);
-  const toYr = key => _tlUseMonths ? Math.floor(key / 100) : key;
+  const toYr = key => _tlKeyToYear(key);
   tlFilterMin = toYr(_tlYears[lo]);
   tlFilterMax = toYr(_tlYears[hi]);
 }
@@ -7452,6 +7514,7 @@ function _ingestQueryParamDeepLink() {
 
   if (df) document.getElementById('dateFrom').value = df;
   if (dt) document.getElementById('dateTo').value   = dt;
+  syncDateRangeGuard();
 
   if (taxa.length) {
     document.getElementById('taxonAllLabel').classList.remove('selected');
@@ -7497,6 +7560,14 @@ if (window._pendingShare) {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v7.28</span>
+      <span class="changelog-date">Sep 2026</span>
+      <ul>
+        <li>Timeline now self-adjusts down to daily bars when the search results span roughly two months or less, instead of collapsing everything into one monthly bar. Month bars still kick in up to a 3-year span, and yearly bars beyond that</li>
+        <li>Date to can no longer be set before Date from (they can still be the same day) — picking one now nudges the other into a valid order instead of silently sending a backwards range to GBIF</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v7.27</span>
       <span class="changelog-date">Aug 2026</span>
