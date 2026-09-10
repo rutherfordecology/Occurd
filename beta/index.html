@@ -49,7 +49,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v7.28b</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v7.29b</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -4417,9 +4417,9 @@ function makeStackedPopup(stackedRecords) {
     const hasTl = tlFilterMin !== null || tlFilterMax !== null;
     const vis = hasTl
       ? stackedRecords.filter(r => {
-          const yr = parseInt(r.year);
-          if (isNaN(yr)) return true;
-          return (tlFilterMin === null || yr >= tlFilterMin) && (tlFilterMax === null || yr <= tlFilterMax);
+          const k = _tlRecordKey(r);
+          if (k === null) return true;
+          return (tlFilterMin === null || k >= tlFilterMin) && (tlFilterMax === null || k <= tlFilterMax);
         })
       : stackedRecords;
     return vis.length > 0 ? vis : stackedRecords;
@@ -4666,11 +4666,27 @@ function yearRainbowColour(year, minYr, maxYr) {
   return 'hsl(' + hue + ',85%,48%)';
 }
 
-// Collapse a chart key (YYYY, YYYYMM or YYYYMMDD, per _tlGranularity) down to its year
-function _tlKeyToYear(key) {
-  return _tlGranularity === 'day' ? Math.floor(key / 10000)
-       : _tlGranularity === 'month' ? Math.floor(key / 100)
-       : key;
+// The per-marker/per-record key set or key to compare against tlFilterMin/Max, matching
+// whatever resolution the chart is currently showing (day/month/year — see _tlGranularity)
+function _tlMarkerKeySet(marker) {
+  return (_tlGranularity === 'day' && marker._yearDays && marker._yearDays.size > 0)
+    ? marker._yearDays
+    : (_tlGranularity === 'month' && marker._yearMonths && marker._yearMonths.size > 0)
+      ? marker._yearMonths
+      : marker._years;
+}
+function _tlRecordKey(r) {
+  const y = parseInt(r.year);
+  if (isNaN(y)) return null;
+  if (_tlGranularity === 'day') {
+    const m = Math.max(1, Math.min(12, parseInt(r.month) || 1));
+    const d = Math.max(1, Math.min(31, parseInt(r.day) || 1));
+    return y * 10000 + m * 100 + d;
+  }
+  if (_tlGranularity === 'month') {
+    return y * 100 + Math.max(1, Math.min(12, parseInt(r.month) || 1));
+  }
+  return y;
 }
 
 function applyRainbowToMarkers() {
@@ -4693,12 +4709,7 @@ function applyRainbowToMarkers() {
   allMarkers.forEach(({ marker }) => {
     if (seen.has(marker)) return;
     seen.add(marker);
-    // Use YYYYMMDD keys in day mode, YYYYMM in month mode, plain years otherwise
-    const keySet = (_tlGranularity === 'day' && marker._yearDays && marker._yearDays.size > 0)
-      ? marker._yearDays
-      : (_tlGranularity === 'month' && marker._yearMonths && marker._yearMonths.size > 0)
-        ? marker._yearMonths
-        : marker._years;
+    const keySet = _tlMarkerKeySet(marker);
     if (!keySet || keySet.size === 0) return;
     const key = Math.min(...keySet);
     marker.setStyle({ fillColor: yearRainbowColour(key, minKey, maxKey) });
@@ -4895,9 +4906,10 @@ function applyTimelineFilter() {
 
   allMarkers.forEach(({ marker }) => {
     if (seen.has(marker)) return; seen.add(marker);
-    const inRange = marker._years && [...marker._years].some(yr =>
-      (tlFilterMin === null || yr >= tlFilterMin) &&
-      (tlFilterMax === null || yr <= tlFilterMax)
+    const keySet = _tlMarkerKeySet(marker);
+    const inRange = keySet && [...keySet].some(k =>
+      (tlFilterMin === null || k >= tlFilterMin) &&
+      (tlFilterMax === null || k <= tlFilterMax)
     );
     marker._tlActive = !!inRange;
     if (inRange) {
@@ -4932,9 +4944,9 @@ function applyTimelineChecklist() {
   // Build set of species names that have at least one record within the range
   const inRange = new Set();
   allRecords.forEach(r => {
-    const yr = parseInt(r.year);
-    if (isNaN(yr)) return;
-    if ((tlFilterMin === null || yr >= tlFilterMin) && (tlFilterMax === null || yr <= tlFilterMax)) {
+    const k = _tlRecordKey(r);
+    if (k === null) return;
+    if ((tlFilterMin === null || k >= tlFilterMin) && (tlFilterMax === null || k <= tlFilterMax)) {
       const name = r.species || r.scientificName;
       if (name) inRange.add(name);
     }
@@ -5060,10 +5072,22 @@ function renderTimeline(records) {
     svg += `<text x="${padL - 3}" y="${(y + 3.5).toFixed(1)}" text-anchor="end" font-size="9" fill="#9b9890">${yVal}</text>`;
   }
 
+  // Format a chart key as a short human label, at the current granularity
+  const _tlFormatKey = (key, showYear) => {
+    if (useDays) {
+      const lyr = Math.floor(key / 10000), lmo = Math.floor(key / 100) % 100 - 1, ldy = key % 100;
+      return ldy + ' ' + MON_ABBR[lmo] + (showYear ? ' ' + String(lyr).slice(2) : '');
+    }
+    if (useMonths) {
+      const lyr = Math.floor(key / 100), lmo = (key % 100) - 1;
+      return MON_ABBR[lmo] + (showYear ? ' ' + String(lyr).slice(2) : '');
+    }
+    return String(key);
+  };
+
   // Stacked bars — full colour within range, greyed outside
   years.forEach((yr, xi) => {
-    const yrForCmp = _tlKeyToYear(yr);
-    const inRange = (tlFilterMin === null || yrForCmp >= tlFilterMin) && (tlFilterMax === null || yrForCmp <= tlFilterMax);
+    const inRange = (tlFilterMin === null || yr >= tlFilterMin) && (tlFilterMax === null || yr <= tlFilterMax);
     const cx = padL + xi * gap + gap / 2;
     let stackY = padT + chartH;
     allGroups.forEach(g => {
@@ -5083,16 +5107,7 @@ function renderTimeline(records) {
     // X-axis label
     const every = Math.ceil(years.length / 10);
     if (xi % every === 0 || xi === years.length - 1) {
-      let lbl;
-      if (useDays) {
-        const lyr = Math.floor(yr / 10000), lmo = Math.floor(yr / 100) % 100 - 1, ldy = yr % 100;
-        lbl = ldy + ' ' + MON_ABBR[lmo] + (maxYr > minYr ? ' ' + String(lyr).slice(2) : '');
-      } else if (useMonths) {
-        const lyr = Math.floor(yr / 100), lmo = (yr % 100) - 1;
-        lbl = MON_ABBR[lmo] + (maxYr > minYr ? ' ' + String(lyr).slice(2) : '');
-      } else {
-        lbl = String(yr);
-      }
+      const lbl = _tlFormatKey(yr, maxYr > minYr);
       const lblFill = tlRainbow ? yearRainbowColour(yr, gradMinKey, gradMaxKey) : '#9b9890';
       svg += `<text x="${cx.toFixed(1)}" y="${H - 5}" text-anchor="middle" font-size="9" font-weight="${tlRainbow ? '700' : '400'}" fill="${lblFill}">${lbl}</text>`;
     }
@@ -5102,24 +5117,22 @@ function renderTimeline(records) {
   svg += `<line x1="${padL}" y1="${padT}" x2="${padL}" y2="${padT + chartH}" stroke="#d1d5db" stroke-width="1"/>`;
   svg += `<line x1="${padL}" y1="${padT + chartH}" x2="${W - padR}" y2="${padT + chartH}" stroke="#d1d5db" stroke-width="1"/>`;
 
-  // Slider cutoff lines — vertical dashes at min/max year positions
-  // Convert slider year to nearest chart key (YYYYMM or YYYY)
-  const sliderYearToKey = yr => useDays ? yr * 10000 + 101 : useMonths ? yr * 100 + 1 : yr;
+  // Slider cutoff lines — vertical dashes at min/max chart-key positions
   const yearToX = key => {
     const exact = years.indexOf(key);
     if (exact >= 0) return padL + exact * gap + gap / 2;
     const nearest = years.reduce((p, y) => Math.abs(y - key) < Math.abs(p - key) ? y : p);
     return padL + years.indexOf(nearest) * gap + gap / 2;
   };
-  if (tlFilterMin !== null && tlFilterMin > minYr) {
-    const x = yearToX(sliderYearToKey(tlFilterMin)).toFixed(1);
+  if (tlFilterMin !== null && tlFilterMin > years[0]) {
+    const x = yearToX(tlFilterMin).toFixed(1);
     svg += `<line x1="${x}" y1="${padT}" x2="${x}" y2="${padT + chartH}" stroke="#6b7280" stroke-width="1.5" stroke-dasharray="4 3" opacity="0.8"/>`;
-    svg += `<text x="${x}" y="${(padT + chartH + 18).toFixed(1)}" text-anchor="middle" font-size="9" font-weight="700" fill="#374151">${tlFilterMin}</text>`;
+    svg += `<text x="${x}" y="${(padT + chartH + 18).toFixed(1)}" text-anchor="middle" font-size="9" font-weight="700" fill="#374151">${_tlFormatKey(tlFilterMin, true)}</text>`;
   }
-  if (tlFilterMax !== null && tlFilterMax < maxYr) {
-    const x = yearToX(sliderYearToKey(tlFilterMax)).toFixed(1);
+  if (tlFilterMax !== null && tlFilterMax < years[years.length - 1]) {
+    const x = yearToX(tlFilterMax).toFixed(1);
     svg += `<line x1="${x}" y1="${padT}" x2="${x}" y2="${padT + chartH}" stroke="#6b7280" stroke-width="1.5" stroke-dasharray="4 3" opacity="0.8"/>`;
-    svg += `<text x="${x}" y="${(padT + chartH + 18).toFixed(1)}" text-anchor="middle" font-size="9" font-weight="700" fill="#374151">${tlFilterMax}</text>`;
+    svg += `<text x="${x}" y="${(padT + chartH + 18).toFixed(1)}" text-anchor="middle" font-size="9" font-weight="700" fill="#374151">${_tlFormatKey(tlFilterMax, true)}</text>`;
   }
 
   svgEl.setAttribute('viewBox', `0 0 ${W} ${H}`);
@@ -5149,13 +5162,12 @@ function _tlInitSliders() {
   slMin.max = slMax.max = N - 1;
   slMin.step = slMax.step = 1;
 
-  // Convert current tlFilterMin/Max year values back to indices
-  const toYr = key => _tlKeyToYear(key);
+  // Convert current tlFilterMin/Max chart-key values back to indices
   const loIdx = tlFilterMin === null ? 0
-    : Math.max(0, _tlYears.findIndex(k => toYr(k) >= tlFilterMin));
+    : Math.max(0, _tlYears.findIndex(k => k >= tlFilterMin));
   let hiIdx = N - 1;
   if (tlFilterMax !== null) {
-    for (let i = 0; i < N; i++) { if (toYr(_tlYears[i]) <= tlFilterMax) hiIdx = i; }
+    for (let i = 0; i < N; i++) { if (_tlYears[i] <= tlFilterMax) hiIdx = i; }
   }
   const lo = loIdx === -1 ? 0 : loIdx;
   slMin.value = lo;
@@ -5181,9 +5193,8 @@ function _tlUpdateTrack() {
   const lo = Math.min(parseInt(slMin.value), parseInt(slMax.value));
   const hi = Math.max(parseInt(slMin.value), parseInt(slMax.value));
   _tlUpdateFill(lo, hi, N);
-  const toYr = key => _tlKeyToYear(key);
-  tlFilterMin = toYr(_tlYears[lo]);
-  tlFilterMax = toYr(_tlYears[hi]);
+  tlFilterMin = _tlYears[lo];
+  tlFilterMax = _tlYears[hi];
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -7560,6 +7571,14 @@ if (window._pendingShare) {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v7.29</span>
+      <span class="changelog-date">Sep 2026</span>
+      <ul>
+        <li>Fixed: the timeline sliders couldn't narrow the date range when the chart was showing daily bars. The sliders had only ever filtered by whole year, which is invisible once a search's results all fall within a single year &mdash; exactly the case daily bars were added for. Dragging now filters at whatever resolution the chart is currently showing (day, month or year)</li>
+        <li>Slider cutoff labels on the chart now show a real date (e.g. "13 Sep 26") instead of a raw number</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v7.28</span>
       <span class="changelog-date">Sep 2026</span>
