@@ -49,7 +49,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v7.29b</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v7.31b</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -3003,6 +3003,7 @@ document.getElementById('disclaimerAccept').addEventListener('click', () => {
 const NZTCS_BETA_KEY    = 'nztcs_beta_agreed';
 let nztcsData           = null;
 let nztcsUnlocked       = false;
+let localityTable       = null; // which islands a subspecies occurs in — see islandZonesFor
 const nztcsConflictChoices = new Map(); // speciesName → chosen entry (session-scoped)
 let nztcsBetaAgreed  = !!sessionStorage.getItem(NZTCS_BETA_KEY);
 let iucnUnlocked     = false;
@@ -3075,6 +3076,48 @@ function nztcsByRecordName(rec, options) {
   return null;
 }
 
+// Coarse island classifier from a record's own coordinates — NI, SI and/or
+// Stewart. Cook Strait has no clean latitude cutoff (Wellington and the top
+// of the South Island sit at similar latitudes), so records in that margin
+// get BOTH islands rather than a confident guess: chooseSubspecies then
+// falls back to asking, same as an unresolved conflict does today, instead
+// of silently picking the wrong one.
+function islandZonesFor(rec) {
+  const lat = rec?.decimalLatitude, lng = rec?.decimalLongitude;
+  if (lat == null || lng == null) return null;
+  const zones = new Set();
+  if (lat >= -41.7) zones.add('NI');
+  if (lat <= -41.0) zones.add('SI');
+  if (lat <= -46.5 && lng > 166.5 && lng < 168.7) zones.add('Stewart');
+  return zones;
+}
+
+// Try to settle a subspecies conflict without asking: first via the record's
+// own name (its determination already answers it), then via its coordinates
+// against the same curated range table But Is It Threatened uses
+// (../but-is-it-threatened/localities.tsv), at island resolution only — see
+// islandZonesFor. Falls through to the plain conflict, narrowed if the
+// island ruled anything out.
+function resolveNztcsConflict(rec, options) {
+  const byName = nztcsByRecordName(rec, options);
+  if (byName) return { entry: byName, certain: true };
+  if (localityTable) {
+    const zones = islandZonesFor(rec);
+    if (zones && zones.size) {
+      const decision = window.QNLocality.chooseSubspecies(options, zones, localityTable);
+      if (decision.kind === 'one' || decision.kind === 'same-status') {
+        return { entry: decision.pick, certain: true };
+      }
+      if (decision.kind === 'ask') {
+        return { conflict: true, options: decision.options };
+      }
+      // 'none' — the island rules out everything NZTCS lists; fall through
+      // to the plain conflict rather than claim there's no data at all.
+    }
+  }
+  return { conflict: true, options };
+}
+
 function nztcsRankDepth(name) {
   const parts = String(name || '').replace(/\([^)]*\)/g, ' ').trim().split(/\s+/);
   if (!parts[0]) return 0;
@@ -3108,17 +3151,12 @@ function lookupNztcs(rec) {
       const bin = (e.name || '').toLowerCase().split(/\s+/).slice(0, 2).join(' ');
       const bc = bin && nztcsData['conflict:' + bin];
       if (bc && nztcsRankDepth(e.name) < 3) {
-        return nztcsByRecordName(rec, bc.options)
-          ? { entry: nztcsByRecordName(rec, bc.options), certain: true }
-          : { conflict: true, options: bc.options };
+        return resolveNztcsConflict(rec, bc.options);
       }
       return { entry: e, certain: true };
     }
     const c = nztcsData['gbifconflict:' + k];
-    if (c) {
-      const byName = nztcsByRecordName(rec, c.options);
-      return byName ? { entry: byName, certain: true } : { conflict: true, options: c.options };
-    }
+    if (c) return resolveNztcsConflict(rec, c.options);
   }
   // 2. Exact name-based lookup — also reliable.
   // COL XR names lead. They are the record’s own determination at its finest rank, and
@@ -3139,7 +3177,7 @@ function lookupNztcs(rec) {
     const k = nztcsNormKey(name);
     if (k && nztcsData[k]) return { entry: nztcsData[k], certain: true };
     const ck = k && nztcsData['conflict:' + k];
-    if (ck) return { conflict: true, options: ck.options };
+    if (ck) return resolveNztcsConflict(rec, ck.options);
   }
   // 3. Binomial prefix fallback — mark uncertain (e.g. authority strings or subspecies dropped)
   for (const name of candidates) {
@@ -3149,10 +3187,7 @@ function lookupNztcs(rec) {
         const bin = (parts[0] + ' ' + parts[1]).toLowerCase();
         if (nztcsData[bin]) return { entry: nztcsData[bin], certain: false };
         const cb = nztcsData['conflict:' + bin];
-        if (cb) {
-          const byName = nztcsByRecordName(rec, cb.options);
-          return byName ? { entry: byName, certain: true } : { conflict: true, options: cb.options };
-        }
+        if (cb) return resolveNztcsConflict(rec, cb.options);
       }
     }
   }
@@ -3354,6 +3389,14 @@ async function loadNztcsData() {
     refreshOpenPopups();
   } catch(err) {
     console.warn('NZTCS load failed:', err);
+  }
+  // Region table (which islands a subspecies occurs in) — same file But Is It
+  // Threatened uses. Best-effort: a conflict just stays a conflict if this fails.
+  try {
+    const txt = await fetch('../but-is-it-threatened/localities.tsv').then(r => r.text());
+    localityTable = window.QNLocality.makeTable(window.QNLocality.parseTsv(txt));
+  } catch(err) {
+    console.warn('Locality table load failed:', err);
   }
 }
 
@@ -7557,6 +7600,7 @@ if (window._pendingShare) {
 </script>
 <script src="../name-resolver.js"></script>
 <script src="../but-is-it-threatened/nzor-source.js"></script>
+<script src="../but-is-it-threatened/locality-core.js"></script>
 <script src="species-search.js"></script>
 <script src="qeii.js"></script>
 <script src="projects.js"></script>
@@ -7571,6 +7615,21 @@ if (window._pendingShare) {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v7.31</span>
+      <span class="changelog-date">Sep 2026</span>
+      <ul>
+        <li>Fixed: searching for a taxon above species rank (e.g. "Tunicata") could return no records even though species within it had records. GBIF's name-matching sometimes can't uniquely resolve a higher-rank name because it ties with an unrelated same-spelled name elsewhere in the checklist (in this case a bacterial genus also called Tunicata), and the search was silently falling back to a literal text match that almost never hits real records. It now falls back to a direct checklist lookup instead, so the search correctly includes every species beneath the chosen taxon</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v7.30</span>
+      <span class="changelog-date">Sep 2026</span>
+      <ul>
+        <li>NZTCS subspecies conflicts (the &quot;pick a subspecies&quot; prompt) now try to resolve themselves first from each record&rsquo;s own coordinates, using a curated table of which island a subspecies actually occurs on. A record from the North Island no longer gets asked to choose between a North Island and a South Island form when only one of them could possibly be it &mdash; and where a real question remains (both forms possible, different statuses), only the genuinely possible ones are offered instead of every subspecies NZTCS lists nationally</li>
+        <li>This is deliberately coarse (North Island / South Island / Stewart Island only) rather than full regional resolution &mdash; the Cook Strait margin (Wellington to Nelson/Marlborough) has no clean latitude split, so records there still get asked rather than risk a confident wrong answer</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v7.29</span>
       <span class="changelog-date">Sep 2026</span>

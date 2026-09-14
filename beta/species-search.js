@@ -411,6 +411,25 @@
       }
     } catch(e) {}
 
+    // v2/match can bail with matchType NONE on names above species rank that tie with an
+    // unrelated homonym elsewhere in the checklist (e.g. "Tunicata" the subphylum vs a
+    // bacterial genus of the same name) — same fallback commitGenus already uses below.
+    // Without this, resolvedKey stays null and the caller falls back to filtering
+    // occurrences by literal scientificName text, which almost never matches records
+    // identified to a species beneath the searched taxon.
+    if (!resolvedKey) {
+      try {
+        const r2 = await gbifFetch('https://api.gbif.org/v1/species/search?datasetKey=' + COL_XR_CHECKLIST_KEY + '&q=' + encodeURIComponent(sciName) + '&limit=10&status=ACCEPTED');
+        if (r2.ok) {
+          const j2 = await r2.json();
+          const sciLow = sciName.toLowerCase();
+          const exact = (j2.results || []).find(x => x.canonicalName &&
+            x.canonicalName.toLowerCase() === sciLow);
+          if (exact) resolvedKey = exact.taxonID || exact.key;
+        }
+      } catch(e2) {}
+    }
+
     if (typeof window.addSpeciesEntry === 'function') {
       window.addSpeciesEntry(displayLabel || sciName, resolvedKey, sciName);
     }
