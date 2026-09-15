@@ -49,7 +49,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v7.32b</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v7.33b</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -267,12 +267,6 @@
             Cluster points
           </label>
         </div>
-        <div style="margin-top:0.3rem;display:none;" id="colourBySpeciesRow">
-          <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;color:var(--text2);">
-            <input type="checkbox" id="colourBySpeciesToggle" style="accent-color:var(--green);flex-shrink:0;" onchange="toggleColourBySpecies(this.checked)">
-            Colour by species
-          </label>
-        </div>
         <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.07em;color:var(--text3);margin:0.5rem 0 3px;">Downloads</div>
         <div class="export-row">
           <button class="dl-btn" id="dlCsvBtn">&#8595; Occurrences CSV</button>
@@ -435,6 +429,12 @@
           <button class="cl-looklike-btn" id="clWhatdatBtn" onclick="openInWhatDat()" title="Quiz these species in WhatDat?" style="display:inline-flex;align-items:center;gap:3px;"><span data-icon="target" data-icon-size="12"></span>Quiz</button><button class="cl-looklike-btn" id="clLooklikeBtn" onclick="openInLooklike()" title="Open selected species in LookLike" style="display:inline-flex;align-items:center;gap:3px;"><span data-icon="camera" data-icon-size="12"></span>Photos</button><input type="checkbox" id="clSelAllVisible" title="Select/deselect all visible species" style="accent-color:var(--green);cursor:pointer;">
         </span>
         <span class="cl-count-header">#</span>
+      </div>
+      <div class="cl-colour-toggle-row" id="colourBySpeciesRow" style="display:none;">
+        <label style="display:flex;align-items:center;gap:6px;font-size:11.5px;cursor:pointer;color:var(--text2);padding:5px 10px;border-bottom:1px solid var(--border);">
+          <input type="checkbox" id="colourBySpeciesToggle" style="accent-color:var(--green);flex-shrink:0;" onchange="toggleColourBySpecies(this.checked)">
+          Colour by species on map
+        </label>
       </div>
       <div class="cl-nztcs-filters" id="clNztcsFilters" style="display:none;">
         <span class="filter-row-label">NZTCS</span>
@@ -2097,6 +2097,12 @@ function clearResults() {
   checklistPanel.classList.remove('open');
   _showChecklistHandle(false);
   clScroll.innerHTML = ''; clSelectedInfo.style.display = 'none'; clLooklikeBar.style.display = 'none'; clColHeader.classList.remove('visible');
+  colourBySpecies = false; speciesColourMap = {};
+  const _cbsRow = document.getElementById('colourBySpeciesRow');
+  if (_cbsRow) _cbsRow.style.display = 'none';
+  const _cbsToggle = document.getElementById('colourBySpeciesToggle');
+  if (_cbsToggle) _cbsToggle.checked = false;
+  updateSpeciesLegend();
   const _clf = document.getElementById('clFooter'); if (_clf) _clf.style.display = 'none';
   if (clusterLayer) { map.removeLayer(clusterLayer); clusterLayer = null; }
   if (heatLayer)    { map.removeLayer(heatLayer);    heatLayer = null; }
@@ -7723,6 +7729,13 @@ if (window._pendingShare) {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v7.33</span>
+      <span class="changelog-date">Sep 2026</span>
+      <ul>
+        <li>Moved "Colour by species" from the Output section in the sidebar into the species checklist panel itself, right under the Quiz/Photos row — it's about the species you're looking at in that list, so it belongs next to them rather than off in the general output settings</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v7.32</span>
       <span class="changelog-date">Sep 2026</span>
