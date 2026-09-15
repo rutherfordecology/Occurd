@@ -49,7 +49,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v7.33b</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v7.34b</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -176,7 +176,7 @@
       </div>
       <div class="field sp-wrap" id="spField" style="display:none;">
         <label style="display:flex;align-items:center;justify-content:space-between;">
-          <span>Single species search</span>
+          <span>Single taxa search</span>
           <button class="taxo-browse-link" id="taxoBrowseBtn" title="Browse the full GBIF taxonomy tree and select any rank">
             <svg width="11" height="11" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="1.5" r="1.5" fill="currentColor"/><circle cx="2" cy="9.5" r="1.5" fill="currentColor"/><circle cx="10" cy="9.5" r="1.5" fill="currentColor"/><line x1="6" y1="3" x2="6" y2="6.5" stroke="currentColor" stroke-width="1.2"/><line x1="6" y1="6.5" x2="2" y2="8" stroke="currentColor" stroke-width="1.2"/><line x1="6" y1="6.5" x2="10" y2="8" stroke="currentColor" stroke-width="1.2"/></svg>
             Tree of life
@@ -894,50 +894,6 @@ const GeoLocateControl = L.Control.extend({
 });
 map.addControl(new GeoLocateControl());
 
-// ── Species colour legend ────────────────────────────────────────────────
-// On-map swatch list shown only while colour-by-species mode is active
-// (single-taxon-group results only — see buildChecklist). Kept in its own
-// control rather than folded into the sidebar so it stays visible while
-// the checklist panel is closed.
-const SpeciesLegendControl = L.Control.extend({
-  options: { position: 'bottomleft' },
-  onAdd: function () {
-    const box = L.DomUtil.create('div', 'species-legend-box');
-    box.id = 'speciesLegendBox';
-    box.style.display = 'none';
-    L.DomEvent.disableClickPropagation(box);
-    return box;
-  }
-});
-const speciesLegendControl = new SpeciesLegendControl();
-map.addControl(speciesLegendControl);
-
-// Rebuild the legend's contents from the current speciesColourMap, using counts
-// from whatever records currently pass the active filters (so it stays in sync
-// with what's actually shown on the map, not the full unfiltered result set).
-function updateSpeciesLegend() {
-  const box = document.getElementById('speciesLegendBox');
-  if (!box) return;
-  const names = Object.keys(speciesColourMap);
-  if (!colourBySpecies || names.length === 0) { box.style.display = 'none'; box.innerHTML = ''; return; }
-  const visible = allRecords.filter(passesFilters);
-  const counts = {};
-  visible.forEach(r => {
-    const n = r.species || r.scientificName || '';
-    if (n && speciesColourMap[n] != null) counts[n] = (counts[n] || 0) + 1;
-  });
-  const rows = names
-    .filter(n => counts[n])
-    .sort((a, b) => counts[b] - counts[a])
-    .map(n => '<div class="species-legend-row">' +
-      '<span class="species-legend-swatch" style="background:' + speciesColourMap[n] + ';"></span>' +
-      '<span class="species-legend-name">' + n + '</span>' +
-      '<span class="species-legend-count">' + counts[n].toLocaleString() + '</span>' +
-    '</div>').join('');
-  if (!rows) { box.style.display = 'none'; box.innerHTML = ''; return; }
-  box.innerHTML = '<div class="species-legend-title">Species</div>' + rows;
-  box.style.display = '';
-}
 
 function locateUser(btn) {
   if (!navigator.geolocation) {
@@ -2102,7 +2058,6 @@ function clearResults() {
   if (_cbsRow) _cbsRow.style.display = 'none';
   const _cbsToggle = document.getElementById('colourBySpeciesToggle');
   if (_cbsToggle) _cbsToggle.checked = false;
-  updateSpeciesLegend();
   const _clf = document.getElementById('clFooter'); if (_clf) _clf.style.display = 'none';
   if (clusterLayer) { map.removeLayer(clusterLayer); clusterLayer = null; }
   if (heatLayer)    { map.removeLayer(heatLayer);    heatLayer = null; }
@@ -4849,9 +4804,7 @@ function toggleColourBySpecies(checked) {
   }
   // Swatches on the checklist rows also depend on colourBySpecies — cheapest
   // way to keep them in sync is to rebuild the checklist rather than patch it.
-  // (buildChecklist calls updateSpeciesLegend() itself at the end.)
   if (allRecords.length > 0) buildChecklist(allRecords);
-  else updateSpeciesLegend();
 }
 
 function _syncRainbowBtn() {
@@ -5687,7 +5640,7 @@ function buildChecklist(records) {
         ? '<span class="tk-badge" title="Traditional Knowledge / Biocultural label — Local Contexts">' + icon('tag', { size: 12 }) + '</span>' : '';
       const _checked = !hiddenSpecies.has(name);
       const speciesSwatch = (colourBySpecies && speciesColourMap[name])
-        ? '<span class="species-legend-swatch" style="background:' + speciesColourMap[name] + ';display:inline-block;margin-right:2px;"></span>' : '';
+        ? '<span class="sp-colour-dot" style="background:' + speciesColourMap[name] + ';"></span>' : '';
       row.innerHTML =
         '<div class="cl-row-top">' +
           '<span class="cl-name">' + speciesSwatch + name + nztcsBadge + iucnBadge + tkBadge + '</span>' +
@@ -5749,7 +5702,6 @@ function buildChecklist(records) {
     _iucnFetchAbort = true;
     setTimeout(() => { _iucnFetchAbort = false; fetchIucnStatuses(records); }, 0);
   }
-  updateSpeciesLegend();
 }
 
 // One rebuild after the set of shown species changes. Every control that can
@@ -7729,6 +7681,14 @@ if (window._pendingShare) {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v7.34</span>
+      <span class="changelog-date">Sep 2026</span>
+      <ul>
+        <li>Removed the "Colour by species" swatch legend that sat in the map's bottom-left corner — it just duplicated the coloured dots already next to each species in the checklist panel, one legend was enough</li>
+        <li>Relabelled "Single species search" to "Single taxa search" — the field has always resolved genus, family and other ranks too (e.g. searching "Tunicata"), not just species, so the old label undersold it</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v7.33</span>
       <span class="changelog-date">Sep 2026</span>
