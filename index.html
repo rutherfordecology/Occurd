@@ -49,7 +49,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v7.31</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v7.34</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -176,7 +176,7 @@
       </div>
       <div class="field sp-wrap" id="spField" style="display:none;">
         <label style="display:flex;align-items:center;justify-content:space-between;">
-          <span>Single species search</span>
+          <span>Single taxa search</span>
           <button class="taxo-browse-link" id="taxoBrowseBtn" title="Browse the full GBIF taxonomy tree and select any rank">
             <svg width="11" height="11" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="1.5" r="1.5" fill="currentColor"/><circle cx="2" cy="9.5" r="1.5" fill="currentColor"/><circle cx="10" cy="9.5" r="1.5" fill="currentColor"/><line x1="6" y1="3" x2="6" y2="6.5" stroke="currentColor" stroke-width="1.2"/><line x1="6" y1="6.5" x2="2" y2="8" stroke="currentColor" stroke-width="1.2"/><line x1="6" y1="6.5" x2="10" y2="8" stroke="currentColor" stroke-width="1.2"/></svg>
             Tree of life
@@ -429,6 +429,12 @@
           <button class="cl-looklike-btn" id="clWhatdatBtn" onclick="openInWhatDat()" title="Quiz these species in WhatDat?" style="display:inline-flex;align-items:center;gap:3px;"><span data-icon="target" data-icon-size="12"></span>Quiz</button><button class="cl-looklike-btn" id="clLooklikeBtn" onclick="openInLooklike()" title="Open selected species in LookLike" style="display:inline-flex;align-items:center;gap:3px;"><span data-icon="camera" data-icon-size="12"></span>Photos</button><input type="checkbox" id="clSelAllVisible" title="Select/deselect all visible species" style="accent-color:var(--green);cursor:pointer;">
         </span>
         <span class="cl-count-header">#</span>
+      </div>
+      <div class="cl-colour-toggle-row" id="colourBySpeciesRow" style="display:none;">
+        <label style="display:flex;align-items:center;gap:6px;font-size:11.5px;cursor:pointer;color:var(--text2);padding:5px 10px;border-bottom:1px solid var(--border);">
+          <input type="checkbox" id="colourBySpeciesToggle" style="accent-color:var(--green);flex-shrink:0;" onchange="toggleColourBySpecies(this.checked)">
+          Colour by species on map
+        </label>
       </div>
       <div class="cl-nztcs-filters" id="clNztcsFilters" style="display:none;">
         <span class="filter-row-label">NZTCS</span>
@@ -786,6 +792,15 @@ const TAXON_COLOURS = {
   'Fungi':           { colour: '#D97706', label: 'Fungi' },
   'Other':           { colour: '#6B7280', label: 'Other' }
 };
+// Categorical palette for colour-by-species mode — distinct hues chosen to stay
+// legible on a light basemap and distinguishable from each other at small marker
+// sizes. Cycles (with a lightness shift) if a result set has more species than colours.
+const SPECIES_PALETTE = [
+  '#DC2626', '#2563EB', '#16A34A', '#D97706', '#7C3AED', '#0891B2',
+  '#DB2777', '#65A30D', '#EA580C', '#0E7490', '#9333EA', '#4D7C0F',
+];
+let colourBySpecies  = false;   // colour points by species instead of taxon group
+let speciesColourMap = {};      // species name -> hex colour, rebuilt by buildChecklist()
 const CSV_FIELDS = ['gbifID','eventDate','year','month','day','scientificName','vernacularName','kingdom','phylum','class','order','family','genus','species','decimalLatitude','decimalLongitude','coordinateUncertaintyInMeters','hasGeospatialIssues','basisOfRecord','establishmentMeans','occurrenceID','taxonKey','datasetName','country','stateProvince','locality','recordedBy','polygon_name'];
 
 // Maps taxon checkbox values to the getTaxonGroup() strings they correspond to.
@@ -878,6 +893,7 @@ const GeoLocateControl = L.Control.extend({
   }
 });
 map.addControl(new GeoLocateControl());
+
 
 function locateUser(btn) {
   if (!navigator.geolocation) {
@@ -2037,6 +2053,11 @@ function clearResults() {
   checklistPanel.classList.remove('open');
   _showChecklistHandle(false);
   clScroll.innerHTML = ''; clSelectedInfo.style.display = 'none'; clLooklikeBar.style.display = 'none'; clColHeader.classList.remove('visible');
+  colourBySpecies = false; speciesColourMap = {};
+  const _cbsRow = document.getElementById('colourBySpeciesRow');
+  if (_cbsRow) _cbsRow.style.display = 'none';
+  const _cbsToggle = document.getElementById('colourBySpeciesToggle');
+  if (_cbsToggle) _cbsToggle.checked = false;
   const _clf = document.getElementById('clFooter'); if (_clf) _clf.style.display = 'none';
   if (clusterLayer) { map.removeLayer(clusterLayer); clusterLayer = null; }
   if (heatLayer)    { map.removeLayer(heatLayer);    heatLayer = null; }
@@ -4548,7 +4569,15 @@ function makeMarker(stackedRecords) {
   while (lng > centerLng + 180) lng -= 360;
 
   const groups = [...new Set(stackedRecords.map(r => getTaxonGroup(r)))];
-  const fillColour = groups.length === 1 ? getTaxonColour(rep) : '#6B7280';
+  let fillColour;
+  if (colourBySpecies) {
+    const speciesHere = [...new Set(stackedRecords.map(r => r.species || r.scientificName || ''))].filter(Boolean);
+    fillColour = (speciesHere.length === 1 && speciesColourMap[speciesHere[0]])
+      ? speciesColourMap[speciesHere[0]]
+      : '#6B7280'; // mixed species stacked at the same point, or a species outside the mapped set
+  } else {
+    fillColour = groups.length === 1 ? getTaxonColour(rep) : '#6B7280';
+  }
   const radius = stackedRecords.length === 1 ? 6 : Math.min(11, 6 + Math.log2(stackedRecords.length));
 
   // Records with a reported coordinate uncertainty ≥ 1500 m are shown at half opacity.
@@ -4765,6 +4794,17 @@ function toggleClustering(checked) {
     renderPoints(allRecords);
     if (viewMode === 'timeline') { applyTimelineFilter(); renderTimeline(allRecords); if (tlRainbow) applyRainbowToMarkers(); }
   }
+}
+
+function toggleColourBySpecies(checked) {
+  colourBySpecies = checked;
+  if (allRecords.length > 0 && viewMode !== 'heat') {
+    renderPoints(allRecords);
+    if (viewMode === 'timeline') applyTimelineFilter();
+  }
+  // Swatches on the checklist rows also depend on colourBySpecies — cheapest
+  // way to keep them in sync is to rebuild the checklist rather than patch it.
+  if (allRecords.length > 0) buildChecklist(allRecords);
 }
 
 function _syncRainbowBtn() {
@@ -5472,6 +5512,30 @@ function buildChecklist(records) {
   }
   // ─────────────────────────────────────────────────────────────────────────
 
+  // ── Colour-by-species availability ──────────────────────────────────────
+  // Only offered when the whole result set is a single taxon group — colouring
+  // by species across several unrelated groups (birds mixed with insects, say)
+  // would just produce a wall of similar dots with no group structure to anchor
+  // them, which is worse than the plain per-group colouring it would replace.
+  const groupKeys = Object.keys(byGroup);
+  const cbsRow = document.getElementById('colourBySpeciesRow');
+  if (groupKeys.length === 1) {
+    const speciesTally = Object.entries(byGroup[groupKeys[0]])
+      .map(([name, info]) => [name, info.count])
+      .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+    speciesColourMap = {};
+    speciesTally.forEach(([name], i) => { speciesColourMap[name] = SPECIES_PALETTE[i % SPECIES_PALETTE.length]; });
+    if (cbsRow) cbsRow.style.display = '';
+  } else {
+    speciesColourMap = {};
+    if (cbsRow) cbsRow.style.display = 'none';
+    if (colourBySpecies) {
+      colourBySpecies = false;
+      const cbsToggle = document.getElementById('colourBySpeciesToggle');
+      if (cbsToggle) cbsToggle.checked = false;
+    }
+  }
+
   clScroll.innerHTML = '';
   let hasUncertain = false;
   Object.keys(byGroup).sort().forEach(g => {
@@ -5575,9 +5639,11 @@ function buildChecklist(records) {
       const tkBadge = _tkSpeciesNames.has(name)
         ? '<span class="tk-badge" title="Traditional Knowledge / Biocultural label — Local Contexts">' + icon('tag', { size: 12 }) + '</span>' : '';
       const _checked = !hiddenSpecies.has(name);
+      const speciesSwatch = (colourBySpecies && speciesColourMap[name])
+        ? '<span class="sp-colour-dot" style="background:' + speciesColourMap[name] + ';"></span>' : '';
       row.innerHTML =
         '<div class="cl-row-top">' +
-          '<span class="cl-name">' + name + nztcsBadge + iucnBadge + tkBadge + '</span>' +
+          '<span class="cl-name">' + speciesSwatch + name + nztcsBadge + iucnBadge + tkBadge + '</span>' +
           '<input type="checkbox" class="cl-photo-cb" title="Include in map, quiz &amp; photos"' + (_checked ? ' checked' : '') + ' onclick="event.stopPropagation()">' +
           '<span class="cl-count">' + info.count + '</span>' +
         '</div>' +
@@ -7615,6 +7681,29 @@ if (window._pendingShare) {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v7.34</span>
+      <span class="changelog-date">Sep 2026</span>
+      <ul>
+        <li>Removed the "Colour by species" swatch legend that sat in the map's bottom-left corner — it just duplicated the coloured dots already next to each species in the checklist panel, one legend was enough</li>
+        <li>Relabelled "Single species search" to "Single taxa search" — the field has always resolved genus, family and other ranks too (e.g. searching "Tunicata"), not just species, so the old label undersold it</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v7.33</span>
+      <span class="changelog-date">Sep 2026</span>
+      <ul>
+        <li>Moved "Colour by species" from the Output section in the sidebar into the species checklist panel itself, right under the Quiz/Photos row — it's about the species you're looking at in that list, so it belongs next to them rather than off in the general output settings</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v7.32</span>
+      <span class="changelog-date">Sep 2026</span>
+      <ul>
+        <li>Added a "Colour by species" option under Output, offered whenever your results are all one taxon group — each species gets its own colour on the map, with a legend in the corner and matching swatches next to each species in the checklist, so you can see how different species split up across your study area at a glance instead of everything showing as one colour</li>
+        <li>Points that stack several different species at the exact same coordinate show as neutral grey rather than picking one species' colour arbitrarily</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v7.31</span>
       <span class="changelog-date">Sep 2026</span>
