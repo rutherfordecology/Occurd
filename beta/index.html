@@ -49,7 +49,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v7.34b</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v7.34c</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -1470,24 +1470,19 @@ const _fromStr  = _fromYear + '-01-01';
 document.getElementById('dateTo').value   = _todayStr;
 document.getElementById('dateFrom').value = _fromStr;
 
-// Keep "Date to" from landing before "Date from" (same day is fine either way)
-function syncDateRangeGuard() {
-  const dFrom = document.getElementById('dateFrom');
-  const dTo   = document.getElementById('dateTo');
-  dTo.min = dFrom.value || '';
-  dFrom.max = dTo.value || '';
-}
+// Keep "Date to" from landing before "Date from" (same day is fine either way).
+// Note: this deliberately does NOT set min/max attributes on the inputs — doing so
+// reactively (tied to the other field's live value) made Chrome/Edge wipe the whole
+// date out (year, month and day) whenever an in-progress edit (e.g. typing a new year
+// digit by digit) briefly produced a value outside the current min/max.
 document.getElementById('dateFrom').addEventListener('change', () => {
   const dFrom = document.getElementById('dateFrom'), dTo = document.getElementById('dateTo');
   if (dFrom.value && dTo.value && dFrom.value > dTo.value) dTo.value = dFrom.value;
-  syncDateRangeGuard();
 });
 document.getElementById('dateTo').addEventListener('change', () => {
   const dFrom = document.getElementById('dateFrom'), dTo = document.getElementById('dateTo');
   if (dFrom.value && dTo.value && dTo.value < dFrom.value) dFrom.value = dTo.value;
-  syncDateRangeGuard();
 });
-syncDateRangeGuard();
 // Collapsible sidebar sections
 document.querySelectorAll('.section-label.collapsible').forEach(label => {
   label.addEventListener('click', () => {
@@ -7681,6 +7676,13 @@ if (window._pendingShare) {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v7.34c</span>
+      <span class="changelog-date">Sep 2026</span>
+      <ul>
+        <li>Fixed: editing the year in "Date from" or "Date to" could wipe the whole date (year, month and day all gone). The fields were dynamically constraining each other's min/max as you typed, and typing a year digit by digit could briefly produce a value outside that constraint &mdash; which some browsers respond to by clearing the entire field rather than just flagging it invalid. The order check (date to can't be before date from) still applies, it's just no longer enforced by a min/max attribute that fights with typing</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v7.34</span>
       <span class="changelog-date">Sep 2026</span>
