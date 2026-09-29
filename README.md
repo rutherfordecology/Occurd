@@ -48,4 +48,4 @@ Built by [Malcolm Rutherford](https://sites.google.com/view/rutherford-ecology/)
 
 ## Licence
 
-[MIT](LICENSE) — free to use, modify and distribute. Credit appreciated.
+Code: [PolyForm Strict 1.0.0](LICENSE) — free to use for non-commercial purposes; redistributing or modifying it is not permitted. Written content and original images: [CC BY-NC-ND 4.0](https://creativecommons.org/licenses/by-nc-nd/4.0/). Third-party data and photos keep their own licences. For commercial use, contact Rutherford Ecology.
