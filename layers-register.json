@@ -1,5 +1,5 @@
 {
-  "register_version": "2026-10-08b",
+  "register_version": "2026-10-08c",
   "notes": "Layers shown by the Projects > Layers panel and tested by its layer check. The report workflow reads this same file. These are published GIS layers, not the legal plan maps: confirm anything decisive against the operative plan.",
   "layers": [
     {
@@ -149,6 +149,25 @@
       "minZoom": 11,
       "notes": "TRMP planning zones.",
       "attribution": "Gisborne District Council"
+    },
+    {
+      "id": "qeii",
+      "group": "QEII National Trust",
+      "name": "QEII open space covenants",
+      "source": "arcgis",
+      "url": "https://services-ap1.arcgis.com/h9r62GhsQQYscUHs/arcgis/rest/services/QEII_National_Trust_protected_areas/FeatureServer",
+      "sublayers": [
+        0
+      ],
+      "labelFields": [
+        "CovNumber",
+        "Type",
+        "AreaSurvHa"
+      ],
+      "color": "#b45309",
+      "minZoom": 9,
+      "notes": "QEII National Trust registered covenants, the same service as Occurd's QEII project. PAN-NZ also includes covenants but may lag behind this source.",
+      "attribution": "QEII National Trust"
     },
     {
       "id": "lris_tec",
