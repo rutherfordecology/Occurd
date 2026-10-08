@@ -407,13 +407,16 @@
   // size, scale bar, north arrow and legend come out the same every time.
   // 900 x 600 layout units at 2x = 1800 x 1200 px: 16 cm wide at ~285 dpi.
   const MW = 900, MH = 600, MR = 2;
+  // bias: how many zoom levels above the fitted zoom to fetch tiles. 1 = one tile pixel per
+  // canvas pixel (sharp imagery); 0.5 = larger map labels that stay readable in print.
+  const ESRI = 'https://server.arcgisonline.com/ArcGIS/rest/services/';
   const BASEMAPS = {
-    imagery: { tile: 256, max: 18, url: (z, x, y) => 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/' + z + '/' + y + '/' + x,
+    imagery: { tile: 256, max: 18, bias: 1, url: (z, x, y) => ESRI + 'World_Imagery/MapServer/tile/' + z + '/' + y + '/' + x,
                attr: 'Imagery: Esri, Maxar, Earthstar Geographics and the GIS user community' },
-    street:  { tile: 512, max: 19, url: (z, x, y) => 'https://' + 'abcd'[(x + y) % 4] + '.basemaps.cartocdn.com/rastertiles/voyager/' + z + '/' + x + '/' + y + '@2x.png',
-               attr: 'Basemap: © OpenStreetMap contributors, © CARTO' },
-    grey:    { tile: 512, max: 19, url: (z, x, y) => 'https://' + 'abcd'[(x + y) % 4] + '.basemaps.cartocdn.com/light_all/' + z + '/' + x + '/' + y + '@2x.png',
-               attr: 'Basemap: © OpenStreetMap contributors, © CARTO' }
+    topo:    { tile: 256, max: 18, bias: 0.5, url: (z, x, y) => ESRI + 'World_Topo_Map/MapServer/tile/' + z + '/' + y + '/' + x,
+               attr: 'Basemap: Esri World Topographic Map (Esri, HERE, Garmin, © OpenStreetMap contributors, GIS user community)' },
+    grey:    { tile: 256, max: 16, bias: 0.5, url: (z, x, y) => ESRI + 'Canvas/World_Light_Gray_Base/MapServer/tile/' + z + '/' + y + '/' + x,
+               attr: 'Basemap: Esri Light Gray Canvas (Esri, HERE, Garmin, © OpenStreetMap contributors)' }
   };
   const SITE_COL = '#e11d48', WZ_COL = '#facc15', BUF_COL = '#ffffff';
   let lastMaps = [];
@@ -448,7 +451,7 @@
   }
   async function drawBasemap(ctx, v, bm) {
     // tile zoom chosen so tile pixels land at about one canvas pixel each
-    const zt = Math.min(bm.max, Math.ceil(v.zf + Math.log2(MR * 256 / bm.tile) - 1e-9));
+    const zt = Math.min(bm.max, Math.ceil(v.zf + bm.bias - 1e-9));
     const k = Math.pow(2, zt - v.zf), n = Math.pow(2, zt);
     const minX = (v.cx - MW / 2) * k, minY = (v.cy - MH / 2) * k, maxX = (v.cx + MW / 2) * k, maxY = (v.cy + MH / 2) * k;
     const jobs = [];
@@ -568,11 +571,11 @@
         const dLat = 5 / 111.32, dLng = 5 / (111.32 * Math.cos(cLat * Math.PI / 180));
         const v = makeView([cLng - dLng, cLat - dLat, cLng + dLng, cLat + dLat], 0);
         const { c, ctx } = newCanvas();
-        const miss = await drawBasemap(ctx, v, BASEMAPS.street);
+        const miss = await drawBasemap(ctx, v, BASEMAPS.topo);
         siteDraw(ctx, v);
         const [x, y] = v.px(cLng, cLat);
         ctx.beginPath(); ctx.arc(x, y, 7, 0, 2 * Math.PI); ctx.fillStyle = SITE_COL; ctx.fill(); ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
-        drawFurniture(ctx, v, [{ kind: 'point', color: SITE_COL, label: 'Site: ' + site.label }], BASEMAPS.street.attr + '  |  Map: occurd.');
+        drawFurniture(ctx, v, [{ kind: 'point', color: SITE_COL, label: 'Site: ' + site.label }], BASEMAPS.topo.attr + '  |  Map: occurd.');
         if (miss) warn.push('location map: ' + miss + ' basemap tiles missing');
         out.push({ name: 'map1_location_' + safe + '_' + stamp + '.png', title: 'Location', c });
       }
