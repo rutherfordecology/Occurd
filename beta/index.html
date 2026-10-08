@@ -102,10 +102,7 @@
         <div class="poly-list" id="polyList">
           <div class="poly-empty" id="polyEmpty" style="display:none;"></div>
         </div>
-        <div style="display:flex;align-items:center;gap:14px;">
-          <button class="clear-link" id="clearAllBtn">&#x2715; Clear all</button>
-          <button class="clear-link" id="polyKmlBtn" style="color:var(--green-dark);font-weight:600;" title="Download the drawn or imported areas (including buffers) as KML">&#8595; KML</button>
-        </div>
+        <button class="clear-link" id="clearAllBtn">&#x2715; Clear all</button>
         <!-- KML multi-polygon browse panel -->
         <div class="browse-panel" id="browsePanel">
           <div class="browse-header" id="browseHeader"></div>
@@ -2289,8 +2286,6 @@ function removePolygon(id) {
 
 function renderPolyList() {
   polyEmpty.style.display = polygons.length === 0 ? 'block' : 'none';
-  const _kmlBtn = document.getElementById('polyKmlBtn');
-  if (_kmlBtn) _kmlBtn.style.display = polygons.some(p => p.type !== 'species' && p.latlngs && p.latlngs.length >= 3) ? 'inline-block' : 'none';
   polyList.querySelectorAll('.poly-item, .poly-group-label').forEach(el => el.remove());
 
   const geomPolys     = polygons.filter(p => p.type !== 'species');
@@ -2320,12 +2315,14 @@ function renderPolyList() {
     const bufRow = document.createElement('div'); bufRow.className = 'poly-buffer-row';
     const _obscId = 'obscured-' + p.id;
     bufRow.innerHTML =
-      '<div class="poly-buf-obscured-row"><label class="poly-buf-obscured-label" title="Skips GBIF and fetches only obscured iNaturalist records for this polygon. When ticked, any buffer created from this polygon will also use iNat obscured mode.">' +
-      '<input type="checkbox" id="' + _obscId + '"' + (p.obscuredOnly ? ' checked' : '') + '> this polygon: iNat obscured only</label></div>' +
+      '<div class="poly-buf-obscured-row" style="display:flex;align-items:center;justify-content:space-between;gap:8px;"><label class="poly-buf-obscured-label" title="Skips GBIF and fetches only obscured iNaturalist records for this polygon. When ticked, any buffer created from this polygon will also use iNat obscured mode.">' +
+      '<input type="checkbox" id="' + _obscId + '"' + (p.obscuredOnly ? ' checked' : '') + '> this polygon: iNat obscured only</label>' +
+      '<button class="poly-kml-btn" title="Download this area as KML" style="background:none;border:none;padding:0;cursor:pointer;font-size:11px;font-weight:600;font-family:var(--font-sans);color:var(--green-dark);white-space:nowrap;">&#8595; KML</button></div>' +
       '<div class="poly-buf-btns"><span class="poly-buffer-label">Add buffer:</span>' +
       [1,2,5,10].map(km => '<button class="poly-buf-btn" data-km="' + km + '" data-unit="km">' + km + ' km</button>').join('') +
       '<button class="poly-buf-btn" data-km="0.2" data-unit="deg" title="0.2° buffer — matches the iNaturalist obscured-record grid square.">0.2°</button>' +
       '</div>';
+    bufRow.querySelector('.poly-kml-btn').addEventListener('click', () => downloadAreasKml([p]));
     bufRow.querySelector('#' + _obscId).addEventListener('change', function() {
       p.obscuredOnly     = this.checked;
       p._bufObscuredOnly = this.checked;
@@ -7131,11 +7128,11 @@ document.getElementById('dlKmlBtn').addEventListener('click', () => {
   downloadBlob(kml, 'gbif_records_' + new Date().toISOString().split('T')[0] + '.kml', 'application/vnd.google-earth.kml+xml');
 });
 
-// Search areas (drawn or imported polygons, including buffers) as KML — available before any fetch
-document.getElementById('polyKmlBtn').addEventListener('click', () => {
+// One drawn or imported area (or several) as KML — available before any fetch
+function downloadAreasKml(list) {
   const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   const ringStr = ll => closeRingCoords(unwrappedRingCoords(ll)).map(([x, y]) => wrapLng180(x).toFixed(7) + ',' + (+y).toFixed(7) + ',0').join(' ');
-  const geom = polygons.filter(p => p.type !== 'species' && p.latlngs && p.latlngs.length >= 3);
+  const geom = (list || []).filter(p => p && p.type !== 'species' && p.latlngs && p.latlngs.length >= 3);
   if (!geom.length) return;
   const placemarks = geom.map(p =>
     '  <Placemark>\n    <name>' + esc(p.label) + '</name>\n    <styleUrl>#area</styleUrl>\n    <Polygon>\n' +
@@ -7144,11 +7141,12 @@ document.getElementById('polyKmlBtn').addEventListener('click', () => {
     '    </Polygon>\n  </Placemark>').join('\n');
   const day = new Date().toISOString().split('T')[0];
   const kml = '<?xml version="1.0" encoding="UTF-8"?>\n<kml xmlns="http://www.opengis.net/kml/2.2">\n<Document>\n' +
-    '  <name>Search areas ' + day + '</name>\n' +
+    '  <name>' + esc(geom.length === 1 ? geom[0].label : 'Search areas') + ' ' + day + '</name>\n' +
     '  <Style id="area"><LineStyle><color>ff2a7a3f</color><width>2</width></LineStyle><PolyStyle><color>332a7a3f</color></PolyStyle></Style>\n' +
     placemarks + '\n</Document>\n</kml>';
-  downloadBlob(kml, 'search_areas_' + day + '.kml', 'application/vnd.google-earth.kml+xml');
-});
+  const base = geom.length === 1 ? geom[0].label.replace(/[^A-Za-z0-9 _+-]/g, '').trim().replace(/\s+/g, '_') : 'search_areas';
+  downloadBlob(kml, (base || 'search_area') + '_' + day + '.kml', 'application/vnd.google-earth.kml+xml');
+}
 
 document.getElementById('dlChecklistBtn').addEventListener('click', () => {
   const filtered = allRecords.filter(passesFilters);
@@ -7708,7 +7706,7 @@ if (window._pendingShare) {
       <span class="changelog-version-tag">v7.35b</span>
       <span class="changelog-date">Oct 2026</span>
       <ul>
-        <li>New "&#8595; KML" button beside Clear all: downloads your drawn or imported areas, including any buffers, as soon as you make a shape. No fetch needed first</li>
+        <li>New "&#8595; KML" button on each drawn or imported area (and each buffer): downloads that area as KML as soon as you make it. No fetch needed first</li>
       </ul>
     </div>
     <div class="changelog-version">
