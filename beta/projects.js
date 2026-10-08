@@ -1,6 +1,7 @@
 // ── Projects dropdown ─────────────────────────────────────────────────────────
 // Adds a "Projects" dropdown to the header.
-// Currently one project: QEII Perpetuity (delegates to qeii.js).
+// Projects: QEII Perpetuity (delegates to qeii.js) and Layers (delegates to layers.js,
+// unlocked with the user's own LRIS API key, which is stored only in their browser).
 // ─────────────────────────────────────────────────────────────────────────────
 
 (function () {
@@ -16,6 +17,8 @@
     if (!wrap || !btn || !menu) return;
 
     _addItem(menu, 'qeii', icon('lock', { size: 14 }), 'QEII', 'Enter access key for QEII covenant layer');
+    _addItem(menu, 'layers', icon('lock', { size: 14 }), 'Layers',
+      'Enter your LRIS API key (from <a href="https://lris.scinfo.org.nz/" target="_blank" style="color:var(--green-dark);">lris.scinfo.org.nz</a>, with query, tiles and WFS access). It stays in this browser only.');
 
     btn.addEventListener('click', e => {
       e.stopPropagation();
@@ -52,6 +55,11 @@
       _deactivate(id);
       return;
     }
+    if (id === 'layers' && window._layersHasKey && window._layersHasKey()) {
+      _closeAllForms();
+      _activate(id);
+      return;
+    }
     _closeAllForms(id);
     const item = document.getElementById('projectItem_' + id);
     if (!item) return;
@@ -77,6 +85,17 @@
     const err    = form.querySelector('#projectErr_'    + id);
 
     function tryKey() {
+      if (id === 'layers') {
+        const k = input.value.trim();
+        if (!k || !window._layersSetKey) return;
+        submit.disabled = true;
+        window._layersSetKey(k).then(ok => {
+          submit.disabled = false;
+          if (ok) { form.remove(); _activate(id); }
+          else { err.textContent = 'LRIS did not accept that key'; err.style.display = 'block'; input.select(); }
+        });
+        return;
+      }
       const KEYS = { qeii: 'perpetuity' };
       if (input.value.trim().toLowerCase() === KEYS[id]) {
         form.remove();
@@ -94,7 +113,7 @@
   }
 
   function _closeAllForms(exceptId) {
-    ['qeii'].forEach(id => {
+    ['qeii', 'layers'].forEach(id => {
       if (id === exceptId) return;
       const f = document.getElementById('projectForm_' + id);
       if (f) f.remove();
@@ -110,12 +129,18 @@
     if (id === 'qeii') {
       if (typeof window._qeiiActivate === 'function') window._qeiiActivate();
     }
+    if (id === 'layers') {
+      if (typeof window._layersActivate === 'function') window._layersActivate();
+    }
   }
 
   function _deactivate(id) {
     _unlocked[id] = false;
     _setIcon(id, icon('lock', { size: 14 }));
+    if (id === 'layers' && typeof window._layersDeactivate === 'function') window._layersDeactivate();
   }
+  // Lets layers.js re-lock the menu item when its panel is closed or the key is forgotten
+  window._projectsSetLocked = function (id) { _unlocked[id] = false; _setIcon(id, icon('lock', { size: 14 })); };
 
   function _setIcon(id, icon) { const el = document.getElementById('projectIcon_' + id); if (el) el.innerHTML = icon; }
 
