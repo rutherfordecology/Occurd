@@ -43,11 +43,11 @@
 
   // ── service URLs ──────────────────────────────────────────────────────────
   function lrisWfsUrl(layerId, bbox, max) {
-    // WFS 1.0.0 so the bbox and output are lon,lat
+    // WFS 1.0.0, lon,lat. LRIS ignores the bbox unless its CRS is stated in it.
     const p = new URLSearchParams({
       service: 'WFS', version: '1.0.0', request: 'GetFeature',
       typeName: 'layer-' + layerId, outputFormat: 'json', srsName: 'EPSG:4326',
-      maxFeatures: String(max || MAX_LRIS), bbox: bbox.join(',')
+      maxFeatures: String(max || MAX_LRIS), bbox: bbox.join(',') + ',EPSG:4326'
     });
     return LRIS_BASE + ';key=' + encodeURIComponent(getKey()) + '/wfs/layer-' + layerId + '/?' + p.toString();
   }
