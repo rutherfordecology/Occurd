@@ -18,7 +18,7 @@
 
     _addItem(menu, 'qeii', icon('lock', { size: 14 }), 'QEII', 'Enter access key for QEII covenant layer');
     _addItem(menu, 'layers', icon('lock', { size: 14 }), 'Layers',
-      'Enter your LRIS API key (from <a href="https://lris.scinfo.org.nz/" target="_blank" style="color:var(--green-dark);">lris.scinfo.org.nz</a>, with query, tiles and WFS access). It stays in this browser only.');
+      'Enter the Layers password (or your own LRIS API key). Once unlocked, this browser remembers it until you choose Forget.');
 
     btn.addEventListener('click', e => {
       e.stopPropagation();
@@ -72,7 +72,7 @@
     form.innerHTML =
       `<div style="font-size:10px;color:var(--text2);margin-bottom:5px;line-height:1.4;">${hint}</div>` +
       `<div style="display:flex;gap:5px;">` +
-        `<input id="projectInput_${id}" type="password" placeholder="key…" autocomplete="new-password" spellcheck="false"
+        `<input id="projectInput_${id}" type="password" placeholder="${id === 'layers' ? 'password…' : 'key…'}" autocomplete="new-password" spellcheck="false"
           style="flex:1;font-size:12px;font-family:var(--font-sans);padding:4px 7px;border:1px solid var(--border2);border-radius:4px;outline:none;color:var(--text);background:#fff;">` +
         `<button id="projectSubmit_${id}"
           style="font-size:11px;font-family:var(--font-sans);padding:4px 9px;border-radius:4px;border:none;background:var(--green-dark);color:#fff;cursor:pointer;">↵</button>` +
@@ -87,12 +87,12 @@
     function tryKey() {
       if (id === 'layers') {
         const k = input.value.trim();
-        if (!k || !window._layersSetKey) return;
+        if (!k || !window._layersUnlock) return;
         submit.disabled = true;
-        window._layersSetKey(k).then(ok => {
+        window._layersUnlock(k).then(ok => {
           submit.disabled = false;
           if (ok) { form.remove(); _activate(id); }
-          else { err.textContent = 'LRIS did not accept that key'; err.style.display = 'block'; input.select(); }
+          else { err.textContent = 'Wrong password'; err.style.display = 'block'; input.select(); }
         });
         return;
       }

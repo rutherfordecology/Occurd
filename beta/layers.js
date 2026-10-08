@@ -16,6 +16,7 @@
   const ON_STORE  = 'occurd_layers_on';
   const LRIS_BASE = 'https://lris.scinfo.org.nz/services';
   const MAX_LRIS  = 1000;
+  const ENC = { salt: '0P/eszsAXIeVnFtoNQxbgQ==', iv: 'r34wHTw2jD6PhsFU', ct: '5lifxl4IXjKW1gp0Uf5i9jynJhZS0CanRBXgkKkyVbXRMqDUb15GrK9nkHKaPqNw', iter: 600000 };  // LRIS key encrypted with the Layers password (PBKDF2-SHA256 + AES-GCM)
 
   let register  = null;          // parsed layers-register.json
   let panel     = null;          // floating panel element
@@ -65,6 +66,28 @@
   // Resolves true if LRIS accepts the key, false if it refuses it.
   // If LRIS cannot be reached at all, the key is kept and the panel says so.
   window._layersHasKey = function () { return !!getKey(); };
+  // Password unlock: decrypt the stored LRIS key in the browser. Returns the key or null.
+  async function decryptKey(password) {
+    try {
+      const ub = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+      const base = await crypto.subtle.importKey('raw', new TextEncoder().encode(password), 'PBKDF2', false, ['deriveKey']);
+      const aes = await crypto.subtle.deriveKey({ name: 'PBKDF2', salt: ub(ENC.salt), iterations: ENC.iter, hash: 'SHA-256' },
+        base, { name: 'AES-GCM', length: 256 }, false, ['decrypt']);
+      const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: ub(ENC.iv) }, aes, ub(ENC.ct));
+      return new TextDecoder().decode(pt);
+    } catch (e) { return null; }
+  }
+
+  // Accepts either the Layers password or a raw LRIS API key (32 hex characters).
+  window._layersUnlock = async function (entry) {
+    entry = (entry || '').trim();
+    if (/^[0-9a-f]{32}$/i.test(entry)) return window._layersSetKey(entry);
+    const key = await decryptKey(entry);
+    if (!key) return false;
+    lsSet(KEY_STORE, key);
+    return true;
+  };
+
   window._layersSetKey = async function (key) {
     const old = getKey();
     lsSet(KEY_STORE, key);
@@ -138,7 +161,7 @@
         '<div id="lyrResult" style="margin-top:6px;font-size:11px;line-height:1.45;color:var(--text2);"></div>' +
       '</div>' +
       '<div style="margin-top:8px;font-size:10px;color:var(--text3);line-height:1.4;">Published GIS layers, not the legal plan maps. ' +
-        '<a href="#" id="lyrForget" style="color:var(--text3);">Forget my LRIS key</a></div>' +
+        '<a href="#" id="lyrForget" style="color:var(--text3);">Lock and forget</a></div>' +
       '</div>';
     panel.innerHTML = html;
     mapEl.appendChild(panel);
