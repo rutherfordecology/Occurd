@@ -1,5 +1,5 @@
 {
-  "register_version": "2026-10-08",
+  "register_version": "2026-10-08b",
   "notes": "Layers shown by the Projects > Layers panel and tested by its layer check. The report workflow reads this same file. These are published GIS layers, not the legal plan maps: confirm anything decisive against the operative plan.",
   "layers": [
     {
@@ -8,8 +8,14 @@
       "name": "Protection Management Areas",
       "source": "arcgis",
       "url": "https://services7.arcgis.com/8G10QCd84QpdcTJ9/ArcGIS/rest/services/plan_protection_management/FeatureServer",
-      "sublayers": [0],
-      "labelFields": ["PROPER_NAME", "NUM", "SUBCLASS"],
+      "sublayers": [
+        0
+      ],
+      "labelFields": [
+        "PROPER_NAME",
+        "NUM",
+        "SUBCLASS"
+      ],
       "color": "#7c3aed",
       "minZoom": 9,
       "notes": "TRMP Schedule G7A Protection Management Areas.",
@@ -21,8 +27,12 @@
       "name": "Coastal Management Areas",
       "source": "arcgis",
       "url": "https://services7.arcgis.com/8G10QCd84QpdcTJ9/ArcGIS/rest/services/plan_coastal_management/FeatureServer",
-      "sublayers": [0],
-      "labelFields": ["MA_TYPE", "text"],
+      "sublayers": [
+        0
+      ],
+      "labelFields": [
+        "MA_TYPE"
+      ],
       "color": "#0369a1",
       "minZoom": 9,
       "notes": "TRMP Part D coastal management areas. The service describes DC1 Significant Values, DC2 General and DP1 Port areas; the meaning of each MA_TYPE code is still to be confirmed against the plan.",
@@ -34,11 +44,15 @@
       "name": "Coastal Environment Overlay",
       "source": "arcgis",
       "url": "https://services7.arcgis.com/8G10QCd84QpdcTJ9/ArcGIS/rest/services/plan_coastal_environment/FeatureServer",
-      "sublayers": [0],
-      "labelFields": [],
+      "sublayers": [
+        0
+      ],
+      "labelFields": [
+        "MA_TYPE"
+      ],
       "color": "#0d9488",
       "minZoom": 9,
-      "notes": "TRMP Part C3.14 Coastal Environment Overlay.",
+      "notes": "TRMP Part C3.14 Coastal Environment Overlay. Checked 8 October 2026: this service returned the same features as Coastal Management Areas (MA_TYPE SVMA). Confirm against the plan maps.",
       "attribution": "Gisborne District Council"
     },
     {
@@ -47,11 +61,15 @@
       "name": "Coastal marine area",
       "source": "arcgis",
       "url": "https://services7.arcgis.com/8G10QCd84QpdcTJ9/ArcGIS/rest/services/plan_coastal_marine/FeatureServer",
-      "sublayers": [0],
-      "labelFields": [],
+      "sublayers": [
+        0
+      ],
+      "labelFields": [
+        "CMABDY_ID"
+      ],
       "color": "#1d4ed8",
       "minZoom": 9,
-      "notes": "Boundary of the coastal marine area as set out in the TRMP. Sublayer number not confirmed by the service description.",
+      "notes": "Boundary of the coastal marine area as set out in the TRMP.",
       "attribution": "Gisborne District Council"
     },
     {
@@ -60,8 +78,14 @@
       "name": "Outstanding Landscapes",
       "source": "arcgis",
       "url": "https://services7.arcgis.com/8G10QCd84QpdcTJ9/ArcGIS/rest/services/plan_outstanding_landscapes/FeatureServer",
-      "sublayers": [0],
-      "labelFields": [],
+      "sublayers": [
+        0
+      ],
+      "labelFields": [
+        "LAND_NAME",
+        "LAND_NUM",
+        "LAND_TYPE"
+      ],
       "color": "#a16207",
       "minZoom": 9,
       "notes": "Outstanding landscapes identified in the TRMP.",
@@ -73,8 +97,14 @@
       "name": "Scheduled rivers and streams",
       "source": "arcgis",
       "url": "https://services7.arcgis.com/8G10QCd84QpdcTJ9/ArcGIS/rest/services/plan_freshwater_rivers/FeatureServer",
-      "sublayers": [0],
-      "labelFields": [],
+      "sublayers": [
+        0
+      ],
+      "labelFields": [
+        "River_name",
+        "Schedule",
+        "Species"
+      ],
       "color": "#2563eb",
       "minZoom": 9,
       "notes": "TRMP Schedules 1, 4 and 6: Aquatic Ecosystem Waterbodies, Outstanding Waterbodies, Watercourses with Ecological Values.",
@@ -86,8 +116,17 @@
       "name": "GDC parks and reserves",
       "source": "arcgis",
       "url": "https://services7.arcgis.com/8G10QCd84QpdcTJ9/ArcGIS/rest/services/parks_reserves/FeatureServer",
-      "sublayers": [0, 1, 2, 3],
-      "labelFields": [],
+      "sublayers": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "labelFields": [
+        "ZONE",
+        "TEXT1",
+        "NAME"
+      ],
       "color": "#15803d",
       "minZoom": 10,
       "notes": "Amenity, heritage, neighbourhood and recreation reserves administered by GDC. Not conservation land.",
@@ -99,8 +138,13 @@
       "name": "Plan zones",
       "source": "arcgis",
       "url": "https://services7.arcgis.com/8G10QCd84QpdcTJ9/ArcGIS/rest/services/plan_zones/FeatureServer",
-      "sublayers": [0],
-      "labelFields": [],
+      "sublayers": [
+        0
+      ],
+      "labelFields": [
+        "ZONE",
+        "NAME"
+      ],
       "color": "#6b7280",
       "minZoom": 11,
       "notes": "TRMP planning zones.",
@@ -112,7 +156,10 @@
       "name": "Threatened Environment Classification 2012",
       "source": "lris",
       "layer": 48288,
-      "labelFields": [],
+      "labelFields": [
+        "TEC12_Cl_1",
+        "LENZlvl4"
+      ],
       "color": "#dc2626",
       "minZoom": 11,
       "notes": "Built on LENZ Level IV, LCDB4 (2012) and the 2012 protected areas network. Still the current release (checked 8 October 2026).",
@@ -124,10 +171,12 @@
       "name": "Potential vegetation of New Zealand",
       "source": "lris",
       "layer": 123462,
-      "labelFields": [],
+      "labelFields": [
+        "VEG_NAME"
+      ],
       "color": "#65a30d",
       "minZoom": 11,
-      "notes": "Modelled vegetation in the absence of human disturbance.",
+      "notes": "Modelled vegetation in the absence of human disturbance. Class names describe the class core; e.g. 'Kauri/taraire-kohekohe-tawa forest' is returned at Tolaga Bay, south of kauri's natural range.",
       "attribution": "Manaaki Whenua – Landcare Research"
     },
     {
@@ -136,7 +185,10 @@
       "name": "Vegetative Cover Map of New Zealand",
       "source": "lris",
       "layer": 48420,
-      "labelFields": [],
+      "labelFields": [
+        "VEG",
+        "VEG_DESCRI"
+      ],
       "color": "#0f766e",
       "minZoom": 11,
       "notes": "Historical vegetation cover mapping (1980s). Shows past cover, not current.",
@@ -148,7 +200,11 @@
       "name": "Protected Areas Network – New Zealand (PAN-NZ)",
       "source": "lris",
       "layer": 124343,
-      "labelFields": [],
+      "labelFields": [
+        "source_protection_name",
+        "source_protection_type",
+        "source_legislation_act"
+      ],
       "color": "#be185d",
       "minZoom": 10,
       "notes": "Legally protected areas: conservation estate, reserves, covenants and others.",
