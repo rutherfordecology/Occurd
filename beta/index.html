@@ -49,7 +49,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v7.35b</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v7.35c</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -7006,6 +7006,11 @@ function buildCSV(rows, fields) {
   const esc = v => { if (v == null) return ''; const s = String(v); return (s.includes(',') || s.includes('"') || s.includes('\n')) ? '"' + s.replace(/"/g,'""') + '"' : s; };
   return [fields.join(','), ...rows.map(r => fields.map(f => esc(r[f])).join(','))].join('\n');
 }
+// Local date + hour and minute for download names, so a second export on the same day doesn't replace the first
+function fileStamp() {
+  const d = new Date(), p = n => String(n).padStart(2, '0');
+  return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) + '_' + p(d.getHours()) + p(d.getMinutes());
+}
 function downloadBlob(content, filename, type) {
   const blob = new Blob([content], { type }), url = URL.createObjectURL(blob), a = document.createElement('a');
   a.href = url; a.download = filename; a.click(); URL.revokeObjectURL(url);
@@ -7073,7 +7078,7 @@ document.getElementById('dlCsvBtn').addEventListener('click', () => {
   }
   const csvHeader = '# Downloaded from Occurd (https://rutherfordecology.github.io/Occurd/) on ' + new Date().toISOString().split('T')[0] + '\n' +
     '# DISCLAIMER: ' + GEOPRIVACY_DISCLAIMER + '\n';
-  downloadBlob(csvHeader + buildCSV(rows, fields), 'gbif_occurrences_' + new Date().toISOString().split('T')[0] + '.csv', 'text/csv;charset=utf-8;');
+  downloadBlob(csvHeader + buildCSV(rows, fields), 'gbif_occurrences_' + fileStamp() + '.csv', 'text/csv;charset=utf-8;');
 });
 
 document.getElementById('dlGeoBtn').addEventListener('click', () => {
@@ -7087,7 +7092,7 @@ document.getElementById('dlGeoBtn').addEventListener('click', () => {
       properties: Object.fromEntries(CSV_FIELDS.map(f => [f, r[f] != null ? r[f] : null]))
     }))
   };
-  downloadBlob(JSON.stringify(geojson, null, 2), 'gbif_occurrences_' + new Date().toISOString().split('T')[0] + '.geojson', 'application/json');
+  downloadBlob(JSON.stringify(geojson, null, 2), 'gbif_occurrences_' + fileStamp() + '.geojson', 'application/json');
 });
 
 document.getElementById('dlKmlBtn').addEventListener('click', () => {
@@ -7125,7 +7130,7 @@ document.getElementById('dlKmlBtn').addEventListener('click', () => {
     '  <description><![CDATA[DISCLAIMER: ' + GEOPRIVACY_DISCLAIMER + ']]></description>\n' +
     folders + '\n</Document>\n</kml>';
 
-  downloadBlob(kml, 'gbif_records_' + new Date().toISOString().split('T')[0] + '.kml', 'application/vnd.google-earth.kml+xml');
+  downloadBlob(kml, 'gbif_records_' + fileStamp() + '.kml', 'application/vnd.google-earth.kml+xml');
 });
 
 // One drawn or imported area (or several) as KML — available before any fetch
@@ -7145,7 +7150,7 @@ function downloadAreasKml(list) {
     '  <Style id="area"><LineStyle><color>ff2a7a3f</color><width>2</width></LineStyle><PolyStyle><color>332a7a3f</color></PolyStyle></Style>\n' +
     placemarks + '\n</Document>\n</kml>';
   const base = geom.length === 1 ? geom[0].label.replace(/[^A-Za-z0-9 _+-]/g, '').trim().replace(/\s+/g, '_') : 'search_areas';
-  downloadBlob(kml, (base || 'search_area') + '_' + day + '.kml', 'application/vnd.google-earth.kml+xml');
+  downloadBlob(kml, (base || 'search_area') + '_' + fileStamp() + '.kml', 'application/vnd.google-earth.kml+xml');
 }
 
 document.getElementById('dlChecklistBtn').addEventListener('click', () => {
@@ -7195,7 +7200,7 @@ document.getElementById('dlChecklistBtn').addEventListener('click', () => {
     '# DISCLAIMER: ' + GEOPRIVACY_DISCLAIMER + '\n';
   downloadBlob(
     checklistHeader + [fields.join(','), ...rows.map(r => fields.map(f => esc(r[f])).join(','))].join('\n'),
-    'gbif_checklist_' + new Date().toISOString().split('T')[0] + '.csv',
+    'gbif_checklist_' + fileStamp() + '.csv',
     'text/csv;charset=utf-8;'
   );
 });
@@ -7366,7 +7371,7 @@ async function handleGbifCsv(text, filename, mediaByGbifId) {
 
 function downloadCurrentCsv() {
   if (!csvData) return;
-  downloadBlob(csvData, 'gbif_occurrences_' + new Date().toISOString().split('T')[0] + '.csv', 'text/csv;charset=utf-8;');
+  downloadBlob(csvData, 'gbif_occurrences_' + fileStamp() + '.csv', 'text/csv;charset=utf-8;');
 }
 
 // ── GBIF Big Data — credential check ─────────────────────────────────────
@@ -7702,6 +7707,13 @@ if (window._pendingShare) {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v7.35c</span>
+      <span class="changelog-date">Oct 2026</span>
+      <ul>
+        <li>Downloaded files (CSV, GeoJSON, KML, checklist) now carry the hour and minute as well as the date in their name, e.g. <code>gbif_occurrences_2026-10-08_1432.csv</code>, so a second export on the same day no longer replaces the first. The stamp uses your local time rather than UTC</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v7.35b</span>
       <span class="changelog-date">Oct 2026</span>
