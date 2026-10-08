@@ -1,5 +1,5 @@
 {
-  "register_version": "2026-10-08c",
+  "register_version": "2026-10-08d",
   "notes": "Layers shown by the Projects > Layers panel and tested by its layer check. The report workflow reads this same file. These are published GIS layers, not the legal plan maps: confirm anything decisive against the operative plan.",
   "layers": [
     {
@@ -168,6 +168,21 @@
       "minZoom": 9,
       "notes": "QEII National Trust registered covenants, the same service as Occurd's QEII project. PAN-NZ also includes covenants but may lag behind this source.",
       "attribution": "QEII National Trust"
+    },
+    {
+      "id": "lris_lcdb",
+      "group": "Manaaki Whenua (LRIS)",
+      "name": "Land Cover Database v6 (LCDB, 1996–2023)",
+      "source": "lris",
+      "layer": 123148,
+      "labelFields": [
+        "Name_2023",
+        "Name_1996"
+      ],
+      "color": "#ca8a04",
+      "minZoom": 12,
+      "notes": "Current land cover (Name_2023) with earlier mapping dates 1996, 2001, 2008, 2012 and 2018, and a wetland flag for each date. Mapped at about 1 ha minimum; small remnants and wetlands can be missed.",
+      "attribution": "Manaaki Whenua – Landcare Research"
     },
     {
       "id": "lris_tec",
