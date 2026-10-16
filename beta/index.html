@@ -997,7 +997,7 @@ map.on(L.Draw.Event.DRAWSTART, e => {
   // Lock any polygon waiting in edit mode before starting a new draw
   if (typeof finalizePendingEdit === 'function') finalizePendingEdit();
   // e.handler is the Leaflet.draw polygon handler; fall back to direct lookup if missing
-  activeDrawHandler = e.handler ||
+  activeDrawHandler = (window.LMeasure && LMeasure.isMeasuring() && LMeasure.handler()) || e.handler ||
     (drawControl._toolbars && drawControl._toolbars.draw &&
      drawControl._toolbars.draw._modes && drawControl._toolbars.draw._modes.polygon &&
      drawControl._toolbars.draw._modes.polygon.handler) || null;
@@ -1055,7 +1055,7 @@ map.on('draw:drawvertex', function(e) {
   }
   drawLastVertex = verts.length > 0 ? verts[verts.length - 1] : null;
   // Enable Finish only once there are enough vertices for a valid polygon
-  finishDrawBtn.disabled = verts.length < 3;
+  finishDrawBtn.disabled = verts.length < (window.LMeasure && LMeasure.mode() === 'line' ? 2 : 3);
 });
 
 map.on('mousemove', function(e) {
@@ -1216,6 +1216,7 @@ function finalizePendingEdit() {
 }
 
 map.on(L.Draw.Event.CREATED, e => {
+  if (window.LMeasure && LMeasure.isMeasuring()) return; // a measurement, not an analysis polygon (measure.js)
   // Lock any previous pending edit before starting this new one
   if (pendingEditLayer) finalizePendingEdit();
 
@@ -7696,6 +7697,7 @@ if (window._pendingShare) {
 <script src="species-search.js"></script>
 <script src="qeii.js"></script>
 <script src="layers.js?v=7.36a2"></script>
+<script src="measure.js"></script>
 <script src="projects.js"></script>
 <script src="taxonomy.js"></script>
 <script src="onboarding.js"></script>
@@ -7712,6 +7714,7 @@ if (window._pendingShare) {
       <span class="changelog-version-tag">v7.36a (beta)</span>
       <span class="changelog-date">Oct 2026</span>
       <ul>
+        <li>Measure tools: two new buttons under the drawing tools. Measure a distance (draw a line; its length shows in m or km) or an area (draw a polygon; its area shows in ha or m², with the perimeter). Measurements stay on the map until you click them and never become analysis polygons. Shared with inferrd.</li>
         <li>Layers: new "Report maps" button. Draws three 1800 × 1200 px PNG figures for a chosen site polygon: a location map, the site and its work zone (500 m by default) on aerial imagery, and protection and planning context within 2 km (the ticked layers, or protection management areas and QEII covenants if none are ticked). Each has a scale bar, north arrow, legend and attribution</li>
       </ul>
     </div>
