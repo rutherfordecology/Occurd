@@ -260,7 +260,7 @@
   }
 
   // Host hook (inferrd.'s "Analyse this area"): HOST.featureAction =
-  // { button(onClick) → element, run(feature, label) }. The shown features
+  // { button(onClick) → element, run(feature, label, layerName) }. The shown features
   // are simplified to ~1 px, so ArcGIS features are fetched again at full
   // detail before being handed over; LRIS WFS features are already full.
   function popupWithAction(l, f) {
@@ -276,7 +276,7 @@
           if (j && j.features && j.features[0] && j.features[0].geometry) feature = j.features[0];
         } catch (e) { console.warn('Layers: full-detail fetch failed, using the shown boundary', e); }
       }
-      HOST.featureAction.run(feature, labelFor(l, f.properties) || l.name);
+      HOST.featureAction.run(feature, labelFor(l, f.properties) || l.name, l.name);
     }));
     return el;
   }
