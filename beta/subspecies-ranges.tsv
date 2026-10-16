@@ -1,0 +1,130 @@
+# Where a subspecies or variety can occur, by island.
+#
+# NZTCS assesses many subspecies and varieties separately but carries no
+# distribution field. A record identified only to species could then be any of
+# them, and the choice can change its threat status. Where the taxa are
+# separated by island, the record's own coordinates settle it.
+#
+# taxon      the NZTCS name, exactly as NZTCS writes it
+# allow      where it occurs, comma-separated. Occurd derives these zones from a
+#            record's coordinates:
+#              NI, SI, Stewart
+#              PoorKnights, HenChickens, Mokohinau, LittleBarrier, GreatBarrier,
+#              Codfish               nearshore islands; a record there is also NI
+#                                    (or Stewart, for Codfish)
+#              Kermadec, ThreeKings, Chatham, Snares, AucklandIslands, Campbell,
+#              Antipodes, Bounty     outlying islands; a record there is in that
+#                                    zone only
+#            Finer mainland zones (Northland, SIWest, SIEast, Foveaux ...) are
+#            kept on some rows for reference. Occurd does not derive them yet,
+#            so those taxa are never picked automatically and the question is
+#            asked instead.
+#              any   no restriction worth recording
+#              none  not expected as a wild record anywhere in New Zealand
+# certainty  certain -> out of range rules the taxon out
+#            check   -> out of range makes it the last choice, not an impossible one
+# note       why
+# instead    optional; not used by Occurd
+#
+# A taxon with no row is treated as possible everywhere.
+#
+taxon	allow	certainty	note	instead
+# --- birds: subspecies that a bare binomial has to choose between ---
+Poodytes punctatus vealeae	NI	certain	North Island fernbird	
+Poodytes punctatus punctatus	SI	certain	South Island fernbird	
+Poodytes punctatus stewartianus	Stewart	certain	Stewart Island fernbird	
+Poodytes punctatus caudatus	Snares	certain	Snares Islands only	
+Poodytes punctatus wilsoni	Codfish	certain	Codfish Island / Whenua Hou only	
+Anarhynchus obscurus aquilonius	NI	certain	northern New Zealand dotterel	
+Anarhynchus obscurus obscurus	Stewart,SI	check	southern dotterel; breeds on Stewart Island, ranges to Southland coast	
+Petroica macrocephala toitoi	NI	certain	North Island tomtit	
+Petroica macrocephala macrocephala	SI	certain	South Island tomtit	
+Petroica macrocephala dannefaerdi	Snares	certain	Snares Islands only	
+Petroica macrocephala marrineri	AucklandIslands	certain	Auckland Islands only	
+Petroica macrocephala chathamensis	Chatham	certain	Chatham Islands only	
+Petroica australis australis	SI	certain	South Island robin	
+Petroica australis rakiura	Stewart	certain	Stewart Island robin	
+Prosthemadera novaeseelandiae novaeseelandiae	NI,SI,Stewart,Kermadec,AucklandIslands	certain	mainland tui; also the Kermadec and Auckland Islands	
+Prosthemadera novaeseelandiae chathamensis	Chatham	certain	Chatham Islands only	
+Anthornis melanura melanura	NI,SI,Stewart,AucklandIslands	certain	mainland bellbird; also the Auckland Islands	
+Anthornis melanura oneho	PoorKnights	certain	Poor Knights Islands only	
+Anthornis melanura obscura	ThreeKings	certain	Three Kings Islands only	
+Anthus novaeseelandiae novaeseelandiae	NI,SI,Stewart	certain	New Zealand pipit	
+Anthus novaeseelandiae chathamensis	Chatham	certain	Chatham Islands only	
+Anthus novaeseelandiae aucklandicus	AucklandIslands	certain	Auckland Islands only	
+Anthus novaeseelandiae steindachneri	Antipodes	certain	Antipodes Islands only	
+Gallirallus australis greyi	NI	certain	North Island weka	
+Gallirallus australis australis	SIWest	certain	western weka: West Coast, Nelson, Marlborough, Southland	
+Gallirallus australis hectori	SIEast	certain	buff weka: eastern South Island, Canterbury and Otago	
+Gallirallus australis scotti	Stewart	certain	Stewart Island weka	
+Apteryx australis australis	Stewart	check	Rakiura tokoeka; NZTCS treats Fiordland tokoeka separately	
+Anarhynchus bicinctus bicinctus	NI,SI,Stewart	certain	banded dotterel	
+Anarhynchus bicinctus exilis	AucklandIslands	certain	Auckland Islands only	
+Microcarbo melanoleucos brevirostris	NI,SI,Stewart	certain	New Zealand little shag	
+Microcarbo melanoleucos melanoleucos	none	certain	Australian bird, vagrant here	
+Gerygone albofrontata	Chatham	certain	Chatham Islands only	
+Hemiphaga chathamensis	Chatham	certain	Chatham Islands only	
+Anas chlorotis	NI,SINorthWest,Marlborough,Canterbury	certain	brown teal / pateke. Never the Auckland Island teal; outside the far south it is the North Island form	
+Anas chlorotis "South Island"	SouthernSI	check	the South Island brown teal, in the south of the South Island	
+Nestor meridionalis septentrionalis	NI	certain	North Island kaka	
+Nestor meridionalis meridionalis	SI,Stewart	certain	South Island kaka	
+Falco novaeseelandiae ferox	NI,SINorthWest	check	bush falcon: smallest and darkest; North Island and north-west South Island	
+Falco novaeseelandiae novaeseelandiae	SIEast,Marlborough	check	eastern falcon: largest and lightest; eastern and central South Island	
+Falco novaeseelandiae "southern"	Fiordland,Stewart	check	southern falcon: intermediate; Fiordland, Stewart Island and Auckland Island	
+# --- plants and invertebrates confined to islands ---
+Melicytus chathamicus	Chatham	certain	Chatham Islands only	
+Coprosma chathamica	Chatham	certain	Chatham Islands only	
+Myrsine chathamica	Chatham	certain	Chatham Islands only	
+Macrolearia chathamica	Chatham	certain	Chatham Islands only	
+Olearia traversiorum	Chatham	certain	Chatham Islands only; widely planted on the mainland	
+Plagianthus regius subsp. chathamicus	Chatham	certain	Chatham Islands only	
+Linum monogynum var. chathamicum	Chatham	certain	Chatham Islands only	
+Cordyline obtecta	ThreeKings	certain	Three Kings and Norfolk Island; planted on the mainland	
+Metrosideros kermadecensis	Kermadec	certain	Kermadec Islands only; very widely planted on the mainland	
+Alectryon excelsus subsp. grandis	ThreeKings	certain	Three Kings Islands only	
+Coprosma macrocarpa subsp. macrocarpa	ThreeKings	certain	Three Kings Islands only	
+Coprosma macrocarpa subsp. minor	NI	certain	northern North Island	
+Dolomedes schauinslandi	Chatham	certain	Rangatira, Chatham Islands	
+Parsonsia praeruptis	FarNorth	certain	Surville Cliffs, North Cape; a few hectares	
+Kunzea sinclairii	GreatBarrier	certain	Great Barrier Island endemic	
+Pomaderris phylicifolia Lodd. ex Link subsp. phylicifolia	Northland,Auckland	certain	North Island; historically Northland to northern Waikato. Still at Te Paki, near Te Kao, and scattered south to near Orewa. Every iNaturalist record is north of Pukekohe, so the historic northern Waikato extent is not carried into the allow list and the Coromandel is excluded	
+Pomaderris apetala subsp. maritima	WaitomoTaranaki	certain	Tainui. Naturally from scattered sites on the western North Island coast between Kawhia Harbour and Mohakatino; now only Mokau and the Mohakatino River mouth. It has naturalised well in the drier eastern South Island, on Stewart Island and around Wellington, Napier, Hamilton and Cambridge, but NZTCS assesses the wild population, so a naturalised plant is not the Nationally Critical taxon	
+Pimelea aridula Cheeseman subsp. aridula	SI	check	eastern South Island	
+Pimelea aridula subsp. oliga	SI	check	eastern South Island	
+Alectryon excelsus subsp. excelsus	NI,SI	certain	mainland titoki	
+Geranium sessiliflorum var. arenarium	Foveaux,Stewart	certain	Endemic. South Island south of Otago Peninsula, throughout the Foveaux Strait area, and northern Stewart Island / Rakiura	Geranium brevicaule
+# --- taxa confined to outlying or nearshore islands, and island pairs ---
+Piper excelsum subsp. excelsum	NI,SI,Chatham	check	kawakawa of the main islands and the Chathams	
+Piper excelsum subsp. peltatum	PoorKnights,HenChickens,Mokohinau	check	northern offshore islands; not a mainland plant	
+Piper excelsum subsp. psittacorum	Kermadec	certain	Kermadec Islands (also Norfolk and Lord Howe)	
+Piper excelsum subsp. delangei	ThreeKings	certain	Three Kings Islands only	
+Coriaria arborea var. kermadecensis	Kermadec	certain	Kermadec Islands only	
+Melicytus ramiflorus subsp . (b) (AK 234207; Raoul)	Kermadec	certain	Raoul Island, Kermadecs	
+Ascarina lucida var. lanceolata	Kermadec	certain	Kermadec Islands only	
+Disphyma australe subsp. stricticaule	Kermadec	certain	Kermadec Islands only	
+Davallia tasmanii subsp. tasmanii	ThreeKings	certain	Three Kings Islands only	
+Coprosma propinqua var. martinii	Chatham	certain	Chatham Islands only	
+Coprosma perpusilla subsp. subantarctica	AucklandIslands,Campbell,Antipodes	check	subantarctic islands	
+Bulbinella gibbsii var. gibbsii	Stewart	check	Stewart Island	
+Vanessa gonerilla ida	Chatham	certain	Chatham Island red admiral	
+Acanthisitta chloris granti	NI	certain	North Island rifleman	
+Acanthisitta chloris chloris	SI,Stewart	certain	South Island rifleman	
+Rhipidura fuliginosa placabilis	NI	certain	North Island fantail	
+Rhipidura fuliginosa fuliginosa	SI,Stewart	certain	South Island fantail	
+Rhipidura fuliginosa penita	Chatham	certain	Chatham Island fantail	
+Cyanoramphus novaezelandiae novaezelandiae	NI,SI,Stewart,AucklandIslands	certain	red-crowned parakeet of the main islands, their nearshore islands and the Auckland Islands	
+Cyanoramphus novaezelandiae cyanurus	Kermadec	certain	Kermadec parakeet	
+Cyanoramphus novaezelandiae chathamensis	Chatham	certain	Chatham Island red-crowned parakeet	
+Coenocorypha aucklandica aucklandica	AucklandIslands	certain	Auckland Island snipe	
+Coenocorypha aucklandica meinertzhagenae	Antipodes	certain	Antipodes Island snipe	
+Coenocorypha aucklandica perseverance	Campbell	certain	Campbell Island snipe	
+Eudyptula minor iredalei	NI	check	northern little penguin	
+Eudyptula minor minor	SI,Stewart	check	southern little penguin	
+Eudyptula minor albosignata	SI	check	white-flippered penguin; Banks Peninsula and Motunau	
+Eudyptula minor novaehollandiae	SI	check	Australian little penguin; Otago	
+Eudyptula minor chathamensis	Chatham	certain	Chatham Island little penguin	
+Mystacina tuberculata aupourica	NI	check	northern lesser short-tailed bat; Northland and Little Barrier	
+Mystacina tuberculata rhyacobia	NI	check	central lesser short-tailed bat; central North Island	
+Mystacina tuberculata tuberculata	SI,Stewart	check	southern lesser short-tailed bat; north-west Nelson, Fiordland, Codfish Island	
+Cephalorhynchus hectori maui	NI	check	Maui dolphin; west coast of the North Island	
+Cephalorhynchus hectori hectori	SI	check	Hector's dolphin; South Island coasts	
