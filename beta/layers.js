@@ -7,6 +7,15 @@
 //   2. Layer check: test every drawn polygon against every layer and download the
 //      result as a CSV (one row per polygon x layer x intersecting feature).
 // The layer list lives in layers-register.json, shared with the report workflow.
+//
+// Shared with inferrd., which loads this file and the register straight from
+// occurd.'s site, so a layer added here shows up there too. Keep it portable:
+//   - the register is fetched next to this script, wherever it was loaded from;
+//   - the geometry/CSV helpers it needs have fallbacks below for pages that
+//     don't define them;
+//   - a host page can set window.LAYERS_HOST = { name, url, polygons() } to name
+//     itself in the CSV header and hand over its own drawn areas
+//     ([{ label, latlngs, holes }]) for the layer check.
 // ─────────────────────────────────────────────────────────────────────────────
 
 (function () {
@@ -17,6 +26,52 @@
   const LRIS_BASE = 'https://lris.scinfo.org.nz/services';
   const MAX_LRIS  = 1000;
   const ENC = { salt: '0P/eszsAXIeVnFtoNQxbgQ==', iv: 'r34wHTw2jD6PhsFU', ct: '5lifxl4IXjKW1gp0Uf5i9jynJhZS0CanRBXgkKkyVbXRMqDUb15GrK9nkHKaPqNw', iter: 600000 };  // LRIS key encrypted with the Layers password (PBKDF2-SHA256 + AES-GCM)
+
+  const SELF_URL = (document.currentScript && document.currentScript.src) || location.href;
+  const HOST = window.LAYERS_HOST || {};
+
+  // ── helpers: occurd.'s own when present, else these copies ────────────────
+  const G = {
+    icon: typeof icon === 'function' ? icon : function (name, o) {
+      const s = (o && o.size) || 20;
+      return name === 'layers' ? '<svg viewBox="0 0 24 24" width="' + s + '" height="' + s + '" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>' : '';
+    },
+    wrapLng180: typeof wrapLng180 === 'function' ? wrapLng180 : function (lng) { const n = ((lng % 360) + 360) % 360; return n > 180 ? n - 360 : n; },
+    buildCSV: typeof buildCSV === 'function' ? buildCSV : function (rows, fields) {
+      const e = v => { if (v == null) return ''; const t = String(v); return /[,"\n]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t; };
+      return [fields.join(','), ...rows.map(r => fields.map(f => e(r[f])).join(','))].join('\n');
+    },
+    downloadBlob: typeof downloadBlob === 'function' ? downloadBlob : function (content, filename, type) {
+      const url = URL.createObjectURL(new Blob([content], { type })), a = document.createElement('a');
+      a.href = url; a.download = filename; a.click(); URL.revokeObjectURL(url);
+    }
+  };
+  // Antimeridian-safe turf polygons (same logic as occurd.'s index.html).
+  function _unwrapRing(pairs) {
+    const out = []; let prev = null;
+    for (const [raw, lat] of pairs) {
+      let lng = ((raw % 360) + 360) % 360; if (lng > 180) lng -= 360;
+      if (prev !== null) { while (lng - prev > 180) lng -= 360; while (lng - prev < -180) lng += 360; }
+      prev = lng; out.push([lng, lat]);
+    }
+    return out;
+  }
+  function _align(coords, ref) {
+    let shift = 0; const first = coords[0][0];
+    while (first + shift - ref > 180) shift -= 360;
+    while (first + shift - ref < -180) shift += 360;
+    return shift === 0 ? coords : coords.map(([x, y]) => [x + shift, y]);
+  }
+  function _close(c) { return (c[0][0] !== c[c.length - 1][0] || c[0][1] !== c[c.length - 1][1]) ? [...c, c[0]] : c; }
+  function _llRing(latlngs) { return _unwrapRing(latlngs.map(ll => ll.lat !== undefined ? [ll.lng, ll.lat] : [ll[1], ll[0]])); }
+  G.llToTurfPolygon = typeof llToTurfPolygon === 'function' ? llToTurfPolygon : function (latlngs, holes) {
+    const outer = _close(_llRing(latlngs)); const refLng = outer[0][0]; const rings = [outer];
+    (holes || []).forEach(h => { if (h && h.length >= 3) rings.push(_close(_align(_llRing(h), refLng))); });
+    return { poly: turf.polygon(rings), refLng };
+  };
+  G.geoJsonPolyToTurfInFrame = typeof geoJsonPolyToTurfInFrame === 'function' ? geoJsonPolyToTurfInFrame : function (coordinates, refLng) {
+    return turf.polygon(coordinates.map(r => _close(_align(_unwrapRing(r), refLng))));
+  };
 
   let register  = null;          // parsed layers-register.json
   let panel     = null;          // floating panel element
@@ -36,7 +91,7 @@
 
   async function loadRegister() {
     if (register) return register;
-    const r = await fetch('layers-register.json', { cache: 'no-cache' });
+    const r = await fetch(new URL('layers-register.json', SELF_URL).href, { cache: 'no-cache' });
     if (!r.ok) throw new Error('layers-register.json: HTTP ' + r.status);
     register = await r.json();
     return register;
@@ -136,7 +191,7 @@
     register.layers.forEach(l => { (groups[l.group] = groups[l.group] || []).push(l); });
     let html =
       '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border-bottom:0.5px solid var(--border);background:var(--surface2);">' +
-        '<strong style="display:inline-flex;align-items:center;gap:6px;color:var(--green-dark);">' + icon('layers', { size: 15 }) + 'Layers</strong>' +
+        '<strong style="display:inline-flex;align-items:center;gap:6px;color:var(--green-dark, #1a5940);">' + G.icon('layers', { size: 15 }) + 'Layers</strong>' +
         '<span><button id="lyrMin" title="Collapse" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:14px;">–</button>' +
         '<button id="lyrClose" title="Hide layers" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:14px;">✕</button></span>' +
       '</div><div id="lyrBody" style="padding:6px 10px 10px;">';
@@ -145,7 +200,7 @@
       groups[g].forEach(l => {
         html +=
           '<label style="display:flex;align-items:flex-start;gap:6px;margin:3px 0;cursor:pointer;" title="' + esc(l.notes || '') + '">' +
-            '<input type="checkbox" id="lyrcb_' + l.id + '" style="accent-color:var(--green);margin-top:2px;">' +
+            '<input type="checkbox" id="lyrcb_' + l.id + '" style="accent-color:var(--green, #2a7a58);margin-top:2px;">' +
             '<span style="width:10px;height:10px;border-radius:2px;margin-top:3px;flex-shrink:0;background:' + l.color + '55;border:1.5px solid ' + l.color + ';"></span>' +
             '<span style="flex:1;line-height:1.35;">' + esc(l.name) +
               '<span id="lyrst_' + l.id + '" style="display:block;font-size:10px;color:var(--text3);"></span></span>' +
@@ -213,7 +268,7 @@
     loading[id] = true; setStatus(id, 'Loading…');
     const b = map.getBounds();
     const bbox = [b.getWest(), b.getSouth(), b.getEast(), b.getNorth()].map(v => +v.toFixed(6));
-    bbox[0] = wrapLng180(bbox[0]); bbox[2] = wrapLng180(bbox[2]);
+    bbox[0] = G.wrapLng180(bbox[0]); bbox[2] = G.wrapLng180(bbox[2]);
     try {
       let fc = { type: 'FeatureCollection', features: [] }, capped = false;
       if (l.source === 'arcgis') {
@@ -267,7 +322,8 @@
 
   // ── layer check ───────────────────────────────────────────────────────────
   function geomPolys() {
-    return (typeof polygons !== 'undefined' ? polygons : []).filter(p => p.type !== 'species' && p.latlngs && p.latlngs.length >= 3);
+    const list = typeof HOST.polygons === 'function' ? HOST.polygons() : (typeof polygons !== 'undefined' ? polygons : []);
+    return list.filter(p => p.type !== 'species' && p.latlngs && p.latlngs.length >= 3);
   }
 
   function labelFor(l, props) {
@@ -287,15 +343,15 @@
   function featureIntersects(polyTurf, refLng, geom) {
     if (!geom) return false;
     try {
-      if (geom.type === 'Polygon') return turf.booleanIntersects(polyTurf, geoJsonPolyToTurfInFrame(geom.coordinates, refLng));
-      if (geom.type === 'MultiPolygon') return geom.coordinates.some(c => { try { return turf.booleanIntersects(polyTurf, geoJsonPolyToTurfInFrame(c, refLng)); } catch (e) { return false; } });
+      if (geom.type === 'Polygon') return turf.booleanIntersects(polyTurf, G.geoJsonPolyToTurfInFrame(geom.coordinates, refLng));
+      if (geom.type === 'MultiPolygon') return geom.coordinates.some(c => { try { return turf.booleanIntersects(polyTurf, G.geoJsonPolyToTurfInFrame(c, refLng)); } catch (e) { return false; } });
       return turf.booleanIntersects(polyTurf, { type: 'Feature', geometry: geom, properties: {} });
     } catch (e) { return false; }
   }
 
   async function checkOne(l, p) {
-    const { poly, refLng } = llToTurfPolygon(p.latlngs, p.holes);
-    const ring = poly.geometry.coordinates[0].map(([x, y]) => [wrapLng180(x), y]);
+    const { poly, refLng } = G.llToTurfPolygon(p.latlngs, p.holes);
+    const ring = poly.geometry.coordinates[0].map(([x, y]) => [G.wrapLng180(x), y]);
     const found = []; let note = '';
     if (l.source === 'arcgis') {
       for (const sub of l.sublayers) {
@@ -309,7 +365,7 @@
     } else {
       if (!getKey()) throw new Error('no LRIS key');
       const bb = turf.bbox(poly);
-      const bbox = [wrapLng180(bb[0]), bb[1], wrapLng180(bb[2]), bb[3]];
+      const bbox = [G.wrapLng180(bb[0]), bb[1], G.wrapLng180(bb[2]), bb[3]];
       const r = await fetch(lrisWfsUrl(l.layer, bbox, MAX_LRIS));
       if (!r.ok) throw new Error('HTTP ' + r.status);
       const fc = await r.json();
@@ -362,11 +418,11 @@
     if (!lastCheck) { await runCheck(); if (!lastCheck) return; }
     const fields = ['polygon_name', 'layer_id', 'layer_name', 'layer_group', 'intersects', 'feature_count', 'feature_label', 'attributes', 'source', 'note', 'checked_at'];
     const head = [
-      '# Layer check from occurd. (https://rutherfordecology.github.io/Occurd/) on ' + lastCheck.time.slice(0, 10),
+      '# Layer check from ' + (HOST.name || 'occurd.') + ' (' + (HOST.url || 'https://rutherfordecology.github.io/Occurd/') + ') on ' + lastCheck.time.slice(0, 10),
       '# Layer register version ' + (register.register_version || '?') + '. Published GIS layers, not the legal plan maps: confirm anything decisive against the operative plan.',
       '# Gisborne District Council layers from GDC ArcGIS Online; Manaaki Whenua layers from the LRIS portal under its licence terms.'
     ].join('\n');
-    downloadBlob(head + '\n' + buildCSV(lastCheck.rows, fields), 'layer_check_' + lastCheck.time.slice(0, 10) + '.csv', 'text/csv');
+    G.downloadBlob(head + '\n' + G.buildCSV(lastCheck.rows, fields), 'layer_check_' + lastCheck.time.slice(0, 10) + '.csv', 'text/csv');
   }
 
   // A matching button in the Downloads row (shown only while Layers is unlocked)
