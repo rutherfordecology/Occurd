@@ -23,6 +23,7 @@
 
   const KEY_STORE = 'occurd_lris_key';
   const ON_STORE  = 'occurd_layers_on';
+  const GROUPS_STORE = 'occurd_layers_closed'; // group headings folded away
   const LRIS_BASE = 'https://lris.scinfo.org.nz/services';
   const MAX_LRIS  = 1000;
   const ENC = { salt: '0P/eszsAXIeVnFtoNQxbgQ==', iv: 'r34wHTw2jD6PhsFU', ct: '5lifxl4IXjKW1gp0Uf5i9jynJhZS0CanRBXgkKkyVbXRMqDUb15GrK9nkHKaPqNw', iter: 600000 };  // LRIS key encrypted with the Layers password (PBKDF2-SHA256 + AES-GCM)
@@ -189,14 +190,20 @@
 
     const groups = {};
     register.layers.forEach(l => { (groups[l.group] = groups[l.group] || []).push(l); });
+    // Group headings fold with a chevron; folded groups are remembered.
+    let closed = [];
+    try { closed = JSON.parse(lsGet(GROUPS_STORE) || '[]'); } catch (e) {}
+    const CHEV = '<svg class="lyr-chev" viewBox="0 0 10 10" width="9" height="9" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="transition:transform 0.12s;flex-shrink:0;"><path d="M3 1.5 7 5 3 8.5"/></svg>';
+    const groupHead = (name) =>
+      '<button type="button" class="lyr-grp" data-grp="' + esc(name) + '" style="display:flex;align-items:center;gap:5px;width:100%;background:none;border:none;padding:0;cursor:pointer;font-family:inherit;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--text3);margin:8px 0 4px;text-align:left;">' + CHEV + esc(name) + '</button>';
     let html =
       '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border-bottom:0.5px solid var(--border);background:var(--surface2);">' +
         '<strong style="display:inline-flex;align-items:center;gap:6px;color:var(--green-dark, #1a5940);">' + G.icon('layers', { size: 15 }) + 'Layers</strong>' +
         '<span><button id="lyrMin" title="Collapse" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:14px;">–</button>' +
         '<button id="lyrClose" title="Hide layers" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:14px;">✕</button></span>' +
-      '</div><div id="lyrBody" style="padding:6px 10px 10px;">';
+      '</div><div id="lyrBody" style="padding:6px 10px 10px;"><div id="lyrHost"></div>';
     Object.keys(groups).forEach(g => {
-      html += '<div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--text3);margin:8px 0 4px;">' + esc(g) + '</div>';
+      html += groupHead(g) + '<div class="lyr-grp-body" data-grp="' + esc(g) + '">';
       groups[g].forEach(l => {
         html +=
           '<label style="display:flex;align-items:flex-start;gap:6px;margin:3px 0;cursor:pointer;" title="' + esc(l.notes || '') + '">' +
@@ -206,6 +213,7 @@
               '<span id="lyrst_' + l.id + '" style="display:block;font-size:10px;color:var(--text3);"></span></span>' +
           '</label>';
       });
+      html += '</div>';
     });
     html +=
       '<div style="border-top:0.5px solid var(--border);margin-top:8px;padding-top:8px;">' +
@@ -220,6 +228,35 @@
       '</div>';
     panel.innerHTML = html;
     mapEl.appendChild(panel);
+
+    const setGroup = (name, fold) => {
+      panel.querySelectorAll('.lyr-grp-body').forEach(b => { if (b.dataset.grp === name) b.style.display = fold ? 'none' : ''; });
+      panel.querySelectorAll('.lyr-grp').forEach(h => { if (h.dataset.grp === name) { h.querySelector('.lyr-chev').style.transform = fold ? '' : 'rotate(90deg)'; h.setAttribute('aria-expanded', String(!fold)); } });
+    };
+    const wireGroup = (h) => {
+      setGroup(h.dataset.grp, closed.includes(h.dataset.grp));
+      h.addEventListener('click', () => {
+        const fold = !closed.includes(h.dataset.grp);
+        closed = fold ? closed.concat(h.dataset.grp) : closed.filter(n => n !== h.dataset.grp);
+        lsSet(GROUPS_STORE, JSON.stringify(closed));
+        setGroup(h.dataset.grp, fold);
+      });
+    };
+    panel.querySelectorAll('.lyr-grp').forEach(wireGroup);
+    // A host page can put its own group at the top (inferrd.'s condition
+    // check layers): HOST.panelSection(el, group) is called once, and
+    // group(name, bodyEl) returns a folding heading for that body.
+    if (typeof HOST.panelSection === 'function') {
+      HOST.panelSection(panel.querySelector('#lyrHost'), (name, body) => {
+        const wrap = document.createElement('div');
+        wrap.innerHTML = groupHead(name);
+        const h = wrap.firstChild;
+        body.classList.add('lyr-grp-body'); body.dataset.grp = name;
+        wrap.appendChild(body);
+        wireGroup(h);
+        return wrap;
+      });
+    }
 
     register.layers.forEach(l => {
       document.getElementById('lyrcb_' + l.id).addEventListener('change', e => { toggleLayer(l.id, e.target.checked); saveOn(); });
