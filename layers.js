@@ -259,6 +259,28 @@
       '<table style="margin-top:4px;border-collapse:collapse;">' + rows + '</table></div>';
   }
 
+  // Host hook (inferrd.'s "Analyse this area"): HOST.featureAction =
+  // { button(onClick) → element, run(feature, label) }. The shown features
+  // are simplified to ~1 px, so ArcGIS features are fetched again at full
+  // detail before being handed over; LRIS WFS features are already full.
+  function popupWithAction(l, f) {
+    const el = document.createElement('div');
+    el.innerHTML = popupHtml(l, f.properties);
+    el.appendChild(HOST.featureAction.button(async () => {
+      let feature = f;
+      if (l.source === 'arcgis' && f.id != null && f._sub != null) {
+        try {
+          const body = new URLSearchParams({ f: 'geojson', objectIds: String(f.id), outFields: '*', outSR: '4326', returnGeometry: 'true', geometryPrecision: '7' });
+          const r = await fetch(l.url + '/' + f._sub + '/query', { method: 'POST', body });
+          const j = r.ok ? await r.json() : null;
+          if (j && j.features && j.features[0] && j.features[0].geometry) feature = j.features[0];
+        } catch (e) { console.warn('Layers: full-detail fetch failed, using the shown boundary', e); }
+      }
+      HOST.featureAction.run(feature, labelFor(l, f.properties) || l.name);
+    }));
+    return el;
+  }
+
   async function drawLayer(id) {
     const l = layerById(id);
     const cb = document.getElementById('lyrcb_' + id);
@@ -283,6 +305,7 @@
           if (!r.ok) throw new Error('HTTP ' + r.status);
           const j = await r.json();
           if (j.error) throw new Error(j.error.message || 'service error');
+          (j.features || []).forEach(f => { f._sub = sub; });
           fc.features = fc.features.concat(j.features || []);
           if (j.properties && j.properties.exceededTransferLimit) capped = true;
           if (j.exceededTransferLimit) capped = true;
@@ -300,7 +323,7 @@
       shown[id] = L.geoJSON(fc, {
         pane: 'qeiiPane',
         style: { color: l.color, weight: 1.5, fillColor: l.color, fillOpacity: 0.15 },
-        onEachFeature: (f, lyr) => lyr.bindPopup(popupHtml(l, f.properties), { maxWidth: 300 })
+        onEachFeature: (f, lyr) => lyr.bindPopup(HOST.featureAction ? () => popupWithAction(l, f) : popupHtml(l, f.properties), { maxWidth: 300 })
       }).addTo(map);
       setStatus(id, (fc.features || []).length + ' shown' + (capped ? ' (limit reached, zoom in)' : ''));
     } catch (e) {
