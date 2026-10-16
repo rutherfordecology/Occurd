@@ -335,6 +335,20 @@
 
     /* ── Batch ──────────────────────────────────────────── */
 
+    .region-picker { margin-bottom:1rem; }
+    .region-picker label {
+      display:block; font-size:.85rem; font-weight:600; color:var(--text); margin-bottom:.35rem;
+    }
+    .region-optional { font-weight:400; color:var(--text-muted); }
+    .region-picker select {
+      width:100%; padding:.6rem .8rem; font-size:.88rem;
+      border:1.5px solid var(--border); border-radius:var(--radius);
+      background:var(--surface); color:var(--text);
+      font-family:inherit; outline:none; transition:border-color .15s;
+    }
+    .region-picker select:focus { border-color:var(--accent); }
+    .region-hint { font-size:.78rem; color:var(--text-muted); margin:.4rem 0 0; }
+
     .drop-zone {
       border:2px dashed var(--border); border-radius:var(--radius);
       padding:2rem 1.5rem; text-align:center;
@@ -428,7 +442,7 @@
 <header>
   <div class="header-logo"><img src="../logo.png" alt=""></div>
   <div class="header-meta">
-    <h1>but is it threatened? <span style="font-size:0.65rem;font-weight:400;opacity:0.4;letter-spacing:0.05em;">v1.63-beta</span></h1>
+    <h1>but is it threatened? <span style="font-size:0.65rem;font-weight:400;opacity:0.4;letter-spacing:0.05em;">v1.66-beta</span></h1>
     <p>NZOR names · NZTCS status · by <a href="https://www.rutherfordecology.co.nz/" target="_blank" rel="noopener" class="re-link">Rutherford ecology</a></p>
   </div>
   <a class="bmc-btn" href="https://buymeacoffee.com/rutherfordecology" target="_blank" rel="noopener">☕ Buy me a coffee</a>
@@ -448,6 +462,46 @@
   </div>
 
   <div id="batch-panel">
+    <div class="region-picker">
+      <label for="region-select">Region <span class="region-optional">(optional)</span></label>
+      <select id="region-select" onchange="onRegionChange()">
+        <option value="">Not specified — show every possible subspecies</option>
+        <option value="Central and East Auckland">Central and East Auckland</option>
+        <option value="Central Canterbury">Central Canterbury</option>
+        <option value="Central Otago">Central Otago</option>
+        <option value="Coastal Otago - North">Coastal Otago - North</option>
+        <option value="Coastal Otago - South">Coastal Otago - South</option>
+        <option value="Eastern Bay of Plenty">Eastern Bay of Plenty</option>
+        <option value="Far North">Far North</option>
+        <option value="Gisborne">Gisborne</option>
+        <option value="Hauraki - Coromandel">Hauraki - Coromandel</option>
+        <option value="Hawke's Bay">Hawke's Bay</option>
+        <option value="Kaipara">Kaipara</option>
+        <option value="Manawatu - Whanganui">Manawatu - Whanganui</option>
+        <option value="Marlborough (CM)">Marlborough (Cloudy Bay / Marlborough Sounds)</option>
+        <option value="Marlborough (TS)">Marlborough (Tasman Bay side)</option>
+        <option value="Nelson-Tasman (CM)">Nelson-Tasman (Cloudy Bay / Marlborough Sounds side)</option>
+        <option value="Nelson-Tasman (TS)">Nelson-Tasman (Tasman Bay side)</option>
+        <option value="New Plymouth">New Plymouth</option>
+        <option value="North Auckland">North Auckland</option>
+        <option value="North Canterbury">North Canterbury</option>
+        <option value="South and West Auckland">South and West Auckland</option>
+        <option value="South Canterbury">South Canterbury</option>
+        <option value="South Taranaki">South Taranaki</option>
+        <option value="Southland">Southland</option>
+        <option value="Tararua">Tararua</option>
+        <option value="Taupō and Central Waikato">Taupō and Central Waikato</option>
+        <option value="Waiau Catchment">Waiau Catchment</option>
+        <option value="Waikato">Waikato</option>
+        <option value="Wairarapa">Wairarapa</option>
+        <option value="Waitomo, North Taranaki and Ruapehu">Waitomo, North Taranaki and Ruapehu</option>
+        <option value="Wellington - Kapiti">Wellington - Kapiti</option>
+        <option value="West Coast">West Coast</option>
+        <option value="Western Bay of Plenty">Western Bay of Plenty</option>
+        <option value="Whangarei">Whangarei</option>
+      </select>
+      <p class="region-hint">Where a species splits into several subspecies and the name alone can't tell them apart, telling us the region often resolves it automatically instead of defaulting to the most threatened one.</p>
+    </div>
     <div class="drop-zone" id="drop-zone">
       <p><strong>Drag &amp; drop a file here</strong></p>
       <p>CSV, TXT, PDF, Word (.docx), or Excel (.xlsx) — scientific names extracted automatically</p>
@@ -476,6 +530,7 @@
             <tr><td><strong>NZOR</strong> (NZ Organisms Register)</td><td>~165,000 names</td><td>The main name list — scientific names, old names, common names, Māori names</td></tr>
             <tr><td><strong>NZTCS</strong> (NZ Threat Classification System)</td><td>~43,000 entries</td><td>Conservation status — the most important part of the tool</td></tr>
             <tr><td><strong>NPPA</strong> (National Pest Plant Accord)</td><td>166 species</td><td>Pest plant flag only</td></tr>
+            <tr><td><strong>Region table</strong> (hand-curated)</td><td>63 taxa</td><td>Where each split-status subspecies actually occurs, for the region picker</td></tr>
           </tbody>
         </table>
 
@@ -489,10 +544,18 @@
         <p>If neither step finds anything, the name is unmatched.</p>
 
         <h3>How the threat status is found</h3>
-        <p>Once a species has been identified, the tool looks for its NZTCS status in this order:</p>
-        <p><strong>Step 1 — Direct match.</strong> The species name is looked up in NZTCS exactly. This works for the majority of species — <em>Rattus rattus</em>, <em>Nestor notabilis</em>, <em>Tradescantia fluminensis</em>.</p>
-        <p><strong>Step 2 — Strip the author name and try again.</strong> NZTCS entries often include the name of the person who first described the subspecies. For example, the Stewart Island fernbird is stored as <em>Bowdleria punctata stewartiana</em> Oliver, 1930 — not just <em>Bowdleria punctata stewartiana</em>. If step 1 fails, the tool strips the author off and tries again. Without this step, most subspecies would get no status at all. This match is only flagged with a <strong>*</strong> when two or more NZTCS entries share the same name after the author is removed — meaning the tool cannot be certain it picked the right one. In practice this is rare.</p>
-        <p><strong>Step 3 — Show all subspecies and highlight the most threatened.</strong> If the name still cannot be matched — for example because someone searched <em>Megadyptes antipodes</em> (yellow-eyed penguin), which NZTCS only lists at the subspecies level — the tool finds all subspecies of that species listed in NZTCS, displays them all, and highlights the most threatened one. The full list is shown so the user can see the complete picture and judge for themselves.</p>
+        <p>Once a species has been identified, the tool resolves it to an NZTCS taxon through a sequence of passes, weakest last, each one refusing to guess rather than picking a winner. The first to find a unique answer wins.</p>
+        <p><strong>Exact and canonical.</strong> The name is looked up as an NZTCS key (which carry authorities and synonyms) and as the accepted name inside one. This covers the majority of species — <em>Rattus rattus</em>, <em>Nestor notabilis</em>, <em>Tradescantia fluminensis</em>.</p>
+        <p><strong>Variant.</strong> The same lookup retried with rank markers dropped, and with quotes and macrons folded — sources disagree about whether to write "subsp." at all, and about whether <em>Woodworthia "Kaikōura"</em> keeps its macron or its closing quote.</p>
+        <p><strong>Authority prefix.</strong> Authorities can't be stripped by rule — they sit inside a name, as in <em>Pimelea aridula</em> Cheeseman subsp. <em>aridula</em> — so instead every 2-to-<em>n</em>-word leading prefix of every NZTCS name is indexed, and kept only where every entry sharing that prefix agrees on one accepted name. <em>Apteryx haastii</em> finds <em>Apteryx maxima</em> this way — the authority is on the end, but it's still a genus transfer NZOR itself has no synonym link for.</p>
+        <p><strong>Nominate subspecies, not most threatened — and never hiding a difference.</strong> A bare binomial that NZTCS only assesses at infraspecific rank takes the nominate — the subspecies repeating the specific epithet — never whichever subspecies happens to be most threatened, but only when that can't change the answer. Where NZTCS's subspecies under that binomial differ in status, a selected region decides if it can (see "Region override" below); otherwise you're shown every subspecies and asked. <em>Acanthisitta chloris</em> with no region shows both the Declining North Island rifleman and the Not Threatened South Island rifleman, rather than quietly reading Not Threatened.</p>
+        <p><strong>Subsequence.</strong> Catches an authority sitting further inside the name, e.g. <em>Pimelea aridula subsp. aridula</em> found inside <em>Pimelea aridula</em> Cheeseman <em>subsp. aridula</em>. Only used when the written name's words appear in order within exactly one NZTCS entry.</p>
+        <p><strong>One-letter correction.</strong> A single-character spelling difference — insertion, deletion, substitution, or transposition — accepted only when exactly one NZTCS name is that close. Recovers typos like <em>Charmichaelia australis</em> for <em>Carmichaelia</em> and <em>Meuhlenbeckia</em> for <em>Muehlenbeckia</em>.</p>
+        <p><strong>Latin gender.</strong> Epithet endings folded (<em>-us</em>/<em>-a</em>/<em>-um</em> and similar), genus left alone — <em>Anthosachne apricus</em> finds <em>Anthosachne aprica</em>. Unique matches only.</p>
+        <p><strong>Region override.</strong> Wherever the passes above would otherwise settle for the nominate, or find no unique subspecies at all, a selected region gets checked first against a hand-curated table of where each subspecies actually occurs. None of NZTCS's subspecies can be there — you're warned rather than given an answer. Exactly one can — used silently. Several can, but they all carry the same status — the nominate is used silently, since the choice couldn't have changed the answer. Several can <em>and</em> their statuses differ — you're asked, but only among the ones actually possible in that region, not every subspecies NZTCS lists nationally. <em>Falco novaeseelandiae</em> (the NZ falcon) resolves silently to a different subspecies, with a different status, in Gisborne, North Canterbury, and Southland — three regions, three answers, no question asked in any of them.</p>
+        <p><strong>Show all subspecies.</strong> With no region selected, or once the region has said its piece and a genuine question remains, the tool falls back to showing every subspecies NZTCS lists under that species, highlighting the most threatened. This is the last resort, not the default, and is flagged as a guess rather than a determination.</p>
+        <p><strong>Parent species.</strong> A trinomial that resolves to nothing, whose binomial does resolve, drops to the binomial — but only where NZTCS lists no other taxon under it. <em>Paryphanta busbyi busbyi</em> resolves to <em>Paryphanta busbyi</em>; where a subspecies has instead been elevated to its own species — <em>Oligosoma nigriplantare polychroma</em> is really <em>O. polychroma</em>, not a Chatham Island skink dressed differently — that's a taxonomic act no string rule can see, and is corrected by hand instead.</p>
+        <p>A genus written on its own — <em>Woodworthia</em>, <em>Carex</em> — never inherits a species' status through any of these passes: the record is real, but there's nothing to attach a status to.</p>
 
         <h3>Names shared by more than one species</h3>
         <p>When loading, the tool checks every common name and Māori name to see how many different species use it. If two or more species share a name, it is flagged as ambiguous. This is common in NZ — <em>tītī</em> refers to several petrel and shearwater species, <em>puka</em> is used for both <em>Griselinia lucida</em> and <em>Meryta sinclairii</em>, and <em>mingimingi</em> applies to several shrub species across <em>Coprosma</em>, <em>Leucopogon</em>, and others. When a name is ambiguous, all the species that share it are listed rather than guessing.</p>
@@ -502,7 +565,7 @@
 
         <h3>Remaining limitations</h3>
         <p><strong>Native/exotic is only available when online.</strong> Whether a species is native or exotic comes from the NZOR website in real time. In batch mode this is not fetched, so most batch results show "Unknown" for origin. Species flagged as introduced or naturalised in NZTCS, or listed on the NPPA, will still show as Exotic.</p>
-        <p><strong>The most-threatened subspecies highlight is a rule of thumb.</strong> Highlighting the most threatened subspecies as the most relevant one is a reasonable default but still a guess. A user in Southland searching <em>Petroica australis</em> probably cares about the South Island robin, not whichever subspecies happens to be most threatened nationally. There is currently no way to refine this without knowing the user's location.</p>
+        <p><strong>Pick a region to narrow subspecies.</strong> Selecting a region checks it against the region table, but only for the 63 taxa currently in it; most NZTCS subspecies splits aren't in it yet. For anything not covered, or with no region selected, the tool uses the nominate only where every subspecies shares its status, and otherwise shows every option with the most threatened highlighted, so the uncertainty is never hidden.</p>
 
       </div>
     </details>
@@ -510,18 +573,21 @@
 </main>
 
 <script src="../nzor-source.js"></script>
+<script src="../nztcs-resolver.js"></script>
+<script src="../locality-core.js"></script>
 <script>
 const NZOR = 'https://data.nzor.org.nz/v1';
 
 let threatRank     = () => 0; // hoisted — assigned in Promise.all once data loads
 let nztcs          = null;   // nztcs_slim.json: lowercase-name → {s,c,y,...}
-let nztcsStripped      = null;   // author-stripped keys: "genus species subsp" → entry
-let nztcsStrippedAmbig = null;   // set of stripped keys where 2+ NZTCS entries map to the same stripped name
+let nztcsResolver  = null;   // built by ../nztcs-resolver.js — exact/variant/prefix/nominate/etc.
 let nztcsSubspecies  = null;   // "genus species" → [all subspecies sorted most→least threatened]
 let nppa           = null;   // nppa.json: Set of lowercase scientific names
 let nzorIndex      = [];     // sorted search index built by NzorSource (../nzor-source.js)
 let ambiguousNames = null;   // vernacular key → [{sci, id?}] when 2+ species share the name
 let nvsData        = null;   // nvs.json: lowercase 6-letter code → {sci, pref?, prefSci?}
+let localityTable  = null;   // built from ../localities.tsv — which zones a subspecies occurs in
+let selectedRegion = '';     // region picked in the UI, or '' for none selected
 let activeIdx = -1;
 let allItems  = [];
 let debounce;
@@ -545,7 +611,31 @@ function badgeHtml(entry) {
   if (!e?.s) return '';
   return `<span class="badge ${catClass(e.c)}">${escHtml(e.s || e.c)}</span>`;
 }
+// Region-aware subspecies resolution (see ../locality-core.js): given every
+// subspecies NZTCS assesses under a binomial, use the selected region to cut
+// the list down. Returns a resolved entry, a narrowed (still ambiguous) list,
+// or null if the region has nothing useful to say — the caller then falls
+// back to its own default (nominate, or most-threatened).
+function regionResolve(list) {
+  if (!selectedRegion || !localityTable) return null;
+  const zones = window.QNLocality.zonesFor({ region: selectedRegion });
+  const opts = list.map(s => ({ ...s, name: s.n, status: s.s }));
+  const decision = window.QNLocality.chooseSubspecies(opts, zones, localityTable);
+  if (decision.kind === 'one' || decision.kind === 'same-status') {
+    return { ...decision.pick, _regionPick: true, _regionWhy: decision.why };
+  }
+  if (decision.kind === 'ask') {
+    const statuses = new Set(decision.options.map(s => threatRank(s.status)));
+    return { _subspeciesList: true, _subspeciesAmbig: statuses.size > 1,
+             list: decision.options, best: decision.options[0], _regionNarrowed: true };
+  }
+  return null; // 'none' — region rules out every subspecies NZTCS lists here
+}
+
+// Fallback used when the resolver found no unique taxon at all (see nztcsFor).
 function makeSubspEntry(list) {
+  const regional = regionResolve(list);
+  if (regional) return regional;
   const statuses = new Set(list.map(s => threatRank(s.s)));
   const ambig = statuses.size > 1; // subspecies differ in threat status
   return { _subspeciesList: true, _subspeciesAmbig: ambig, list, best: list[0] };
@@ -555,15 +645,37 @@ function nztcsFor(...names) {
   if (!nztcs) return null;
   for (const n of names) {
     if (!n) continue;
-    const k = norm(n);
-    if (nztcs[k]) return nztcs[k];
-    if (nztcsStripped?.[k]) return { ...nztcsStripped[k], _uncertain: nztcsStrippedAmbig.has(k) };
-    if (nztcsSubspecies?.[k]?.length) return makeSubspEntry(nztcsSubspecies[k]);
-    // For subspecies-level names (3+ words), also try genus+species fallback
-    const parts = k.split(' ');
-    if (parts.length >= 3) {
+    const hit = nztcsResolver?.resolve(n);
+    if (hit) {
+      // A bare binomial's "nominate" is a national default with no location
+      // awareness built in (see nztcs-resolver.js) — it's the resolver's best
+      // guess, not a determination. Where NZTCS assesses more than one
+      // subspecies, let a selected region decide; failing that, if the
+      // subspecies differ in status, ask rather than pass the nominate off as
+      // the answer (Acanthisitta chloris would otherwise read Not Threatened,
+      // hiding the Declining North Island rifleman).
+      if (hit.via === 'nominate') {
+        const sp = norm(n).split(' ').slice(0, 2).join(' ');
+        const list = nztcsSubspecies?.[sp];
+        if (list && list.length > 1) {
+          const regional = regionResolve(list);
+          if (regional) return regional;
+          if (new Set(list.map(s => threatRank(s.s))).size > 1) {
+            return { _subspeciesList: true, _subspeciesAmbig: true, list, best: list[0] };
+          }
+        }
+      }
+      return { ...hit, _uncertain: hit.via === 'one letter' || hit.via === 'gender' };
+    }
+    // Nothing resolved uniquely — if this name (or the binomial inside it)
+    // has several subspecies in NZTCS and none of them is the nominate, show
+    // them all rather than silently guessing (see nztcs-resolver.js). Never
+    // for an informal name ("aff.", "cf.", "sp." etc.) — those match exactly
+    // or not at all, same as every other pass.
+    if (nztcsResolver?.isInformal(norm(n))) continue;
+    const parts = norm(n).split(' ');
+    if (parts.length >= 2) {
       const sp = parts[0] + ' ' + parts[1];
-      if (nztcsStripped?.[sp]) return { ...nztcsStripped[sp], _uncertain: nztcsStrippedAmbig.has(sp) };
       if (nztcsSubspecies?.[sp]?.length) return makeSubspEntry(nztcsSubspecies[sp]);
     }
   }
@@ -605,7 +717,9 @@ Promise.all([
   fetch(`../nztcs_slim.json?v=${weekStamp}`).then(r => r.json()),
   fetch(`../nppa.json?v=${weekStamp}`).then(r => r.json()),
   fetch(`../nvs.json?v=${weekStamp}`).then(r => r.json()),
-]).then(async ([nztcsData, nppaData, nvsRaw]) => {
+  fetch(`../name_corrections.json?v=${weekStamp}`).then(r => r.json()),
+  fetch(`../localities.tsv?v=${weekStamp}`).then(r => r.text()),
+]).then(async ([nztcsData, nppaData, nvsRaw, corrections, localitiesTsv]) => {
   nvsData = nvsRaw;
   nztcs = nztcsData;
   nppa  = new Set(nppaData);
@@ -623,25 +737,13 @@ Promise.all([
     if (t.includes('extinct'))               return 1;
     return 0;
   };
-  // Build author-stripped map: "genus species subsp" (no author) → entry
-  // NZTCS keys use two authority formats: "(author, year)" and bare "author, year"
-  // or "author & author, year" — strip both.
-  nztcsStripped = {};
-  nztcsStrippedAmbig = new Set();
-  for (const [key, val] of Object.entries(nztcsData)) {
-    const stripped = key
-      .replace(/\s*\([^)]+\)\s*$/, '')                          // strip trailing (author, year)
-      .replace(/\s+[a-z]+(?:\s+&\s+[a-z]+)?,\s*\d{4}\s*$/, '') // strip author, year  or  author & author, year
-      .trim();
-    if (stripped !== key) {
-      if (nztcsStripped[stripped]) {
-        nztcsStrippedAmbig.add(stripped); // 2+ entries strip to the same name — flag as uncertain
-      } else {
-        nztcsStripped[stripped] = val;
-      }
-    }
-  }
+  // Name resolution (exact/canonical/variant/prefix/nominate/subsequence/
+  // one-letter/gender/parent-species) lives in ../nztcs-resolver.js — see
+  // that file's header comment and qeii-nztcs/MATCHING.md for the spec.
+  nztcsResolver = window.NztcsResolver.build(nztcsData, corrections);
   // Build subspecies list map: "genus species" → [all subspecies sorted most→least threatened]
+  // — used only as nztcsFor's fallback when the resolver can't find a unique
+  // nominate (see below).
   nztcsSubspecies = {};
   for (const [key, val] of Object.entries(nztcsData)) {
     const stripped = key
@@ -659,6 +761,10 @@ Promise.all([
   for (const sp of Object.keys(nztcsSubspecies)) {
     nztcsSubspecies[sp].sort((a, b) => threatRank(b.s) - threatRank(a.s));
   }
+  // Region table: which zones a subspecies can occur in, so a bare binomial
+  // with several subspecies can often be resolved from the selected region
+  // instead of defaulting to "most threatened". See chooseRegionSubsp below.
+  localityTable = window.QNLocality.makeTable(window.QNLocality.parseTsv(localitiesTsv));
   // NZOR index + ambiguous-name detection (incl. NZTCS common/Māori name
   // merging) all happens inside the shared module now.
   const nzor = await window.NzorSource.load({ url: `../nzor_names_v2.json?v=${weekStamp}`, nztcsData });
@@ -677,7 +783,7 @@ Promise.all([
     nzorIndex.sort((a, b) => a.key < b.key ? -1 : 1);
   }
   dot.className = 'status-dot';
-  dot.title = `NZOR: ${nzorIndex.length.toLocaleString()} names · NZTCS: ${Object.keys(nztcsData).length.toLocaleString()} entries · NPPA: ${nppa.size} pest plants · NVS: ${Object.keys(nvsData).length.toLocaleString()} codes`;
+  dot.title = `NZOR: ${nzorIndex.length.toLocaleString()} names · NZTCS: ${Object.keys(nztcsData).length.toLocaleString()} entries · NPPA: ${nppa.size} pest plants · NVS: ${Object.keys(nvsData).length.toLocaleString()} codes · ${corrections.length} name corrections`;
 }).catch(() => {
   dot.className = 'status-dot error';
   dot.title = 'Data failed to load';
@@ -1182,7 +1288,22 @@ function batchMatch(rawName) {
   // Fallback: diacritic-normalised exact match
   if (!item) item = nzorIndex.find(x => x.kd === kd) ?? null;
 
-  if (!item) return { input: rawName, matched: false };
+  // Not in NZOR as written — a hand-checked correction may still know it
+  // ("Rohutu (Lophomyrtus obcordata)"). Match the corrected name instead.
+  if (!item) {
+    const fixed = nztcsResolver?.resolve(rawName);
+    if (fixed?.via === 'name override' && fixed.n && norm(fixed.n) !== key) {
+      const viaFix = batchMatch(fixed.n);
+      if (viaFix?.matched) return { ...viaFix, input: rawName };
+      return {
+        input: rawName, matched: true, sci: fixed.n,
+        common: fixed.cn || '', maori: fixed.mn || '',
+        status: fixed.s || '', category: fixed.c || '', year: fixed.y || '',
+        pest: '', origin: 'Unknown',
+      };
+    }
+    return { input: rawName, matched: false };
+  }
 
   // Ambiguous vernacular — flag with all possibilities
   if (item.cls === 'v' && ambiguousNames?.[item.key]) {
@@ -1230,6 +1351,7 @@ function batchMatch(rawName) {
     category:      eff?.c || '',
     year:          eff?.y || '',
     _subspeciesBest:  eff?._subspeciesBest || false,
+    _regionPick:      eff?._regionPick || false,
     _subspeciesAmbig: nztcsEntry?._subspeciesAmbig || false,
     _subspeciesOptions: nztcsEntry?._subspeciesAmbig ? nztcsEntry.list : null,
     pest:     pest ? 'Yes' : '',
@@ -1404,7 +1526,7 @@ function renderBatchTable(results) {
     }
     const pestCell = r.pest ? `<span class="badge cat-pest-plant">Pest plant</span>` : '';
     const statusCell = r.status
-      ? `<span class="badge ${catClass(r.category)}">${escHtml(r.status)}</span>${r._subspeciesBest ? ' <span class="subsp-best-note">most threatened subspecies</span>' : ''}`
+      ? `<span class="badge ${catClass(r.category)}">${escHtml(r.status)}</span>${r._regionPick ? ' <span class="subsp-best-note">resolved by region</span>' : r._subspeciesBest ? ' <span class="subsp-best-note">most threatened subspecies</span>' : ''}`
       : '<span style="color:#bbb">—</span>';
     return `<tr>
       <td class="cb-col"><input type="checkbox" class="batch-cb" data-sci="${escHtml(r.sci)}" checked></td>
@@ -1477,6 +1599,13 @@ function clearBatch() {
   hideUnmatched = false;
 }
 
+// Region changed — re-resolve whatever's already in the box, so switching
+// region updates results in place rather than requiring a re-paste.
+function onRegionChange() {
+  selectedRegion = document.getElementById('region-select').value;
+  if (batchPaste.value.trim()) runBatch();
+}
+
 function openInLooklike() {
   const seen = new Set();
   const names = [];
@@ -1525,8 +1654,21 @@ function resolveBatchSubsp(idx, subspIdx) {
   const r = batchResults[idx];
   const chosen = (r._subspeciesOptions || [])[subspIdx];
   if (!chosen) return;
-  const resolved = batchMatch(chosen.n);
-  if (resolved) { resolved.input = r.input; batchResults[idx] = resolved; }
+  // Overlay the chosen subspecies' status directly rather than re-running the
+  // name through NZOR — NZTCS's accepted name for a subspecies doesn't always
+  // match NZOR's own spelling (e.g. NZTCS's Poodytes vs NZOR's Bowdleria), so
+  // re-resolving it from scratch can turn a picked answer into "no match".
+  batchResults[idx] = {
+    ...r,
+    sci: chosen.n || r.sci,
+    status: chosen.s || '',
+    category: chosen.c || '',
+    year: chosen.y || '',
+    _subspeciesBest: false,
+    _regionPick: false,
+    _subspeciesAmbig: false,
+    _subspeciesOptions: null,
+  };
   renderBatchTable(batchResults);
   const anyMatched = batchResults.some(r => r.matched);
   document.getElementById('batch-dl').disabled = !anyMatched;
@@ -1554,7 +1696,7 @@ function downloadBatchCSV() {
   const csvRows = [header, ...batchResults.map(r => {
     if (!r.matched) return [r.input, 'No match', '', '', '', '', '', '', ''];
     if (r._ambiguous) return [r.input, 'Ambiguous — could be: ' + r.sci, '', '', '', '', '', '', ''];
-    return [r.input, r.sci, r.common, r.maori, r.status + (r._subspeciesBest ? ' (most threatened subspecies)' : ''), r.category, r.year, r.pest, r.origin];
+    return [r.input, r.sci, r.common, r.maori, r.status + (r._regionPick ? ' (resolved by region)' : r._subspeciesBest ? ' (most threatened subspecies)' : ''), r.category, r.year, r.pest, r.origin];
   })].map(row => row.map(c => `"${String(c ?? '').replace(/"/g,'""')}"`).join(','));
   const blob = new Blob(['﻿' + csvRows.join('\r\n')], { type: 'text/csv;charset=utf-8' });
   const a = document.createElement('a');

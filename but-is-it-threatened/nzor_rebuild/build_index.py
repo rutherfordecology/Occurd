@@ -73,6 +73,25 @@ def apply_vernacular(entry, r):
         entry['cls'] = 'v'
         entry['sciOptions'] = [{'sci': sci, 'sciId': sciId} for sci, sciId in links]
 
+CLASSIFICATION_RANKS = {
+    'kingdom': 'kingdom', 'phylum': 'phylum_or_division', 'division': 'phylum_or_division',
+    'class': 'class', 'order': 'order', 'family': 'family', 'genus': 'genus',
+}
+
+def classification(r):
+    """kingdom/phylum-or-division/class/order/family/genus read off a record's
+    own classificationHierarchy. Only Scientific Name and Tag Name records
+    carry this in NZOR's raw data - Vernacular Name records don't, so callers
+    that want a vernacular's classification join it via the record's own
+    sci/sciId to a Scientific Name entry instead (done downstream, not here)."""
+    out = {}
+    for h in (r.get('classificationHierarchy') or []):
+        key = CLASSIFICATION_RANKS.get(h.get('rank'))
+        name = h.get('partialName') or h.get('canonicalName')
+        if key and name and key not in out:
+            out[key] = name
+    return out
+
 def load_all_records():
     records = []
     for fname in sorted(glob.glob('raw_page_*.json')):
@@ -120,6 +139,9 @@ def main():
             if acc and acc.get('nameId') != r['nameId']:
                 entry['acc'] = acc['partialName']
                 entry['accId'] = acc['nameId']
+            entry.update(classification(r))
+            entry['status'] = r.get('status')
+            entry['rank'] = r.get('rank')
             apply_vernacular(entry, r)
             out[key] = entry
             continue
@@ -166,6 +188,9 @@ def main():
             if acc and acc.get('nameId') != chosen['nameId']:
                 entry['acc'] = acc['partialName']
                 entry['accId'] = acc['nameId']
+            entry.update(classification(chosen))
+            entry['status'] = chosen.get('status')
+            entry['rank'] = chosen.get('rank')
             apply_vernacular(entry, chosen)
             out[key] = entry
         else:

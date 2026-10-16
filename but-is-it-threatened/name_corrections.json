@@ -1,0 +1,32 @@
+[
+  {
+    "written": "Parahebe canescens",
+    "nztcs_name": "Veronica lilliputiana",
+    "note": "NZTCS lists this taxon as Veronica lilliputiana"
+  },
+  {
+    "written": "Styphelia nana",
+    "nztcs_name": "Leucopogon nanum",
+    "note": "NZTCS lists this taxon as Leucopogon nanum"
+  },
+  {
+    "written": "Rohutu (Lophomyrtus obcordata)",
+    "nztcs_name": "Lophomyrtus obcordata",
+    "note": "Common name written with the binomial in brackets"
+  },
+  {
+    "written": "Anas aucklandica chlorotis",
+    "nztcs_name": "Anas chlorotis",
+    "note": "Brown teal. Anas chlorotis is always the brown teal and never Anas aucklandica, the Auckland Island teal, whatever combination is written"
+  },
+  {
+    "written": "Oligosoma nigriplantare polychroma",
+    "nztcs_name": "Oligosoma polychroma",
+    "note": "The common skink, elevated from a subspecies of O. nigriplantare to its own species. O. nigriplantare proper is the Chatham Island skink, so the parent-species rule would give exactly the wrong answer here"
+  },
+  {
+    "written": "Naultinus elegans punctatus",
+    "nztcs_name": "Naultinus punctatus",
+    "note": "Elevated from a subspecies of N. elegans to its own species, keeping its epithet"
+  }
+]
