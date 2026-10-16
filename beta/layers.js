@@ -610,7 +610,7 @@
     btn.disabled = true; btn.textContent = 'Drawing maps…'; res.textContent = '';
     lastMaps.forEach(m => URL.revokeObjectURL(m.url)); lastMaps = [];
     try {
-      const { poly, refLng } = llToTurfPolygon(site.latlngs, site.holes);
+      const { poly, refLng } = G.llToTurfPolygon(site.latlngs, site.holes);
       const siteRings = poly.geometry.coordinates;
       const wz = turf.buffer(poly, wzM / 1000, { units: 'kilometers' });
       const buf = turf.buffer(poly, 2, { units: 'kilometers' });
@@ -656,7 +656,7 @@
         const miss = await drawBasemap(ctx, v, BASEMAPS.grey);
         let ids = register.layers.filter(l => { const cb = document.getElementById('lyrcb_' + l.id); return cb && cb.checked; }).map(l => l.id);
         if (!ids.length) ids = ['gdc_pma', 'qeii'];
-        const box = [wrapLng180(bb[0]), bb[1], wrapLng180(bb[2]), bb[3]].map(x => +x.toFixed(6));
+        const box = [G.wrapLng180(bb[0]), bb[1], G.wrapLng180(bb[2]), bb[3]].map(x => +x.toFixed(6));
         const legend = [], sources = new Set(), labels = [];
         for (const id of ids) {
           const l = layerById(id); if (!l) continue;
