@@ -2319,6 +2319,7 @@ function renderPolyList() {
       '<input type="checkbox" id="' + _obscId + '"' + (p.obscuredOnly ? ' checked' : '') + '> this polygon: iNat obscured only</label>' +
       '<button class="poly-kml-btn" title="Download this area as KML" style="background:none;border:none;padding:0;cursor:pointer;font-size:11px;font-weight:600;font-family:var(--font-sans);color:var(--green-dark);white-space:nowrap;">&#8595; KML</button></div>' +
       '<div class="poly-buf-btns"><span class="poly-buffer-label">Add buffer:</span>' +
+      '<button class="poly-buf-btn" data-km="0.5" data-unit="km" title="500 m buffer — a typical works area around a site.">500 m</button>' +
       [1,2,5,10].map(km => '<button class="poly-buf-btn" data-km="' + km + '" data-unit="km">' + km + ' km</button>').join('') +
       '<button class="poly-buf-btn" data-km="0.2" data-unit="deg" title="0.2° buffer — matches the iNaturalist obscured-record grid square.">0.2°</button>' +
       '</div>';
@@ -2406,7 +2407,7 @@ function addBufferPolygon(poly, amount, obscuredOnly, unit) {
     const turfUnit = unit === 'deg' ? 'degrees' : 'kilometers';
     const buffered = turf.buffer(geojson, amount, { units: turfUnit });
     const bCoords  = buffered.geometry.coordinates[0].slice(0, -1).map(c => [c[1], c[0]]);
-    const label    = unit === 'deg' ? amount + '° buffer' : amount + 'km buffer';
+    const label    = unit === 'deg' ? amount + '° buffer' : (amount < 1 ? Math.round(amount * 1000) + 'm buffer' : amount + 'km buffer');
     const suffix   = obscuredOnly ? label + ' (obscured only)' : label;
     addPolygon(bCoords, poly.label + ' + ' + suffix, [], { obscuredOnly: !!obscuredOnly });
   } catch(e) { console.warn('Buffer failed:', e); }
@@ -7694,7 +7695,7 @@ if (window._pendingShare) {
 <script src="../but-is-it-threatened/locality-core.js"></script>
 <script src="species-search.js"></script>
 <script src="qeii.js"></script>
-<script src="layers.js"></script>
+<script src="layers.js?v=7.36a2"></script>
 <script src="projects.js"></script>
 <script src="taxonomy.js"></script>
 <script src="onboarding.js"></script>
@@ -7708,6 +7709,13 @@ if (window._pendingShare) {
   </div>
   <div class="changelog-scroll" id="changelogScroll">
     <div class="changelog-version">
+      <span class="changelog-version-tag">v7.36a (beta)</span>
+      <span class="changelog-date">Oct 2026</span>
+      <ul>
+        <li>Layers: new "Report maps" button. Draws three 1800 × 1200 px PNG figures for a chosen site polygon: a location map, the site and its work zone (500 m by default) on aerial imagery, and protection and planning context within 2 km (the ticked layers, or protection management areas and QEII covenants if none are ticked). Each has a scale bar, north arrow, legend and attribution</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
       <span class="changelog-version-tag">v7.35c</span>
       <span class="changelog-date">Oct 2026</span>
       <ul>
@@ -7718,6 +7726,7 @@ if (window._pendingShare) {
       <span class="changelog-version-tag">v7.35b</span>
       <span class="changelog-date">Oct 2026</span>
       <ul>
+        <li>New 500 m buffer button, for a works area around a site</li>
         <li>New "&#8595; KML" button on each drawn or imported area (and each buffer): downloads that area as KML as soon as you make it. No fetch needed first</li>
       </ul>
     </div>
