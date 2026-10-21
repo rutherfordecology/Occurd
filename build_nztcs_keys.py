@@ -159,8 +159,9 @@ with open(NZTCS_JSON, encoding='utf-8') as f:
     nztcs = json.load(f)
 print(f"  {len(nztcs)} existing entries")
 
-# Remove old gbifkey entries so we start fresh
-old_keys = [k for k in nztcs if k.startswith('gbifkey:')]
+# Remove old gbifkey and gbifconflict entries so we start fresh (both are
+# rebuilt below; stale conflicts used to survive every run)
+old_keys = [k for k in nztcs if k.startswith(('gbifkey:', 'gbifconflict:'))]
 for k in old_keys:
     del nztcs[k]
 print(f"  Removed {len(old_keys)} stale gbifkey entries")
@@ -210,12 +211,45 @@ for name, result in cache.items():
         # usageKey is specific to this exact name (subspecies key) — always safe
         usage_key_entries[int(uk)] = entry
 
-# Add species keys only when all entries sharing that key agree on status
-species_added = species_skipped = 0
+# Name tokens before the authority, rank markers skipped — the same count as
+# nztcsRankDepth in index.html: 2 for a species, 3 for a subspecies or variety.
+def rank_depth(name):
+    parts = re.sub(r'\([^)]*\)', ' ', name or '').split()
+    if not parts:
+        return 0
+    n = 1
+    for p in parts[1:]:
+        t = p.rstrip('.,;')
+        if re.fullmatch(r'(subsp|ssp|var|forma|f|cf|aff)', t, re.I):
+            continue
+        if not re.fullmatch(r'[a-z-]+', t):
+            break
+        n += 1
+        if n == 3:
+            break
+    return n
+
+# A species key must not carry one variety's status for the whole species. GBIF
+# folds some NZTCS varieties into the species (Muehlenbeckia complexa var.
+# grandifolia is a synonym of it there) while matching others only at species
+# rank, which MATCH_TYPES drops (var. complexa comes back HIGHERRANK). Left alone,
+# the one variety that did match spoke for every record of the species:
+# gbifkey:2888859 read Nationally Vulnerable for all pohuehue. When every entry on
+# a species key is infraspecific under one binomial, use NZTCS's own list of that
+# binomial's subspecies instead, so the app resolves it like any bare binomial
+# (record name, then place, then the nominate default).
+species_added = species_skipped = species_to_binomial = 0
 for sk, entries in species_key_entries.items():
     lookup_key = 'gbifkey:' + str(sk)
     if lookup_key in nztcs:
         continue
+    if all(rank_depth(e.get('name')) >= 3 for e in entries):
+        bins = {' '.join((e.get('name') or '').lower().split()[:2]) for e in entries}
+        conflict = len(bins) == 1 and nztcs.get('conflict:' + bins.pop())
+        if conflict:
+            nztcs['gbifconflict:' + str(sk)] = conflict
+            species_to_binomial += 1
+            continue
     statuses = set(e.get('status') for e in entries)
     if len(statuses) == 1:
         nztcs[lookup_key] = entries[0]
@@ -235,6 +269,7 @@ for uk, entry in usage_key_entries.items():
         added += 1
 
 print(f"  Species keys added: {species_added} (skipped {species_skipped} with mixed subspecies)")
+print(f"  Species keys sent to their binomial's subspecies list: {species_to_binomial}")
 print(f"  Usage keys added: {usage_added}")
 
 print(f"\nNew gbifkey entries added: {added}")
@@ -266,6 +301,7 @@ print(f"\nWritten: {NZTCS_JSON} ({size_kb:.1f} KB)")
 print("\nSpot checks (all must resolve):")
 checks = {
     3172213: "Limosella australis — the real species behind the dropped genus",
+    2888859: "Muehlenbeckia complexa — must read NOT FOUND (a conflict, not var. grandifolia)",
     2297479: "Pseudaneitea marmoratus — fuzzy match on a gender variant",
     6173961: "Acanthisitta chloris granti — SUBSPECIES rank",
     5687181: "Dactylanthus taylorii — SPECIES rank",

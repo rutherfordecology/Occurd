@@ -49,7 +49,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v7.36f (beta)</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v7.36g (beta)</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -3144,12 +3144,29 @@ function islandZonesFor(rec) {
   return zones;
 }
 
+// The default for a bare binomial that neither its name nor its place settles:
+// the nominate subspecies, the one repeating the epithet, never the most
+// threatened. Same rule as CCAMS and the QUiC data cleaner. Taken only when the
+// nominate is not itself Threatened or At Risk; then a wrong default could hide a
+// threatened record, so the question is still asked. Pōhuehue (Muehlenbeckia
+// complexa) is var. complexa, Not Threatened, not a question just because the
+// Nationally Vulnerable var. grandifolia exists.
+function nztcsNominateDefault(options) {
+  const isNom = (window.QNLocality && window.QNLocality.isNominateName) || (name => {
+    const t = String(name || '').trim().split(/\s+/).filter(w => !/^(subsp|ssp|var|f|forma|subvar)\.?$/i.test(w));
+    return t.length >= 3 && t[1].toLowerCase() === t[t.length - 1].toLowerCase();
+  });
+  const nom = (options || []).filter(o => isNom(o.name));
+  if (nom.length !== 1) return null;
+  return /^(Threatened|At Risk)$/.test(nom[0].category || '') ? null : nom[0];
+}
+
 // Try to settle a subspecies conflict without asking: first via the record's
 // own name (its determination already answers it), then via its coordinates
 // against the same curated range table But Is It Threatened uses
 // (../but-is-it-threatened/localities.tsv), at island resolution only — see
-// islandZonesFor. Falls through to the plain conflict, narrowed if the
-// island ruled anything out.
+// islandZonesFor. Then the nominate default (nztcsNominateDefault). Falls
+// through to the plain conflict, narrowed if the island ruled anything out.
 function resolveNztcsConflict(rec, options) {
   const byName = nztcsByRecordName(rec, options);
   if (byName) return { entry: byName, certain: true };
@@ -3161,13 +3178,15 @@ function resolveNztcsConflict(rec, options) {
         return { entry: decision.pick, certain: true };
       }
       if (decision.kind === 'ask') {
-        return { conflict: true, options: decision.options };
+        const nom = nztcsNominateDefault(decision.options);
+        return nom ? { entry: nom, certain: false } : { conflict: true, options: decision.options };
       }
       // 'none' — the island rules out everything NZTCS lists; fall through
       // to the plain conflict rather than claim there's no data at all.
     }
   }
-  return { conflict: true, options };
+  const nom = nztcsNominateDefault(options);
+  return nom ? { entry: nom, certain: false } : { conflict: true, options };
 }
 
 function nztcsRankDepth(name) {
@@ -3431,7 +3450,7 @@ async function loadNztcsData() {
     return;
   }
   try {
-    const resp = await fetch('nztcs.json');
+    const resp = await fetch('nztcs.json?v=7.36g');
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
     nztcsData     = await resp.json();
     nztcsUnlocked = true;
@@ -7774,6 +7793,14 @@ window.LAYERS_HOST = {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v7.36g</span>
+      <span class="changelog-date">Oct 2026</span>
+      <ul>
+        <li>NZTCS: a species recorded without a subspecies now takes its nominate subspecies (the one repeating the species name) when neither the record's name nor its location settles which applies, as CCAMS and the QUiC data cleaner do. Taken only when the nominate is not Threatened or At Risk; otherwise you are still asked. Pōhuehue (<i>Muehlenbeckia complexa</i>) is var. <i>complexa</i>, Not Threatened, and no longer shows as Nationally Vulnerable</li>
+        <li>NZTCS: 17 GBIF species keys carried one subspecies' status for the whole species, because GBIF matched only that subspecies. They now resolve like any species without a subspecies. Kawakawa (<i>Piper excelsum</i>) no longer reads Naturally Uncommon, and <i>Veronica macrocarpa</i> no longer reads Declining. Tokoeka (<i>Apteryx australis</i>) is now settled by location or asked, rather than always Naturally Uncommon</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v7.36f</span>
       <span class="changelog-date">Oct 2026</span>
