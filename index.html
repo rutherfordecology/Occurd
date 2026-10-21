@@ -49,7 +49,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v7.36h</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v7.36i</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -7801,21 +7801,8 @@ window.LAYERS_HOST = {
 // the lookups made for them (common names, IUCN, chosen subspecies), so it reopens
 // exactly as it was without asking GBIF again. Records keep their polygon by id, so
 // ids are remapped to the ones the reopened areas get.
-//
-// "Reopen my last session" is off by default and kept per browser (IndexedDB, since
-// records outgrow localStorage). It restores only while this browser is still
-// unlocked, and "Lock and forget" deletes the stored session, so a shared computer
-// keeps nothing for the next person.
 (function () {
   const SESSION_V = 1;
-  const RESTORE_KEY = 'occurd_session_restore';
-  const IDB_NAME = 'occurd-session', IDB_STORE = 'kv', IDB_KEY = 'last';
-
-  function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
-  function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
-  function lsDel(k) { try { localStorage.removeItem(k); } catch (e) {} }
-  const restoreOn = () => lsGet(RESTORE_KEY) === '1';
-  const unlocked  = () => !!(window._layersHasKey && window._layersHasKey());
   const appVersion = () => { const el = document.querySelector('header h1 span'); return el ? el.textContent.trim() : ''; };
 
   function buildSession() {
@@ -7915,88 +7902,26 @@ window.LAYERS_HOST = {
   }
   window.openOccurdSession = openFile; // also used by the drop zone for .occurd files
 
-  // ── Last session, this browser only ────────────────────────────────────────
-  function idb() {
-    return new Promise((res, rej) => {
-      const r = indexedDB.open(IDB_NAME, 1);
-      r.onupgradeneeded = () => r.result.createObjectStore(IDB_STORE);
-      r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
-    });
-  }
-  async function idbDo(mode, fn) {
-    const db = await idb();
-    return new Promise((res, rej) => {
-      const tx = db.transaction(IDB_STORE, mode), req = fn(tx.objectStore(IDB_STORE));
-      tx.oncomplete = () => { db.close(); res(req && req.result); };
-      tx.onerror = () => { db.close(); rej(tx.error); };
-    });
-  }
-  const idbGet = () => idbDo('readonly', s => s.get(IDB_KEY));
-  const idbPut = v => idbDo('readwrite', s => s.put(v, IDB_KEY));
-  const idbDel = () => idbDo('readwrite', s => s.delete(IDB_KEY)).catch(() => {});
-
-  // Cheap fingerprint of what a session holds, so unchanged sessions aren't re-saved
-  const signature = () => [
-    polygons.map(p => p.id + ':' + (p.latlngs ? p.latlngs.length : p.name)).join(','), allRecords.length,
-    document.getElementById('dateFrom').value, document.getElementById('dateTo').value,
-    viewMode, currentNztcsFilter, currentIucnFilter, [...activeFilters].join(',')
-  ].join('|');
-  let lastSig = null, saving = false;
-  async function autosave() {
-    if (!restoreOn() || !unlocked() || isFetching || saving) return;
-    const sig = signature();
-    if (sig === lastSig) return;
-    saving = true;
-    try {
-      if (!polygons.length) await idbDel();
-      else await idbPut({ savedAt: Date.now(), blob: await gzip(JSON.stringify(buildSession())) });
-      lastSig = sig;
-    } catch (e) { console.warn('Session: autosave failed', e); }
-    finally { saving = false; }
-  }
-
-  async function forget() { lsDel(RESTORE_KEY); await idbDel(); }
-  window.LAYERS_HOST.onForget = forget;
-
-  window.addEventListener('load', async () => {
-    try {
-      // Locked since last time (or never unlocked): nothing of a session stays behind
-      if (!unlocked()) { if (restoreOn()) await forget(); return; }
-      if (!restoreOn() || window._restoredFromShare || polygons.length) return;
-      const rec = await idbGet();
-      if (rec && rec.blob) applySession(await readSession(rec.blob), 'Reopened your last session');
-    } catch (e) {
-      console.warn('Session: restore failed', e);
-    } finally {
-      lastSig = signature();
-      setInterval(autosave, 30000);
-      document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') autosave(); });
-    }
-  });
+  // v7.36h had an opt-in "Reopen my last session" (removed in v7.36i). Clear what it
+  // may have left in this browser: its setting and the stored session.
+  try { localStorage.removeItem('occurd_session_restore'); } catch (e) {}
+  try { if (window.indexedDB) indexedDB.deleteDatabase('occurd-session'); } catch (e) {}
 
   // ── Controls: a "Session" group at the top of the Layers panel ─────────────
   window.LAYERS_HOST.panelSection = (el, group) => {
     const body = document.createElement('div');
     body.innerHTML =
       '<div style="font-size:11px;color:var(--text2);line-height:1.4;margin-bottom:6px;">Save the search and its fetched records to a file, and open it again later, here or on another computer. You can also drop a .occurd file on the drop zone.</div>' +
-      '<div style="display:flex;gap:5px;margin-bottom:6px;">' +
+      '<div style="display:flex;gap:5px;">' +
         '<button class="dl-btn" id="sesSave" style="flex:1;">&#8595; Save session</button>' +
         '<button class="dl-btn" id="sesOpen" style="flex:1;">Open session…</button>' +
       '</div>' +
-      '<input type="file" id="sesFile" accept=".occurd" style="display:none;">' +
-      '<label style="display:flex;gap:6px;align-items:flex-start;cursor:pointer;font-size:11px;line-height:1.4;color:var(--text2);">' +
-        '<input type="checkbox" id="sesRestore" style="margin-top:2px;accent-color:var(--green, #2a7a58);"' + (restoreOn() ? ' checked' : '') + '>' +
-        '<span>Reopen my last session when this page opens, in this browser only. Stops, and the saved session is deleted, if Layers is locked again.</span>' +
-      '</label>';
+      '<input type="file" id="sesFile" accept=".occurd" style="display:none;">';
     el.appendChild(group('Session', body));
     body.querySelector('#sesSave').addEventListener('click', saveToFile);
     const input = body.querySelector('#sesFile');
     body.querySelector('#sesOpen').addEventListener('click', () => input.click());
     input.addEventListener('change', () => { if (input.files[0]) openFile(input.files[0]); input.value = ''; });
-    body.querySelector('#sesRestore').addEventListener('change', e => {
-      if (e.target.checked) { lsSet(RESTORE_KEY, '1'); lastSig = null; autosave(); }
-      else forget();
-    });
   };
 })();
 </script>
@@ -8014,6 +7939,13 @@ window.LAYERS_HOST = {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v7.36i</span>
+      <span class="changelog-date">Oct 2026</span>
+      <ul>
+        <li>Sessions: removed the "Reopen my last session" option. Save session and Open session are unchanged. Anything the option had stored in your browser is cleared when the page opens</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v7.36h</span>
       <span class="changelog-date">Oct 2026</span>
