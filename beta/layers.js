@@ -22,7 +22,7 @@
   'use strict';
 
   const KEY_STORE = 'occurd_lris_key';
-  const ON_STORE  = 'occurd_layers_on';
+  const ON_STORE  = 'occurd_layers_on';  // ticked layers were once remembered here; now cleared
   const LRIS_BASE = 'https://lris.scinfo.org.nz/services';
   const MAX_LRIS  = 1000;
   const ENC = { salt: '0P/eszsAXIeVnFtoNQxbgQ==', iv: 'r34wHTw2jD6PhsFU', ct: '5lifxl4IXjKW1gp0Uf5i9jynJhZS0CanRBXgkKkyVbXRMqDUb15GrK9nkHKaPqNw', iter: 600000 };  // LRIS key encrypted with the Layers password (PBKDF2-SHA256 + AES-GCM)
@@ -162,9 +162,8 @@
     buildPanel();
     refreshMapSites();
     panel.style.display = 'block';
-    let on = [];
-    try { on = JSON.parse(lsGet(ON_STORE) || '[]'); } catch (e) {}
-    on.forEach(id => { const cb = document.getElementById('lyrcb_' + id); if (cb && !cb.checked) { cb.checked = true; toggleLayer(id, true); } });
+    lsDel(ON_STORE);  // every layer starts unticked; nothing is restored from last visit
+    register.layers.forEach(l => { const cb = document.getElementById('lyrcb_' + l.id); if (cb) cb.checked = false; setStatus(l.id, ''); });
     toggleDownloadBtn(true);
   };
   window._layersDeactivate = function () {
@@ -231,7 +230,7 @@
     mapEl.appendChild(panel);
 
     register.layers.forEach(l => {
-      document.getElementById('lyrcb_' + l.id).addEventListener('change', e => { toggleLayer(l.id, e.target.checked); saveOn(); });
+      document.getElementById('lyrcb_' + l.id).addEventListener('change', e => toggleLayer(l.id, e.target.checked));
     });
     panel.querySelector('#lyrClose').addEventListener('click', () => { window._layersDeactivate(); if (window._projectsSetLocked) window._projectsSetLocked('layers'); });
     panel.querySelector('#lyrMin').addEventListener('click', () => {
@@ -250,10 +249,6 @@
     });
   }
 
-  function saveOn() {
-    const on = register.layers.filter(l => { const cb = document.getElementById('lyrcb_' + l.id); return cb && cb.checked; }).map(l => l.id);
-    lsSet(ON_STORE, JSON.stringify(on));
-  }
   function setStatus(id, txt) { status[id] = txt; const el = document.getElementById('lyrst_' + id); if (el) el.textContent = txt || ''; }
   function layerById(id) { return register.layers.find(l => l.id === id); }
 
@@ -667,7 +662,7 @@
             if (feats.length) {
               const isLine = feats.every(f => /Line/.test((f.geometry || {}).type));
               legend.push({ kind: isLine ? 'line' : 'fill', color: l.color, label: l.name });
-              sources.add(l.source === 'arcgis' ? (l.id === 'qeii' ? 'QEII National Trust' : 'Gisborne District Council') : 'Manaaki Whenua LRIS');
+              sources.add(l.attribution || (l.source === 'arcgis' ? (l.id === 'qeii' ? 'QEII National Trust' : 'Gisborne District Council') : 'Manaaki Whenua LRIS'));
               if (/^(gdc_pma|qeii)$/.test(l.id)) feats.forEach(f => {
                 try {
                   const pt = turf.pointOnFeature(f).geometry.coordinates, [x, y] = v.px(shiftLng(pt[0], refLng), pt[1]);
