@@ -49,7 +49,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v7.36a</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v7.36b</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -7706,6 +7706,35 @@ if (window._pendingShare) {
 <script src="but-is-it-threatened/locality-core.js"></script>
 <script src="species-search.js"></script>
 <script src="qeii.js"></script>
+<script>
+// Layers popups get a "Use as search area" button (layers.js HOST.featureAction):
+// the feature's full-detail boundary becomes an analysis polygon. Parts under 1%
+// of the largest (offshore islets, slivers) are left out of multi-part features.
+window.LAYERS_HOST = {
+  featureAction: {
+    button(onClick) {
+      const b = document.createElement('button');
+      b.className = 'dl-btn'; b.textContent = 'Use as search area';
+      b.style.cssText = 'width:100%;margin-top:6px;';
+      b.addEventListener('click', async () => { b.disabled = true; b.textContent = 'Adding…'; await onClick(); });
+      return b;
+    },
+    run(feature, label) {
+      label = String(label || 'Layer area').split(' | ')[0];
+      const g = feature && feature.geometry;
+      const polys = !g ? [] : g.type === 'Polygon' ? [g.coordinates] : g.type === 'MultiPolygon' ? g.coordinates : [];
+      if (!polys.length) { setStatus('That feature has no area to search.', 'error'); return; }
+      const area = p => { try { return turf.area(turf.polygon(p)); } catch (e) { return 0; } };
+      const big = Math.max(...polys.map(area));
+      const keep = polys.filter(p => area(p) >= big * 0.01);
+      const toLl = r => r.slice(0, -1).map(c => [c[1], c[0]]);
+      keep.forEach((p, i) => addPolygonSafe(toLl(p[0]), label + (keep.length > 1 ? ' (' + (i + 1) + ')' : ''), p.slice(1).map(toLl)));
+      map.closePopup();
+      setStatus('Added ' + label + ' as a search area' + (keep.length < polys.length ? ' (' + (polys.length - keep.length) + ' small outlying parts left out)' : '') + '.', 'success');
+    }
+  }
+};
+</script>
 <script src="layers.js?v=7.36c"></script>
 <script src="measure.js"></script>
 <script src="projects.js"></script>
@@ -7720,6 +7749,13 @@ if (window._pendingShare) {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v7.36b</span>
+      <span class="changelog-date">Oct 2026</span>
+      <ul>
+        <li>Layers: click any layer feature (a catchment, a protection management area, a QEII covenant and so on) and choose "Use as search area" to add its boundary as an analysis polygon, at full detail. Small outlying parts such as offshore islets are left out</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v7.36a</span>
       <span class="changelog-date">Oct 2026</span>
