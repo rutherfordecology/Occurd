@@ -580,3 +580,17 @@ html, body { max-width: 100vw; overflow-x: hidden; }
 #btnTlRainbowSb, #btnTlEffortSb, #btnTlRainbow, #btnTlEffort { outline: none; }
 #btnTlRainbowSb:focus-visible, #btnTlEffortSb:focus-visible,
 #btnTlRainbow:focus-visible, #btnTlEffort:focus-visible { box-shadow: 0 0 0 2px rgba(42,122,88,0.28); }
+
+/* Layers panel (layers.js, top right of the map) steps left of the species list and
+   its tab instead of covering them. On phones the open list fills most of the map,
+   so the panel steps aside until the list is closed */
+#map-wrap:has(#clToggleHandle:not([style*="none"])) #layersPanel { right: 36px !important; }
+#map-wrap:has(#checklistPanel.open) #layersPanel { right: 326px !important; }
+@media (min-width: 701px) and (max-width: 1024px) {
+  #map-wrap:has(#checklistPanel.open) #layersPanel { right: 286px !important; }
+}
+@media (max-width: 700px) {
+  #map-wrap:has(#clToggleHandle:not([style*="none"])) #layersPanel,
+  #map-wrap:has(#checklistPanel.open) #layersPanel { right: 10px !important; }
+  #map-wrap:has(#checklistPanel.open) #layersPanel { display: none !important; }
+}
