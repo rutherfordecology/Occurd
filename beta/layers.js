@@ -308,6 +308,7 @@
   // { button(onClick) → element, run(feature, label, layerName) }. The shown features
   // are simplified to ~1 px, so ArcGIS features are fetched again at full
   // detail before being handed over; LRIS WFS features are already full.
+  // Only areas get the button: a line (e.g. the coastal marine area boundary) has nothing inside it.
   function popupWithAction(l, f) {
     const el = document.createElement('div');
     el.innerHTML = popupHtml(l, f.properties);
@@ -374,7 +375,7 @@
       shown[id] = L.geoJSON(fc, {
         pane: 'qeiiPane',
         style: { color: l.color, weight: 1.5, fillColor: l.color, fillOpacity: 0.15 },
-        onEachFeature: (f, lyr) => lyr.bindPopup(HOST.featureAction ? () => popupWithAction(l, f) : popupHtml(l, f.properties), { maxWidth: 300 })
+        onEachFeature: (f, lyr) => lyr.bindPopup(HOST.featureAction && /Polygon/.test((f.geometry || {}).type) ? () => popupWithAction(l, f) : popupHtml(l, f.properties), { maxWidth: 300 })
       }).addTo(map);
       setStatus(id, (fc.features || []).length + ' shown' + (capped ? ' (limit reached, zoom in)' : ''));
     } catch (e) {
