@@ -49,7 +49,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v7.36d (beta)</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v7.36e (beta)</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -1315,7 +1315,7 @@ map.on(L.Draw.Event.CREATED, e => {
     } else {
       setStatus('Drag corners to adjust the polygon, then click Fetch when ready.', 'info');
     }
-    // Layers panel open: also add the ticked layers' areas under the drawn polygon
+    // Layers panel open: also add the ticked layers' areas within the drawn polygon
     // (catchments, PMAs and so on), keeping the drawn polygon as QEII does.
     const _drawnForLayers = polygons.find(p => p.id === id);
     if (_drawnForLayers && window._layersFeaturesUnder) {
@@ -1323,13 +1323,13 @@ map.on(L.Draw.Event.CREATED, e => {
       window._layersFeaturesUnder(_drawnForLayers.latlngs, _drawnForLayers.holes, LAYER_SELECT_MAX).then(({ count, items }) => {
         if (!count) return;
         if (!items.length) {
-          setStatus(count + ' features in the ticked layers overlap this polygon, more than ' + LAYER_SELECT_MAX + ' to add at once. Untick some layers or draw a smaller area.', 'warning');
+          setStatus(count + ' areas in the ticked layers lie within this polygon, more than ' + LAYER_SELECT_MAX + ' to add at once. Untick some layers or draw a smaller area.', 'warning');
           return;
         }
         let parts = 0;
         items.forEach(it => { parts += addLayerArea(it.feature, it.label).added; });
         const names = [...new Set(items.map(it => String(it.label).split(' | ')[0]))];
-        setStatus('Added ' + items.length + ' area' + (items.length === 1 ? '' : 's') + ' from the ticked layers under your polygon: ' +
+        setStatus('Added ' + items.length + ' area' + (items.length === 1 ? '' : 's') + ' from the ticked layers within your polygon: ' +
           names.slice(0, 6).join(', ') + (names.length > 6 ? ' and ' + (names.length - 6) + ' more' : '') +
           '. Your drawn polygon is kept; remove it with × if you only want these.', 'success');
       }).catch(e => console.warn('Layers draw-to-select failed', e));
@@ -7760,7 +7760,7 @@ window.LAYERS_HOST = {
   }
 };
 </script>
-<script src="layers.js?v=7.36d"></script>
+<script src="layers.js?v=7.36e"></script>
 <script src="measure.js"></script>
 <script src="projects.js"></script>
 <script src="taxonomy.js"></script>
@@ -7774,6 +7774,13 @@ window.LAYERS_HOST = {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v7.36e</span>
+      <span class="changelog-date">Oct 2026</span>
+      <ul>
+        <li>Layers draw to select: only areas within your drawn polygon are added (at least 90% of the area inside it), not every area it touches</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v7.36d</span>
       <span class="changelog-date">Oct 2026</span>

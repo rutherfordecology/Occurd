@@ -330,9 +330,16 @@
   }
 
   // Draw-to-select for a host page: the shown area features of ticked layers that
-  // overlap a drawn polygon. Returns { count, items: [{ feature, label, layerName }] };
+  // lie within a drawn polygon, i.e. with at least WITHIN_SHARE of their area inside
+  // it (a hand-drawn edge that clips a boundary slightly still counts). Returns { count, items: [{ feature, label, layerName }] };
   // items are fetched at full detail only when count <= max, so a busy layer can't
   // flood the host. count is 0 when the panel is closed.
+  const WITHIN_SHARE = 0.9;
+  function overlapArea(a, b) {
+    let x = null;
+    try { x = turf.intersect(a, b); } catch (e) { try { x = turf.intersect(turf.featureCollection([a, b])); } catch (e2) {} }
+    return x ? turf.area(x) : 0;
+  }
   window._layersFeaturesUnder = async function (latlngs, holes, max) {
     if (!active || !register) return { count: 0, items: [] };
     const { poly, refLng } = G.llToTurfPolygon(latlngs, holes);
@@ -343,7 +350,11 @@
         const f = lyr.feature, g = f && f.geometry;
         if (!g || !/Polygon/.test(g.type)) return;
         const parts = g.type === 'Polygon' ? [g.coordinates] : g.coordinates;
-        try { if (parts.some(c => turf.booleanIntersects(poly, G.geoJsonPolyToTurfInFrame(c, refLng)))) hits.push({ l, f }); } catch (e) {}
+        try {
+          let total = 0, inside = 0;
+          parts.forEach(c => { const fp = G.geoJsonPolyToTurfInFrame(c, refLng); total += turf.area(fp); inside += overlapArea(poly, fp); });
+          if (total > 0 && inside / total >= WITHIN_SHARE) hits.push({ l, f });
+        } catch (e) {}
       });
     });
     if (max && hits.length > max) return { count: hits.length, items: [] };
