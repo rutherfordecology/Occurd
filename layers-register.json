@@ -1,5 +1,5 @@
 {
-  "register_version": "2026-10-21a",
+  "register_version": "2026-10-21b",
   "notes": "Layers shown by the Projects > Layers panel and tested by its layer check. The report workflow reads this same file. These are published GIS layers, not the legal plan maps: confirm anything decisive against the operative plan.",
   "layers": [
     {
@@ -185,8 +185,27 @@
       ],
       "color": "#0891b2",
       "minZoom": 6,
-      "notes": "The 90 catchments of New Zealand's major rivers, dissolved from REC2 v2.5 watersheds and named after the main river. Smaller coastal streams that drain straight to the sea fall outside every polygon, so a 'no' does not mean the site has no catchment. CUM_AREA is the whole catchment's area in square metres (CATAREA is only the outlet reach's own area).",
+      "notes": "The 90 catchments of New Zealand's major rivers, dissolved from REC2 v2.5 watersheds and named after the main river. Smaller coastal streams that drain straight to the sea fall outside every polygon; see NZ river catchments, all sizes. CUM_AREA is the whole catchment's area in square metres (CATAREA is only the outlet reach's own area).",
       "attribution": "NIWA (REC2 v2.5)"
+    },
+    {
+      "id": "niwa_catchments_all",
+      "group": "NIWA (River Environment Classification)",
+      "name": "NZ river catchments, all sizes",
+      "source": "arcgis",
+      "url": "https://services3.arcgis.com/fp1tibNcN9mbExhG/ArcGIS/rest/services/Coastal_catchments/FeatureServer",
+      "sublayers": [
+        0
+      ],
+      "labelFields": [
+        "NAME",
+        "AREA",
+        "Region"
+      ],
+      "color": "#4f46e5",
+      "minZoom": 6,
+      "notes": "411 catchments that together cover the whole country, each running from the coast to the divide: the large rivers plus the small streams and coastal strips between them, down to 2 km² (median 180 km²). AREA is in square kilometres. Tributary sub-catchments within a river are not split out.",
+      "attribution": "NIWA"
     },
     {
       "id": "lris_lcdb",
