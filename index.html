@@ -49,7 +49,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v7.36c</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v7.36d</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -1314,6 +1314,25 @@ map.on(L.Draw.Event.CREATED, e => {
       setStatus(n + ' QEII covenant' + (n === 1 ? '' : 's') + ' added. Drag corners or fetch when ready.', 'success');
     } else {
       setStatus('Drag corners to adjust the polygon, then click Fetch when ready.', 'info');
+    }
+    // Layers panel open: also add the ticked layers' areas under the drawn polygon
+    // (catchments, PMAs and so on), keeping the drawn polygon as QEII does.
+    const _drawnForLayers = polygons.find(p => p.id === id);
+    if (_drawnForLayers && window._layersFeaturesUnder) {
+      const LAYER_SELECT_MAX = 40;
+      window._layersFeaturesUnder(_drawnForLayers.latlngs, _drawnForLayers.holes, LAYER_SELECT_MAX).then(({ count, items }) => {
+        if (!count) return;
+        if (!items.length) {
+          setStatus(count + ' features in the ticked layers overlap this polygon, more than ' + LAYER_SELECT_MAX + ' to add at once. Untick some layers or draw a smaller area.', 'warning');
+          return;
+        }
+        let parts = 0;
+        items.forEach(it => { parts += addLayerArea(it.feature, it.label).added; });
+        const names = [...new Set(items.map(it => String(it.label).split(' | ')[0]))];
+        setStatus('Added ' + items.length + ' area' + (items.length === 1 ? '' : 's') + ' from the ticked layers under your polygon: ' +
+          names.slice(0, 6).join(', ') + (names.length > 6 ? ' and ' + (names.length - 6) + ' more' : '') +
+          '. Your drawn polygon is kept; remove it with × if you only want these.', 'success');
+      }).catch(e => console.warn('Layers draw-to-select failed', e));
     }
   }
 });
@@ -7710,6 +7729,19 @@ if (window._pendingShare) {
 // Layers popups get a "Use as search area" button (layers.js HOST.featureAction):
 // the feature's full-detail boundary becomes an analysis polygon. Parts under 1%
 // of the largest (offshore islets, slivers) are left out of multi-part features.
+// Returns { added, dropped } part counts.
+function addLayerArea(feature, label) {
+  label = String(label || 'Layer area').split(' | ')[0];
+  const g = feature && feature.geometry;
+  const polys = !g ? [] : g.type === 'Polygon' ? [g.coordinates] : g.type === 'MultiPolygon' ? g.coordinates : [];
+  if (!polys.length) return { added: 0, dropped: 0 };
+  const area = p => { try { return turf.area(turf.polygon(p)); } catch (e) { return 0; } };
+  const big = Math.max(...polys.map(area));
+  const keep = polys.filter(p => area(p) >= big * 0.01);
+  const toLl = r => r.slice(0, -1).map(c => [c[1], c[0]]);
+  keep.forEach((p, i) => addPolygonSafe(toLl(p[0]), label + (keep.length > 1 ? ' (' + (i + 1) + ')' : ''), p.slice(1).map(toLl)));
+  return { added: keep.length, dropped: polys.length - keep.length };
+}
 window.LAYERS_HOST = {
   featureAction: {
     button(onClick) {
@@ -7720,22 +7752,15 @@ window.LAYERS_HOST = {
       return b;
     },
     run(feature, label) {
-      label = String(label || 'Layer area').split(' | ')[0];
-      const g = feature && feature.geometry;
-      const polys = !g ? [] : g.type === 'Polygon' ? [g.coordinates] : g.type === 'MultiPolygon' ? g.coordinates : [];
-      if (!polys.length) { setStatus('That feature has no area to search.', 'error'); return; }
-      const area = p => { try { return turf.area(turf.polygon(p)); } catch (e) { return 0; } };
-      const big = Math.max(...polys.map(area));
-      const keep = polys.filter(p => area(p) >= big * 0.01);
-      const toLl = r => r.slice(0, -1).map(c => [c[1], c[0]]);
-      keep.forEach((p, i) => addPolygonSafe(toLl(p[0]), label + (keep.length > 1 ? ' (' + (i + 1) + ')' : ''), p.slice(1).map(toLl)));
+      const r = addLayerArea(feature, label);
+      if (!r.added) { setStatus('That feature has no area to search.', 'error'); return; }
       map.closePopup();
-      setStatus('Added ' + label + ' as a search area' + (keep.length < polys.length ? ' (' + (polys.length - keep.length) + ' small outlying parts left out)' : '') + '.', 'success');
+      setStatus('Added ' + String(label).split(' | ')[0] + ' as a search area' + (r.dropped ? ' (' + r.dropped + ' small outlying parts left out)' : '') + '.', 'success');
     }
   }
 };
 </script>
-<script src="layers.js?v=7.36c2"></script>
+<script src="layers.js?v=7.36d"></script>
 <script src="measure.js"></script>
 <script src="projects.js"></script>
 <script src="taxonomy.js"></script>
@@ -7749,6 +7774,13 @@ window.LAYERS_HOST = {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v7.36d</span>
+      <span class="changelog-date">Oct 2026</span>
+      <ul>
+        <li>Layers: draw to select. With the Layers panel open, drawing a polygon (or rectangle) now also adds every area of the ticked layers it overlaps (catchments, protection management areas and so on) as search areas at full detail, as QEII covenants already did. Your drawn polygon is kept. Up to 40 at a time; over that, untick some layers or draw a smaller area</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v7.36c</span>
       <span class="changelog-date">Oct 2026</span>

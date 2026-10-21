@@ -309,23 +309,47 @@
   // are simplified to ~1 px, so ArcGIS features are fetched again at full
   // detail before being handed over; LRIS WFS features are already full.
   // Only areas get the button: a line (e.g. the coastal marine area boundary) has nothing inside it.
+  async function fullDetail(l, f) {
+    if (l.source === 'arcgis' && f.id != null && f._sub != null) {
+      try {
+        const body = new URLSearchParams({ f: 'geojson', objectIds: String(f.id), outFields: '*', outSR: '4326', returnGeometry: 'true', geometryPrecision: '7' });
+        const r = await fetch(l.url + '/' + f._sub + '/query', { method: 'POST', body });
+        const j = r.ok ? await r.json() : null;
+        if (j && j.features && j.features[0] && j.features[0].geometry) return j.features[0];
+      } catch (e) { console.warn('Layers: full-detail fetch failed, using the shown boundary', e); }
+    }
+    return f;
+  }
   function popupWithAction(l, f) {
     const el = document.createElement('div');
     el.innerHTML = popupHtml(l, f.properties);
     el.appendChild(HOST.featureAction.button(async () => {
-      let feature = f;
-      if (l.source === 'arcgis' && f.id != null && f._sub != null) {
-        try {
-          const body = new URLSearchParams({ f: 'geojson', objectIds: String(f.id), outFields: '*', outSR: '4326', returnGeometry: 'true', geometryPrecision: '7' });
-          const r = await fetch(l.url + '/' + f._sub + '/query', { method: 'POST', body });
-          const j = r.ok ? await r.json() : null;
-          if (j && j.features && j.features[0] && j.features[0].geometry) feature = j.features[0];
-        } catch (e) { console.warn('Layers: full-detail fetch failed, using the shown boundary', e); }
-      }
-      HOST.featureAction.run(feature, labelFor(l, f.properties) || l.name, l.name);
+      HOST.featureAction.run(await fullDetail(l, f), labelFor(l, f.properties) || l.name, l.name);
     }));
     return el;
   }
+
+  // Draw-to-select for a host page: the shown area features of ticked layers that
+  // overlap a drawn polygon. Returns { count, items: [{ feature, label, layerName }] };
+  // items are fetched at full detail only when count <= max, so a busy layer can't
+  // flood the host. count is 0 when the panel is closed.
+  window._layersFeaturesUnder = async function (latlngs, holes, max) {
+    if (!active || !register) return { count: 0, items: [] };
+    const { poly, refLng } = G.llToTurfPolygon(latlngs, holes);
+    const hits = [];
+    Object.keys(shown).forEach(id => {
+      const l = layerById(id); if (!l) return;
+      shown[id].eachLayer(lyr => {
+        const f = lyr.feature, g = f && f.geometry;
+        if (!g || !/Polygon/.test(g.type)) return;
+        const parts = g.type === 'Polygon' ? [g.coordinates] : g.coordinates;
+        try { if (parts.some(c => turf.booleanIntersects(poly, G.geoJsonPolyToTurfInFrame(c, refLng)))) hits.push({ l, f }); } catch (e) {}
+      });
+    });
+    if (max && hits.length > max) return { count: hits.length, items: [] };
+    const items = await Promise.all(hits.map(async ({ l, f }) => ({ feature: await fullDetail(l, f), label: labelFor(l, f.properties) || l.name, layerName: l.name })));
+    return { count: hits.length, items };
+  };
 
   // Features of one register layer within a [w,s,e,n] box (wrapped degrees).
   // tol = generalisation tolerance in degrees for ArcGIS layers.
