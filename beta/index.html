@@ -49,7 +49,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v7.36c</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v7.36 (beta)</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -7721,28 +7721,28 @@ if (window._pendingShare) {
   </div>
   <div class="changelog-scroll" id="changelogScroll">
     <div class="changelog-version">
-      <span class="changelog-version-tag">v7.36c (beta)</span>
+      <span class="changelog-version-tag">v7.36</span>
       <span class="changelog-date">Oct 2026</span>
       <ul>
-        <li>Layers: brought into line with the live site. Group headings fold away with a chevron (remembered), and inferrd. can add its own group at the top and its "Analyse this area" button to layer popups. Report maps are unchanged</li>
+        <li>Layers: new "Report maps" button. Draws three 1800 × 1200 px PNG figures for a chosen site polygon: a location map, the site and its work zone (500 m by default) on aerial imagery, and protection and planning context within 2 km (the ticked layers, or protection management areas and QEII covenants if none are ticked). Each has a scale bar, north arrow, legend and attribution, and credits each layer's own source</li>
+        <li>New 500 m buffer button, for a works area around a site</li>
+        <li>New "&#8595; KML" button on each drawn or imported area (and each buffer): downloads that area as KML as soon as you make it. No fetch needed first</li>
       </ul>
     </div>
     <div class="changelog-version">
-      <span class="changelog-version-tag">v7.36b (beta)</span>
+      <span class="changelog-version-tag">v7.35e</span>
       <span class="changelog-date">Oct 2026</span>
       <ul>
         <li>Draw a rectangle: a new square button under the polygon tool. Click and drag to draw a box; it becomes an analysis polygon like any other, and its corners can be dragged before you fetch</li>
         <li>Layers: new "NZ large river catchments" layer from NIWA's River Environment Classification (REC2 v2.5), showing the 90 major river catchments by name from zoom level 6. The layer check now also reports which catchment a polygon falls in. Small coastal streams that drain straight to the sea are not covered</li>
         <li>Layers: every layer now starts unticked when the panel opens, instead of re-showing the ones ticked last time</li>
-        <li>Report maps credit each layer's own source in the attribution line</li>
       </ul>
     </div>
     <div class="changelog-version">
-      <span class="changelog-version-tag">v7.36a (beta)</span>
+      <span class="changelog-version-tag">v7.35d</span>
       <span class="changelog-date">Oct 2026</span>
       <ul>
         <li>Measure tools: two new buttons under the drawing tools. Measure a distance (draw a line; its length shows in m or km) or an area (draw a polygon; its area shows in ha or m², with the perimeter). Measurements stay on the map until you click them and never become analysis polygons. Shared with inferrd.</li>
-        <li>Layers: new "Report maps" button. Draws three 1800 × 1200 px PNG figures for a chosen site polygon: a location map, the site and its work zone (500 m by default) on aerial imagery, and protection and planning context within 2 km (the ticked layers, or protection management areas and QEII covenants if none are ticked). Each has a scale bar, north arrow, legend and attribution</li>
       </ul>
     </div>
     <div class="changelog-version">
@@ -7750,14 +7750,6 @@ if (window._pendingShare) {
       <span class="changelog-date">Oct 2026</span>
       <ul>
         <li>Downloaded files (CSV, GeoJSON, KML, checklist) now carry the hour and minute as well as the date in their name, e.g. <code>gbif_occurrences_2026-10-08_1432.csv</code>, so a second export on the same day no longer replaces the first. The stamp uses your local time rather than UTC</li>
-      </ul>
-    </div>
-    <div class="changelog-version">
-      <span class="changelog-version-tag">v7.35b</span>
-      <span class="changelog-date">Oct 2026</span>
-      <ul>
-        <li>New 500 m buffer button, for a works area around a site</li>
-        <li>New "&#8595; KML" button on each drawn or imported area (and each buffer): downloads that area as KML as soon as you make it. No fetch needed first</li>
       </ul>
     </div>
     <div class="changelog-version">

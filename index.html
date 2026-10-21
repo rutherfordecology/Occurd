@@ -49,7 +49,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v7.35e</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v7.36</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -2326,12 +2326,15 @@ function renderPolyList() {
     const bufRow = document.createElement('div'); bufRow.className = 'poly-buffer-row';
     const _obscId = 'obscured-' + p.id;
     bufRow.innerHTML =
-      '<div class="poly-buf-obscured-row"><label class="poly-buf-obscured-label" title="Skips GBIF and fetches only obscured iNaturalist records for this polygon. When ticked, any buffer created from this polygon will also use iNat obscured mode.">' +
-      '<input type="checkbox" id="' + _obscId + '"' + (p.obscuredOnly ? ' checked' : '') + '> this polygon: iNat obscured only</label></div>' +
+      '<div class="poly-buf-obscured-row" style="display:flex;align-items:center;justify-content:space-between;gap:8px;"><label class="poly-buf-obscured-label" title="Skips GBIF and fetches only obscured iNaturalist records for this polygon. When ticked, any buffer created from this polygon will also use iNat obscured mode.">' +
+      '<input type="checkbox" id="' + _obscId + '"' + (p.obscuredOnly ? ' checked' : '') + '> this polygon: iNat obscured only</label>' +
+      '<button class="poly-kml-btn" title="Download this area as KML" style="background:none;border:none;padding:0;cursor:pointer;font-size:11px;font-weight:600;font-family:var(--font-sans);color:var(--green-dark);white-space:nowrap;">&#8595; KML</button></div>' +
       '<div class="poly-buf-btns"><span class="poly-buffer-label">Add buffer:</span>' +
+      '<button class="poly-buf-btn" data-km="0.5" data-unit="km" title="500 m buffer — a typical works area around a site.">500 m</button>' +
       [1,2,5,10].map(km => '<button class="poly-buf-btn" data-km="' + km + '" data-unit="km">' + km + ' km</button>').join('') +
       '<button class="poly-buf-btn" data-km="0.2" data-unit="deg" title="0.2° buffer — matches the iNaturalist obscured-record grid square.">0.2°</button>' +
       '</div>';
+    bufRow.querySelector('.poly-kml-btn').addEventListener('click', () => downloadAreasKml([p]));
     bufRow.querySelector('#' + _obscId).addEventListener('change', function() {
       p.obscuredOnly     = this.checked;
       p._bufObscuredOnly = this.checked;
@@ -2415,7 +2418,7 @@ function addBufferPolygon(poly, amount, obscuredOnly, unit) {
     const turfUnit = unit === 'deg' ? 'degrees' : 'kilometers';
     const buffered = turf.buffer(geojson, amount, { units: turfUnit });
     const bCoords  = buffered.geometry.coordinates[0].slice(0, -1).map(c => [c[1], c[0]]);
-    const label    = unit === 'deg' ? amount + '° buffer' : amount + 'km buffer';
+    const label    = unit === 'deg' ? amount + '° buffer' : (amount < 1 ? Math.round(amount * 1000) + 'm buffer' : amount + 'km buffer');
     const suffix   = obscuredOnly ? label + ' (obscured only)' : label;
     addPolygon(bCoords, poly.label + ' + ' + suffix, [], { obscuredOnly: !!obscuredOnly });
   } catch(e) { console.warn('Buffer failed:', e); }
@@ -7142,6 +7145,26 @@ document.getElementById('dlKmlBtn').addEventListener('click', () => {
   downloadBlob(kml, 'gbif_records_' + fileStamp() + '.kml', 'application/vnd.google-earth.kml+xml');
 });
 
+// One drawn or imported area (or several) as KML — available before any fetch
+function downloadAreasKml(list) {
+  const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  const ringStr = ll => closeRingCoords(unwrappedRingCoords(ll)).map(([x, y]) => wrapLng180(x).toFixed(7) + ',' + (+y).toFixed(7) + ',0').join(' ');
+  const geom = (list || []).filter(p => p && p.type !== 'species' && p.latlngs && p.latlngs.length >= 3);
+  if (!geom.length) return;
+  const placemarks = geom.map(p =>
+    '  <Placemark>\n    <name>' + esc(p.label) + '</name>\n    <styleUrl>#area</styleUrl>\n    <Polygon>\n' +
+    '      <outerBoundaryIs><LinearRing><coordinates>' + ringStr(p.latlngs) + '</coordinates></LinearRing></outerBoundaryIs>\n' +
+    (p.holes || []).filter(h => h && h.length >= 3).map(h => '      <innerBoundaryIs><LinearRing><coordinates>' + ringStr(h) + '</coordinates></LinearRing></innerBoundaryIs>\n').join('') +
+    '    </Polygon>\n  </Placemark>').join('\n');
+  const day = new Date().toISOString().split('T')[0];
+  const kml = '<?xml version="1.0" encoding="UTF-8"?>\n<kml xmlns="http://www.opengis.net/kml/2.2">\n<Document>\n' +
+    '  <name>' + esc(geom.length === 1 ? geom[0].label : 'Search areas') + ' ' + day + '</name>\n' +
+    '  <Style id="area"><LineStyle><color>ff2a7a3f</color><width>2</width></LineStyle><PolyStyle><color>332a7a3f</color></PolyStyle></Style>\n' +
+    placemarks + '\n</Document>\n</kml>';
+  const base = geom.length === 1 ? geom[0].label.replace(/[^A-Za-z0-9 _+-]/g, '').trim().replace(/\s+/g, '_') : 'search_areas';
+  downloadBlob(kml, (base || 'search_area') + '_' + fileStamp() + '.kml', 'application/vnd.google-earth.kml+xml');
+}
+
 document.getElementById('dlChecklistBtn').addEventListener('click', () => {
   const filtered = allRecords.filter(passesFilters);
   // Aggregate per taxon group → species
@@ -7683,7 +7706,7 @@ if (window._pendingShare) {
 <script src="but-is-it-threatened/locality-core.js"></script>
 <script src="species-search.js"></script>
 <script src="qeii.js"></script>
-<script src="layers.js"></script>
+<script src="layers.js?v=7.36c"></script>
 <script src="measure.js"></script>
 <script src="projects.js"></script>
 <script src="taxonomy.js"></script>
@@ -7697,6 +7720,15 @@ if (window._pendingShare) {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v7.36</span>
+      <span class="changelog-date">Oct 2026</span>
+      <ul>
+        <li>Layers: new "Report maps" button. Draws three 1800 × 1200 px PNG figures for a chosen site polygon: a location map, the site and its work zone (500 m by default) on aerial imagery, and protection and planning context within 2 km (the ticked layers, or protection management areas and QEII covenants if none are ticked). Each has a scale bar, north arrow, legend and attribution, and credits each layer's own source</li>
+        <li>New 500 m buffer button, for a works area around a site</li>
+        <li>New "&#8595; KML" button on each drawn or imported area (and each buffer): downloads that area as KML as soon as you make it. No fetch needed first</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v7.35e</span>
       <span class="changelog-date">Oct 2026</span>
