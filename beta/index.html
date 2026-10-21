@@ -49,7 +49,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v7.36g (beta)</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v7.36h (beta)</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -1508,6 +1508,13 @@ document.getElementById('dateFrom').value = _fromStr;
 // The correction runs on blur, not change: Chrome/Edge fire change on every keystroke
 // that leaves a complete date, so typing the year "2019" passes through 0002, 0020 and
 // 0201 — and a change-time check dragged the other field down to year 0002.
+// For code that sets both dates at once (a share link, a link's query string, a
+// saved session): the same correction the blur handlers below make. v7.34e dropped
+// this function but not its two callers, so share links stopped at this line.
+function syncDateRangeGuard() {
+  const dFrom = document.getElementById('dateFrom'), dTo = document.getElementById('dateTo');
+  if (dFrom.value && dTo.value && dFrom.value > dTo.value) dTo.value = dFrom.value;
+}
 document.getElementById('dateFrom').addEventListener('blur', () => {
   const dFrom = document.getElementById('dateFrom'), dTo = document.getElementById('dateTo');
   if (dFrom.value && dTo.value && dFrom.value > dTo.value) dTo.value = dFrom.value;
@@ -1855,10 +1862,11 @@ function passesFilters(r) {
 
 function _llToArr(ll) { const la = ll.lat ?? ll[0]; const ln = ll.lng ?? ll[1]; return [+la.toFixed(5), +ln.toFixed(5)]; }
 
-function generateShareState() {
+// opts.allowEmpty: a saved session may hold species only, with no drawn area.
+function generateShareState(opts) {
   const geomPolys    = polygons.filter(p => p.type !== 'species');
   const speciesPolys = polygons.filter(p => p.type === 'species');
-  if (!geomPolys.length) return null;
+  if (!geomPolys.length && !(opts && opts.allowEmpty)) return null;
   const taxonAllSel = document.getElementById('taxonAllLabel').classList.contains('selected');
   const selectedTaxa = taxonAllSel ? [] : taxonCbs().filter(cb => cb.closest('label').classList.contains('selected')).map(cb => cb.value);
   const mapC = map.getCenter(), mapZ = map.getZoom();
@@ -1940,8 +1948,9 @@ function copyShareUrlFromModal() {
 
 let _pendingSharePostFetch = null; // display state applied after fetch completes
 
-function restoreFromShare(state) {
-  if (!state || !state.polys?.length) return;
+// opts.quiet: no "fetching results" banner (a saved session brings its own records).
+function restoreFromShare(state, opts) {
+  if (!state || (!state.polys?.length && !state.species?.length)) return;
   // ── Pre-fetch: polygons, species, dates, taxa, basis, cluster, map view ──
   state.polys.forEach(p => addPolygon(p.latlngs, p.label, p.holes || [], { obscuredOnly: !!p.obscuredOnly }));
   if (state.species && state.species.length) {
@@ -1991,6 +2000,7 @@ function restoreFromShare(state) {
     activeFilters: state.activeFilters,
   };
 
+  if (opts && opts.quiet) return;
   // Banner
   const banner = document.createElement('div');
   banner.style.cssText = 'position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:9999;background:var(--green-dark);color:#fff;font-size:12px;font-weight:600;font-family:var(--font-sans);padding:7px 16px;border-radius:var(--radius-pill);box-shadow:0 2px 10px rgba(0,0,0,0.2);pointer-events:none;';
@@ -2476,6 +2486,7 @@ fileInput.addEventListener('change', () => { Array.from(fileInput.files).forEach
 
 function handleFile(file) {
   const name = file.name.toLowerCase();
+  if (name.endsWith('.occurd') && window.openOccurdSession) { window.openOccurdSession(file); return; }
   if (name.endsWith('.kmz')) handleKMZ(file);
   else if (name.endsWith('.kml')) { const r = new FileReader(); r.onload = e => processKMLText(e.target.result, file.name); r.readAsText(file); }
   else if (name.endsWith('.csv')) { const r = new FileReader(); r.onload = e => handleGbifCsv(e.target.result, file.name); r.readAsText(file); }
@@ -7779,7 +7790,217 @@ window.LAYERS_HOST = {
   }
 };
 </script>
-<script src="layers.js?v=7.36e"></script>
+<script>
+// ── Sessions ──────────────────────────────────────────────────────────────────
+// Save a whole session to a file and open it again later. The controls live in the
+// Layers panel (LAYERS_HOST.panelSection below), so only a browser unlocked with the
+// Layers password sees them; the public page is unchanged.
+//
+// A session is one gzipped .occurd file: the search (areas, species, filters,
+// display, map view: the same state a share link carries), the fetched records, and
+// the lookups made for them (common names, IUCN, chosen subspecies), so it reopens
+// exactly as it was without asking GBIF again. Records keep their polygon by id, so
+// ids are remapped to the ones the reopened areas get.
+//
+// "Reopen my last session" is off by default and kept per browser (IndexedDB, since
+// records outgrow localStorage). It restores only while this browser is still
+// unlocked, and "Lock and forget" deletes the stored session, so a shared computer
+// keeps nothing for the next person.
+(function () {
+  const SESSION_V = 1;
+  const RESTORE_KEY = 'occurd_session_restore';
+  const IDB_NAME = 'occurd-session', IDB_STORE = 'kv', IDB_KEY = 'last';
+
+  function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+  function lsDel(k) { try { localStorage.removeItem(k); } catch (e) {} }
+  const restoreOn = () => lsGet(RESTORE_KEY) === '1';
+  const unlocked  = () => !!(window._layersHasKey && window._layersHasKey());
+  const appVersion = () => { const el = document.querySelector('header h1 span'); return el ? el.textContent.trim() : ''; };
+
+  function buildSession() {
+    // Same order restoreFromShare re-adds them in: drawn areas, then species
+    const ordered = [...polygons.filter(p => p.type !== 'species'), ...polygons.filter(p => p.type === 'species')];
+    return {
+      app: 'occurd', kind: 'session', v: SESSION_V, appVersion: appVersion(), savedAt: new Date().toISOString(),
+      state: generateShareState({ allowEmpty: true }),
+      polyIds: ordered.map(p => p.id),
+      records: allRecords,
+      commonNames: commonNameCache,
+      iucn: iucnCache,
+      nztcsChoices: [...nztcsConflictChoices]
+    };
+  }
+
+  async function gzip(text) {
+    if (typeof CompressionStream === 'undefined') return new Blob([text], { type: 'application/json' });
+    const s = new Blob([text]).stream().pipeThrough(new CompressionStream('gzip'));
+    return new Blob([await new Response(s).arrayBuffer()], { type: 'application/gzip' });
+  }
+  async function readSession(blob) {
+    const buf = new Uint8Array(await blob.arrayBuffer());
+    let text;
+    if (buf[0] === 0x1f && buf[1] === 0x8b) {
+      if (typeof DecompressionStream === 'undefined') throw new Error('this browser cannot unpack it');
+      text = await new Response(new Blob([buf]).stream().pipeThrough(new DecompressionStream('gzip'))).text();
+    } else {
+      text = new TextDecoder().decode(buf);
+    }
+    const ses = JSON.parse(text);
+    if (!ses || ses.app !== 'occurd' || ses.kind !== 'session') throw new Error('not an occurd. session');
+    return ses;
+  }
+
+  function applySession(ses, how) {
+    if (isFetching) { setStatus('Finish or cancel the fetch before opening a session.', 'warning'); return false; }
+    finalizePendingEdit();
+    clearAllBtn.click(); // current areas, species and results
+    const st = ses.state || {};
+    const start = nextPolyId;
+    restoreFromShare(st, { quiet: true });
+    _pendingSharePostFetch = null; // display state is applied below, once records are drawn
+    const idMap = new Map((ses.polyIds || []).map((old, i) => [old, start + i]));
+    const recs = ses.records || [];
+    recs.forEach(r => { if (idMap.has(r._polyId)) r._polyId = idMap.get(r._polyId); });
+    if (recs.length) {
+      commonNameCache = ses.commonNames || {};
+      iucnCache = ses.iucn || {};
+      nztcsConflictChoices.clear();
+      (ses.nztcsChoices || []).forEach(([k, v]) => nztcsConflictChoices.set(k, v));
+      allRecords = recs;
+      document.getElementById('mRecords').textContent = recs.length.toLocaleString();
+      document.getElementById('mSpecies').textContent = new Set(recs.map(r => r.species || r.scientificName).filter(Boolean)).size.toLocaleString();
+      metricsGrid.style.display = 'grid';
+      maybeActivateNztcs();
+      const iucnBtn = document.getElementById('clIucnBtn');
+      if (iucnBtn) { iucnBtn.style.display = ''; updateIucnBtn(); }
+      buildFilterChips(recs);
+      buildChecklist(recs);
+      setTimeout(() => prefetchPhotos(recs), 800);
+      const mobile = window.innerWidth < 700;
+      if (!mobile) checklistPanel.classList.add('open');
+      _showChecklistHandle(true); _updateChecklistHandle(!mobile);
+      if (st.mapLat != null && st.mapZ != null) map.setView([st.mapLat, st.mapLng], st.mapZ, { animate: false });
+      renderPoints(recs);
+      setTimeout(() => map.invalidateSize(), 100);
+      csvData = buildCSV(recs);
+      outputSection.style.display = 'block'; nerdToolsSection.style.display = 'block';
+      showQualityFlags(recs);
+      // Effort normalisation needs the original fetch's parameters, so it is left off
+      setTimeout(() => applyPostFetchShareState({
+        viewMode: st.viewMode, rainbow: st.rainbow, effort: false, tlMin: st.tlMin, tlMax: st.tlMax,
+        nztcs: st.nztcs, iucn: st.iucn, activeFilters: st.activeFilters
+      }), 100);
+    } else if (st.mapLat != null && st.mapZ != null) {
+      map.setView([st.mapLat, st.mapLng], st.mapZ, { animate: false });
+    }
+    const n = (st.polys || []).length + (st.species || []).length;
+    const when = ses.savedAt ? new Date(ses.savedAt).toLocaleString() : 'an earlier visit';
+    setStatus(how + ': ' + n + ' area' + (n === 1 ? '' : 's') + (recs.length ? ', ' + recs.length.toLocaleString() + ' records' : ', no records yet') +
+      ', saved ' + when + '.', 'success');
+    return true;
+  }
+
+  async function saveToFile() {
+    finalizePendingEdit();
+    if (!polygons.length) { setStatus('Nothing to save yet: draw or import an area first.', 'warning'); return; }
+    const blob = await gzip(JSON.stringify(buildSession()));
+    downloadBlob(blob, 'occurd_session_' + fileStamp() + '.occurd', 'application/gzip');
+    setStatus('Session saved: ' + polygons.length + ' area' + (polygons.length === 1 ? '' : 's') + ', ' +
+      allRecords.length.toLocaleString() + ' records (' + Math.max(1, Math.round(blob.size / 1024)).toLocaleString() + ' KB).', 'success');
+  }
+  async function openFile(file) {
+    try { applySession(await readSession(file), 'Opened ' + file.name); }
+    catch (e) { setStatus('Could not open ' + file.name + ': ' + e.message, 'error'); }
+  }
+  window.openOccurdSession = openFile; // also used by the drop zone for .occurd files
+
+  // ── Last session, this browser only ────────────────────────────────────────
+  function idb() {
+    return new Promise((res, rej) => {
+      const r = indexedDB.open(IDB_NAME, 1);
+      r.onupgradeneeded = () => r.result.createObjectStore(IDB_STORE);
+      r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
+    });
+  }
+  async function idbDo(mode, fn) {
+    const db = await idb();
+    return new Promise((res, rej) => {
+      const tx = db.transaction(IDB_STORE, mode), req = fn(tx.objectStore(IDB_STORE));
+      tx.oncomplete = () => { db.close(); res(req && req.result); };
+      tx.onerror = () => { db.close(); rej(tx.error); };
+    });
+  }
+  const idbGet = () => idbDo('readonly', s => s.get(IDB_KEY));
+  const idbPut = v => idbDo('readwrite', s => s.put(v, IDB_KEY));
+  const idbDel = () => idbDo('readwrite', s => s.delete(IDB_KEY)).catch(() => {});
+
+  // Cheap fingerprint of what a session holds, so unchanged sessions aren't re-saved
+  const signature = () => [
+    polygons.map(p => p.id + ':' + (p.latlngs ? p.latlngs.length : p.name)).join(','), allRecords.length,
+    document.getElementById('dateFrom').value, document.getElementById('dateTo').value,
+    viewMode, currentNztcsFilter, currentIucnFilter, [...activeFilters].join(',')
+  ].join('|');
+  let lastSig = null, saving = false;
+  async function autosave() {
+    if (!restoreOn() || !unlocked() || isFetching || saving) return;
+    const sig = signature();
+    if (sig === lastSig) return;
+    saving = true;
+    try {
+      if (!polygons.length) await idbDel();
+      else await idbPut({ savedAt: Date.now(), blob: await gzip(JSON.stringify(buildSession())) });
+      lastSig = sig;
+    } catch (e) { console.warn('Session: autosave failed', e); }
+    finally { saving = false; }
+  }
+
+  async function forget() { lsDel(RESTORE_KEY); await idbDel(); }
+  window.LAYERS_HOST.onForget = forget;
+
+  window.addEventListener('load', async () => {
+    try {
+      // Locked since last time (or never unlocked): nothing of a session stays behind
+      if (!unlocked()) { if (restoreOn()) await forget(); return; }
+      if (!restoreOn() || window._restoredFromShare || polygons.length) return;
+      const rec = await idbGet();
+      if (rec && rec.blob) applySession(await readSession(rec.blob), 'Reopened your last session');
+    } catch (e) {
+      console.warn('Session: restore failed', e);
+    } finally {
+      lastSig = signature();
+      setInterval(autosave, 30000);
+      document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') autosave(); });
+    }
+  });
+
+  // ── Controls: a "Session" group at the top of the Layers panel ─────────────
+  window.LAYERS_HOST.panelSection = (el, group) => {
+    const body = document.createElement('div');
+    body.innerHTML =
+      '<div style="font-size:11px;color:var(--text2);line-height:1.4;margin-bottom:6px;">Save the search and its fetched records to a file, and open it again later, here or on another computer. You can also drop a .occurd file on the drop zone.</div>' +
+      '<div style="display:flex;gap:5px;margin-bottom:6px;">' +
+        '<button class="dl-btn" id="sesSave" style="flex:1;">&#8595; Save session</button>' +
+        '<button class="dl-btn" id="sesOpen" style="flex:1;">Open session…</button>' +
+      '</div>' +
+      '<input type="file" id="sesFile" accept=".occurd" style="display:none;">' +
+      '<label style="display:flex;gap:6px;align-items:flex-start;cursor:pointer;font-size:11px;line-height:1.4;color:var(--text2);">' +
+        '<input type="checkbox" id="sesRestore" style="margin-top:2px;accent-color:var(--green, #2a7a58);"' + (restoreOn() ? ' checked' : '') + '>' +
+        '<span>Reopen my last session when this page opens, in this browser only. Stops, and the saved session is deleted, if Layers is locked again.</span>' +
+      '</label>';
+    el.appendChild(group('Session', body));
+    body.querySelector('#sesSave').addEventListener('click', saveToFile);
+    const input = body.querySelector('#sesFile');
+    body.querySelector('#sesOpen').addEventListener('click', () => input.click());
+    input.addEventListener('change', () => { if (input.files[0]) openFile(input.files[0]); input.value = ''; });
+    body.querySelector('#sesRestore').addEventListener('change', e => {
+      if (e.target.checked) { lsSet(RESTORE_KEY, '1'); lastSig = null; autosave(); }
+      else forget();
+    });
+  };
+})();
+</script>
+<script src="layers.js?v=7.36h"></script>
 <script src="measure.js"></script>
 <script src="projects.js"></script>
 <script src="taxonomy.js"></script>
@@ -7793,6 +8014,14 @@ window.LAYERS_HOST = {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v7.36h</span>
+      <span class="changelog-date">Oct 2026</span>
+      <ul>
+        <li>Sessions, in the Layers panel (so only a browser unlocked with the Layers password sees them): "Save session" downloads the search and its fetched records as one .occurd file, and "Open session…" (or dropping the file on the drop zone) reopens it exactly as it was, without fetching again. An optional "Reopen my last session" setting, off by default, reopens your work when the page opens in that browser; it stops, and the saved copy is deleted, if Layers is locked again</li>
+        <li>Fixed: share links (and links carrying a search in their address) had stopped loading since v7.34e. They failed partway through restoring the dates, so the search was never run</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v7.36g</span>
       <span class="changelog-date">Oct 2026</span>

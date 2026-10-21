@@ -282,6 +282,7 @@
     refreshMapSites();
     panel.querySelector('#lyrForget').addEventListener('click', e => {
       e.preventDefault(); lsDel(KEY_STORE); window._layersDeactivate();
+      if (typeof HOST.onForget === 'function') HOST.onForget(); // e.g. occurd.'s saved session
       if (window._projectsSetLocked) window._projectsSetLocked('layers');
     });
   }
