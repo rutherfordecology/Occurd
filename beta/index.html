@@ -50,7 +50,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v7.38 (beta)</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v7.39 (beta)</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -2413,6 +2413,24 @@ function renderPolyList() {
     polyList.appendChild(el);
   }
 
+  // Buffering each block on its own leaves buffers overlapping one another, and the
+  // overlaps are fetched once per buffer. This buffers every polygon and merges them.
+  function renderBufferAll(polys) {
+    const el = document.createElement('div'); el.className = 'poly-item poly-buffer-all';
+    el.innerHTML =
+      '<div class="poly-buf-btns" style="border-top:none;padding-top:0;" title="Buffers all ' + polys.length +
+      ' polygons and merges the buffers, so they don\'t overlap. The merged area includes the polygons themselves.">' +
+      '<span class="poly-buffer-label">Buffer all, merged:</span>' +
+      '<button class="poly-buf-btn" data-km="0.5" data-unit="km">500 m</button>' +
+      [1,2,5,10].map(km => '<button class="poly-buf-btn" data-km="' + km + '" data-unit="km">' + km + ' km</button>').join('') +
+      '<button class="poly-buf-btn" data-km="0.2" data-unit="deg">0.2°</button>' +
+      '</div>';
+    el.querySelectorAll('.poly-buf-btn').forEach(btn => {
+      btn.addEventListener('click', () => addMergedBuffer(polys, parseFloat(btn.dataset.km), btn.dataset.unit || 'km'));
+    });
+    polyList.appendChild(el);
+  }
+
   function renderSpecies(p) {
     const el = document.createElement('div'); el.className = 'poly-item species-entry';
     const topRow = document.createElement('div'); topRow.className = 'poly-item-row';
@@ -2444,6 +2462,7 @@ function renderPolyList() {
   }
 
   if (showHeaders && geomPolys.length)    addGroupLabel('Polygons');
+  if (geomPolys.length > 1) renderBufferAll(geomPolys);
   geomPolys.forEach(renderGeom);
   if (showHeaders && speciesPolys.length) addGroupLabel('Species');
   speciesPolys.forEach(renderSpecies);
@@ -2470,6 +2489,32 @@ function addBufferPolygon(poly, amount, obscuredOnly, unit) {
     const suffix   = obscuredOnly ? label + ' (obscured only)' : label;
     addPolygon(bCoords, poly.label + ' + ' + suffix, [], { obscuredOnly: !!obscuredOnly });
   } catch(e) { console.warn('Buffer failed:', e); }
+}
+
+// Buffer several polygons and merge the buffers into one area, so neighbouring
+// blocks' buffers don't overlap. Buffers that don't touch stay separate parts, and
+// a gap the merged buffers enclose stays a hole. Obscured-only carries over only
+// when every source polygon is obscured-only.
+function addMergedBuffer(polys, amount, unit) {
+  try {
+    const turfUnit = unit === 'deg' ? 'degrees' : 'kilometers';
+    const toRing = lls => closeRingCoords(lls.map(llToGeoJSON));
+    let merged = null;
+    polys.forEach(p => {
+      const b = turf.buffer(turf.polygon([toRing(p.latlngs), ...(p.holes || []).map(toRing)]), amount, { units: turfUnit });
+      merged = merged ? turf.union(merged, b) : b;
+    });
+    if (!merged) return;
+    const g = merged.geometry;
+    const parts = g.type === 'MultiPolygon' ? g.coordinates : [g.coordinates];
+    const toLL = ring => ring.slice(0, -1).map(c => [c[1], c[0]]);
+    const label = 'All areas + ' + (unit === 'deg' ? amount + '° buffer'
+      : amount < 1 ? Math.round(amount * 1000) + 'm buffer' : amount + 'km buffer');
+    const obscuredOnly = polys.every(p => p.obscuredOnly);
+    parts.forEach((rings, i) => addPolygon(toLL(rings[0]),
+      label + (parts.length > 1 ? ' (part ' + (i + 1) + ' of ' + parts.length + ')' : '') + (obscuredOnly ? ' (obscured only)' : ''),
+      rings.slice(1).map(toLL), { obscuredOnly }));
+  } catch(e) { console.warn('Merged buffer failed:', e); }
 }
 
 // Add a species search as a virtual polygon entry in the list.
@@ -8105,6 +8150,13 @@ window.LAYERS_HOST = {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v7.39</span>
+      <span class="changelog-date">Oct 2026</span>
+      <ul>
+        <li>Polygons: with two or more areas, a "Buffer all, merged" row above the first one buffers every area and merges the buffers into one, so neighbouring blocks' buffers no longer overlap and their records aren't fetched twice. Buffers that don't touch stay as separate parts</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v7.38</span>
       <span class="changelog-date">Oct 2026</span>
