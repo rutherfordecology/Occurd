@@ -50,7 +50,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v7.37 (beta)</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v7.38 (beta)</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -803,11 +803,14 @@ const TAXON_COLOURS = {
 };
 // Categorical palette for colour-by-species mode — distinct hues chosen to stay
 // legible on a light basemap and distinguishable from each other at small marker
-// sizes. Cycles (with a lightness shift) if a result set has more species than colours.
+// sizes. Only the commonest SPECIES_COLOURED species get one; the rest share
+// OTHER_SPECIES_COLOUR, since cycling the palette gave several species each colour.
 const SPECIES_PALETTE = [
   '#DC2626', '#2563EB', '#16A34A', '#D97706', '#7C3AED', '#0891B2',
   '#DB2777', '#65A30D', '#EA580C', '#0E7490', '#9333EA', '#4D7C0F',
 ];
+const SPECIES_COLOURED     = 11;
+const OTHER_SPECIES_COLOUR = '#A8A29E'; // lighter than the #6B7280 of a mixed stack
 let colourBySpecies  = false;   // colour points by species instead of taxon group
 let colourByPest     = false;   // colour Env. Weeds points by national pest status
 let speciesColourMap = {};      // species name -> hex colour, rebuilt by buildChecklist()
@@ -4651,10 +4654,11 @@ function makeMarker(stackedRecords) {
     const coloursHere = [...new Set(stackedRecords.map(r => pestStatusColour(r.species || r.scientificName)))];
     fillColour = coloursHere.length === 1 ? coloursHere[0] : '#6B7280';
   } else if (colourBySpecies) {
-    const speciesHere = [...new Set(stackedRecords.map(r => r.species || r.scientificName || ''))].filter(Boolean);
-    fillColour = (speciesHere.length === 1 && speciesColourMap[speciesHere[0]])
-      ? speciesColourMap[speciesHere[0]]
-      : '#6B7280'; // mixed species stacked at the same point, or a species outside the mapped set
+    // By colour, not by name, so a stack of "other species" stays their grey
+    const coloursHere = [...new Set(stackedRecords.map(r => speciesColourMap[r.species || r.scientificName || '']))];
+    fillColour = (coloursHere.length === 1 && coloursHere[0])
+      ? coloursHere[0]
+      : '#6B7280'; // differently coloured species stacked at the same point, or a species outside the mapped set
   } else {
     fillColour = groups.length === 1 ? getTaxonColour(rep) : '#6B7280';
   }
@@ -5615,7 +5619,9 @@ function buildChecklist(records) {
       .map(([name, info]) => [name, info.count])
       .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
     speciesColourMap = {};
-    speciesTally.forEach(([name], i) => { speciesColourMap[name] = SPECIES_PALETTE[i % SPECIES_PALETTE.length]; });
+    speciesTally.forEach(([name], i) => {
+      speciesColourMap[name] = i < SPECIES_COLOURED ? SPECIES_PALETTE[i] : OTHER_SPECIES_COLOUR;
+    });
     if (cbsRow) cbsRow.style.display = '';
   } else {
     speciesColourMap = {};
@@ -5763,7 +5769,9 @@ function buildChecklist(records) {
         ? '<span class="sp-colour-dot" style="background:' + (_pestCat ? _pestCat.colour : PEST_UNMATCHED_COLOUR) +
           ';" title="' + (_pestCat ? _pestCat.label : 'Not on the list') + '"></span>'
         : (colourBySpecies && speciesColourMap[name])
-        ? '<span class="sp-colour-dot" style="background:' + speciesColourMap[name] + ';"></span>' : '';
+        ? '<span class="sp-colour-dot" style="background:' + speciesColourMap[name] + ';"' +
+          (speciesColourMap[name] === OTHER_SPECIES_COLOUR ? ' title="Other species: only the ' + SPECIES_COLOURED + ' commonest get their own colour"' : '') +
+          '></span>' : '';
       row.innerHTML =
         '<div class="cl-row-top">' +
           '<span class="cl-name">' + speciesSwatch + name + nztcsBadge + iucnBadge + tkBadge + '</span>' +
@@ -8097,6 +8105,13 @@ window.LAYERS_HOST = {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v7.38</span>
+      <span class="changelog-date">Oct 2026</span>
+      <ul>
+        <li>Colour by species: only the 11 commonest species (by records) get their own colour; the rest show in grey as "other species". Before, the 12 colours repeated once a result had more species, so in a large family several species shared each colour</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v7.37</span>
       <span class="changelog-date">Oct 2026</span>
