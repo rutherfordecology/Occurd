@@ -50,7 +50,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v7.36j</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v7.37</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -438,6 +438,13 @@
           Colour by species on map
         </label>
       </div>
+      <div class="cl-colour-toggle-row" id="colourByPestRow" style="display:none;">
+        <label style="display:flex;align-items:center;gap:6px;font-size:11.5px;cursor:pointer;color:var(--text2);padding:5px 10px;border-bottom:1px solid var(--border);" title="Colour Env. Weeds by national status, as given in DOC's List of environmental weeds in New Zealand 2024">
+          <input type="checkbox" id="colourByPestToggle" style="accent-color:var(--green);flex-shrink:0;" onchange="toggleColourByPest(this.checked)">
+          Colour by pest status on map
+        </label>
+        <div id="pestKey" style="display:none;padding:5px 10px 6px;border-bottom:1px solid var(--border);font-size:11px;color:var(--text2);line-height:1.7;"></div>
+      </div>
       <div class="cl-nztcs-filters" id="clNztcsFilters" style="display:none;">
         <span class="filter-row-label">NZTCS</span>
         <button class="nztcs-fc active" data-f="all">All</button>
@@ -802,6 +809,7 @@ const SPECIES_PALETTE = [
   '#DB2777', '#65A30D', '#EA580C', '#0E7490', '#9333EA', '#4D7C0F',
 ];
 let colourBySpecies  = false;   // colour points by species instead of taxon group
+let colourByPest     = false;   // colour Env. Weeds points by national pest status
 let speciesColourMap = {};      // species name -> hex colour, rebuilt by buildChecklist()
 const CSV_FIELDS = ['gbifID','eventDate','year','month','day','scientificName','vernacularName','kingdom','phylum','class','order','family','genus','species','decimalLatitude','decimalLongitude','coordinateUncertaintyInMeters','hasGeospatialIssues','basisOfRecord','establishmentMeans','occurrenceID','taxonKey','datasetName','country','stateProvince','locality','recordedBy','polygon_name'];
 
@@ -2097,6 +2105,9 @@ function clearResults() {
   _showChecklistHandle(false);
   clScroll.innerHTML = ''; clSelectedInfo.style.display = 'none'; clLooklikeBar.style.display = 'none'; clColHeader.classList.remove('visible');
   colourBySpecies = false; speciesColourMap = {};
+  colourByPest = false;
+  document.getElementById('colourByPestRow').style.display = 'none';
+  document.getElementById('colourByPestToggle').checked = false;
   const _cbsRow = document.getElementById('colourBySpeciesRow');
   if (_cbsRow) _cbsRow.style.display = 'none';
   const _cbsToggle = document.getElementById('colourBySpeciesToggle');
@@ -4636,7 +4647,10 @@ function makeMarker(stackedRecords) {
 
   const groups = [...new Set(stackedRecords.map(r => getTaxonGroup(r)))];
   let fillColour;
-  if (colourBySpecies) {
+  if (colourByPest) {
+    const coloursHere = [...new Set(stackedRecords.map(r => pestStatusColour(r.species || r.scientificName)))];
+    fillColour = coloursHere.length === 1 ? coloursHere[0] : '#6B7280';
+  } else if (colourBySpecies) {
     const speciesHere = [...new Set(stackedRecords.map(r => r.species || r.scientificName || ''))].filter(Boolean);
     fillColour = (speciesHere.length === 1 && speciesColourMap[speciesHere[0]])
       ? speciesColourMap[speciesHere[0]]
@@ -4864,12 +4878,23 @@ function toggleClustering(checked) {
 
 function toggleColourBySpecies(checked) {
   colourBySpecies = checked;
+  if (checked && colourByPest) { colourByPest = false; document.getElementById('colourByPestToggle').checked = false; }
   if (allRecords.length > 0 && viewMode !== 'heat') {
     renderPoints(allRecords);
     if (viewMode === 'timeline') applyTimelineFilter();
   }
   // Swatches on the checklist rows also depend on colourBySpecies — cheapest
   // way to keep them in sync is to rebuild the checklist rather than patch it.
+  if (allRecords.length > 0) buildChecklist(allRecords);
+}
+
+function toggleColourByPest(checked) {
+  colourByPest = checked;
+  if (checked && colourBySpecies) { colourBySpecies = false; document.getElementById('colourBySpeciesToggle').checked = false; }
+  if (allRecords.length > 0 && viewMode !== 'heat') {
+    renderPoints(allRecords);
+    if (viewMode === 'timeline') applyTimelineFilter();
+  }
   if (allRecords.length > 0) buildChecklist(allRecords);
 }
 
@@ -4889,7 +4914,7 @@ function _restoreTaxonColours() {
   allMarkers.forEach(({ marker, record }) => {
     if (seen.has(marker)) return;
     seen.add(marker);
-    marker.setStyle({ fillColor: getTaxonColour(record) });
+    marker.setStyle({ fillColor: colourByPest ? pestStatusColour(record.species || record.scientificName) : getTaxonColour(record) });
   });
 }
 
@@ -5602,6 +5627,34 @@ function buildChecklist(records) {
     }
   }
 
+  // ── Colour-by-pest-status availability ──────────────────────────────────
+  // Offered while Env. Weeds is ticked, since the statuses come from that list.
+  // The key counts species, as the checklist below does.
+  const pestRow = document.getElementById('colourByPestRow');
+  if (getSelectedTaxonKeys().includes('envweeds')) {
+    pestRow.style.display = '';
+    const keyEl = document.getElementById('pestKey');
+    keyEl.style.display = colourByPest ? '' : 'none';
+    if (colourByPest) {
+      const tally = new Map();
+      Object.values(byGroup).forEach(grp => Object.keys(grp).forEach(name => {
+        const c = pestStatusCat(name);
+        tally.set(c, (tally.get(c) || 0) + 1);
+      }));
+      const chip = (colour, label, title, n) =>
+        '<span title="' + title + '" style="display:inline-flex;align-items:center;gap:4px;margin-right:10px;white-space:nowrap;">' +
+        '<span class="sp-colour-dot" style="background:' + colour + ';"></span>' + label + ' (' + n + ')</span>';
+      keyEl.innerHTML = PEST_STATUS_CATS.filter(c => tally.get(c)).map(c => chip(c.colour, c.label, c.title, tally.get(c))).join('') +
+        (tally.get(null) ? chip(PEST_UNMATCHED_COLOUR, 'Not on the list', 'Name not matched to the list', tally.get(null)) : '');
+    }
+  } else {
+    pestRow.style.display = 'none';
+    if (colourByPest) {
+      colourByPest = false;
+      document.getElementById('colourByPestToggle').checked = false;
+    }
+  }
+
   clScroll.innerHTML = '';
   let hasUncertain = false;
   Object.keys(byGroup).sort().forEach(g => {
@@ -5705,7 +5758,11 @@ function buildChecklist(records) {
       const tkBadge = _tkSpeciesNames.has(name)
         ? '<span class="tk-badge" title="Traditional Knowledge / Biocultural label — Local Contexts">' + icon('tag', { size: 12 }) + '</span>' : '';
       const _checked = !hiddenSpecies.has(name);
-      const speciesSwatch = (colourBySpecies && speciesColourMap[name])
+      const _pestCat = colourByPest ? pestStatusCat(name) : null;
+      const speciesSwatch = colourByPest
+        ? '<span class="sp-colour-dot" style="background:' + (_pestCat ? _pestCat.colour : PEST_UNMATCHED_COLOUR) +
+          ';" title="' + (_pestCat ? _pestCat.label : 'Not on the list') + '"></span>'
+        : (colourBySpecies && speciesColourMap[name])
         ? '<span class="sp-colour-dot" style="background:' + speciesColourMap[name] + ';"></span>' : '';
       row.innerHTML =
         '<div class="cl-row-top">' +
@@ -6127,6 +6184,35 @@ function buildTaxonParams(keys) {
 const _envWeedName = s => String(s || '').replace(/×\s*/g, '').trim().split(/\s+/).slice(0, 2).join(' ');
 const ENV_WEED_NAMES = new Set(ENV_WEEDS.flatMap(w => w.a ? [w.n, w.a] : [w.n]).map(_envWeedName));
 function isEnvWeedName(name) { return ENV_WEED_NAMES.has(_envWeedName(name)); }
+
+// "Colour by pest status" for Env. Weeds results. Each species takes its highest
+// national status from the list (field s in env-weeds.js). On the list NO and NIPR
+// always come together, as do most UO and NPPA.
+const PEST_STATUS_CATS = [
+  { id: 'nipr', colour: '#DC2626', label: 'Notifiable organism / NIPR',
+    title: 'Notifiable organism under the Biosecurity Act, managed as a National Interest Pest Response' },
+  { id: 'uo-nppa', colour: '#EA580C', label: 'Unwanted organism + NPPA',
+    title: 'Unwanted organism, and on the National Pest Plant Accord (banned from sale, propagation and distribution)' },
+  { id: 'uo', colour: '#CA8A04', label: 'Unwanted organism',
+    title: 'Unwanted organism under the Biosecurity Act, not on the National Pest Plant Accord' },
+  { id: 'nppa', colour: '#9333EA', label: 'NPPA only', title: 'On the National Pest Plant Accord only' },
+  { id: 'none', colour: '#0E7490', label: 'No national status', title: 'Environmental weed with no national status' },
+];
+const PEST_UNMATCHED_COLOUR = '#6B7280';
+// GBIF's legacy backbone still files some records under older names than the list's
+const ENV_WEED_ALIASES = { 'Cytisus proliferus': 'Chamaecytisus prolifer' };
+const _envWeedStatus = new Map();
+ENV_WEEDS.forEach(w => (w.a ? [w.n, w.a] : [w.n]).forEach(n => _envWeedStatus.set(_envWeedName(n), w.s || '')));
+Object.entries(ENV_WEED_ALIASES).forEach(([alias, n]) => _envWeedStatus.set(_envWeedName(alias), _envWeedStatus.get(_envWeedName(n))));
+function pestStatusCat(name) {
+  const s = _envWeedStatus.get(_envWeedName(name));
+  if (s === undefined) return null;
+  const has = c => s.split(' ').includes(c);
+  const id = (has('NO') || has('NIPR')) ? 'nipr' : (has('UO') && has('NPPA')) ? 'uo-nppa'
+           : has('UO') ? 'uo' : has('NPPA') ? 'nppa' : 'none';
+  return PEST_STATUS_CATS.find(c => c.id === id);
+}
+function pestStatusColour(name) { const c = pestStatusCat(name); return c ? c.colour : PEST_UNMATCHED_COLOUR; }
 
 // GBIF's occurrence search answers 400 once the URL passes about 3.5 KB (tested
 // 2026-10-23 from the browser: 3 000 characters fine, 3 800 rejected). Env. Weeds alone
@@ -8011,6 +8097,14 @@ window.LAYERS_HOST = {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v7.37</span>
+      <span class="changelog-date">Oct 2026</span>
+      <ul>
+        <li>Env. Weeds: new "Colour by pest status on map" option in the species list. Dots and species are coloured by each weed's national status on DOC's list: notifiable organism / National Interest Pest Response, unwanted organism and National Pest Plant Accord, unwanted organism only, Accord only, or no national status. A key with species counts shows under the option</li>
+        <li>Version numbers no longer carry letters (v7.36a, b, c…); each change takes the next number</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v7.36j</span>
       <span class="changelog-date">Oct 2026</span>
