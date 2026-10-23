@@ -50,7 +50,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v7.40 (beta)</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v7.41 (beta)</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -169,7 +169,7 @@
             <label class="taxon-item"><input type="checkbox" value="194" class="taxon-cb" data-group="plants"> Gymnosperms</label>
             <label class="taxon-item"><input type="checkbox" value="7228684" class="taxon-cb" data-group="plants"> Ferns &amp; allies</label>
             <label class="taxon-item"><input type="checkbox" value="bryophytes" class="taxon-cb" data-group="plants"> Bryophytes</label>
-            <label class="taxon-item" id="envWeedsItem" style="display:none" title="The 386 environmental weeds of New Zealand (DOC, McAlpine &amp; Howell 2024). Offered while the map is over New Zealand"><input type="checkbox" value="envweeds" class="taxon-cb" data-group="envweeds"> Env. Weeds</label>
+            <label class="taxon-item" id="envWeedsItem" style="display:none" title="The 386 environmental weeds of New Zealand (DOC, McAlpine &amp; Howell 2024). Offered while the map is over New Zealand"><input type="checkbox" value="envweeds" class="taxon-cb" data-group="envweeds"> Environmental weeds</label>
             <div class="taxon-group-label taxon-group-toggle" data-group="other" title="Click to toggle algae, fungi &amp; other">Other</div>
             <label class="taxon-item"><input type="checkbox" value="algae" class="taxon-cb" data-group="other"> Algae</label>
             <label class="taxon-item"><input type="checkbox" value="5" class="taxon-cb" data-group="other"> Fungi</label>
@@ -439,7 +439,7 @@
         </label>
       </div>
       <div class="cl-colour-toggle-row" id="colourByPestRow" style="display:none;">
-        <label style="display:flex;align-items:center;gap:6px;font-size:11.5px;cursor:pointer;color:var(--text2);padding:5px 10px;border-bottom:1px solid var(--border);" title="Colour Env. Weeds by national status, as given in DOC's List of environmental weeds in New Zealand 2024">
+        <label style="display:flex;align-items:center;gap:6px;font-size:11.5px;cursor:pointer;color:var(--text2);padding:5px 10px;border-bottom:1px solid var(--border);" title="Colour environmental weeds by national status, as given in DOC's List of environmental weeds in New Zealand 2024">
           <input type="checkbox" id="colourByPestToggle" style="accent-color:var(--green);flex-shrink:0;" onchange="toggleColourByPest(this.checked)">
           Colour by pest status on map
         </label>
@@ -805,11 +805,15 @@ const TAXON_COLOURS = {
 // legible on a light basemap and distinguishable from each other at small marker
 // sizes. Only the commonest SPECIES_COLOURED species get one; the rest share
 // OTHER_SPECIES_COLOUR, since cycling the palette gave several species each colour.
+// Ordered most distinct first, so a short list uses the clearest hues. No greys:
+// grey is kept for "other species" and mixed stacks.
 const SPECIES_PALETTE = [
   '#DC2626', '#2563EB', '#16A34A', '#D97706', '#7C3AED', '#0891B2',
-  '#DB2777', '#65A30D', '#EA580C', '#0E7490', '#9333EA', '#4D7C0F',
+  '#DB2777', '#65A30D', '#EA580C', '#1E3A8A', '#7F1D1D', '#FACC15',
+  '#92400E', '#111827', '#2DD4BF', '#F9A8D4', '#4D7C0F', '#C026D3',
+  '#0E7490', '#A3E635',
 ];
-const SPECIES_COLOURED     = 11;
+const SPECIES_COLOURED     = SPECIES_PALETTE.length;
 const OTHER_SPECIES_COLOUR = '#A8A29E'; // lighter than the #6B7280 of a mixed stack
 let colourBySpecies  = false;   // colour points by species instead of taxon group
 let colourByPest     = false;   // colour Env. Weeds points by national pest status
@@ -8162,6 +8166,14 @@ window.LAYERS_HOST = {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v7.41</span>
+      <span class="changelog-date">Oct 2026</span>
+      <ul>
+        <li>Colour by species: the 20 commonest species now get their own colour (was 11); the rest still show in grey as "other species"</li>
+        <li>Taxon groups: "Env. Weeds" is now spelled out as "Environmental weeds"</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v7.40</span>
       <span class="changelog-date">Oct 2026</span>
