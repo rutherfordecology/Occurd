@@ -32,6 +32,7 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css">
 <link rel="stylesheet" href="style.css?v=7.36f">
 <script src="icons.js"></script>
+<script src="env-weeds.js"></script>
 </head>
 <body>
 <!-- Mobile warning -->
@@ -49,7 +50,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v7.36i</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v7.36j</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -168,6 +169,7 @@
             <label class="taxon-item"><input type="checkbox" value="194" class="taxon-cb" data-group="plants"> Gymnosperms</label>
             <label class="taxon-item"><input type="checkbox" value="7228684" class="taxon-cb" data-group="plants"> Ferns &amp; allies</label>
             <label class="taxon-item"><input type="checkbox" value="bryophytes" class="taxon-cb" data-group="plants"> Bryophytes</label>
+            <label class="taxon-item" id="envWeedsItem" style="display:none" title="The 386 environmental weeds of New Zealand (DOC, McAlpine &amp; Howell 2024). Offered while the map is over New Zealand"><input type="checkbox" value="envweeds" class="taxon-cb" data-group="envweeds"> Env. Weeds</label>
             <div class="taxon-group-label taxon-group-toggle" data-group="other" title="Click to toggle algae, fungi &amp; other">Other</div>
             <label class="taxon-item"><input type="checkbox" value="algae" class="taxon-cb" data-group="other"> Algae</label>
             <label class="taxon-item"><input type="checkbox" value="5" class="taxon-cb" data-group="other"> Fungi</label>
@@ -813,6 +815,9 @@ const CB_TO_GROUP = {
   '1': 'Other',
   'angiosperms': 'Angiosperms', '194': 'Gymnosperms', '7228684': 'Ferns', 'bryophytes': 'Bryophytes',
   'algae': 'Algae', '5': 'Fungi',
+  // Env. Weeds spans several groups: mostly flowering plants, plus conifers, ferns,
+  // two seaweeds, and Selaginella (a lycophyte, grouped Angiosperms by the Plantae fallback).
+  'envweeds': ['Angiosperms', 'Gymnosperms', 'Ferns', 'Algae'],
 };
 
 // "Other Animalia" checkbox — GBIF has no "kingdom minus these classes" predicate, so
@@ -6046,6 +6051,23 @@ document.querySelectorAll('.taxon-group-toggle').forEach(header => {
   });
 });
 
+// Env. Weeds is a New Zealand list, so it is offered only while the map is centred over
+// New Zealand: the same test, on the same bounds, that shows the single taxa search
+// (species-search.js). Leaving NZ unticks it, so a hidden option can't narrow a search.
+function updateEnvWeedsGate() {
+  const item = document.getElementById('envWeedsItem');
+  const c = map.getCenter();
+  const lng = ((c.lng + 180) % 360 + 360) % 360 - 180;
+  const inNZ = c.lat >= -52 && c.lat <= -29 && lng >= 163 && lng <= 180;
+  item.style.display = inNZ ? '' : 'none';
+  if (!inNZ && item.classList.contains('selected')) {
+    item.classList.remove('selected');
+    updateTaxonLabel();
+  }
+}
+map.on('moveend', updateEnvWeedsGate);
+updateEnvWeedsGate();
+
 // Catalogue of Life Extended Release (COL XR) — GBIF's default taxonomy since 2026-06.
 // All taxonKeys below are COL XR's alphanumeric codes, resolved from the legacy GBIF
 // backbone's numeric classKeys; every occurrence/search call using them must carry this
@@ -6090,11 +6112,43 @@ function buildTaxonParams(keys) {
     else if (key === 'angiosperms') { ['MG','L2L'].forEach(k => params.push(['taxonKey', k])); } // Magnoliopsida (dicots), Liliopsida (monocots)
     else if (key === 'algae')       { ['CGV7L','L2MHG','5H','KZS5S','CNPLM'].forEach(k => params.push(['taxonKey', k])); } // Chlorophyta, Rhodophyta, Ochrophyta, Charophyta, Cyanobacteriota (COL XR's accepted name for Cyanobacteria — '3R' was the demoted synonym key, which missed most records)
     else if (key === '1')           { OTHER_ANIMALIA_KEYS.forEach(k => params.push(['taxonKey', k])); }
+    // Weeds a ticked group already returns are left out, or they'd be fetched twice once
+    // the list is split across queries (splitTaxonParams).
+    else if (key === 'envweeds')    { ENV_WEEDS.filter(w => !w.g || !keys.includes(w.g)).forEach(w => params.push(['taxonKey', w.k])); }
     else if (COL_XR_GROUP_KEYS[key]) { COL_XR_GROUP_KEYS[key].forEach(k => params.push(['taxonKey', k])); }
     else                            { params.push(['taxonKey', key]); }
   });
   params.push(['checklistKey', COL_XR_CHECKLIST_KEY]);
   return params;
+}
+
+// Listed and COL XR accepted names, binomial only and without the hybrid sign, for
+// records that arrive without a taxonKey to check (iNat obscured).
+const _envWeedName = s => String(s || '').replace(/×\s*/g, '').trim().split(/\s+/).slice(0, 2).join(' ');
+const ENV_WEED_NAMES = new Set(ENV_WEEDS.flatMap(w => w.a ? [w.n, w.a] : [w.n]).map(_envWeedName));
+function isEnvWeedName(name) { return ENV_WEED_NAMES.has(_envWeedName(name)); }
+
+// GBIF's occurrence search answers 400 once the URL passes about 3.5 KB (tested
+// 2026-10-23 from the browser: 3 000 characters fine, 3 800 rejected). Env. Weeds alone
+// is 386 taxonKeys, near 6 KB, so a long taxon list is split across several queries,
+// each sized to what the polygon's WKT leaves of the budget. Results don't overlap,
+// since each species sits in one query. Every other selection fits in one.
+const GBIF_URL_BUDGET = 3200;
+function splitTaxonParams(params, geomPoly) {
+  const keys = params.filter(([k]) => k === 'taxonKey');
+  const rest = params.filter(([k]) => k !== 'taxonKey');
+  const len  = ([k, v]) => encodeURIComponent(k).length + encodeURIComponent(v).length + 2;
+  // 500 covers the endpoint, hasCoordinate, limit, offset, dates and basisOfRecord
+  const room = Math.max(600, GBIF_URL_BUDGET - 500 - len(['geometry', getQueryWKT(geomPoly)]) -
+                             rest.reduce((n, p) => n + len(p), 0));
+  const chunks = [];
+  let cur = [], used = 0;
+  keys.forEach(p => {
+    if (cur.length && used + len(p) > room) { chunks.push(cur); cur = []; used = 0; }
+    cur.push(p); used += len(p);
+  });
+  if (cur.length) chunks.push(cur);
+  return chunks.length > 1 ? chunks.map(c => [...c, ...rest]) : [params];
 }
 
 const MAX_RECORDS = 10000; // hard limit — queries above this are rejected before fetching begins
@@ -6422,15 +6476,24 @@ runBtn.addEventListener('click', async () => {
       setFetchMode(false); return;
     }
   } else {
-    // Normal mode: each geometry polygon fetches with taxon group filter
-    _geomPolys.forEach(gp => _fetchTasks.push({ poly: gp, geomPoly: gp }));
+    // Normal mode: each geometry polygon fetches with taxon group filter, split into
+    // parts when the taxon list is too long for one URL. An iNat-obscured polygon skips
+    // GBIF and makes one iNat pass, so it is never split.
+    _geomPolys.forEach(gp => {
+      const _obsc = !!(document.getElementById('obscured-' + gp.id) || { checked: gp.obscuredOnly }).checked;
+      const _parts = _obsc ? [null] : splitTaxonParams(buildTaxonParams(taxonKeys), gp);
+      _parts.forEach((tp, pi) => _fetchTasks.push({
+        poly: gp, geomPoly: gp, taxonParams: tp, part: _parts.length > 1 ? (pi + 1) + ' of ' + _parts.length : null,
+      }));
+    });
   }
 
   let partialLoadWarning = null;
   for (let ti = 0; ti < _fetchTasks.length; ti++) {
     if (ti > 0) await new Promise(r => setTimeout(r, 300)); // brief gap between polygons to avoid GBIF rate limiting
-    const { poly, geomPoly } = _fetchTasks[ti];
-    const polyLabel = _fetchTasks.length > 1 ? ' (' + (poly.type === 'species' ? poly.name : poly.label) + ')' : '';
+    const { poly, geomPoly, taxonParams, part } = _fetchTasks[ti];
+    const polyLabel = _fetchTasks.length > 1
+      ? ' (' + (poly.type === 'species' ? poly.name : poly.label) + (part ? ', part ' + part : '') + ')' : '';
 
     // ── iNat-obscured shortcut: skip GBIF entirely, query iNat with geoprivacy=obscured ──
     // Read from DOM checkbox directly — most reliable source of truth regardless of property sync.
@@ -6456,7 +6519,7 @@ runBtn.addEventListener('click', async () => {
         '216': 'Insecta', '367': 'Arachnida', 'crustacea': 'Animalia', '52': 'Mollusca', 'nudibranchia': 'Mollusca',
         '50': 'Animalia', '43': 'Animalia', '42': 'Animalia', '1': 'Animalia',
         'angiosperms': 'Plantae', '194': 'Plantae', '7228684': 'Plantae', 'bryophytes': 'Plantae',
-        'algae': 'Chromista', '5': 'Fungi'
+        'algae': 'Chromista', '5': 'Fungi', 'envweeds': 'Plantae'
       };
       const _selectedCbVals = [...document.querySelectorAll('.taxon-cb')]
         .filter(cb => cb.closest('label').classList.contains('selected'))
@@ -6597,7 +6660,7 @@ runBtn.addEventListener('click', async () => {
       else baseParams.push(['scientificName', poly.sciName]);
     } else {
       // Geometry polygon: use taxon group filter
-      buildTaxonParams(taxonKeys).forEach(p => baseParams.push(p));
+      (taxonParams || buildTaxonParams(taxonKeys)).forEach(p => baseParams.push(p));
     }
 
     setStatus('Fetching records from GBIF' + polyLabel + '...', 'info');
@@ -6923,7 +6986,14 @@ runBtn.addEventListener('click', async () => {
   // when only Fish was selected). When no specific groups are selected (all taxa), keep everything.
   // In species basket mode the taxon group filter doesn't apply (species keys drive the fetch)
   const requestedGroups = (_speciesEntries.length === 0 && taxonKeys.length > 0)
-    ? new Set(taxonKeys.map(k => CB_TO_GROUP[k]).filter(Boolean))
+    ? new Set(taxonKeys.flatMap(k => [].concat(CB_TO_GROUP[k] || [])))
+    : null;
+  // The GBIF query already limits Env. Weeds to the listed species, but iNat obscured
+  // records only filter to Plantae. Where a group is ticked for Env. Weeds alone, those
+  // records must also carry one of the listed names.
+  const envWeedsOnlyGroups = (requestedGroups && taxonKeys.includes('envweeds'))
+    ? new Set(CB_TO_GROUP.envweeds.filter(g =>
+        !taxonKeys.some(k => k !== 'envweeds' && [].concat(CB_TO_GROUP[k] || []).includes(g))))
     : null;
   // Nudibranchia maps to the Mollusca group (it has no group of its own), so the group
   // check above can't tell a nudibranch from any other mollusc. When Nudibranchia is
@@ -6936,6 +7006,8 @@ runBtn.addEventListener('click', async () => {
         const g = getTaxonGroup(r);
         if (!requestedGroups.has(g)) return false;
         if (nudibranchOnly && g === 'Mollusca' && (r.order || '').trim() !== 'Nudibranchia') return false;
+        if (envWeedsOnlyGroups && r._inatOnly && envWeedsOnlyGroups.has(g) &&
+            !isEnvWeedName(r.species || r.scientificName)) return false;
         return true;
       })
     : allFetched;
@@ -7939,6 +8011,13 @@ window.LAYERS_HOST = {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v7.36j</span>
+      <span class="changelog-date">Oct 2026</span>
+      <ul>
+        <li>Taxon groups: new "Env. Weeds" option under Plants, offered while the map is over New Zealand. It fetches only the 386 species on DOC's List of environmental weeds in New Zealand 2024 (McAlpine &amp; Howell, Science for Conservation 340), matched to GBIF's Catalogue of Life names. The list is too long for one GBIF query, so it is fetched in a few parts. Ticked with Angiosperms or another plant group, it adds only the weeds that group doesn't already cover</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v7.36i</span>
       <span class="changelog-date">Oct 2026</span>
