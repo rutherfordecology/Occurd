@@ -50,7 +50,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v7.39</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v7.40</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -6267,19 +6267,27 @@ function pestStatusCat(name) {
 }
 function pestStatusColour(name) { const c = pestStatusCat(name); return c ? c.colour : PEST_UNMATCHED_COLOUR; }
 
-// GBIF's occurrence search answers 400 once the URL passes about 3.5 KB (tested
-// 2026-10-23 from the browser: 3 000 characters fine, 3 800 rejected). Env. Weeds alone
-// is 386 taxonKeys, near 6 KB, so a long taxon list is split across several queries,
-// each sized to what the polygon's WKT leaves of the budget. Results don't overlap,
-// since each species sits in one query. Every other selection fits in one.
-const GBIF_URL_BUDGET = 3200;
+// GBIF refuses an occurrence search whose URL passes about 4 KB, and the browser
+// reports the refusal as a network error (tested 2026-10-23 from the browser: 3 585
+// characters fine, 4 089 refused). Env. Weeds alone is 386 taxonKeys, near 6 KB, so a
+// long taxon list is split across several queries. The polygon's WKT shares the same
+// URL: when it and the taxa don't fit together, the WKT is simplified further
+// (WKT_WHEN_SPLIT) so each part keeps enough room for its keys. Results don't overlap,
+// since each species sits in one query. Most selections fit in one.
+const GBIF_URL_BUDGET = 3500;
+const WKT_WHEN_SPLIT  = 1500;
 function splitTaxonParams(params, geomPoly) {
   const keys = params.filter(([k]) => k === 'taxonKey');
   const rest = params.filter(([k]) => k !== 'taxonKey');
   const len  = ([k, v]) => encodeURIComponent(k).length + encodeURIComponent(v).length + 2;
+  const sum  = ps => ps.reduce((n, p) => n + len(p), 0);
   // 500 covers the endpoint, hasCoordinate, limit, offset, dates and basisOfRecord
-  const room = Math.max(600, GBIF_URL_BUDGET - 500 - len(['geometry', getQueryWKT(geomPoly)]) -
-                             rest.reduce((n, p) => n + len(p), 0));
+  const fixed = 500 + sum(rest);
+  let wkt = getQueryWKT(geomPoly);
+  // No taxon keys (all taxa, or checklistKey alone): nothing to split or make room for
+  if (!keys.length || fixed + len(['geometry', wkt]) + sum(keys) <= GBIF_URL_BUDGET) return { wkt, parts: [params] };
+  wkt = getQueryWKT(geomPoly, WKT_WHEN_SPLIT);
+  const room = Math.max(300, GBIF_URL_BUDGET - fixed - len(['geometry', wkt]));
   const chunks = [];
   let cur = [], used = 0;
   keys.forEach(p => {
@@ -6287,7 +6295,7 @@ function splitTaxonParams(params, geomPoly) {
     cur.push(p); used += len(p);
   });
   if (cur.length) chunks.push(cur);
-  return chunks.length > 1 ? chunks.map(c => [...c, ...rest]) : [params];
+  return { wkt, parts: chunks.map(c => [...c, ...rest]) };
 }
 
 const MAX_RECORDS = 10000; // hard limit — queries above this are rejected before fetching begins
@@ -6302,8 +6310,9 @@ function getPrecisionMode() {
 // If the polygon has many vertices the WKT string becomes very long and mobile proxies
 // can silently truncate the URL, causing network errors. Simplify progressively until
 // the WKT is under 3 000 chars (~120 pts), which is well within all proxy limits.
-function getQueryWKT(poly) {
-  if (poly.wkt.length <= 3000) return poly.wkt;
+function getQueryWKT(poly, maxLen) {
+  maxLen = maxLen || 3000;
+  if (poly.wkt.length <= maxLen) return poly.wkt;
   try {
     const coords = poly.latlngs.map(ll => {
       const lat = ll.lat !== undefined ? ll.lat : ll[0];
@@ -6313,7 +6322,8 @@ function getQueryWKT(poly) {
     const ring = [...coords];
     if (ring[0][0] !== ring[ring.length-1][0] || ring[0][1] !== ring[ring.length-1][1]) ring.push(ring[0]);
     const geojson = { type: 'Feature', geometry: { type: 'Polygon', coordinates: [ring] } };
-    for (const tol of [0.005, 0.01, 0.02, 0.05, 0.1]) {
+    // Finest first, so a ring only slightly over the limit keeps its shape
+    for (const tol of [0.0002, 0.0005, 0.001, 0.002, 0.005, 0.01, 0.02, 0.05, 0.1]) {
       const simplified = turf.simplify(geojson, { tolerance: tol, highQuality: false });
       let r = simplified.geometry.coordinates[0];
       // GBIF/JTS requires the exterior ring to be wound counter-clockwise — reject otherwise.
@@ -6321,7 +6331,7 @@ function getQueryWKT(poly) {
       for (let i = 0; i < r.length - 1; i++) signedArea += (r[i+1][0] - r[i][0]) * (r[i+1][1] + r[i][1]);
       if (signedArea > 0) r = [...r].reverse();
       const wkt = 'POLYGON((' + r.map(c => c[0].toFixed(6) + ' ' + c[1].toFixed(6)).join(',') + '))';
-      if (wkt.length <= 3000) return wkt;
+      if (wkt.length <= maxLen) return wkt;
     }
   } catch(e) {}
   return poly.wkt; // fallback — let GBIF handle it
@@ -6620,9 +6630,11 @@ runBtn.addEventListener('click', async () => {
     // GBIF and makes one iNat pass, so it is never split.
     _geomPolys.forEach(gp => {
       const _obsc = !!(document.getElementById('obscured-' + gp.id) || { checked: gp.obscuredOnly }).checked;
-      const _parts = _obsc ? [null] : splitTaxonParams(buildTaxonParams(taxonKeys), gp);
+      const _split = _obsc ? { wkt: null, parts: [null] } : splitTaxonParams(buildTaxonParams(taxonKeys), gp);
+      const _parts = _split.parts;
       _parts.forEach((tp, pi) => _fetchTasks.push({
-        poly: gp, geomPoly: gp, taxonParams: tp, part: _parts.length > 1 ? (pi + 1) + ' of ' + _parts.length : null,
+        poly: gp, geomPoly: gp, taxonParams: tp, queryWkt: _split.wkt,
+        part: _parts.length > 1 ? (pi + 1) + ' of ' + _parts.length : null,
       }));
     });
   }
@@ -6630,7 +6642,7 @@ runBtn.addEventListener('click', async () => {
   let partialLoadWarning = null;
   for (let ti = 0; ti < _fetchTasks.length; ti++) {
     if (ti > 0) await new Promise(r => setTimeout(r, 300)); // brief gap between polygons to avoid GBIF rate limiting
-    const { poly, geomPoly, taxonParams, part } = _fetchTasks[ti];
+    const { poly, geomPoly, taxonParams, queryWkt, part } = _fetchTasks[ti];
     const polyLabel = _fetchTasks.length > 1
       ? ' (' + (poly.type === 'species' ? poly.name : poly.label) + (part ? ', part ' + part : '') + ')' : '';
 
@@ -6765,7 +6777,7 @@ runBtn.addEventListener('click', async () => {
     }
     // ─────────────────────────────────────────────────────────────────────────
 
-    const baseParams = [['geometry', getQueryWKT(geomPoly)], ['hasCoordinate', 'true'], ['limit', '300']];
+    const baseParams = [['geometry', queryWkt || getQueryWKT(geomPoly)], ['hasCoordinate', 'true'], ['limit', '300']];
     if (dateFrom && dateTo) baseParams.push(['eventDate', dateFrom + ',' + dateTo]);
     const _precisionMode = getPrecisionMode();
     if (_precisionMode === 'exclude') baseParams.push(['coordinateUncertaintyInMeters', '*,1499']);
@@ -8150,6 +8162,14 @@ window.LAYERS_HOST = {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v7.40</span>
+      <span class="changelog-date">Oct 2026</span>
+      <ul>
+        <li>Fixed: an Env. Weeds search over a detailed polygon (such as a merged buffer of several blocks) failed with "Network error — could not reach GBIF". The polygon outline and the weed list together made the request longer than GBIF accepts. The outline is now simplified further whenever the list has to be split, so each part fits. The same limit could hit "Other Animalia" over a detailed polygon, and that is fixed too</li>
+        <li>Long polygons are now simplified more gently when they first pass GBIF's length limit, so they keep more of their shape</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v7.39</span>
       <span class="changelog-date">Oct 2026</span>
