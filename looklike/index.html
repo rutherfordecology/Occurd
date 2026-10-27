@@ -101,6 +101,9 @@
   #whatdat-btn.visible { display: block; }
   #back-btn:hover, #whatdat-btn:hover { border-color: var(--accent); color: var(--accent); }
   .re-link { text-decoration: none; }
+  /* "by Rutherford ecology" beside the logo, on every screen size */
+  .brand { display: flex; align-items: baseline; gap: 10px; flex-shrink: 0; }
+  .re-title { font-size: 0.9rem; white-space: nowrap; }
   .version { color: var(--text-muted); font-size: 0.75rem; margin-left: 4px; opacity: 0.6; }
   .re-by { color: #7aad8a; font-weight: 400; }
   .re-name { color: #fff; font-weight: 700; }
@@ -452,7 +455,6 @@
        non-wrapping line (which overflowed and overlapped on narrow screens). */
     header { padding: 10px 12px; gap: 8px 10px; flex-wrap: wrap; }
     .header-meta { min-width: 0; flex: 1 1 auto; }
-    .re-link, .re-by, .re-name { display: none; }
     .bmc-btn { display: none; }
     /* Filter + sort take their own full-width row; the input flexes to fill it. */
     #filter-wrap.visible { flex: 1 1 100%; }
@@ -477,8 +479,8 @@
 <body>
 
 <header>
-  <div class="logo"><img src="Logo-long.png" alt="LookLike?"></div>
-  <div class="header-meta" id="header-meta"><span id="header-label">Visual species photo browser · <a href="https://www.rutherfordecology.co.nz/" target="_blank" rel="noopener" class="re-link"><span class="re-by">by </span><span class="re-name">Rutherford</span><span class="re-by"> ecology</span></a></span> <span class="version">v1.48</span></div>
+  <div class="brand"><div class="logo"><img src="Logo-long.png" alt="LookLike?"></div><a href="https://www.rutherfordecology.co.nz/" target="_blank" rel="noopener" class="re-link re-title"><span class="re-by">by </span><span class="re-name">Rutherford</span><span class="re-by"> ecology</span></a></div>
+  <div class="header-meta" id="header-meta"><span id="header-label">Visual species photo browser</span> <span class="version">v1.49</span></div>
   <a class="bmc-btn" href="https://buymeacoffee.com/rutherfordecology" target="_blank" rel="noopener"><span data-icon="coffee" data-icon-size="15"></span> Buy me a coffee</a>
   <div id="filter-wrap">
     <input id="filter-input" type="search" placeholder="Filter species…" autocomplete="off">
@@ -565,7 +567,7 @@ function showLanding() {
   backBtn.classList.remove('visible');
   whatdatBtn.classList.remove('visible');
   filterWrap.classList.remove('visible');
-  headerLabel.innerHTML = 'Visual species photo browser · <a href="https://www.rutherfordecology.co.nz/" target="_blank" rel="noopener" class="re-link"><span class="re-by">by </span><span class="re-name">Rutherford</span><span class="re-by"> ecology</span></a>';
+  headerLabel.textContent = 'Visual species photo browser';
   hintEl.textContent = defaultHint;
 }
 
