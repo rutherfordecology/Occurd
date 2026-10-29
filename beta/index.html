@@ -50,7 +50,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.75);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.7);letter-spacing:0.04em;">v7.47 (beta)</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.7);letter-spacing:0.04em;">v7.48 (beta)</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -258,6 +258,9 @@
           <span data-icon="warning" data-icon-size="13" style="vertical-align:-2px;margin-right:3px"></span>precision &gt;1.5 km = <span class="quality-val" id="qHighUncert">-</span>
           <div style="font-size:11px;opacity:0.75;margin-top:2px;">low-precision GBIF records shown with a red ring; obscured iNat records with an orange ring</div>
         </div>
+
+        <!-- GBIF citation: a download DOI (Big Data), or a note that a live search has none -->
+        <div id="gbifCiteBox" style="margin-top:0.6rem;font-size:12px;line-height:1.45;padding:6px 0 6px 10px;border-left:3px solid var(--slate);"></div>
 
 <div class="tool-row" style="margin-top:0.6rem;">
           <button class="tool-btn active" id="btnPoints" onclick="setViewMode('points')">Points</button>
@@ -528,6 +531,7 @@
 
     <h3>Data &amp; citation</h3>
     <p>All data is sourced from GBIF. Please cite GBIF when publishing results based on this tool.</p>
+    <p style="margin-top:0.5rem;">For a report, fetch in <strong>Big Data Mode</strong>: a GBIF occurrence download gets a DOI, so the exact records used can be cited and found again. A live search has no DOI. When the download zip is loaded, occurd. shows its citation under Output and writes it into every export, in the form <em style="font-size:12px;color:var(--text3);">GBIF.org (30 October 2026) GBIF Occurrence Download https://doi.org/10.15468/dl.xxxxxx</em>. Records occurd. then leaves out (outside the polygons, or filtered) are still covered by that citation.</p>
     <p style="margin-top:0.5rem;">Suggested tool citation:<br>
     <em style="font-size:12px;color:var(--text3);">Rutherford Ecology (2026). occurd. https://rutherfordecology.github.io/occurd/</em></p>
 
@@ -2071,7 +2075,15 @@ function applyPostFetchShareState(s) {
 
 // ─────────────────────────────────────────────────────────────────────────────
 
+// The GBIF occurrence download the loaded records came from, so they can be
+// cited by DOI: { key, doi, created, totalRecords, license } or { key, error }.
+// null for a live search, which GBIF gives no DOI.
+let gbifDownload = null;
+const GBIF_DL_KEY_RE = /\b(\d{7}-\d{15})\b/;
+
 function clearResults() {
+  gbifDownload = null;
+  renderGbifCite();
   allRecords = []; activeFilters.clear(); hiddenSpecies.clear(); speciesSearchNames = null; csvData = null; selectedSpecies = null; allMarkers = []; commonNameCache = {};
   effortByYear = null; tlEffortMode = false; _effortFetchParams = []; _effortTaxonKeys = []; _syncEffortBtn();
   _clearGhostLayer();
@@ -2581,7 +2593,8 @@ async function handleGbifZip(file) {
       showDropZoneProgress('Extracting photos…');
       try { mediaByGbifId = _parseGbifMultimedia(await mediaFile.async('text')); } catch(e) {}
     }
-    handleGbifCsv(text, file.name, mediaByGbifId);
+    const keyMatch = GBIF_DL_KEY_RE.exec(file.name) || GBIF_DL_KEY_RE.exec(Object.keys(zip.files).join(' '));
+    handleGbifCsv(text, file.name, mediaByGbifId, keyMatch ? keyMatch[1] : null);
   } catch(e) { setStatus('Could not read zip: ' + e.message, 'error'); progressWrap.style.display = 'none'; hideDropZoneProgress(); }
 }
 
@@ -7364,6 +7377,7 @@ document.getElementById('dlCsvBtn').addEventListener('click', () => {
     });
   }
   const csvHeader = '# Downloaded from Occurd (https://rutherfordecology.github.io/Occurd/) on ' + new Date().toISOString().split('T')[0] + '\n' +
+    gbifCiteHeader() +
     '# DISCLAIMER: ' + GEOPRIVACY_DISCLAIMER + '\n';
   downloadBlob(csvHeader + buildCSV(rows, fields), 'gbif_occurrences_' + fileStamp() + '.csv', 'text/csv;charset=utf-8;');
 });
@@ -7373,6 +7387,7 @@ document.getElementById('dlGeoBtn').addEventListener('click', () => {
   const geojson = {
     type: 'FeatureCollection',
     disclaimer: GEOPRIVACY_DISCLAIMER,
+    gbif_citation: gbifCiteHeader().replace(/^# /gm, '').trim(),
     features: filtered.map(r => ({
       type: 'Feature',
       geometry: { type: 'Point', coordinates: [r.decimalLongitude, r.decimalLatitude] },
@@ -7484,6 +7499,7 @@ document.getElementById('dlChecklistBtn').addEventListener('click', () => {
   if (nztcsUnlocked && nztcsData) fields = [...fields, 'nztcs_status', 'nztcs_category', 'nztcs_year'];
   const esc = v => { const s = String(v||''); return (s.includes(',') || s.includes('"')) ? '"' + s.replace(/"/g,'""') + '"' : s; };
   const checklistHeader = '# Downloaded from Occurd (https://rutherfordecology.github.io/Occurd/) on ' + new Date().toISOString().split('T')[0] + '\n' +
+    gbifCiteHeader() +
     '# DISCLAIMER: ' + GEOPRIVACY_DISCLAIMER + '\n';
   downloadBlob(
     checklistHeader + [fields.join(','), ...rows.map(r => fields.map(f => esc(r[f])).join(','))].join('\n'),
@@ -7550,10 +7566,16 @@ function _parseCsvLine(line) {
   return out;
 }
 
-async function handleGbifCsv(text, filename, mediaByGbifId) {
+async function handleGbifCsv(text, filename, mediaByGbifId, downloadKey) {
   let lines = text.split(/\r?\n/);
-  // strip Occurd's own "# Downloaded from Occurd..." comment header lines so re-uploads work
-  while (lines.length && lines[0].startsWith('#')) lines.shift();
+  // strip Occurd's own "# Downloaded from Occurd..." comment header lines so re-uploads work,
+  // keeping the GBIF download key if an earlier export recorded one
+  const _comments = [];
+  while (lines.length && lines[0].startsWith('#')) _comments.push(lines.shift());
+  if (!downloadKey) {
+    const m = GBIF_DL_KEY_RE.exec(filename) || GBIF_DL_KEY_RE.exec(_comments.filter(l => /^# GBIF (download|citation)/.test(l)).join(' '));
+    if (m) downloadKey = m[1];
+  }
   const headerLine = lines[0] || '';
   const isTabDelim = headerLine.includes('\t');
   const splitLine  = isTabDelim ? (l => l.split('\t')) : _parseCsvLine;
@@ -7619,7 +7641,10 @@ async function handleGbifCsv(text, filename, mediaByGbifId) {
   }
   if (displayRows.length === 0) { setStatus('No records fell within the drawn polygons.', 'warning'); hideDropZoneProgress(); return; }
 
+  const _dlInfo = downloadKey ? await gbifDownloadInfo(downloadKey) : null;
   clearResults();
+  gbifDownload = _dlInfo;
+  renderGbifCite();
   allRecords = displayRows;
   document.getElementById('mRecords').textContent = displayRows.length.toLocaleString();
   document.getElementById('mSpecies').textContent = new Set(displayRows.map(r => r.species || r.scientificName).filter(Boolean)).size.toLocaleString();
@@ -7649,7 +7674,8 @@ async function handleGbifCsv(text, filename, mediaByGbifId) {
   csvData = buildCSV(displayRows);
   outputSection.style.display = 'block'; nerdToolsSection.style.display = 'block';
   const filtered = rows.length - displayRows.length;
-  setStatus(displayRows.length.toLocaleString() + ' records loaded from ' + filename + (filtered > 0 ? ' (' + filtered.toLocaleString() + ' outside polygons removed)' : '') + '.', 'success');
+  setStatus(displayRows.length.toLocaleString() + ' records loaded from ' + filename + (filtered > 0 ? ' (' + filtered.toLocaleString() + ' outside polygons removed)' : '') + '.' +
+    (gbifDownload && gbifDownload.doi ? ' Citable: DOI ' + gbifDownload.doi + '.' : gbifDownload ? ' No DOI found: ' + gbifDownload.error + '.' : ''), 'success');
   progressWrap.style.display = 'none';
   hideDropZoneProgress();
 }
@@ -7702,6 +7728,72 @@ async function _checkGbifCreds() {
 }
 
 // ── GBIF Big Data — download functions ───────────────────────────────────
+
+
+async function gbifDownloadInfo(key) {
+  try {
+    const res = await fetch('https://api.gbif.org/v1/occurrence/download/' + encodeURIComponent(key));
+    if (!res.ok) return { key, error: res.status === 404 ? 'GBIF has no download with this key' : 'GBIF returned ' + res.status };
+    const d = await res.json();
+    if (!d.doi) return { key, error: 'GBIF gave no DOI for this download' };
+    return { key: d.key, doi: d.doi, created: d.created, totalRecords: d.totalRecords, license: d.license || '' };
+  } catch (e) {
+    return { key, error: 'couldn\'t reach GBIF to look up the DOI' };
+  }
+}
+
+function gbifCitation(dl) {
+  if (!dl || !dl.doi) return null;
+  const d = new Date(dl.created);
+  // GBIF dates its own citations in UTC
+  const day = isNaN(d) ? '' : d.getUTCDate() + ' ' + d.toLocaleString('en-NZ', { month: 'long', timeZone: 'UTC' }) + ' ' + d.getUTCFullYear();
+  return 'GBIF.org (' + day + ') GBIF Occurrence Download https://doi.org/' + dl.doi;
+}
+
+function gbifLicenceName(url) {
+  const m = /licenses\/(by(?:-nc)?)\/(\d\.\d)/i.exec(url || '');
+  if (m) return 'CC ' + m[1].toUpperCase() + ' ' + m[2];
+  if (/publicdomain\/zero/i.test(url || '')) return 'CC0 1.0';
+  return url || 'not given';
+}
+
+// Comment lines at the top of each export.
+function gbifCiteHeader() {
+  const c = gbifCitation(gbifDownload);
+  if (c) return '# GBIF citation: ' + c + '\n' +
+    '# GBIF download: key ' + gbifDownload.key + ', ' + Number(gbifDownload.totalRecords || 0).toLocaleString('en-NZ') + ' records in the download, licence ' + gbifLicenceName(gbifDownload.license) + '; occurd. filters (polygons, dates, taxa, hidden species) may leave out some\n';
+  if (gbifDownload && gbifDownload.key) return '# GBIF citation: not found for download key ' + gbifDownload.key + ' (' + gbifDownload.error + ')\n';
+  return '# GBIF citation: none. These records came from a live GBIF API search, which has no DOI; for a citable download, fetch in Big Data Mode\n';
+}
+
+function renderGbifCite() {
+  const box = document.getElementById('gbifCiteBox');
+  if (!box) return;
+  const _e = v => String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  const c = gbifCitation(gbifDownload);
+  const keyForm = '<div style="display:flex;gap:6px;margin-top:5px;"><input id="gbifCiteKey" type="text" placeholder="Download key, e.g. 0012345-261023074918325" style="flex:1;min-width:0;padding:4px 6px;border:1px solid var(--border2);border-radius:0;font:inherit;font-size:11.5px;">' +
+    '<button type="button" class="tool-btn" id="gbifCiteKeyBtn" style="padding:3px 8px;">Find DOI</button></div>';
+  if (c) {
+    box.innerHTML = '<strong>Cite as</strong> <button type="button" class="tool-btn" id="gbifCiteCopy" style="padding:1px 6px;font-size:11px;margin-left:4px;">Copy</button><br>' +
+      _e(c).replace(/(https:\/\/doi\.org\/\S+)/, '<a href="$1" target="_blank" style="color:var(--green-dark);">$1</a>') +
+      '<div style="font-size:11px;opacity:0.75;margin-top:2px;">Download ' + _e(gbifDownload.key) + ': ' + Number(gbifDownload.totalRecords || 0).toLocaleString() + ' records, ' + _e(gbifLicenceName(gbifDownload.license)) + '. Exports carry this citation.</div>';
+  } else if (gbifDownload && gbifDownload.key) {
+    box.innerHTML = '<strong>No citation yet</strong> for download ' + _e(gbifDownload.key) + ': ' + _e(gbifDownload.error) + '.' + keyForm;
+  } else {
+    box.innerHTML = '<strong>Not citable.</strong> A live search has no DOI. For a report, fetch in <a href="./?bigdata" target="_blank" style="color:var(--green-dark);">Big Data Mode</a>; if you loaded a renamed GBIF zip, enter its download key.' + keyForm;
+  }
+}
+document.addEventListener('click', async (e) => {
+  if (e.target.id === 'gbifCiteCopy') {
+    try { await navigator.clipboard.writeText(gbifCitation(gbifDownload)); e.target.textContent = 'Copied'; } catch (err) {}
+  } else if (e.target.id === 'gbifCiteKeyBtn') {
+    const m = GBIF_DL_KEY_RE.exec(document.getElementById('gbifCiteKey').value);
+    if (!m) { setStatus('A GBIF download key looks like 0012345-261023074918325.', 'warning'); return; }
+    e.target.disabled = true; e.target.textContent = 'Looking up…';
+    gbifDownload = await gbifDownloadInfo(m[1]);
+    renderGbifCite();
+  }
+});
 
 function _mapDwcRecord(poly, row, mediaByGbifId) {
   const lat = parseFloat(row['decimalLatitude']);
@@ -7916,7 +8008,7 @@ async function _runGbifDownload(user, pass) {
   // Step 2: done - fire and forget. GBIF emails the user when ready.
   const _keyMsg = "Request submitted (key: " + downloadKey + "). GBIF will email you when ready (can take 15+ minutes). "
     + "<a href=\"https://www.gbif.org/user/download\" target=\"_blank\" style=\"color:var(--green-dark);\">Check progress on GBIF</a>"
-    + "<br>When the zip arrives, drop it into the upload zone at the top of this column.";
+    + "<br>When the zip arrives, drop it into the upload zone at the top of this column. Keep GBIF's file name (" + downloadKey + ".zip) so occurd. can find the download's DOI for citing.";
   setStatus(_keyMsg, "success");
   setFetchMode(false);
 }
@@ -8165,6 +8257,15 @@ window.LAYERS_HOST = {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v7.48</span>
+      <span class="changelog-date">Oct 2026</span>
+      <ul>
+        <li>Big Data downloads are now citable: when a GBIF download zip is loaded, occurd. reads its download key from the file name, looks up the download's DOI, and shows the GBIF citation under Output</li>
+        <li>Every CSV and GeoJSON export carries the citation (DOI, download key, date, record count and licence) in its header; live searches are marked as not citable</li>
+        <li>A renamed zip can still be cited: paste the download key under Output</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v7.47</span>
       <span class="changelog-date">Oct 2026</span>
