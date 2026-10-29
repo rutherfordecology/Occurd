@@ -97,7 +97,7 @@
     spotlight.style.cssText = [
       'position:fixed;z-index:99991;',
       'box-shadow:0 0 0 9999px rgba(0,0,0,0.32);',
-      'border-radius:6px;',
+      'border-radius:0;',
       'pointer-events:none;',
       'transition:all 0.25s;',
     ].join('');
@@ -107,9 +107,9 @@
     tooltip.id = 'ob-tooltip';
     tooltip.style.cssText = [
       'position:fixed;z-index:99995;',
-      'background:#f9f8f6;border-radius:10px;',
-      'box-shadow:0 4px 24px rgba(0,0,0,0.13);',
-      'border:1px solid rgba(0,0,0,0.07);',
+      'background:#fff;border-radius:0;',
+      
+      'border:1px solid var(--slate);',
       'padding:18px 20px 14px;width:260px;',
       'font-family:var(--font-sans,system-ui,sans-serif);',
       'transition:left 0.2s,top 0.2s;',
@@ -150,17 +150,17 @@
     }
 
     // Build tooltip content
-    const stepLabel = '<div style="font-size:10px;color:#9b9890;margin-bottom:6px;letter-spacing:0.04em;">' +
+    const stepLabel = '<div style="font-size:10px;color:var(--grey);margin-bottom:6px;letter-spacing:0.04em;">' +
       'Step ' + (idx + 1) + ' of ' + STEPS.length + '</div>';
-    const title = '<div style="font-size:14px;font-weight:700;color:#1c1b18;margin-bottom:6px;">' +
+    const title = '<div style="font-size:14px;font-weight:700;color:#000;margin-bottom:6px;">' +
       step.title + '</div>';
-    const text = '<div style="font-size:12px;color:#444;line-height:1.6;margin-bottom:14px;">' +
+    const text = '<div style="font-size:12px;color:#000;line-height:1.6;margin-bottom:14px;">' +
       step.text + '</div>';
     const skipBtn = !isLast
-      ? '<button id="ob-skip" style="background:none;border:none;font-size:11px;color:#9b9890;cursor:pointer;padding:0;font-family:inherit;">Skip tour</button>'
+      ? '<button id="ob-skip" style="background:none;border:none;font-size:11px;color:var(--grey);cursor:pointer;padding:0;font-family:inherit;">Skip tour</button>'
       : '';
     const nextBtn = '<button id="ob-next" style="' +
-      'background:#1a5c34;color:#fff;border:none;border-radius:6px;' +
+      'background:var(--slate);color:#fff;border:none;border-radius:0;' +
       'padding:7px 18px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;' +
       '">' + (isLast ? 'Done' : 'Next →') + '</button>';
 

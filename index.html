@@ -30,7 +30,7 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css">
-<link rel="stylesheet" href="style.css?v=7.36f">
+<link rel="stylesheet" href="style.css?v=7.47">
 <script src="icons.js"></script>
 <script src="env-weeds.js"></script>
 </head>
@@ -49,8 +49,8 @@
       <img src="occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
-    <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v7.42</span></h1>
+    <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.75);">by</span>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.7);letter-spacing:0.04em;">v7.47</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -60,7 +60,7 @@
       <div id="projectsMenu" style="
         display:none;position:absolute;right:0;top:calc(100% + 6px);
         background:#fff;border:1px solid var(--border);border-radius:var(--radius);
-        box-shadow:0 4px 18px rgba(0,0,0,0.16);z-index:99999;min-width:220px;overflow:hidden;">
+        z-index:99999;min-width:220px;overflow:hidden;">
       </div>
     </div>
     <span style="opacity:0.3">|</span>
@@ -68,7 +68,7 @@
     <span style="opacity:0.3">|</span>
     <button class="about-btn" id="aboutBtn" style="display:inline-flex;align-items:center;gap:5px;"><span data-icon="info" data-icon-size="15"></span>About</button>
     <span style="opacity:0.3">|</span>
-    <a href="https://buymeacoffee.com/rutherfordecology" target="_blank" style="color:#d4a84b;font-weight:500;display:inline-flex;align-items:center;gap:5px;"><span data-icon="coffee" data-icon-size="15"></span>Buy me a coffee</a>
+    <a href="https://buymeacoffee.com/rutherfordecology" target="_blank" style="color:rgba(255,255,255,0.85);font-weight:500;display:inline-flex;align-items:center;gap:5px;"><span data-icon="coffee" data-icon-size="15"></span>Buy me a coffee</a>
   </div>
 </header>
 
@@ -133,11 +133,11 @@
     <div class="sidebar-section">
       <div class="section-label collapsible" data-section="s2">2 · Parameters for fetch <span class="section-chevron">▾</span></div>
       <div class="section-body" id="s2">
-      <div class="half">
-        <div class="field"><label>Date from</label><input type="date" id="dateFrom" style="width:100%;"></div>
-        <div class="field"><label>Date to</label><input type="date" id="dateTo" style="width:100%;"></div>
+      <div class="field field-inline date-pair">
+        <label for="dateFrom">From</label><input type="date" id="dateFrom">
+        <label for="dateTo">To</label><input type="date" id="dateTo">
       </div>
-      <div class="field">
+      <div class="field field-inline">
         <label>Taxon groups</label>
         <div class="taxon-dropdown" id="taxonDropdown">
           <div class="taxon-dropdown-trigger" id="taxonTrigger">
@@ -219,21 +219,21 @@
       <div class="section-label collapsible" data-section="s3">3 · Fetch data <span class="section-chevron">▾</span></div>
       <div class="section-body" id="s3">
         <!-- Shown only in Big Data mode (?bigdata param) -->
-        <div id="bigdataCreds" style="display:none;margin-bottom:10px;padding:10px 12px;background:#f3f2ee;border-radius:var(--radius-lg);">
-          <p style="font-size:0.72rem;font-weight:800;color:#6b6960;letter-spacing:0.06em;text-transform:uppercase;margin:0 0 8px;">GBIF credentials</p>
+        <div id="bigdataCreds" style="display:none;margin-bottom:10px;padding:2px 0 2px 10px;background:none;border-left:3px solid var(--slate);">
+          <p style="font-size:0.72rem;font-weight:800;color:#5F6B66;letter-spacing:0.06em;text-transform:uppercase;margin:0 0 8px;">GBIF credentials</p>
           <input id="gbifCredsUser" type="text" autocomplete="username" placeholder="GBIF username"
-            style="width:100%;padding:7px 10px;border:1.5px solid #dddbd3;border-radius:7px;font-size:0.82rem;font-family:inherit;outline:none;margin-bottom:6px;box-sizing:border-box;">
+            style="width:100%;padding:7px 10px;border:1px solid var(--border2);border-radius:0;font-size:0.82rem;font-family:inherit;outline:none;margin-bottom:6px;box-sizing:border-box;">
           <input id="gbifCredsPass" type="password" autocomplete="current-password" placeholder="GBIF password"
-            style="width:100%;padding:7px 10px;border:1.5px solid #dddbd3;border-radius:7px;font-size:0.82rem;font-family:inherit;outline:none;margin-bottom:8px;box-sizing:border-box;">
+            style="width:100%;padding:7px 10px;border:1px solid var(--border2);border-radius:0;font-size:0.82rem;font-family:inherit;outline:none;margin-bottom:8px;box-sizing:border-box;">
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
-            <label style="display:flex;align-items:center;gap:6px;font-size:0.75rem;color:#6b6960;cursor:pointer;flex:1;">
+            <label style="display:flex;align-items:center;gap:6px;font-size:0.75rem;color:#5F6B66;cursor:pointer;flex:1;">
               <input type="checkbox" id="gbifRemember"> Remember me on this device
             </label>
-            <button id="gbifCheckBtn" type="button" onclick="_checkGbifCreds()" style="padding:4px 10px;font-size:0.72rem;font-family:inherit;background:#fff;border:1.5px solid #dddbd3;border-radius:6px;cursor:pointer;color:#6b6960;white-space:nowrap;">Check credentials</button>
+            <button id="gbifCheckBtn" type="button" onclick="_checkGbifCreds()" style="padding:4px 10px;font-size:0.72rem;font-family:inherit;background:#fff;border:1px solid var(--slate);border-radius:0;cursor:pointer;color:var(--slate);white-space:nowrap;">Check credentials</button>
             <span id="gbifCheckStatus" style="font-size:0.78rem;display:none;"></span>
           </div>
-          <p style="font-size:0.72rem;color:#9b9890;margin:0 0 4px;line-height:1.45;">Stored in your browser only — never sent anywhere except GBIF. <a href="https://www.gbif.org/en/user/profile" target="_blank" style="color:var(--green-dark);">Create free account ↗</a></p>
-          <p style="font-size:0.72rem;color:#9b9890;margin:0;line-height:1.45;">GBIF will email you when your download is ready. Download the zip and drop it into the upload zone above.</p>
+          <p style="font-size:0.72rem;color:#5F6B66;margin:0 0 4px;line-height:1.45;">Stored in your browser only — never sent anywhere except GBIF. <a href="https://www.gbif.org/en/user/profile" target="_blank" style="color:var(--green-dark);">Create free account ↗</a></p>
+          <p style="font-size:0.72rem;color:#5F6B66;margin:0;line-height:1.45;">GBIF will email you when your download is ready. Download the zip and drop it into the upload zone above.</p>
         </div>
         <button class="run-btn" id="runBtn" disabled>Fetch occurrences from GBIF</button>
         <div class="status-bar" id="statusBar"></div>
@@ -336,10 +336,7 @@
     </div>
 
     <div class="sidebar-footer">
-      <p class="note">
-        Queries the <a href="https://techdocs.gbif.org/en/openapi/v1/occurrence" target="_blank">GBIF occurrence search API</a> — no login required. For more information visit the <a href="https://www.gbif.org" target="_blank">GBIF portal</a>.
-      </p>
-      <div style="margin:0.6rem 0 0.5rem;display:flex;flex-wrap:wrap;gap:6px 12px;font-size:11px;">
+      <div style="margin:0 0 0.5rem;display:flex;flex-wrap:wrap;gap:6px 12px;font-size:11px;">
         <a href="whatdat/" target="_blank" style="color:var(--green);font-weight:700;text-decoration:none;display:inline-flex;align-items:center;gap:4px;"><span data-icon="target" data-icon-size="14"></span>WhatDat?</a>
         <a href="looklike/" target="_blank" style="color:var(--green);font-weight:700;text-decoration:none;display:inline-flex;align-items:center;gap:4px;"><span data-icon="eye" data-icon-size="14"></span>LookLike</a>
         <a href="https://rutherfordecology.github.io/WhatDatBird/" target="_blank" style="color:var(--green);font-weight:700;text-decoration:none;display:inline-flex;align-items:center;gap:4px;"><span data-icon="bird" data-icon-size="14"></span>WhatDatBird?</a>
@@ -381,8 +378,8 @@
       onclick="document.querySelector('.leaflet-draw-draw-polygon').click(); hideDrawHint();">
       <div style="
         background:var(--green-dark); color:#fff; font-size:12px; font-weight:500;
-        padding:6px 10px; border-radius:var(--radius-pill); white-space:nowrap;
-        box-shadow:0 2px 8px rgba(0,0,0,0.25); line-height:1.3;">
+        padding:6px 10px; border-radius:0; white-space:nowrap;
+        line-height:1.3;">
         ← Click here to start drawing
       </div>
     </div>
@@ -496,13 +493,13 @@
         style="flex:1;font-size:11px;padding:6px 8px;border:1px solid var(--border);border-radius:6px;
                background:var(--bg2,#f5f5f3);color:var(--text);font-family:var(--font-sans);min-width:0;">
       <button onclick="copyShareUrlFromModal()"
-        style="background:var(--green);color:#fff;border:none;border-radius:6px;padding:6px 14px;
+        style="background:var(--green);color:#fff;border:none;border-radius:0;padding:6px 14px;
                cursor:pointer;font-size:12px;font-weight:600;font-family:var(--font-sans);white-space:nowrap;"
         id="shareModalCopyBtn">Copy</button>
     </div>
     <div id="shareModalCsvRow" style="display:none;margin-top:0.75rem;padding-top:0.75rem;border-top:1px solid var(--border);">
       <p style="font-size:12px;color:var(--text2);margin:0 0 0.5rem;">Download the current results as a CSV file.</p>
-      <button onclick="downloadCurrentCsv()" style="background:var(--green);color:#fff;border:none;border-radius:6px;padding:6px 14px;cursor:pointer;font-size:12px;font-weight:600;font-family:var(--font-sans);">&#8595; Download CSV</button>
+      <button onclick="downloadCurrentCsv()" style="background:var(--green);color:#fff;border:none;border-radius:0;padding:6px 14px;cursor:pointer;font-size:12px;font-weight:600;font-family:var(--font-sans);">&#8595; Download CSV</button>
     </div>
     <div style="text-align:right;margin-top:1rem;">
       <button onclick="document.getElementById('shareModal').classList.remove('open')"
@@ -522,7 +519,7 @@
     <ul>
       <li>Draw a polygon on the map or upload a KML/KMZ file</li>
       <li>Select taxon groups and date range</li>
-      <li>The tool queries the live GBIF occurrence search API — no login or account required</li>
+      <li>The tool queries the live <a href="https://techdocs.gbif.org/en/openapi/v1/occurrence" target="_blank" style="color:var(--green);">GBIF occurrence search API</a> — no login or account required. For more information visit the <a href="https://www.gbif.org" target="_blank" style="color:var(--green);">GBIF portal</a></li>
       <li>Records are mapped and exported entirely in your browser</li>
     </ul>
 
@@ -536,7 +533,7 @@
 
     <h3>Licence &amp; source</h3>
     <p><span class="licence-badge">PolyForm Strict</span> Free to use for non-commercial purposes. Redistributing or modifying the code is not permitted, and written content is <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/" target="_blank" style="color:var(--green);">CC BY-NC-ND 4.0</a>. For commercial use, contact Rutherford Ecology. View source on <a href="https://github.com/rutherfordecology/occurd" target="_blank" style="color:var(--green);">GitHub</a>.</p>
-    <p style="margin-top:0.6rem;font-style:italic;">Find this useful? If you're using it for commercial work, supporting the developer is a legitimate business expense. And if you're just here because biodiversity data is genuinely interesting — that's worth a coffee too. <a href="https://buymeacoffee.com/rutherfordecology" target="_blank" style="color:#d4a84b;font-weight:500;"><span data-icon="coffee" data-icon-size="14" style="vertical-align:-2px;margin-right:3px"></span>Buy me a coffee</a></p>
+    <p style="margin-top:0.6rem;font-style:italic;">Find this useful? If you're using it for commercial work, supporting the developer is a legitimate business expense. And if you're just here because biodiversity data is genuinely interesting — that's worth a coffee too. <a href="https://buymeacoffee.com/rutherfordecology" target="_blank" style="color:#263b27;font-weight:500;"><span data-icon="coffee" data-icon-size="14" style="vertical-align:-2px;margin-right:3px"></span>Buy me a coffee</a></p>
 
     <h3>Built by</h3>
     <p><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank" style="color:var(--green);">Rutherford Ecology</a> &mdash; <a href="mailto:rutherfordecology@gmail.com" style="color:var(--green);">rutherfordecology@gmail.com</a></p>
@@ -623,10 +620,10 @@
 
 <!-- Welcome / disclaimer modal -->
 <div class="modal-overlay open" id="disclaimerModal" style="background:rgba(0,0,0,0.6);align-items:center;">
-  <div class="modal" style="max-width:440px;padding:0;overflow:hidden;border-radius:12px;">
+  <div class="modal" style="max-width:440px;padding:0;overflow:hidden;border-radius:0;">
 
     <!-- Welcome header -->
-    <div style="background:var(--green-dark);padding:2rem 2rem 1.5rem;text-align:center;">
+    <div style="background:var(--brand);padding:2rem 2rem 1.5rem;text-align:center;">
       <img src="occurd-logo.png" alt="occurd." style="width:100%;max-width:260px;height:auto;filter:brightness(0) invert(1);opacity:0.95;margin-bottom:12px;display:block;margin-left:auto;margin-right:auto;transform:translateX(25px);">
       <img src="logo.png" alt="Rutherford Ecology" style="width:100%;max-width:200px;height:auto;filter:brightness(0) invert(1);opacity:0.7;margin-bottom:10px;display:block;margin-left:auto;margin-right:auto;">
       <div style="font-size:13px;font-weight:400;color:rgba(255,255,255,0.6);font-family:var(--font-brand);letter-spacing:0.01em;">by <strong style="font-weight:700;color:rgba(255,255,255,0.85);">Rutherford</strong> <em style="font-style:normal;font-weight:300;">ecology</em></div>
@@ -642,7 +639,7 @@
         <li>Use as a starting point only — not authoritative data for regulatory purposes.</li>
         <li>Recent observations from eBird, iNaturalist and similar platforms may take weeks to months to appear in GBIF.</li>
       </ul>
-      <p style="font-size:12px;color:var(--text3);line-height:1.6;margin-bottom:1rem;">If this tool saves you a whole lot of time, feel free to <a href="https://buymeacoffee.com/rutherfordecology" target="_blank" style="color:#d4a84b;font-weight:500;"><span data-icon="coffee" data-icon-size="14" style="vertical-align:-2px;margin-right:3px"></span>buy me a coffee</a>.</p>
+      <p style="font-size:12px;color:var(--text3);line-height:1.6;margin-bottom:1rem;">If this tool saves you a whole lot of time, feel free to <a href="https://buymeacoffee.com/rutherfordecology" target="_blank" style="color:#263b27;font-weight:500;"><span data-icon="coffee" data-icon-size="14" style="vertical-align:-2px;margin-right:3px"></span>buy me a coffee</a>.</p>
       <button class="modal-btn primary" id="disclaimerAccept" style="width:100%;padding:11px;font-size:14px;">Get started &rarr;</button>
     </div>
 
@@ -779,7 +776,7 @@ async function inatFetch(url, options) {
 }
 
 const COMPLEXITY_THRESHOLD = 500;
-const POLY_COLOURS = ['#C8611A','#2c5f8a','#8a2c2c','#5a2a7a','#1a5a6a','#2a7a58'];
+const POLY_COLOURS = ['#C8611A','#2c5f8a','#8a2c2c','#5a2a7a','#1a5a6a','#2a7a58']; // drawn areas keep bright colours so they stand out on the map
 const TAXON_COLOURS = {
   'Aves':            { colour: '#2563EB', label: 'Aves (birds)' },
   'Mammalia':        { colour: '#7C3AED', label: 'Mammalia' },
@@ -929,8 +926,8 @@ function locateUser(btn) {
       const ll = [lat, lng];
       if (_geoMarker) map.removeLayer(_geoMarker);
       if (_geoCircle) map.removeLayer(_geoCircle);
-      _geoCircle = L.circle(ll, { radius: acc, color: '#2a7de1', weight: 1, fillColor: '#2a7de1', fillOpacity: 0.12 }).addTo(map);
-      _geoMarker = L.circleMarker(ll, { radius: 7, color: '#fff', weight: 2, fillColor: '#2a7de1', fillOpacity: 1 }).addTo(map);
+      _geoCircle = L.circle(ll, { radius: acc, color: '#263b27', weight: 1, fillColor: '#263b27', fillOpacity: 0.12 }).addTo(map);
+      _geoMarker = L.circleMarker(ll, { radius: 7, color: '#fff', weight: 2, fillColor: '#263b27', fillOpacity: 1 }).addTo(map);
       _geoMarker.bindTooltip('You are here', { direction: 'top', offset: [0, -8] });
       // Frame the accuracy circle when it's meaningful, otherwise a sensible zoom.
       if (acc > 0) map.fitBounds(_geoCircle.getBounds(), { maxZoom: 15, padding: [40, 40] });
@@ -2023,7 +2020,7 @@ function restoreFromShare(state, opts) {
   if (opts && opts.quiet) return;
   // Banner
   const banner = document.createElement('div');
-  banner.style.cssText = 'position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:9999;background:var(--green-dark);color:#fff;font-size:12px;font-weight:600;font-family:var(--font-sans);padding:7px 16px;border-radius:var(--radius-pill);box-shadow:0 2px 10px rgba(0,0,0,0.2);pointer-events:none;';
+  banner.style.cssText = 'position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:9999;background:var(--green-dark);color:#fff;font-size:12px;font-weight:600;font-family:var(--font-sans);padding:7px 16px;border-radius:0;pointer-events:none;';
   banner.textContent = 'Shared search loaded — fetching results…';
   document.body.appendChild(banner);
   setTimeout(() => banner.remove(), 4000);
@@ -2762,8 +2759,8 @@ function autoSelectFromDrawn() {
       bp.selected = hits;
       if (hits !== wasSelected && bp.layer) {
         bp.layer.setStyle(hits
-          ? { color: '#2a7a58', fillColor: '#2a7a58', fillOpacity: 0.2, weight: 2 }
-          : { color: '#6b7280', fillColor: '#6b7280', fillOpacity: 0.06, weight: 1 }
+          ? { color: '#263b27', fillColor: '#263b27', fillOpacity: 0.2, weight: 2 }
+          : { color: '#5F6B66', fillColor: '#5F6B66', fillOpacity: 0.06, weight: 1 }
         );
       }
       if (hits) count++;
@@ -2779,7 +2776,7 @@ function enterBrowseMode(polys) {
   browsePolygons.forEach((bp, i) => {
     const layer = L.polygon(bp.holes.length > 0 ? [bp.latlngs, ...bp.holes] : bp.latlngs, {
       renderer: canvasRenderer,
-      color: '#6b7280', fillColor: '#6b7280', fillOpacity: 0.06, weight: 1
+      color: '#5F6B66', fillColor: '#5F6B66', fillOpacity: 0.06, weight: 1
     });
     layer.on('click', () => toggleBrowseSelect(i));
     browseLayer.addLayer(layer);
@@ -2854,8 +2851,8 @@ function reenterBrowseMode() {
     if (!bp.layer) {
       const layer = L.polygon(bp.holes && bp.holes.length > 0 ? [bp.latlngs, ...bp.holes] : bp.latlngs, {
         renderer: canvasRenderer,
-        color: bp.selected ? '#2a7a58' : '#6b7280',
-        fillColor: bp.selected ? '#2a7a58' : '#6b7280',
+        color: bp.selected ? '#263b27' : '#5F6B66',
+        fillColor: bp.selected ? '#263b27' : '#5F6B66',
         fillOpacity: bp.selected ? 0.2 : 0.06,
         weight: bp.selected ? 2 : 1
       });
@@ -2874,8 +2871,8 @@ function toggleBrowseSelect(idx) {
   const bp = browsePolygons[idx];
   bp.selected = !bp.selected;
   bp.layer.setStyle(bp.selected
-    ? { color: '#2a7a58', fillColor: '#2a7a58', fillOpacity: 0.2, weight: 2 }
-    : { color: '#6b7280', fillColor: '#6b7280', fillOpacity: 0.06, weight: 1 }
+    ? { color: '#263b27', fillColor: '#263b27', fillOpacity: 0.2, weight: 2 }
+    : { color: '#5F6B66', fillColor: '#5F6B66', fillOpacity: 0.06, weight: 1 }
   );
   renderBrowseList(browseSearch.value);
   updateBrowseSelCount();
@@ -2915,8 +2912,8 @@ browseSelAllBtn.addEventListener('click', () => {
   visible.forEach(bp => {
     bp.selected = !allSel;
     bp.layer.setStyle(bp.selected
-      ? { color: '#2a7a58', fillColor: '#2a7a58', fillOpacity: 0.2, weight: 2 }
-      : { color: '#6b7280', fillColor: '#6b7280', fillOpacity: 0.06, weight: 1 }
+      ? { color: '#263b27', fillColor: '#263b27', fillOpacity: 0.2, weight: 2 }
+      : { color: '#5F6B66', fillColor: '#5F6B66', fillOpacity: 0.06, weight: 1 }
     );
   });
   browseSelAllBtn.textContent = allSel ? 'Select all visible' : 'Deselect all visible';
@@ -4161,7 +4158,7 @@ window._gbifOpenLightbox = function(url, caption) {
     lb.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.88);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px;padding:20px;box-sizing:border-box;cursor:zoom-out;';
     lb.innerHTML =
       '<button id="gbifLbClose" style="position:absolute;top:14px;right:18px;background:none;border:none;color:#fff;font-size:28px;cursor:pointer;line-height:1;opacity:0.8;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.8">&#x2715;</button>' +
-      '<img id="gbifLbImg" style="max-width:90vw;max-height:82vh;object-fit:contain;border-radius:6px;box-shadow:0 4px 32px rgba(0,0,0,0.6);cursor:default;" onclick="event.stopPropagation()">' +
+      '<img id="gbifLbImg" style="max-width:90vw;max-height:82vh;object-fit:contain;border-radius:0;cursor:default;" onclick="event.stopPropagation()">' +
       '<div id="gbifLbCaption" style="color:rgba(255,255,255,0.6);font-size:11px;text-align:center;max-width:600px;"></div>';
     lb.addEventListener('click', () => lb.style.display = 'none');
     document.body.appendChild(lb);
@@ -4212,7 +4209,7 @@ function licenceBadge(licenceUrl) {
   else if (lower.includes('by-nd'))   label = 'CC BY-ND';
   else if (lower.includes('by'))      label = 'CC BY';
   else if (lower.includes('cc0') || lower.includes('publicdomain')) label = 'CC0';
-  return '<span style="display:inline-block;font-size:9px;font-weight:600;padding:1px 5px;border-radius:var(--radius-sm);background:#e8f4ef;color:#1a5940;border:1px solid #6dba9a;margin-right:4px;">' + label + '</span>';
+  return '<span style="display:inline-block;font-size:9px;font-weight:600;padding:1px 5px;border-radius:var(--radius-sm);background:var(--white);color:var(--slate);border:1px solid var(--slate);margin-right:4px;">' + label + '</span>';
 }
 
 // Map rendering
@@ -4250,7 +4247,7 @@ function getDisplayName(rec) {
 // eBird requires login — no eBird links. GBIF is always shown separately.
 function sourceLink(rec) {
   const lnk = (label, url) =>
-    '<a href="' + url + '" target="_blank" rel="noopener" style="color:#2a7a58;font-size:12px;">' + label + ' ↗</a>';
+    '<a href="' + url + '" target="_blank" rel="noopener" style="color:#263b27;font-size:12px;">' + label + ' ↗</a>';
   const id  = (rec.occurrenceID || '').trim();
   if (/^https?:\/\/(www\.)?inaturalist\.org\//i.test(id))  return lnk('iNaturalist', id);
   if (/xeno-canto/i.test(id))                               return lnk('Xeno-canto', id);
@@ -4338,10 +4335,10 @@ function buildRecordPage(rec) {
   }
   const primary = common
     ? '<div style="font-weight:600;font-size:13px;display:flex;align-items:center;gap:5px;flex-wrap:wrap;"><a' + linkAttr + '>' + common + '</a>' + nztcsPopupBadge + '</div>' +
-      '<div style="color:#9b9890;font-size:11px;font-style:italic;margin-top:1px;">' + (rec.scientificName || '') + '</div>'
+      '<div style="color:#5F6B66;font-size:11px;font-style:italic;margin-top:1px;">' + (rec.scientificName || '') + '</div>'
     : '<div style="font-weight:600;font-size:13px;display:flex;align-items:center;gap:5px;flex-wrap:wrap;"><a' + linkAttr + '>' + (rec.scientificName || 'Unknown') + '</a>' + nztcsPopupBadge + '</div>';
   setTimeout(() => resolveInatLink(linkId, effTaxonKey, rec.scientificName), 0);
-  const cls     = rec.class ? '<div style="color:#9b9890;font-size:11px;">' + rec.class + '</div>' : '';
+  const cls     = rec.class ? '<div style="color:#5F6B66;font-size:11px;">' + rec.class + '</div>' : '';
   const date    = rec.eventDate   ? '<div style="margin-top:4px;font-size:12px;"><b>Date:</b> ' + rec.eventDate + '</div>' : '';
   const source  = rec.datasetName ? '<div style="font-size:12px;"><b>Source:</b> ' + rec.datasetName + '</div>' : '';
   const uncertVal = parseFloat(rec.coordinateUncertaintyInMeters);
@@ -4361,15 +4358,15 @@ function buildRecordPage(rec) {
   const srcLink = sourceLink(rec);
   const isEdna  = isEdnaRecord(rec);
   const ednaBadge = isEdna
-    ? '<span title="Environmental DNA record" style="display:inline-block;padding:1px 7px;border-radius:var(--radius-lg);background:#16A34A;color:#fff;font-size:10px;font-weight:700;letter-spacing:0.04em;">eDNA</span>'
+    ? '<span title="Environmental DNA record" style="display:inline-block;padding:1px 7px;border-radius:0;background:var(--slate);color:#fff;font-size:10px;font-weight:700;letter-spacing:0.04em;">eDNA</span>'
     : '';
   const basisBadge = rec.basisOfRecord === 'FOSSIL_SPECIMEN'
-    ? '<span title="Fossil specimen" style="display:inline-block;padding:1px 6px;border-radius:var(--radius-lg);background:#92400e;color:#fff;font-size:11px;">\ud83d\udc1a</span>'
+    ? '<span title="Fossil specimen" style="display:inline-block;padding:1px 6px;border-radius:0;background:var(--slate);color:#fff;font-size:11px;">\ud83d\udc1a</span>'
     : rec.basisOfRecord === 'PRESERVED_SPECIMEN'
-    ? '<span title="Preserved specimen" style="display:inline-block;padding:1px 6px;border-radius:var(--radius-lg);background:#4b5563;color:#fff;font-size:11px;">\ud83d\udcc4</span>'
+    ? '<span title="Preserved specimen" style="display:inline-block;padding:1px 6px;border-radius:0;background:var(--slate);color:#fff;font-size:11px;">\ud83d\udcc4</span>'
     : '';
   const linkItems = [];
-  if (gbifId) linkItems.push('<a href="https://www.gbif.org/occurrence/' + gbifId + '" target="_blank" rel="noopener" style="color:#2a7a58;font-size:12px;">GBIF \u2197</a>');
+  if (gbifId) linkItems.push('<a href="https://www.gbif.org/occurrence/' + gbifId + '" target="_blank" rel="noopener" style="color:#263b27;font-size:12px;">GBIF \u2197</a>');
   if (srcLink) linkItems.push(srcLink);
   const link = (linkItems.length || camBtn || ednaBadge || basisBadge)
     ? '<div style="margin-top:4px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">' + linkItems.join('') + camBtn + (ednaBadge ? ' ' + ednaBadge : '') + (basisBadge ? ' ' + basisBadge : '') + '</div>'
@@ -4377,11 +4374,11 @@ function buildRecordPage(rec) {
   const _tkSpeciesName = rec.species || rec.scientificName || '';
   const _hasTk = _tkSpeciesNames.size > 0 && _tkSpeciesName && _tkSpeciesNames.has(_tkSpeciesName);
   const tkLine = _hasTk
-    ? '<div style="margin-top:6px;padding-top:5px;border-top:1px solid #eee;font-size:11px;color:#6b7280;display:flex;align-items:center;gap:5px;">' +
+    ? '<div style="margin-top:6px;padding-top:5px;border-top:1px solid #eee;font-size:11px;color:#5F6B66;display:flex;align-items:center;gap:5px;">' +
       '<span title="Traditional Knowledge / Biocultural label">\ud83c\udff7\ufe0f</span>' +
       (_tkProjectUrl
-        ? '<a href="' + _tkProjectUrl + '" target="_blank" rel="noopener" style="color:#2a7a58;">Traditional Knowledge label \u2014 view community project and conditions \u2197</a>'
-        : '<span style="color:#2a7a58;">TK/BC label</span>') +
+        ? '<a href="' + _tkProjectUrl + '" target="_blank" rel="noopener" style="color:#263b27;">Traditional Knowledge label \u2014 view community project and conditions \u2197</a>'
+        : '<span style="color:#263b27;">TK/BC label</span>') +
       '</div>'
     : '';
   return {
@@ -4426,10 +4423,10 @@ function renderPhotoSlot(slotId, idx) {
   const navHtml = total > 1
     ? '<div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-top:4px;">' +
       '<button onclick="event.stopPropagation();window._gbifNavSpeciesPhoto(\'' + slotId + '\',-1)" ' +
-        'style="background:var(--surface2,#f0f0f0);color:var(--text,#333);border:1px solid var(--border,#ddd);border-radius:50%;width:26px;height:26px;font-size:18px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0 0 1px 0;flex-shrink:0;">&#8249;</button>' +
+        'style="background:var(--surface2,#f0f0f0);color:var(--text,#333);border:1px solid var(--slate);border-radius:0;width:26px;height:26px;font-size:18px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0 0 1px 0;flex-shrink:0;">&#8249;</button>' +
       '<span style="font-size:11px;color:var(--text2,#666);font-weight:600;">' + (idx + 1) + '\u00a0/\u00a0' + total + '</span>' +
       '<button onclick="event.stopPropagation();window._gbifNavSpeciesPhoto(\'' + slotId + '\',1)" ' +
-        'style="background:var(--surface2,#f0f0f0);color:var(--text,#333);border:1px solid var(--border,#ddd);border-radius:50%;width:26px;height:26px;font-size:18px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0 0 1px 0;flex-shrink:0;">&#8250;</button>' +
+        'style="background:var(--surface2,#f0f0f0);color:var(--text,#333);border:1px solid var(--slate);border-radius:0;width:26px;height:26px;font-size:18px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0 0 1px 0;flex-shrink:0;">&#8250;</button>' +
       '</div>'
     : '';
 
@@ -4442,7 +4439,7 @@ function renderPhotoSlot(slotId, idx) {
       _expandBtn(photo.url, photo.photographer || '') +
     '</div>' +
     navHtml +
-    '<div style="font-size:9px;color:#9b9890;margin-top:2px;line-height:1.3;">' +
+    '<div style="font-size:9px;color:#5F6B66;margin-top:2px;line-height:1.3;">' +
     licenceBadge(photo.licence) + (photo.photographer || '') + '</div>';
 }
 
@@ -4458,7 +4455,7 @@ async function loadPopupPhoto(photoId, taxonKey, sciName) {
   const slot = document.getElementById(photoId);
   if (!slot || slot.dataset.loaded) return;
   slot.dataset.loaded = '1';
-  slot.innerHTML = '<div style="font-size:11px;color:#9b9890;padding:2px 0;">Loading photo\u2026</div>';
+  slot.innerHTML = '<div style="font-size:11px;color:#5F6B66;padding:2px 0;">Loading photo\u2026</div>';
   const photo = await fetchSpeciesPhoto(taxonKey, sciName);
   if (!slot.isConnected) return;
   if (photo) {
@@ -4483,7 +4480,7 @@ window._gbifShowRecordPhoto = function(slotId, photoKey) {
   if (slot.dataset.showingRecord === '1') {
     slot.dataset.showingRecord = '0';
     delete slot.dataset.loaded;
-    slot.innerHTML = '<div style="font-size:11px;color:#9b9890;padding:2px 0;">Loading photo…</div>';
+    slot.innerHTML = '<div style="font-size:11px;color:#5F6B66;padding:2px 0;">Loading photo…</div>';
     loadPopupPhoto(slotId, slot.dataset.taxonKey || null, slot.dataset.sciName || '');
     return;
   }
@@ -4500,7 +4497,7 @@ window._gbifShowRecordPhoto = function(slotId, photoKey) {
       'onerror="window._gbifImgFallback(this,\'' + photoKey + '\')"> ' +
       _expandBtn(photo.url, photo.photographer || '') +
     '</div>' +
-    '<div style="font-size:9px;color:#9b9890;margin-top:2px;line-height:1.3;">' +
+    '<div style="font-size:9px;color:#5F6B66;margin-top:2px;line-height:1.3;">' +
     licenceBadge(photo.licence) + (photo.photographer || '') + '</div>';
 };
 
@@ -4518,7 +4515,7 @@ window._gbifSelectSpecies = function(pid, spIdx) {
   if (listEl) {
     listEl.querySelectorAll('[data-sp]').forEach(el => {
       const i = parseInt(el.dataset.sp);
-      el.style.background = i === spIdx ? '#e8f4ef' : '';
+      el.style.background = i === spIdx ? 'var(--hover)' : '';
     });
   }
 
@@ -4527,7 +4524,7 @@ window._gbifSelectSpecies = function(pid, spIdx) {
   const recordRowsInner = sp.records.map(r => {
     const date = r.eventDate ? '<span style="font-size:12px;">' + r.eventDate + '</span>' : '';
     const srcLk = sourceLink(r).replace('font-size:12px', 'font-size:11px');
-    const gbifLk = r.gbifID ? ' <a href="https://www.gbif.org/occurrence/' + r.gbifID + '" target="_blank" rel="noopener" style="color:#2a7a58;font-size:11px;">GBIF ↗</a>' : '';
+    const gbifLk = r.gbifID ? ' <a href="https://www.gbif.org/occurrence/' + r.gbifID + '" target="_blank" rel="noopener" style="color:#263b27;font-size:11px;">GBIF ↗</a>' : '';
     const link = gbifLk + (srcLk ? ' ' + srcLk : '');
     let camBtn = '';
     if (r.recordPhoto) {
@@ -4539,33 +4536,33 @@ window._gbifSelectSpecies = function(pid, spIdx) {
         'onmouseover="this.style.opacity=\'1\'" onmouseout="this.style.opacity=\'0.75\'">' + icon('camera', { size: 14 }) + '</button>';
     }
     const isEdna = isEdnaRecord(r);
-    const ednaBadge = isEdna ? ' <span title="Environmental DNA record" style="display:inline-block;padding:1px 6px;border-radius:var(--radius-lg);background:#16A34A;color:#fff;font-size:10px;font-weight:700;letter-spacing:0.04em;">eDNA</span>' : '';
+    const ednaBadge = isEdna ? ' <span title="Environmental DNA record" style="display:inline-block;padding:1px 6px;border-radius:0;background:var(--slate);color:#fff;font-size:10px;font-weight:700;letter-spacing:0.04em;">eDNA</span>' : '';
     const basisBadge = r.basisOfRecord === 'FOSSIL_SPECIMEN'
-      ? ' <span title="Fossil specimen" style="display:inline-block;padding:1px 6px;border-radius:var(--radius-lg);background:#92400e;color:#fff;font-size:10px;font-weight:700;letter-spacing:0.04em;">Fossil</span>'
+      ? ' <span title="Fossil specimen" style="display:inline-block;padding:1px 6px;border-radius:0;background:var(--slate);color:#fff;font-size:10px;font-weight:700;letter-spacing:0.04em;">Fossil</span>'
       : r.basisOfRecord === 'PRESERVED_SPECIMEN'
-      ? ' <span title="Preserved specimen" style="display:inline-block;padding:1px 6px;border-radius:var(--radius-lg);background:#4b5563;color:#fff;font-size:10px;font-weight:700;letter-spacing:0.04em;">Specimen</span>'
+      ? ' <span title="Preserved specimen" style="display:inline-block;padding:1px 6px;border-radius:0;background:var(--slate);color:#fff;font-size:10px;font-weight:700;letter-spacing:0.04em;">Specimen</span>'
       : '';
     // TK/BC label line
     const _tkSpName = r.species || r.scientificName || '';
     const _recHasTk = _tkSpeciesNames.size > 0 && _tkSpName && _tkSpeciesNames.has(_tkSpName);
     const _tkRecLine = _recHasTk
-      ? '<div style="margin-top:4px;font-size:11px;color:#6b7280;display:flex;align-items:center;gap:4px;">' +
+      ? '<div style="margin-top:4px;font-size:11px;color:#5F6B66;display:flex;align-items:center;gap:4px;">' +
         '<span style="display:inline-flex;">' + icon('tag', { size: 13 }) + '</span>' +
         (_tkProjectUrl
-          ? '<a href="' + _tkProjectUrl + '" target="_blank" rel="noopener" style="color:#2a7a58;">TK/BC conditions ↗</a>'
-          : '<span style="color:#2a7a58;">Traditional Knowledge / Biocultural label</span>') +
+          ? '<a href="' + _tkProjectUrl + '" target="_blank" rel="noopener" style="color:#263b27;">TK/BC conditions ↗</a>'
+          : '<span style="color:#263b27;">Traditional Knowledge / Biocultural label</span>') +
         '</div>'
       : '';
     return '<div style="padding:1px 0;">' + date + link + camBtn + ednaBadge + basisBadge + _tkRecLine + '</div>';
   }).join('');
-  const countLabel = '<div style="font-size:11px;color:#9b9890;margin-bottom:2px;">' + sp.records.length + ' record' + (sp.records.length === 1 ? '' : 's') + (sp.records.length > 5 ? ' — scroll to see all' : '') + '</div>';
+  const countLabel = '<div style="font-size:11px;color:#5F6B66;margin-bottom:2px;">' + sp.records.length + ' record' + (sp.records.length === 1 ? '' : 's') + (sp.records.length > 5 ? ' — scroll to see all' : '') + '</div>';
   const recordRows = countLabel + (sp.records.length > 5
     ? '<div style="max-height:' + _ps.recH + ';overflow-y:scroll;padding-right:2px;">' + recordRowsInner + '</div>'
     : recordRowsInner);
 
   const nameHtml = sp.common
     ? '<div style="font-weight:600;font-size:13px;" data-spname="' + (sp.taxonKey || '') + '">' + sp.common + '</div>' +
-      '<div style="color:#9b9890;font-size:11px;font-style:italic;margin-top:1px;">' + sp.sci + '</div>'
+      '<div style="color:#5F6B66;font-size:11px;font-style:italic;margin-top:1px;">' + sp.sci + '</div>'
     : '<div style="font-weight:600;font-size:13px;font-style:italic;" data-spname="' + (sp.taxonKey || '') + '">' + (sp.sci || 'Unknown') + '</div>';
 
   const detailEl = document.getElementById(pid + '-detail');
@@ -4653,9 +4650,9 @@ function makeStackedPopup(stackedRecords) {
     const spItems = speciesList.map((sp, i) =>
       '<div data-sp="' + i + '" ' +
       'onclick="event.stopPropagation();window._gbifSelectSpecies(\'' + popupId + '\',' + i + ')"' +
-      'style="cursor:pointer;padding:3px 4px;border-radius:var(--radius-sm);font-size:11px;line-height:1.5;' + (i === 0 ? 'background:#e8f4ef;' : '') + '">' +
+      'style="cursor:pointer;padding:3px 4px;border-radius:var(--radius-sm);font-size:11px;line-height:1.5;' + (i === 0 ? 'background:var(--hover);' : '') + '">' +
       (sp.common
-        ? sp.common + ' <span style="color:#9b9890;font-style:italic;">' + sp.sci + '</span>'
+        ? sp.common + ' <span style="color:#5F6B66;font-style:italic;">' + sp.sci + '</span>'
         : '<span style="font-style:italic;color:#555;">' + sp.sci + '</span>'
       ) +
       ' <span style="color:#aaa;font-size:10px;">(' + sp.records.length + ')</span>' +
@@ -4664,7 +4661,7 @@ function makeStackedPopup(stackedRecords) {
 
     return (
       '<div id="' + popupId + '-photo" style="margin-bottom:8px;"></div>' +
-      '<div style="font-size:11px;color:#2a7a58;font-weight:600;margin-bottom:5px;"><img src="favicon.svg" alt="" style="height:13px;width:auto;vertical-align:-2px;margin-right:3px;"> ' + total + ' records · ' + speciesCount + ' species</div>' +
+      '<div style="font-size:11px;color:#263b27;font-weight:600;margin-bottom:5px;"><img src="favicon.svg" alt="" style="height:13px;width:auto;vertical-align:-2px;margin-right:3px;"> ' + total + ' records · ' + speciesCount + ' species</div>' +
       '<div id="' + popupId + '-splist" style="overflow-y:auto;max-height:' + _ps.spListH + ';border-bottom:1px solid #eee;margin-bottom:6px;">' + spItems + '</div>' +
       '<div id="' + popupId + "-detail\"></div>"
     );
@@ -5194,7 +5191,7 @@ function renderTimeline(records) {
   // Determine grouping: monthly if range ≤ 3 years, yearly otherwise
   const allYears = [...new Set(filtered.map(r => parseInt(r.year)).filter(y => !isNaN(y)))];
   if (allYears.length === 0) {
-    svgEl.innerHTML = '<text x="50%" y="50%" text-anchor="middle" font-size="12" fill="#9b9890">No dated records</text>';
+    svgEl.innerHTML = '<text x="50%" y="50%" text-anchor="middle" font-size="12" fill="#5F6B66">No dated records</text>';
     return;
   }
   const minYr = Math.min(...allYears), maxYr = Math.max(...allYears);
@@ -5295,8 +5292,8 @@ function renderTimeline(records) {
     const rawVal = maxCount * i / 4;
     const yVal = effortActive ? rawVal.toFixed(rawVal < 1 ? 2 : 1) + '%' : Math.round(rawVal);
     const y = padT + chartH - (chartH * i / 4);
-    svg += `<line x1="${padL}" y1="${y.toFixed(1)}" x2="${W - padR}" y2="${y.toFixed(1)}" stroke="#e5e7eb" stroke-width="0.5"/>`;
-    svg += `<text x="${padL - 3}" y="${(y + 3.5).toFixed(1)}" text-anchor="end" font-size="9" fill="#9b9890">${yVal}</text>`;
+    svg += `<line x1="${padL}" y1="${y.toFixed(1)}" x2="${W - padR}" y2="${y.toFixed(1)}" stroke="#d5d9d7" stroke-width="0.5"/>`;
+    svg += `<text x="${padL - 3}" y="${(y + 3.5).toFixed(1)}" text-anchor="end" font-size="9" fill="#5F6B66">${yVal}</text>`;
   }
 
   // Format a chart key as a short human label, at the current granularity
@@ -5329,20 +5326,20 @@ function renderTimeline(records) {
         ? (tlRainbow ? yearRainbowColour(yr, gradMinKey, gradMaxKey) : TAXON_COLOURS[g].colour)
         : '#d1d5db';
       const op  = inRange ? '0.85' : '0.5';
-      svg += `<rect x="${(cx - barW / 2).toFixed(1)}" y="${stackY.toFixed(1)}" width="${barW.toFixed(1)}" height="${bh.toFixed(1)}" fill="${col}" opacity="${op}" rx="1"/>`;
+      svg += `<rect x="${(cx - barW / 2).toFixed(1)}" y="${stackY.toFixed(1)}" width="${barW.toFixed(1)}" height="${bh.toFixed(1)}" fill="${col}" opacity="${op}"/>`;
     });
     // X-axis label
     const every = Math.ceil(years.length / 10);
     if (xi % every === 0 || xi === years.length - 1) {
       const lbl = _tlFormatKey(yr, maxYr > minYr);
-      const lblFill = tlRainbow ? yearRainbowColour(yr, gradMinKey, gradMaxKey) : '#9b9890';
+      const lblFill = tlRainbow ? yearRainbowColour(yr, gradMinKey, gradMaxKey) : '#5F6B66';
       svg += `<text x="${cx.toFixed(1)}" y="${H - 5}" text-anchor="middle" font-size="9" font-weight="${tlRainbow ? '700' : '400'}" fill="${lblFill}">${lbl}</text>`;
     }
   });
 
   // Axes
-  svg += `<line x1="${padL}" y1="${padT}" x2="${padL}" y2="${padT + chartH}" stroke="#d1d5db" stroke-width="1"/>`;
-  svg += `<line x1="${padL}" y1="${padT + chartH}" x2="${W - padR}" y2="${padT + chartH}" stroke="#d1d5db" stroke-width="1"/>`;
+  svg += `<line x1="${padL}" y1="${padT}" x2="${padL}" y2="${padT + chartH}" stroke="#d5d9d7" stroke-width="1"/>`;
+  svg += `<line x1="${padL}" y1="${padT + chartH}" x2="${W - padR}" y2="${padT + chartH}" stroke="#d5d9d7" stroke-width="1"/>`;
 
   // Slider cutoff lines — vertical dashes at min/max chart-key positions
   const yearToX = key => {
@@ -5353,13 +5350,13 @@ function renderTimeline(records) {
   };
   if (tlFilterMin !== null && tlFilterMin > years[0]) {
     const x = yearToX(tlFilterMin).toFixed(1);
-    svg += `<line x1="${x}" y1="${padT}" x2="${x}" y2="${padT + chartH}" stroke="#6b7280" stroke-width="1.5" stroke-dasharray="4 3" opacity="0.8"/>`;
-    svg += `<text x="${x}" y="${(padT + chartH + 18).toFixed(1)}" text-anchor="middle" font-size="9" font-weight="700" fill="#374151">${_tlFormatKey(tlFilterMin, true)}</text>`;
+    svg += `<line x1="${x}" y1="${padT}" x2="${x}" y2="${padT + chartH}" stroke="#5F6B66" stroke-width="1.5" stroke-dasharray="4 3" opacity="0.8"/>`;
+    svg += `<text x="${x}" y="${(padT + chartH + 18).toFixed(1)}" text-anchor="middle" font-size="9" font-weight="700" fill="#000">${_tlFormatKey(tlFilterMin, true)}</text>`;
   }
   if (tlFilterMax !== null && tlFilterMax < years[years.length - 1]) {
     const x = yearToX(tlFilterMax).toFixed(1);
-    svg += `<line x1="${x}" y1="${padT}" x2="${x}" y2="${padT + chartH}" stroke="#6b7280" stroke-width="1.5" stroke-dasharray="4 3" opacity="0.8"/>`;
-    svg += `<text x="${x}" y="${(padT + chartH + 18).toFixed(1)}" text-anchor="middle" font-size="9" font-weight="700" fill="#374151">${_tlFormatKey(tlFilterMax, true)}</text>`;
+    svg += `<line x1="${x}" y1="${padT}" x2="${x}" y2="${padT + chartH}" stroke="#5F6B66" stroke-width="1.5" stroke-dasharray="4 3" opacity="0.8"/>`;
+    svg += `<text x="${x}" y="${(padT + chartH + 18).toFixed(1)}" text-anchor="middle" font-size="9" font-weight="700" fill="#000">${_tlFormatKey(tlFilterMax, true)}</text>`;
   }
 
   svgEl.setAttribute('viewBox', `0 0 ${W} ${H}`);
@@ -7674,7 +7671,7 @@ async function _checkGbifCreds() {
   if (!user || !pass) {
     stat.style.display = 'inline';
     stat.textContent = '⚠ Enter username and password first.';
-    stat.style.color = '#b07a00';
+    stat.style.color = '#5F6B66';
     return;
   }
   btn.disabled = true;
@@ -7687,18 +7684,18 @@ async function _checkGbifCreds() {
     stat.style.display = 'inline';
     if (res.ok) {
       stat.textContent = '✓ Valid';
-      stat.style.color = '#2e7d32';
+      stat.style.color = '#263b27';
     } else if (res.status === 401) {
       stat.textContent = '✗ Invalid username or password';
-      stat.style.color = '#c0392b';
+      stat.style.color = '#000';
     } else {
       stat.textContent = '⚠ GBIF returned ' + res.status;
-      stat.style.color = '#b07a00';
+      stat.style.color = '#5F6B66';
     }
   } catch(e) {
     stat.style.display = 'inline';
     stat.textContent = '⚠ Network error — check your connection';
-    stat.style.color = '#b07a00';
+    stat.style.color = '#5F6B66';
   }
   btn.disabled = false;
   btn.textContent = 'Check credentials';
@@ -8168,6 +8165,42 @@ window.LAYERS_HOST = {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v7.47</span>
+      <span class="changelog-date">Oct 2026</span>
+      <ul>
+        <li>The GBIF API note moved from the bottom of the sidebar into About, under "How it works"</li>
+        <li>Fetch parameters take two fewer rows: "From" and "To" dates sit side by side with their labels, and "Taxon groups" sits beside its dropdown</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v7.46</span>
+      <span class="changelog-date">Oct 2026</span>
+      <ul>
+        <li>The working colour (header, buttons, selection) is now a dark green-slate, #263b27</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v7.45</span>
+      <span class="changelog-date">Oct 2026</span>
+      <ul>
+        <li>The slate working colour (header, buttons, selection) is a touch greener</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v7.44</span>
+      <span class="changelog-date">Oct 2026</span>
+      <ul>
+        <li>Drawn search areas are back to their bright colours (orange while drawing, then orange, blue, red, purple, teal, green) so they stand out on the map</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v7.43</span>
+      <span class="changelog-date">Oct 2026</span>
+      <ul>
+        <li>Visual restyle to the Rutherford Ecology style guide: slate replaces green as the working colour (header, buttons, selection), brand green kept for the logo splash, square corners throughout, no drop shadows, white background with thin rules instead of tinted boxes and tiles, darker grey secondary text for readability. Status messages now say "Error:" / "Warning:" instead of relying on colour. Map and chart data colours (taxon groups, species, threat status, heatmap) are unchanged</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v7.42</span>
       <span class="changelog-date">Oct 2026</span>

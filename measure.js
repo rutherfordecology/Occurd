@@ -14,8 +14,8 @@
 (function () {
   'use strict';
 
-  const LINE_COLOUR = '#1d4ed8';
-  const AREA_COLOUR = '#7c3aed';
+  const LINE_COLOUR = '#263b27';
+  const AREA_COLOUR = '#5F6B66';
   const ICONS = {
     line: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 17 17 3l4 4L7 21z"/><path d="m7 13 2 2M10 10l2 2M13 7l2 2"/></svg>',
     area: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7 12 3l8 5-2 11H6z" stroke-dasharray="3 2"/><path d="M9 13h6M12 10v6"/></svg>'
@@ -96,9 +96,9 @@
     const style = document.createElement('style');
     style.textContent =
       '.lmeasure-bar a{display:flex;align-items:center;justify-content:center;color:#333;cursor:pointer;}' +
-      '.lmeasure-bar a.lmeasure-active{background:#e8eefc;color:' + LINE_COLOUR + ';}' +
-      '.lmeasure-label{background:rgba(255,255,255,0.92);border:1px solid rgba(0,0,0,0.25);border-radius:4px;padding:2px 6px;' +
-      'font:600 11.5px/1.35 system-ui,sans-serif;color:#111;box-shadow:0 1px 4px rgba(0,0,0,0.2);text-align:center;}' +
+      '.lmeasure-bar a.lmeasure-active{background:var(--hover);color:' + LINE_COLOUR + ';}' +
+      '.lmeasure-label{background:rgba(255,255,255,0.92);border:1px solid var(--slate);border-radius:0;padding:2px 6px;' +
+      'font:600 11.5px/1.35 var(--font-sans);color:#000;text-align:center;}' +
       '.lmeasure-label::before{display:none;}';
     document.head.appendChild(style);
 
