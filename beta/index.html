@@ -30,7 +30,7 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css">
-<link rel="stylesheet" href="style.css?v=7.43">
+<link rel="stylesheet" href="style.css?v=7.45">
 <script src="icons.js"></script>
 <script src="env-weeds.js"></script>
 </head>
@@ -50,7 +50,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.75);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.7);letter-spacing:0.04em;">v7.44 (beta)</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.7);letter-spacing:0.04em;">v7.45 (beta)</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -536,7 +536,7 @@
 
     <h3>Licence &amp; source</h3>
     <p><span class="licence-badge">PolyForm Strict</span> Free to use for non-commercial purposes. Redistributing or modifying the code is not permitted, and written content is <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/" target="_blank" style="color:var(--green);">CC BY-NC-ND 4.0</a>. For commercial use, contact Rutherford Ecology. View source on <a href="https://github.com/rutherfordecology/occurd" target="_blank" style="color:var(--green);">GitHub</a>.</p>
-    <p style="margin-top:0.6rem;font-style:italic;">Find this useful? If you're using it for commercial work, supporting the developer is a legitimate business expense. And if you're just here because biodiversity data is genuinely interesting — that's worth a coffee too. <a href="https://buymeacoffee.com/rutherfordecology" target="_blank" style="color:#2F4F4F;font-weight:500;"><span data-icon="coffee" data-icon-size="14" style="vertical-align:-2px;margin-right:3px"></span>Buy me a coffee</a></p>
+    <p style="margin-top:0.6rem;font-style:italic;">Find this useful? If you're using it for commercial work, supporting the developer is a legitimate business expense. And if you're just here because biodiversity data is genuinely interesting — that's worth a coffee too. <a href="https://buymeacoffee.com/rutherfordecology" target="_blank" style="color:#2D5048;font-weight:500;"><span data-icon="coffee" data-icon-size="14" style="vertical-align:-2px;margin-right:3px"></span>Buy me a coffee</a></p>
 
     <h3>Built by</h3>
     <p><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank" style="color:var(--green);">Rutherford Ecology</a> &mdash; <a href="mailto:rutherfordecology@gmail.com" style="color:var(--green);">rutherfordecology@gmail.com</a></p>
@@ -642,7 +642,7 @@
         <li>Use as a starting point only — not authoritative data for regulatory purposes.</li>
         <li>Recent observations from eBird, iNaturalist and similar platforms may take weeks to months to appear in GBIF.</li>
       </ul>
-      <p style="font-size:12px;color:var(--text3);line-height:1.6;margin-bottom:1rem;">If this tool saves you a whole lot of time, feel free to <a href="https://buymeacoffee.com/rutherfordecology" target="_blank" style="color:#2F4F4F;font-weight:500;"><span data-icon="coffee" data-icon-size="14" style="vertical-align:-2px;margin-right:3px"></span>buy me a coffee</a>.</p>
+      <p style="font-size:12px;color:var(--text3);line-height:1.6;margin-bottom:1rem;">If this tool saves you a whole lot of time, feel free to <a href="https://buymeacoffee.com/rutherfordecology" target="_blank" style="color:#2D5048;font-weight:500;"><span data-icon="coffee" data-icon-size="14" style="vertical-align:-2px;margin-right:3px"></span>buy me a coffee</a>.</p>
       <button class="modal-btn primary" id="disclaimerAccept" style="width:100%;padding:11px;font-size:14px;">Get started &rarr;</button>
     </div>
 
@@ -929,8 +929,8 @@ function locateUser(btn) {
       const ll = [lat, lng];
       if (_geoMarker) map.removeLayer(_geoMarker);
       if (_geoCircle) map.removeLayer(_geoCircle);
-      _geoCircle = L.circle(ll, { radius: acc, color: '#2F4F4F', weight: 1, fillColor: '#2F4F4F', fillOpacity: 0.12 }).addTo(map);
-      _geoMarker = L.circleMarker(ll, { radius: 7, color: '#fff', weight: 2, fillColor: '#2F4F4F', fillOpacity: 1 }).addTo(map);
+      _geoCircle = L.circle(ll, { radius: acc, color: '#2D5048', weight: 1, fillColor: '#2D5048', fillOpacity: 0.12 }).addTo(map);
+      _geoMarker = L.circleMarker(ll, { radius: 7, color: '#fff', weight: 2, fillColor: '#2D5048', fillOpacity: 1 }).addTo(map);
       _geoMarker.bindTooltip('You are here', { direction: 'top', offset: [0, -8] });
       // Frame the accuracy circle when it's meaningful, otherwise a sensible zoom.
       if (acc > 0) map.fitBounds(_geoCircle.getBounds(), { maxZoom: 15, padding: [40, 40] });
@@ -2762,7 +2762,7 @@ function autoSelectFromDrawn() {
       bp.selected = hits;
       if (hits !== wasSelected && bp.layer) {
         bp.layer.setStyle(hits
-          ? { color: '#2F4F4F', fillColor: '#2F4F4F', fillOpacity: 0.2, weight: 2 }
+          ? { color: '#2D5048', fillColor: '#2D5048', fillOpacity: 0.2, weight: 2 }
           : { color: '#5F6B66', fillColor: '#5F6B66', fillOpacity: 0.06, weight: 1 }
         );
       }
@@ -2854,8 +2854,8 @@ function reenterBrowseMode() {
     if (!bp.layer) {
       const layer = L.polygon(bp.holes && bp.holes.length > 0 ? [bp.latlngs, ...bp.holes] : bp.latlngs, {
         renderer: canvasRenderer,
-        color: bp.selected ? '#2F4F4F' : '#5F6B66',
-        fillColor: bp.selected ? '#2F4F4F' : '#5F6B66',
+        color: bp.selected ? '#2D5048' : '#5F6B66',
+        fillColor: bp.selected ? '#2D5048' : '#5F6B66',
         fillOpacity: bp.selected ? 0.2 : 0.06,
         weight: bp.selected ? 2 : 1
       });
@@ -2874,7 +2874,7 @@ function toggleBrowseSelect(idx) {
   const bp = browsePolygons[idx];
   bp.selected = !bp.selected;
   bp.layer.setStyle(bp.selected
-    ? { color: '#2F4F4F', fillColor: '#2F4F4F', fillOpacity: 0.2, weight: 2 }
+    ? { color: '#2D5048', fillColor: '#2D5048', fillOpacity: 0.2, weight: 2 }
     : { color: '#5F6B66', fillColor: '#5F6B66', fillOpacity: 0.06, weight: 1 }
   );
   renderBrowseList(browseSearch.value);
@@ -2915,7 +2915,7 @@ browseSelAllBtn.addEventListener('click', () => {
   visible.forEach(bp => {
     bp.selected = !allSel;
     bp.layer.setStyle(bp.selected
-      ? { color: '#2F4F4F', fillColor: '#2F4F4F', fillOpacity: 0.2, weight: 2 }
+      ? { color: '#2D5048', fillColor: '#2D5048', fillOpacity: 0.2, weight: 2 }
       : { color: '#5F6B66', fillColor: '#5F6B66', fillOpacity: 0.06, weight: 1 }
     );
   });
@@ -4250,7 +4250,7 @@ function getDisplayName(rec) {
 // eBird requires login — no eBird links. GBIF is always shown separately.
 function sourceLink(rec) {
   const lnk = (label, url) =>
-    '<a href="' + url + '" target="_blank" rel="noopener" style="color:#2F4F4F;font-size:12px;">' + label + ' ↗</a>';
+    '<a href="' + url + '" target="_blank" rel="noopener" style="color:#2D5048;font-size:12px;">' + label + ' ↗</a>';
   const id  = (rec.occurrenceID || '').trim();
   if (/^https?:\/\/(www\.)?inaturalist\.org\//i.test(id))  return lnk('iNaturalist', id);
   if (/xeno-canto/i.test(id))                               return lnk('Xeno-canto', id);
@@ -4369,7 +4369,7 @@ function buildRecordPage(rec) {
     ? '<span title="Preserved specimen" style="display:inline-block;padding:1px 6px;border-radius:0;background:var(--slate);color:#fff;font-size:11px;">\ud83d\udcc4</span>'
     : '';
   const linkItems = [];
-  if (gbifId) linkItems.push('<a href="https://www.gbif.org/occurrence/' + gbifId + '" target="_blank" rel="noopener" style="color:#2F4F4F;font-size:12px;">GBIF \u2197</a>');
+  if (gbifId) linkItems.push('<a href="https://www.gbif.org/occurrence/' + gbifId + '" target="_blank" rel="noopener" style="color:#2D5048;font-size:12px;">GBIF \u2197</a>');
   if (srcLink) linkItems.push(srcLink);
   const link = (linkItems.length || camBtn || ednaBadge || basisBadge)
     ? '<div style="margin-top:4px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">' + linkItems.join('') + camBtn + (ednaBadge ? ' ' + ednaBadge : '') + (basisBadge ? ' ' + basisBadge : '') + '</div>'
@@ -4380,8 +4380,8 @@ function buildRecordPage(rec) {
     ? '<div style="margin-top:6px;padding-top:5px;border-top:1px solid #eee;font-size:11px;color:#5F6B66;display:flex;align-items:center;gap:5px;">' +
       '<span title="Traditional Knowledge / Biocultural label">\ud83c\udff7\ufe0f</span>' +
       (_tkProjectUrl
-        ? '<a href="' + _tkProjectUrl + '" target="_blank" rel="noopener" style="color:#2F4F4F;">Traditional Knowledge label \u2014 view community project and conditions \u2197</a>'
-        : '<span style="color:#2F4F4F;">TK/BC label</span>') +
+        ? '<a href="' + _tkProjectUrl + '" target="_blank" rel="noopener" style="color:#2D5048;">Traditional Knowledge label \u2014 view community project and conditions \u2197</a>'
+        : '<span style="color:#2D5048;">TK/BC label</span>') +
       '</div>'
     : '';
   return {
@@ -4527,7 +4527,7 @@ window._gbifSelectSpecies = function(pid, spIdx) {
   const recordRowsInner = sp.records.map(r => {
     const date = r.eventDate ? '<span style="font-size:12px;">' + r.eventDate + '</span>' : '';
     const srcLk = sourceLink(r).replace('font-size:12px', 'font-size:11px');
-    const gbifLk = r.gbifID ? ' <a href="https://www.gbif.org/occurrence/' + r.gbifID + '" target="_blank" rel="noopener" style="color:#2F4F4F;font-size:11px;">GBIF ↗</a>' : '';
+    const gbifLk = r.gbifID ? ' <a href="https://www.gbif.org/occurrence/' + r.gbifID + '" target="_blank" rel="noopener" style="color:#2D5048;font-size:11px;">GBIF ↗</a>' : '';
     const link = gbifLk + (srcLk ? ' ' + srcLk : '');
     let camBtn = '';
     if (r.recordPhoto) {
@@ -4552,8 +4552,8 @@ window._gbifSelectSpecies = function(pid, spIdx) {
       ? '<div style="margin-top:4px;font-size:11px;color:#5F6B66;display:flex;align-items:center;gap:4px;">' +
         '<span style="display:inline-flex;">' + icon('tag', { size: 13 }) + '</span>' +
         (_tkProjectUrl
-          ? '<a href="' + _tkProjectUrl + '" target="_blank" rel="noopener" style="color:#2F4F4F;">TK/BC conditions ↗</a>'
-          : '<span style="color:#2F4F4F;">Traditional Knowledge / Biocultural label</span>') +
+          ? '<a href="' + _tkProjectUrl + '" target="_blank" rel="noopener" style="color:#2D5048;">TK/BC conditions ↗</a>'
+          : '<span style="color:#2D5048;">Traditional Knowledge / Biocultural label</span>') +
         '</div>'
       : '';
     return '<div style="padding:1px 0;">' + date + link + camBtn + ednaBadge + basisBadge + _tkRecLine + '</div>';
@@ -4664,7 +4664,7 @@ function makeStackedPopup(stackedRecords) {
 
     return (
       '<div id="' + popupId + '-photo" style="margin-bottom:8px;"></div>' +
-      '<div style="font-size:11px;color:#2F4F4F;font-weight:600;margin-bottom:5px;"><img src="favicon.svg" alt="" style="height:13px;width:auto;vertical-align:-2px;margin-right:3px;"> ' + total + ' records · ' + speciesCount + ' species</div>' +
+      '<div style="font-size:11px;color:#2D5048;font-weight:600;margin-bottom:5px;"><img src="favicon.svg" alt="" style="height:13px;width:auto;vertical-align:-2px;margin-right:3px;"> ' + total + ' records · ' + speciesCount + ' species</div>' +
       '<div id="' + popupId + '-splist" style="overflow-y:auto;max-height:' + _ps.spListH + ';border-bottom:1px solid #eee;margin-bottom:6px;">' + spItems + '</div>' +
       '<div id="' + popupId + "-detail\"></div>"
     );
@@ -7687,7 +7687,7 @@ async function _checkGbifCreds() {
     stat.style.display = 'inline';
     if (res.ok) {
       stat.textContent = '✓ Valid';
-      stat.style.color = '#2F4F4F';
+      stat.style.color = '#2D5048';
     } else if (res.status === 401) {
       stat.textContent = '✗ Invalid username or password';
       stat.style.color = '#000';
@@ -8168,6 +8168,13 @@ window.LAYERS_HOST = {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v7.45</span>
+      <span class="changelog-date">Oct 2026</span>
+      <ul>
+        <li>The slate working colour (header, buttons, selection) is a touch greener</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v7.44</span>
       <span class="changelog-date">Oct 2026</span>
