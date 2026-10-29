@@ -50,7 +50,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.75);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.7);letter-spacing:0.04em;">v7.43 (beta)</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.7);letter-spacing:0.04em;">v7.44 (beta)</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -779,7 +779,7 @@ async function inatFetch(url, options) {
 }
 
 const COMPLEXITY_THRESHOLD = 500;
-const POLY_COLOURS = ['#2F4F4F','#5F6B66']; // drawn areas: slate, then grey (visual-style.md)
+const POLY_COLOURS = ['#C8611A','#2c5f8a','#8a2c2c','#5a2a7a','#1a5a6a','#2a7a58']; // drawn areas keep bright colours so they stand out on the map
 const TAXON_COLOURS = {
   'Aves':            { colour: '#2563EB', label: 'Aves (birds)' },
   'Mammalia':        { colour: '#7C3AED', label: 'Mammalia' },
@@ -969,8 +969,8 @@ L.drawLocal.draw.toolbar.buttons.rectangle = 'Draw a rectangle';
 const drawControl = new L.Control.Draw({
   edit: { featureGroup: polyLayer, edit: false, remove: false },
   draw: {
-    polygon: { shapeOptions: { color: '#2F4F4F', fillColor: '#2F4F4F', fillOpacity: 0.1, weight: 3 }, showArea: false, allowIntersection: true },
-    rectangle: { shapeOptions: { color: '#2F4F4F', fillColor: '#2F4F4F', fillOpacity: 0.1, weight: 3 }, showArea: false },
+    polygon: { shapeOptions: { color: '#FF8C00', fillColor: '#FF8C00', fillOpacity: 0.1, weight: 3 }, showArea: false, allowIntersection: true },
+    rectangle: { shapeOptions: { color: '#FF8C00', fillColor: '#FF8C00', fillOpacity: 0.1, weight: 3 }, showArea: false },
     polyline: false, circle: false, circlemarker: false, marker: false
   }
 }).addTo(map);
@@ -8168,6 +8168,13 @@ window.LAYERS_HOST = {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v7.44</span>
+      <span class="changelog-date">Oct 2026</span>
+      <ul>
+        <li>Drawn search areas are back to their bright colours (orange while drawing, then orange, blue, red, purple, teal, green) so they stand out on the map</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v7.43</span>
       <span class="changelog-date">Oct 2026</span>
