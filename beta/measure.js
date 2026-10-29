@@ -14,7 +14,7 @@
 (function () {
   'use strict';
 
-  const LINE_COLOUR = '#2D5048';
+  const LINE_COLOUR = '#263b27';
   const AREA_COLOUR = '#5F6B66';
   const ICONS = {
     line: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 17 17 3l4 4L7 21z"/><path d="m7 13 2 2M10 10l2 2M13 7l2 2"/></svg>',

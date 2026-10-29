@@ -6,7 +6,7 @@ html { height: 100%; }
    Data colours (taxon groups, species, NZTCS/IUCN, heatmap, overlays) live
    with the data in index.html and are deliberately not part of this set. */
 :root {
-  --slate: #2D5048;        /* slate, nudged slightly green; main working colour: header band, buttons, rules, selection */
+  --slate: #263b27;        /* dark green-slate; main working colour: header band, buttons, rules, selection */
   --brand: #0A3F26;        /* brand green: logo/splash only */
   --grey: #5F6B66;         /* captions, labels, secondary text */
   --black: #000;
@@ -622,6 +622,6 @@ html, body { max-width: 100vw; overflow-x: hidden; }
 .leaflet-draw-actions a { border-radius: 0 !important; background: var(--slate) !important; }
 .leaflet-draw-tooltip { border-radius: 0; background: var(--black); border: none; }
 .leaflet-draw-tooltip:before { border-right-color: var(--black); }
-.marker-cluster-small, .marker-cluster-medium, .marker-cluster-large { background-color: rgba(45,80,72,0.25); }
+.marker-cluster-small, .marker-cluster-medium, .marker-cluster-large { background-color: rgba(38,59,39,0.25); }
 .marker-cluster-small div, .marker-cluster-medium div, .marker-cluster-large div { background-color: var(--slate); color: var(--white); }
 .marker-cluster span { font-family: var(--font-sans); font-weight: 600; }
