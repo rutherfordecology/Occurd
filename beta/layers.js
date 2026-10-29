@@ -182,7 +182,7 @@
     panel.id = 'layersPanel';
     panel.style.cssText = [
       'position:absolute;top:10px;right:10px;z-index:1000;width:290px;max-height:calc(100% - 40px);overflow:auto',
-      'background:#fff;border:1px solid var(--border);border-radius:var(--radius);box-shadow:0 4px 18px rgba(0,0,0,0.16)',
+      'background:#fff;border:1px solid var(--border);border-radius:0',
       'font-family:var(--font-sans);font-size:12px;color:var(--text)'
     ].join(';');
     L.DomEvent.disableClickPropagation(panel);
@@ -198,7 +198,7 @@
       '<button type="button" class="lyr-grp" data-grp="' + esc(name) + '" style="display:flex;align-items:center;gap:5px;width:100%;background:none;border:none;padding:0;cursor:pointer;font-family:inherit;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--text3);margin:8px 0 4px;text-align:left;">' + CHEV + esc(name) + '</button>';
     let html =
       '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border-bottom:0.5px solid var(--border);background:var(--surface2);">' +
-        '<strong style="display:inline-flex;align-items:center;gap:6px;color:var(--green-dark, #1a5940);">' + G.icon('layers', { size: 15 }) + 'Layers</strong>' +
+        '<strong style="display:inline-flex;align-items:center;gap:6px;color:var(--slate);">' + G.icon('layers', { size: 15 }) + 'Layers</strong>' +
         '<span><button id="lyrMin" title="Collapse" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:14px;">–</button>' +
         '<button id="lyrClose" title="Hide layers" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:14px;">✕</button></span>' +
       '</div><div id="lyrBody" style="padding:6px 10px 10px;"><div id="lyrHost"></div>';
@@ -207,8 +207,8 @@
       groups[g].forEach(l => {
         html +=
           '<label style="display:flex;align-items:flex-start;gap:6px;margin:3px 0;cursor:pointer;" title="' + esc(l.notes || '') + '">' +
-            '<input type="checkbox" id="lyrcb_' + l.id + '" style="accent-color:var(--green, #2a7a58);margin-top:2px;">' +
-            '<span style="width:10px;height:10px;border-radius:2px;margin-top:3px;flex-shrink:0;background:' + l.color + '55;border:1.5px solid ' + l.color + ';"></span>' +
+            '<input type="checkbox" id="lyrcb_' + l.id + '" style="accent-color:var(--slate);margin-top:2px;">' +
+            '<span style="width:10px;height:10px;border-radius:0;margin-top:3px;flex-shrink:0;background:' + l.color + '55;border:1.5px solid ' + l.color + ';"></span>' +
             '<span style="flex:1;line-height:1.35;">' + esc(l.name) +
               '<span id="lyrst_' + l.id + '" style="display:block;font-size:10px;color:var(--text3);"></span></span>' +
           '</label>';
@@ -300,7 +300,7 @@
 
   function popupHtml(l, props) {
     const rows = Object.keys(props || {}).filter(k => !/^(OBJECTID|GlobalID|Shape__Area|Shape__Length|SHAPE.*|shape.*|fid)$/i.test(k))
-      .map(k => '<tr><td style="color:#666;padding-right:6px;vertical-align:top;">' + esc(k) + '</td><td>' + esc(props[k]) + '</td></tr>').join('');
+      .map(k => '<tr><td style="color:var(--grey);padding-right:6px;vertical-align:top;">' + esc(k) + '</td><td>' + esc(props[k]) + '</td></tr>').join('');
     return '<div style="font-size:12px;max-height:220px;overflow:auto;"><strong>' + esc(l.name) + '</strong>' +
       '<table style="margin-top:4px;border-collapse:collapse;">' + rows + '</table></div>';
   }
@@ -781,7 +781,7 @@
       for (const m of out) { const b = await toBlob(m.c); lastMaps.push({ name: m.name, title: m.title, url: URL.createObjectURL(b) }); }
       res.innerHTML = lastMaps.map(m =>
         '<div style="margin-top:6px;"><a href="' + m.url + '" download="' + esc(m.name) + '" class="lyrMapLink" style="color:var(--green-dark);font-weight:600;">&#8595; ' + esc(m.title) + '</a>' +
-        '<img src="' + m.url + '" alt="" style="display:block;width:100%;margin-top:3px;border:0.5px solid var(--border);border-radius:4px;"></div>').join('') +
+        '<img src="' + m.url + '" alt="" style="display:block;width:100%;margin-top:3px;border:0.5px solid var(--border);border-radius:0;"></div>').join('') +
         (warn.length ? '<div style="margin-top:6px;color:var(--red);">' + esc(warn.join('; ')) + '</div>' : '');
     } catch (e) {
       console.warn('Report maps failed', e);

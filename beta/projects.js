@@ -73,9 +73,9 @@
       `<div style="font-size:10px;color:var(--text2);margin-bottom:5px;line-height:1.4;">${hint}</div>` +
       `<div style="display:flex;gap:5px;">` +
         `<input id="projectInput_${id}" type="password" placeholder="${id === 'layers' ? 'password…' : 'key…'}" autocomplete="new-password" spellcheck="false"
-          style="flex:1;font-size:12px;font-family:var(--font-sans);padding:4px 7px;border:1px solid var(--border2);border-radius:4px;outline:none;color:var(--text);background:#fff;">` +
+          style="flex:1;font-size:12px;font-family:var(--font-sans);padding:4px 7px;border:1px solid var(--border2);border-radius:0;outline:none;color:var(--text);background:#fff;">` +
         `<button id="projectSubmit_${id}"
-          style="font-size:11px;font-family:var(--font-sans);padding:4px 9px;border-radius:4px;border:none;background:var(--green-dark);color:#fff;cursor:pointer;">↵</button>` +
+          style="font-size:11px;font-family:var(--font-sans);padding:4px 9px;border-radius:0;border:none;background:var(--green-dark);color:#fff;cursor:pointer;">↵</button>` +
       `</div>` +
       `<div id="projectErr_${id}" style="display:none;font-size:10px;color:var(--red);margin-top:4px;">Wrong key</div>`;
     item.after(form);
