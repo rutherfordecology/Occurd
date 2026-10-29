@@ -30,7 +30,7 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css">
-<link rel="stylesheet" href="style.css?v=7.46">
+<link rel="stylesheet" href="style.css?v=7.47">
 <script src="icons.js"></script>
 <script src="env-weeds.js"></script>
 </head>
@@ -50,7 +50,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.75);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.7);letter-spacing:0.04em;">v7.46 (beta)</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.7);letter-spacing:0.04em;">v7.47 (beta)</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -133,11 +133,11 @@
     <div class="sidebar-section">
       <div class="section-label collapsible" data-section="s2">2 · Parameters for fetch <span class="section-chevron">▾</span></div>
       <div class="section-body" id="s2">
-      <div class="half">
-        <div class="field"><label>Date from</label><input type="date" id="dateFrom" style="width:100%;"></div>
-        <div class="field"><label>Date to</label><input type="date" id="dateTo" style="width:100%;"></div>
+      <div class="field field-inline date-pair">
+        <label for="dateFrom">From</label><input type="date" id="dateFrom">
+        <label for="dateTo">To</label><input type="date" id="dateTo">
       </div>
-      <div class="field">
+      <div class="field field-inline">
         <label>Taxon groups</label>
         <div class="taxon-dropdown" id="taxonDropdown">
           <div class="taxon-dropdown-trigger" id="taxonTrigger">
@@ -336,10 +336,7 @@
     </div>
 
     <div class="sidebar-footer">
-      <p class="note">
-        Queries the <a href="https://techdocs.gbif.org/en/openapi/v1/occurrence" target="_blank">GBIF occurrence search API</a> — no login required. For more information visit the <a href="https://www.gbif.org" target="_blank">GBIF portal</a>.
-      </p>
-      <div style="margin:0.6rem 0 0.5rem;display:flex;flex-wrap:wrap;gap:6px 12px;font-size:11px;">
+      <div style="margin:0 0 0.5rem;display:flex;flex-wrap:wrap;gap:6px 12px;font-size:11px;">
         <a href="../whatdat/" target="_blank" style="color:var(--green);font-weight:700;text-decoration:none;display:inline-flex;align-items:center;gap:4px;"><span data-icon="target" data-icon-size="14"></span>WhatDat?</a>
         <a href="../looklike/" target="_blank" style="color:var(--green);font-weight:700;text-decoration:none;display:inline-flex;align-items:center;gap:4px;"><span data-icon="eye" data-icon-size="14"></span>LookLike</a>
         <a href="https://rutherfordecology.github.io/WhatDatBird/" target="_blank" style="color:var(--green);font-weight:700;text-decoration:none;display:inline-flex;align-items:center;gap:4px;"><span data-icon="bird" data-icon-size="14"></span>WhatDatBird?</a>
@@ -522,7 +519,7 @@
     <ul>
       <li>Draw a polygon on the map or upload a KML/KMZ file</li>
       <li>Select taxon groups and date range</li>
-      <li>The tool queries the live GBIF occurrence search API — no login or account required</li>
+      <li>The tool queries the live <a href="https://techdocs.gbif.org/en/openapi/v1/occurrence" target="_blank" style="color:var(--green);">GBIF occurrence search API</a> — no login or account required. For more information visit the <a href="https://www.gbif.org" target="_blank" style="color:var(--green);">GBIF portal</a></li>
       <li>Records are mapped and exported entirely in your browser</li>
     </ul>
 
@@ -8168,6 +8165,14 @@ window.LAYERS_HOST = {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v7.47</span>
+      <span class="changelog-date">Oct 2026</span>
+      <ul>
+        <li>The GBIF API note moved from the bottom of the sidebar into About, under "How it works"</li>
+        <li>Fetch parameters take two fewer rows: "From" and "To" dates sit side by side with their labels, and "Taxon groups" sits beside its dropdown</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v7.46</span>
       <span class="changelog-date">Oct 2026</span>

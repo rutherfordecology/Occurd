@@ -97,6 +97,17 @@ header { background: var(--green-dark); color: white; padding: 0 1.5rem; display
 .field input, .field select { width: 100%; border: 1px solid var(--border); border-radius: var(--radius); padding: 6px 9px; font-size: 13px; font-family: var(--font-sans); background: var(--surface); color: var(--text); -webkit-appearance: none; appearance: none; }
 .field input:focus, .field select:focus { outline: none; border-color: var(--green); box-shadow: none; }
 .half { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+/* Label beside its field on one row */
+.field-inline { display: flex; align-items: center; gap: 8px; }
+.field-inline > label { margin-bottom: 0; flex-shrink: 0; }
+.field-inline > .taxon-dropdown { flex: 1 1 0; min-width: 0; }
+/* From [date] To [date] on one row; the calendar icon is slimmed so the full date fits */
+.field-inline.date-pair { display: grid; grid-template-columns: auto minmax(0,1fr) auto minmax(0,1fr); gap: 6px; }
+.field-inline.date-pair input[type=date] { width: 100%; min-width: 0; padding: 5px 4px; font-size: 12.5px; }
+.field-inline.date-pair input[type=date]::-webkit-calendar-picker-indicator { margin: 0; padding: 0; width: 11px; height: 11px; }
+@media (min-width: 701px) and (max-width: 1024px) {
+  .field-inline.date-pair { grid-template-columns: auto minmax(0,1fr); }
+}
 .check-row { display: flex; align-items: center; gap: 7px; font-size: 13px; color: var(--text); margin-bottom: 0.45rem; }
 .check-row input[type=checkbox] { width: 14px; height: 14px; accent-color: var(--green); }
 
