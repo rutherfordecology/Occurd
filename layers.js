@@ -15,7 +15,11 @@
 //     don't define them;
 //   - a host page can set window.LAYERS_HOST = { name, url, polygons() } to name
 //     itself in the CSV header and hand over its own drawn areas
-//     ([{ label, latlngs, holes }]) for the layer check.
+//     ([{ label, latlngs, holes }]) for the layer check;
+//   - with HOST.headless the panel is never built: the host draws its own list and
+//     drives the layers through the window._layers* calls at the end of this file
+//     (_layersShow, _layersCheck, _layersCheckCsv, _layersFeaturesIn). HOST.paneFor(l)
+//     gives each layer its own map pane, and HOST.onStatus(id, text) hears its status.
 // ─────────────────────────────────────────────────────────────────────────────
 
 (function () {
@@ -78,6 +82,7 @@
   let panel     = null;          // floating panel element
   let active    = false;         // panel shown and layers enabled
   const shown   = {};            // id -> L.GeoJSON on the map
+  const ticked  = new Set();     // ids switched on (the panel's ticks, or the host's)
   const loading = {};            // id -> bool
   const status  = {};            // id -> short status text
   let lastCheck = null;          // { time, rows }
@@ -160,6 +165,8 @@
   window._layersActivate = async function () {
     active = true;
     try { await loadRegister(); } catch (e) { alert('Layers: could not load the layer register. ' + e.message); return; }
+    ticked.clear();
+    if (HOST.headless) { lsDel(ON_STORE); return; }
     buildPanel();
     refreshMapSites();
     panel.style.display = 'block';
@@ -169,6 +176,7 @@
   };
   window._layersDeactivate = function () {
     active = false;
+    ticked.clear();
     Object.keys(shown).forEach(id => removeShown(id));
     if (panel) panel.style.display = 'none';
     toggleDownloadBtn(false);
@@ -287,13 +295,17 @@
     });
   }
 
-  function setStatus(id, txt) { status[id] = txt; const el = document.getElementById('lyrst_' + id); if (el) el.textContent = txt || ''; }
+  function setStatus(id, txt) {
+    status[id] = txt; const el = document.getElementById('lyrst_' + id); if (el) el.textContent = txt || '';
+    if (typeof HOST.onStatus === 'function') HOST.onStatus(id, txt || '');
+  }
   function layerById(id) { return register.layers.find(l => l.id === id); }
 
   // ── display ───────────────────────────────────────────────────────────────
   function removeShown(id) { if (shown[id]) { map.removeLayer(shown[id]); delete shown[id]; } }
 
   function toggleLayer(id, on) {
+    if (on) ticked.add(id); else ticked.delete(id);
     if (!on) { removeShown(id); setStatus(id, ''); return; }
     drawLayer(id);
   }
@@ -394,8 +406,7 @@
 
   async function drawLayer(id) {
     const l = layerById(id);
-    const cb = document.getElementById('lyrcb_' + id);
-    if (!l || !cb || !cb.checked || !active) return;
+    if (!l || !ticked.has(id) || !active) return;
     if (map.getZoom() < (l.minZoom || 9)) { removeShown(id); setStatus(id, 'Zoom in to show (level ' + l.minZoom + '+)'); return; }
     if (loading[id]) return;
     loading[id] = true; setStatus(id, 'Loading…');
@@ -405,11 +416,10 @@
     try {
       const tol = (bbox[2] - bbox[0]) / (map.getSize().x || 800); // ~1 px in degrees
       const { fc, capped } = await fetchFC(l, bbox, tol);
-      const cb2 = document.getElementById('lyrcb_' + id);
-      if (!active || !cb2 || !cb2.checked) return;
+      if (!active || !ticked.has(id)) return;
       removeShown(id);
       shown[id] = L.geoJSON(fc, {
-        pane: 'qeiiPane',
+        pane: (typeof HOST.paneFor === 'function' && HOST.paneFor(l)) || 'qeiiPane',
         style: { color: l.color, weight: 1.5, fillColor: l.color, fillOpacity: 0.15 },
         onEachFeature: (f, lyr) => lyr.bindPopup(HOST.featureAction && /Polygon/.test((f.geometry || {}).type) ? () => popupWithAction(l, f) : popupHtml(l, f.properties), { maxWidth: 300 })
       }).addTo(map);
@@ -427,7 +437,7 @@
     if (!active || !register) return;
     clearTimeout(moveTimer);
     moveTimer = setTimeout(() => {
-      register.layers.forEach(l => { const cb = document.getElementById('lyrcb_' + l.id); if (cb && cb.checked) drawLayer(l.id); });
+      ticked.forEach(id => drawLayer(id));
     }, 450);
   }
 
@@ -486,31 +496,46 @@
     return { found, note };
   }
 
+  // Every polygon against every layer. Returns { time, rows, polys: [{ label,
+  // hits: [{ layer, n, labels }], errors: [{ layer, message }] }] } and keeps it
+  // for the CSV. onProgress(done, total) is called after each polygon x layer.
+  async function checkAll(polys, onProgress) {
+    const time = new Date().toISOString();
+    const rows = [], out = [], total = polys.length * register.layers.length;
+    let done = 0;
+    for (const p of polys) {
+      const res = { label: p.label, hits: [], errors: [] };
+      for (const l of register.layers) {
+        try {
+          const { found, note } = await checkOne(l, p);
+          if (!found.length) rows.push(row(p, l, 'no', 0, '', '', note, time));
+          found.forEach(a => rows.push(row(p, l, 'yes', found.length, labelFor(l, a), attrText(a), note, time)));
+          if (found.length) res.hits.push({ layer: l, n: found.length, labels: [...new Set(found.map(a => labelFor(l, a)).filter(Boolean))], note: note || '' });
+        } catch (e) {
+          console.warn('Layer check ' + l.id + ' failed', e);
+          rows.push(row(p, l, 'error', 0, '', '', e.message, time));
+          res.errors.push({ layer: l, message: e.message });
+        }
+        if (onProgress) onProgress(++done, total);
+      }
+      out.push(res);
+    }
+    lastCheck = { time, rows };
+    return { time, rows, polys: out };
+  }
+
   async function runCheck() {
     const res = panel.querySelector('#lyrResult');
     const btn = panel.querySelector('#lyrCheck');
     const polys = geomPolys();
     if (!polys.length) { res.innerHTML = 'Draw or import a polygon first.'; return; }
     btn.disabled = true; btn.textContent = 'Checking…';
-    const time = new Date().toISOString();
-    const rows = []; const summary = [];
-    for (const p of polys) {
-      const hits = [];
-      for (const l of register.layers) {
-        try {
-          const { found, note } = await checkOne(l, p);
-          if (!found.length) rows.push(row(p, l, 'no', 0, '', '', note, time));
-          found.forEach(a => rows.push(row(p, l, 'yes', found.length, labelFor(l, a), attrText(a), note, time)));
-          if (found.length) hits.push('<strong>' + esc(l.name) + '</strong>: ' + esc([...new Set(found.map(a => labelFor(l, a)).filter(Boolean))].join('; ') || found.length + ' feature(s)'));
-        } catch (e) {
-          console.warn('Layer check ' + l.id + ' failed', e);
-          rows.push(row(p, l, 'error', 0, '', '', e.message, time));
-          hits.push('<span style="color:var(--red);">' + esc(l.name) + ': could not check (' + esc(e.message) + ')</span>');
-        }
-      }
-      summary.push('<div style="margin-top:4px;"><em>' + esc(p.label) + '</em><br>' + (hits.length ? hits.join('<br>') : 'No layers intersect.') + '</div>');
-    }
-    lastCheck = { time, rows };
+    const result = await checkAll(polys);
+    const summary = result.polys.map(p => {
+      const hits = p.hits.map(h => '<strong>' + esc(h.layer.name) + '</strong>: ' + esc(h.labels.join('; ') || h.n + ' feature(s)'))
+        .concat(p.errors.map(e => '<span style="color:var(--red);">' + esc(e.layer.name) + ': could not check (' + esc(e.message) + ')</span>'));
+      return '<div style="margin-top:4px;"><em>' + esc(p.label) + '</em><br>' + (hits.length ? hits.join('<br>') : 'No layers intersect.') + '</div>';
+    });
     res.innerHTML = summary.join('');
     btn.disabled = false; btn.textContent = 'Check polygons against layers';
     panel.querySelector('#lyrDl').disabled = false;
@@ -525,15 +550,18 @@
     };
   }
 
-  async function downloadCheck() {
-    if (!lastCheck) { await runCheck(); if (!lastCheck) return; }
+  function checkCsv() {
     const fields = ['polygon_name', 'layer_id', 'layer_name', 'layer_group', 'intersects', 'feature_count', 'feature_label', 'attributes', 'source', 'note', 'checked_at'];
     const head = [
       '# Layer check from ' + (HOST.name || 'occurd.') + ' (' + (HOST.url || 'https://rutherfordecology.github.io/Occurd/') + ') on ' + lastCheck.time.slice(0, 10),
       '# Layer register version ' + (register.register_version || '?') + '. Published GIS layers, not the legal plan maps: confirm anything decisive against the operative plan.',
       '# Gisborne District Council layers from GDC ArcGIS Online; Manaaki Whenua layers from the LRIS portal under its licence terms.'
     ].join('\n');
-    G.downloadBlob(head + '\n' + G.buildCSV(lastCheck.rows, fields), 'layer_check_' + lastCheck.time.slice(0, 10) + '.csv', 'text/csv');
+    return head + '\n' + G.buildCSV(lastCheck.rows, fields);
+  }
+  async function downloadCheck() {
+    if (!lastCheck) { await runCheck(); if (!lastCheck) return; }
+    G.downloadBlob(checkCsv(), 'layer_check_' + lastCheck.time.slice(0, 10) + '.csv', 'text/csv');
   }
 
   // A matching button in the Downloads row (shown only while Layers is unlocked)
@@ -746,7 +774,7 @@
         const bb = ringBBox(bufRings), v = makeView(bb, 0.06);
         const { c, ctx } = newCanvas();
         const miss = await drawBasemap(ctx, v, BASEMAPS.grey);
-        let ids = register.layers.filter(l => { const cb = document.getElementById('lyrcb_' + l.id); return cb && cb.checked; }).map(l => l.id);
+        let ids = register.layers.filter(l => ticked.has(l.id)).map(l => l.id);
         if (!ids.length) ids = ['gdc_pma', 'qeii'];
         const box = [G.wrapLng180(bb[0]), bb[1], G.wrapLng180(bb[2]), bb[3]].map(x => +x.toFixed(6));
         const legend = [], sources = new Set(), labels = [];
@@ -799,6 +827,47 @@
     else { const d = polys.find(p => !/buffer/i.test(p.label)) || polys[0]; if (d) sel.value = String(d.id); }
   }
   window._layersMakeMaps = () => makeMaps();
+
+  // ── calls for a headless host (see the header) ──────────────────────────────
+  window._layersRegister = () => register;
+  window._layersIsActive = () => active;
+  window._layersShow = function (id, on) { if (active && layerById(id)) toggleLayer(id, !!on); };
+  window._layersCheck = (polys, onProgress) => register ? checkAll(polys || geomPolys(), onProgress) : Promise.reject(new Error('layers not loaded'));
+  window._layersCheckCsv = () => lastCheck ? { csv: checkCsv(), filename: 'layer_check_' + lastCheck.time.slice(0, 10) + '.csv' } : null;
+  // Features of one layer that touch a GeoJSON Polygon or MultiPolygon (lon/lat),
+  // at full detail, for cutting an area by the layer: [{ type: 'Feature', geometry,
+  // properties, label }]. Throws when the layer's service caps the result.
+  window._layersFeaturesIn = async function (id, geometry) {
+    const l = layerById(id);
+    if (!l) throw new Error('unknown layer ' + id);
+    const target = { type: 'Feature', geometry, properties: {} };
+    const out = [];
+    if (l.source === 'arcgis') {
+      const rings = (geometry.type === 'Polygon' ? [geometry.coordinates] : geometry.coordinates).flat(1);
+      for (const sub of l.sublayers) {
+        const body = new URLSearchParams({
+          f: 'geojson', where: '1=1', outFields: '*', inSR: '4326', outSR: '4326', returnGeometry: 'true', geometryPrecision: '7',
+          spatialRel: 'esriSpatialRelIntersects', geometryType: 'esriGeometryPolygon', resultRecordCount: '2000',
+          geometry: JSON.stringify({ rings, spatialReference: { wkid: 4326 } })
+        });
+        const r = await fetch(l.url + '/' + sub + '/query', { method: 'POST', body });
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        const j = await r.json();
+        if (j.error) throw new Error(j.error.message || 'service error');
+        if ((j.properties && j.properties.exceededTransferLimit) || j.exceededTransferLimit) throw new Error('more features than the service returns at once; use a smaller area');
+        (j.features || []).forEach(f => out.push(f));
+      }
+    } else {
+      if (!getKey()) throw new Error('no LRIS key');
+      const bb = turf.bbox(target);
+      const r = await fetch(lrisWfsUrl(l.layer, [G.wrapLng180(bb[0]), bb[1], G.wrapLng180(bb[2]), bb[3]], MAX_LRIS));
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      const fc = await r.json();
+      if ((fc.features || []).length >= MAX_LRIS) throw new Error('more than ' + MAX_LRIS + ' features; use a smaller area');
+      (fc.features || []).forEach(f => { try { if (f.geometry && turf.booleanIntersects(target, f)) out.push(f); } catch (e) {} });
+    }
+    return out.filter(f => f.geometry).map(f => ({ type: 'Feature', geometry: f.geometry, properties: f.properties || {}, label: labelFor(l, f.properties) || l.name }));
+  };
 
   // ── init ──────────────────────────────────────────────────────────────────
   function init() { if (typeof map !== 'undefined') map.on('moveend', onMove); }
