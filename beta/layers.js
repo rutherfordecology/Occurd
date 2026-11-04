@@ -20,6 +20,15 @@
 //     drives the layers through the window._layers* calls at the end of this file
 //     (_layersShow, _layersCheck, _layersCheckCsv, _layersFeaturesIn). HOST.paneFor(l)
 //     gives each layer its own map pane, and HOST.onStatus(id, text) hears its status.
+//
+// Private layers: a GeoJSON, KML or KMZ file added from this computer (client
+// boundaries such as HCVF areas). It is kept only in this browser (IndexedDB),
+// never sent anywhere and never in the register file or the repo. It joins
+// register.layers in memory with source 'local' and private: true, so the
+// panel, the layer check, report maps and a headless host all see it. Hosts
+// must leave private layers out of anything they publish or package (inferrd.
+// keeps them out of Export for Louped). _layersAddPrivate(file) and
+// _layersRemovePrivate(id) add and remove them.
 // ─────────────────────────────────────────────────────────────────────────────
 
 (function () {
@@ -95,11 +104,122 @@
 
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
 
+  // ── private layers (this browser only) ────────────────────────────────────
+  const PRIV_DB = 'occurd_private_layers', PRIV_STORE = 'layers';
+  const PRIV_GROUP = 'Private (this browser only)';
+  const PRIV_COLORS = ['#e8590c', '#c2255c', '#5f3dc4', '#1971c2', '#2b8a3e'];
+  function privDb() {
+    return new Promise((res, rej) => {
+      if (!window.indexedDB) { rej(new Error('this browser has no IndexedDB')); return; }
+      const rq = indexedDB.open(PRIV_DB, 1);
+      rq.onupgradeneeded = () => rq.result.createObjectStore(PRIV_STORE, { keyPath: 'id' });
+      rq.onsuccess = () => res(rq.result);
+      rq.onerror = () => rej(rq.error || new Error('IndexedDB would not open'));
+    });
+  }
+  async function privTx(mode, fn) {
+    const db = await privDb();
+    return new Promise((res, rej) => {
+      const tx = db.transaction(PRIV_STORE, mode), st = tx.objectStore(PRIV_STORE);
+      const out = fn(st);
+      tx.oncomplete = () => { db.close(); res(out && out.result !== undefined ? out.result : undefined); };
+      tx.onerror = () => { db.close(); rej(tx.error); };
+    });
+  }
+  async function privAll() { try { return (await privTx('readonly', st => st.getAll())) || []; } catch (e) { console.warn('Layers: private layers unreadable', e); return []; } }
+  // A stored record → a register layer.
+  function privLayer(rec) {
+    return { id: rec.id, group: PRIV_GROUP, name: rec.name, source: 'local', private: true, fc: rec.fc, file: rec.file,
+      color: rec.color, minZoom: 1, labelFields: rec.labelFields || [], attribution: 'Private file ' + rec.file,
+      notes: 'From ' + rec.file + ', added ' + String(rec.added).slice(0, 10) + '. Kept only in this browser: never uploaded, and left out of packages and exports for clients.' };
+  }
+  // GeoJSON, KML or KMZ text/bytes → FeatureCollection of polygons and lines.
+  async function readLayerFile(file) {
+    const name = file.name || 'layer', lower = name.toLowerCase();
+    let text;
+    if (lower.endsWith('.kmz')) {
+      if (!window.JSZip) await new Promise((res, rej) => {
+        const sc = document.createElement('script');
+        sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
+        sc.onload = res; sc.onerror = () => rej(new Error('could not load the KMZ reader'));
+        document.head.appendChild(sc);
+      });
+      const zip = await JSZip.loadAsync(await file.arrayBuffer());
+      const kml = Object.values(zip.files).find(f => /\.kml$/i.test(f.name));
+      if (!kml) throw new Error('no .kml inside ' + name);
+      text = await kml.async('string');
+    } else text = await file.text();
+    const fc = text.trimStart().startsWith('<') ? kmlToFc(text) : geojsonFc(JSON.parse(text));
+    fc.features = fc.features.filter(f => f.geometry && /Polygon|LineString/.test(f.geometry.type));
+    if (!fc.features.length) throw new Error('no polygons or lines in ' + name);
+    return fc;
+  }
+  function geojsonFc(gj) {
+    const feats = gj.type === 'FeatureCollection' ? gj.features : gj.type === 'Feature' ? [gj] : [{ type: 'Feature', geometry: gj, properties: {} }];
+    return { type: 'FeatureCollection', features: feats.map(f => ({ type: 'Feature', geometry: f.geometry,
+      properties: Object.fromEntries(Object.entries(f.properties || {}).filter(([, v]) => v == null || typeof v !== 'object')) })) };
+  }
+  // Placemarks with polygons; outlines drawn as closed paths (as Google Earth
+  // users often do) become polygons, one each. "Untitled …" names are dropped.
+  function kmlToFc(text) {
+    const doc = new DOMParser().parseFromString(text, 'application/xml');
+    if (doc.querySelector('parsererror')) throw new Error('not readable as KML');
+    const coords = el => (el ? el.textContent.trim().split(/\s+/).map(t => t.split(',').map(Number)).filter(c => c.length >= 2 && c.every(isFinite)).map(c => [c[0], c[1]]) : []);
+    const closed = r => r.length >= 4 && Math.abs(r[0][0] - r[r.length - 1][0]) < 1e-7 && Math.abs(r[0][1] - r[r.length - 1][1]) < 1e-7;
+    const feats = [];
+    for (const pm of doc.getElementsByTagName('Placemark')) {
+      const props = {};
+      const nm = [...pm.children].find(c => c.localName === 'name');
+      if (nm && nm.textContent.trim() && !/^untitled\b/i.test(nm.textContent.trim())) props.name = nm.textContent.trim();
+      for (const d of pm.getElementsByTagName('Data')) props[d.getAttribute('name')] = (d.getElementsByTagName('value')[0] || {}).textContent || '';
+      for (const d of pm.getElementsByTagName('SimpleData')) props[d.getAttribute('name')] = d.textContent.trim();
+      const polys = [...pm.getElementsByTagName('Polygon')].map(pg => {
+        const outer = coords((pg.getElementsByTagName('outerBoundaryIs')[0] || pg).getElementsByTagName('coordinates')[0]);
+        const inner = [...pg.getElementsByTagName('innerBoundaryIs')].map(ib => coords(ib.getElementsByTagName('coordinates')[0])).filter(r => r.length >= 4);
+        return outer.length >= 4 ? [outer, ...inner] : null;
+      }).filter(Boolean);
+      const lines = [...pm.getElementsByTagName('LineString')].map(l => coords(l.getElementsByTagName('coordinates')[0])).filter(r => r.length >= 2);
+      if (polys.length) feats.push({ type: 'Feature', properties: props, geometry: polys.length === 1 ? { type: 'Polygon', coordinates: polys[0] } : { type: 'MultiPolygon', coordinates: polys } });
+      lines.forEach((r, k) => {
+        const p = lines.length > 1 && props.name ? Object.assign({}, props, { name: props.name + ' ' + (k + 1) }) : Object.assign({}, props);
+        feats.push({ type: 'Feature', properties: p, geometry: closed(r) ? { type: 'Polygon', coordinates: [r] } : { type: 'LineString', coordinates: r } });
+      });
+    }
+    return { type: 'FeatureCollection', features: feats };
+  }
+  function featBBox(f) {
+    if (!f._bb) { try { f._bb = turf.bbox(f); } catch (e) { f._bb = [-180, -90, 180, 90]; } }
+    return f._bb;
+  }
+  const bboxHits = (a, b) => a[0] <= b[2] && a[2] >= b[0] && a[1] <= b[3] && a[3] >= b[1];
+  window._layersAddPrivate = async function (file, name) {
+    const fc = await readLayerFile(file);
+    const reg = await loadRegister();
+    const n = reg.layers.filter(l => l.private).length;
+    const base = (name || file.name.replace(/\.(geo)?json$|\.kmz$|\.kml$/i, '')).trim() || 'Private layer';
+    const fields = [...new Set(fc.features.flatMap(f => Object.keys(f.properties || {})))];
+    const rec = { id: 'priv_' + Date.now().toString(36), name: base, file: file.name, added: new Date().toISOString(), fc,
+      color: PRIV_COLORS[n % PRIV_COLORS.length], labelFields: fields.filter(k => /^name$/i.test(k)).concat(fields.filter(k => /site|block/i.test(k))).slice(0, 2) };
+    await privTx('readwrite', st => st.put(rec));
+    const l = privLayer(rec);
+    reg.layers.push(l);
+    if (panel) rebuildPanel();
+    return l;
+  };
+  window._layersRemovePrivate = async function (id) {
+    await privTx('readwrite', st => st.delete(id));
+    removeShown(id); ticked.delete(id);
+    if (register) register.layers = register.layers.filter(l => l.id !== id);
+    if (panel) rebuildPanel();
+  };
+
   async function loadRegister() {
     if (register) return register;
     const r = await fetch(new URL('layers-register.json', SELF_URL).href, { cache: 'no-cache' });
     if (!r.ok) throw new Error('layers-register.json: HTTP ' + r.status);
-    register = await r.json();
+    const reg = await r.json();
+    reg.layers = reg.layers.filter(l => !l.private).concat((await privAll()).map(privLayer));
+    register = reg;
     return register;
   }
 
@@ -219,10 +339,18 @@
             '<span style="width:10px;height:10px;border-radius:0;margin-top:3px;flex-shrink:0;background:' + l.color + '55;border:1.5px solid ' + l.color + ';"></span>' +
             '<span style="flex:1;line-height:1.35;">' + esc(l.name) +
               '<span id="lyrst_' + l.id + '" style="display:block;font-size:10px;color:var(--text3);"></span></span>' +
+            (l.private ? '<button type="button" class="lyr-priv-del" data-id="' + esc(l.id) + '" title="Remove this private layer from this browser" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:12px;padding:0 2px;">✕</button>' : '') +
           '</label>';
       });
       html += '</div>';
     });
+    // Add a private layer from a file; each private layer row gets a remove ✕.
+    html +=
+      '<div style="margin-top:6px;">' +
+        '<button type="button" id="lyrAddPriv" class="dl-btn" style="width:100%;" title="A GeoJSON, KML or KMZ file from this computer, such as client boundaries. It stays in this browser and is never uploaded.">+ Add a private layer (file)</button>' +
+        '<input type="file" id="lyrPrivFile" accept=".geojson,.json,.kml,.kmz" hidden>' +
+        '<div id="lyrPrivMsg" style="font-size:10px;color:var(--text3);line-height:1.4;margin-top:3px;">Kept only in this browser. Never uploaded or exported for clients.</div>' +
+      '</div>';
     html +=
       '<div style="border-top:0.5px solid var(--border);margin-top:8px;padding-top:8px;">' +
         '<div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--text3);margin-bottom:4px;">Layer check</div>' +
@@ -275,7 +403,23 @@
     }
 
     register.layers.forEach(l => {
-      document.getElementById('lyrcb_' + l.id).addEventListener('change', e => toggleLayer(l.id, e.target.checked));
+      const cb = document.getElementById('lyrcb_' + l.id);
+      cb.checked = ticked.has(l.id);
+      cb.addEventListener('change', e => toggleLayer(l.id, e.target.checked));
+    });
+    panel.querySelectorAll('.lyr-priv-del').forEach(b => b.addEventListener('click', async (e) => {
+      e.preventDefault(); e.stopPropagation();
+      const l = layerById(b.dataset.id);
+      if (l && confirm('Remove the private layer "' + l.name + '" from this browser?')) await window._layersRemovePrivate(l.id);
+    }));
+    panel.querySelector('#lyrAddPriv').addEventListener('click', () => panel.querySelector('#lyrPrivFile').click());
+    panel.querySelector('#lyrPrivFile').addEventListener('change', async (e) => {
+      const f = e.target.files[0]; e.target.value = '';
+      if (!f) return;
+      const msg = panel.querySelector('#lyrPrivMsg');
+      msg.textContent = 'Reading ' + f.name + '…';
+      try { const l = await window._layersAddPrivate(f); toggleLayer(l.id, true); }
+      catch (err) { const m = panel && panel.querySelector('#lyrPrivMsg'); if (m) { m.style.color = 'var(--red)'; m.textContent = 'Could not add ' + f.name + ': ' + err.message; } }
     });
     panel.querySelector('#lyrClose').addEventListener('click', () => { window._layersDeactivate(); if (window._projectsSetLocked) window._projectsSetLocked('layers'); });
     panel.querySelector('#lyrMin').addEventListener('click', () => {
@@ -293,6 +437,16 @@
       if (typeof HOST.onForget === 'function') HOST.onForget(); // e.g. occurd.'s saved session
       if (window._projectsSetLocked) window._projectsSetLocked('layers');
     });
+  }
+
+  // Rebuilt after a private layer is added or removed; ticks and status carry over.
+  function rebuildPanel() {
+    if (!panel) return;
+    const wasShown = panel.style.display;
+    panel.remove(); panel = null;
+    buildPanel();
+    panel.style.display = wasShown;
+    Object.keys(status).forEach(id => setStatus(id, status[id]));
   }
 
   function setStatus(id, txt) {
@@ -394,6 +548,8 @@
         fc.features = fc.features.concat(j.features || []);
         if ((j.properties && j.properties.exceededTransferLimit) || j.exceededTransferLimit) capped = true;
       }
+    } else if (l.source === 'local') {
+      fc = { type: 'FeatureCollection', features: l.fc.features.filter(f => bboxHits(featBBox(f), bbox)) };
     } else {
       if (!getKey()) throw new Error('no LRIS key');
       const r = await fetch(lrisWfsUrl(l.layer, bbox, MAX_LRIS));
@@ -483,6 +639,8 @@
         (j.features || []).forEach(f => found.push(f.attributes || {}));
         if (j.exceededTransferLimit) note = 'result limit reached';
       }
+    } else if (l.source === 'local') {
+      l.fc.features.forEach(f => { if (featureIntersects(poly, refLng, f.geometry)) found.push(f.properties || {}); });
     } else {
       if (!getKey()) throw new Error('no LRIS key');
       const bb = turf.bbox(poly);
@@ -545,7 +703,7 @@
   function row(p, l, hit, n, label, attrs, note, time) {
     return {
       polygon_name: p.label, layer_id: l.id, layer_name: l.name, layer_group: l.group,
-      source: l.source === 'arcgis' ? l.url + ' (sublayers ' + l.sublayers.join(',') + ')' : 'LRIS layer ' + l.layer,
+      source: l.source === 'arcgis' ? l.url + ' (sublayers ' + l.sublayers.join(',') + ')' : l.source === 'local' ? 'private file ' + l.file + ' (this browser only)' : 'LRIS layer ' + l.layer,
       intersects: hit, feature_count: n, feature_label: label, attributes: attrs, note: note || '', checked_at: time
     };
   }
@@ -857,6 +1015,8 @@
         if ((j.properties && j.properties.exceededTransferLimit) || j.exceededTransferLimit) throw new Error('more features than the service returns at once; use a smaller area');
         (j.features || []).forEach(f => out.push(f));
       }
+    } else if (l.source === 'local') {
+      l.fc.features.forEach(f => { try { if (f.geometry && turf.booleanIntersects(target, f)) out.push(f); } catch (e) {} });
     } else {
       if (!getKey()) throw new Error('no LRIS key');
       const bb = turf.bbox(target);
