@@ -1,5 +1,5 @@
 {
-  "register_version": "2026-10-21b",
+  "register_version": "2026-11-05a",
   "notes": "Layers shown by the Projects > Layers panel and tested by its layer check. The report workflow reads this same file. These are published GIS layers, not the legal plan maps: confirm anything decisive against the operative plan.",
   "layers": [
     {
@@ -168,6 +168,24 @@
       "minZoom": 9,
       "notes": "QEII National Trust registered covenants, the same service as Occurd's QEII project. PAN-NZ also includes covenants but may lag behind this source.",
       "attribution": "QEII National Trust"
+    },
+    {
+      "id": "tpk_iwi_aoi",
+      "group": "Te Puni Kōkiri",
+      "name": "Iwi areas of interest",
+      "source": "arcgis",
+      "url": "https://services2.arcgis.com/97skzKG31fDSvRnN/arcgis/rest/services/Shapefile_Iwi_AreasOfInterest/FeatureServer",
+      "sublayers": [
+        0
+      ],
+      "labelFields": [
+        "Name",
+        "TPK_Code"
+      ],
+      "color": "#7c3aed",
+      "minZoom": 6,
+      "notes": "Te Puni Kōkiri's map of iwi areas of interest (TPK Iwi Areas of Interest, CC BY 4.0). Boundaries were traced from maps supplied by iwi or from Treaty settlement documents; areas overlap and some iwi or hapū may not be shown. Use it to identify who to engage, not as a statement of mana whenua or a substitute for engagement.",
+      "attribution": "Te Puni Kōkiri"
     },
     {
       "id": "niwa_catchments",
