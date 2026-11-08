@@ -91,7 +91,19 @@ window._qeiiState = { active: false, features: [] };
           const date = p.DateRegd
             ? new Date(p.DateRegd).toLocaleDateString('en-NZ', { year:'numeric', month:'short' })
             : '—';
-          layer.bindPopup(
+          // A function, so the Select / Add to selection button (Occurd's
+          // LAYERS_HOST.featureAction, when the page has one) is rebuilt with the
+          // right label each time the popup opens.
+          layer.bindPopup(function() {
+            const el = document.createElement('div');
+            el.innerHTML = info;
+            const act = window.LAYERS_HOST && window.LAYERS_HOST.featureAction;
+            if (act && /Polygon/.test((feature.geometry || {}).type)) {
+              el.appendChild(act.button(async function() { act.run(feature, p.CovNumber || 'QEII Covenant'); }));
+            }
+            return el;
+          }, { maxWidth: 240 });
+          const info =
             '<div style="font-size:12px;line-height:1.7;min-width:160px;">' +
             '<strong style="font-size:13px;">' + (p.CovNumber || 'QEII Covenant') + '</strong><br>' +
             (p.Type ? '<span style="color:#555;">' + p.Type + '</span><br>' : '') +
@@ -99,9 +111,7 @@ window._qeiiState = { active: false, features: [] };
             '<span style="color:#555;">Registered: ' + date + '</span><br>' +
             (p.TA_Name     ? '<span style="color:#555;">TA: '     + p.TA_Name     + '</span><br>' : '') +
             (p.QEIIRegion  ? '<span style="color:#555;">Region: ' + p.QEIIRegion  + '</span>'    : '') +
-            '</div>',
-            { maxWidth: 240 }
-          );
+            '</div>';
           layer.on('mouseover', function() { layer.setStyle({ fillOpacity: 0.38, weight: 2.5 }); });
           layer.on('mouseout',  function() { layer.setStyle({ fillOpacity: 0.18, weight: 1.5 }); });
         }
