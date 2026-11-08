@@ -50,7 +50,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.75);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.7);letter-spacing:0.04em;">v7.51 (beta)</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.7);letter-spacing:0.04em;">v7.52 (beta)</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -8085,8 +8085,10 @@ if (window._pendingShare) {
 <script src="species-search.js"></script>
 <script src="qeii.js"></script>
 <script>
-// Layers popups get a "Use as search area" button (layers.js HOST.featureAction):
-// the feature's full-detail boundary becomes an analysis polygon. Parts under 1%
+// Layers and QEII popups get a "Select" button (layers.js HOST.featureAction; qeii.js
+// uses the same hook): the feature's full-detail boundary becomes an analysis polygon,
+// kept alongside any already there. The button reads "Add to selection" once the
+// search-area list has anything in it (checked each time a popup opens). Parts under 1%
 // of the largest (offshore islets, slivers) are left out of multi-part features.
 // Returns { added, dropped } part counts.
 function addLayerArea(feature, label) {
@@ -8105,7 +8107,8 @@ window.LAYERS_HOST = {
   featureAction: {
     button(onClick) {
       const b = document.createElement('button');
-      b.className = 'dl-btn'; b.textContent = 'Use as search area';
+      b.className = 'dl-btn'; b.textContent = polygons.length ? 'Add to selection' : 'Select';
+      b.title = 'Add this area to your search areas';
       b.style.cssText = 'width:100%;margin-top:6px;';
       b.addEventListener('click', async () => { b.disabled = true; b.textContent = 'Adding…'; await onClick(); });
       return b;
@@ -8114,7 +8117,8 @@ window.LAYERS_HOST = {
       const r = addLayerArea(feature, label);
       if (!r.added) { setStatus('That feature has no area to search.', 'error'); return; }
       map.closePopup();
-      setStatus('Added ' + String(label).split(' | ')[0] + ' as a search area' + (r.dropped ? ' (' + r.dropped + ' small outlying parts left out)' : '') + '.', 'success');
+      const n = polygons.length;
+      setStatus('Added ' + String(label).split(' | ')[0] + ' to the selection (' + n + ' search area' + (n === 1 ? '' : 's') + ')' + (r.dropped ? '; ' + r.dropped + ' small outlying parts left out' : '') + '. Click another area to add it too.', 'success');
     }
   }
 };
@@ -8268,6 +8272,13 @@ window.LAYERS_HOST = {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v7.52</span>
+      <span class="changelog-date">Nov 2026</span>
+      <ul>
+        <li>Click to select: click a QEII covenant or a layer area and choose "Select" to add it as a search area. After that, the button on the next ones reads "Add to selection", so you can build up a set click by click. Search areas already on the list are kept. QEII covenant popups now have the button too; layer popups had it as "Use as search area"</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v7.51</span>
       <span class="changelog-date">Nov 2026</span>
