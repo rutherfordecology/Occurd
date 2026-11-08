@@ -50,7 +50,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.75);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.7);letter-spacing:0.04em;">v7.50</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.7);letter-spacing:0.04em;">v7.51</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -1293,27 +1293,38 @@ map.on(L.Draw.Event.CREATED, e => {
       setStatus('No KMZ polygons found within the drawn area. Try redrawing.', 'warning');
     }
   } else {
-    // If perpetuity layer is active, auto-add any intersecting QEII covenant polygons
+    // If perpetuity layer is active, auto-add the QEII covenant polygons that lie
+    // fully within the drawn polygon (every part of a multi-part covenant, too);
+    // covenants it only overlaps are left out.
     const _qeiiPending = []; // { latlngs, name }
     if (window._qeiiState && window._qeiiState.features.length > 0) {
       try {
         const _drawnEntry = polygons.find(p => p.id === id);
         if (_drawnEntry) {
           const { poly: _drawnTurf, refLng: _drawnRefLng } = llToTurfPolygon(_drawnEntry.latlngs, _drawnEntry.holes);
+          const _drawnEdge = turf.polygonToLine(_drawnTurf);
+          // Fully within: every vertex inside the drawn polygon (on its edge counts)
+          // and no edge of the covenant crosses the drawn polygon's edge, which also
+          // catches a concave or holed drawn shape cutting between two vertices.
+          const _partWithin = (coords) => {
+            const cp = geoJsonPolyToTurfInFrame(coords, _drawnRefLng);
+            const allIn = cp.geometry.coordinates.every(ring => ring.every(pt => turf.booleanPointInPolygon(pt, _drawnTurf)));
+            if (!allIn) return false;
+            // Edges meeting only at a covenant vertex lying on the drawn edge is a touch, not a crossing.
+            const isVertex = ([x, y]) => cp.geometry.coordinates.some(ring => ring.some(pt => Math.abs(pt[0] - x) < 1e-9 && Math.abs(pt[1] - y) < 1e-9));
+            return turf.lineIntersect(_drawnEdge, turf.polygonToLine(cp)).features.every(x => isVertex(x.geometry.coordinates));
+          };
           window._qeiiState.features.forEach(f => {
             if (!f.geometry) return;
             try {
-              const _intersects = (function(geom) {
-                if (geom.type === 'Polygon') {
-                  return turf.booleanIntersects(_drawnTurf, geoJsonPolyToTurfInFrame(geom.coordinates, _drawnRefLng));
-                } else if (geom.type === 'MultiPolygon') {
-                  return geom.coordinates.some(poly => {
-                    try { return turf.booleanIntersects(_drawnTurf, geoJsonPolyToTurfInFrame(poly, _drawnRefLng)); } catch(e) { return false; }
-                  });
-                }
+              const _within = (function(geom) {
+                if (geom.type === 'Polygon') return _partWithin(geom.coordinates);
+                if (geom.type === 'MultiPolygon') return geom.coordinates.length > 0 && geom.coordinates.every(poly => {
+                  try { return _partWithin(poly); } catch(e) { return false; }
+                });
                 return false;
               })(f.geometry);
-              if (!_intersects) return;
+              if (!_within) return;
               const _name = (f.properties && f.properties.CovNumber) || 'QEII Covenant';
               if (f.geometry.type === 'MultiPolygon') {
                 f.geometry.coordinates.forEach((poly, _i) => {
@@ -8258,13 +8269,20 @@ window.LAYERS_HOST = {
   </div>
   <div class="changelog-scroll" id="changelogScroll">
     <div class="changelog-version">
+      <span class="changelog-version-tag">v7.51</span>
+      <span class="changelog-date">Nov 2026</span>
+      <ul>
+        <li>QEII draw to select: only covenants that lie fully within your drawn polygon are added, not every covenant it touches. A covenant in several parts is added only when all its parts are inside</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
       <span class="changelog-version-tag">v7.50</span>
       <span class="changelog-date">Nov 2026</span>
       <ul>
         <li>Private layers in Projects &gt; Layers: add a GeoJSON, KML or KMZ file from your computer, such as client boundaries. It stays in this browser only and is never uploaded. It is drawn like the other layers and is included in the layer check and report maps. inferrd. lists it too, and leaves it out of its packages for clients</li>
       </ul>
     </div>
-        <div class="changelog-version">
+    <div class="changelog-version">
       <span class="changelog-version-tag">v7.49</span>
       <span class="changelog-date">Oct 2026</span>
       <ul>
