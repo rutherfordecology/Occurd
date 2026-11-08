@@ -50,7 +50,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.75);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.7);letter-spacing:0.04em;">v7.52 (beta)</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.7);letter-spacing:0.04em;">v7.53 (beta)</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -2299,7 +2299,7 @@ function addPolygon(latlngs, label, holes, opts) {
   const leafletLatlngs = holes.length > 0 ? [latlngs, ...holes] : latlngs;
   const layer = L.polygon(leafletLatlngs, { color: colour, fillColor: colour, fillOpacity: 0.1, weight: 2 });
   polyLayer.addLayer(layer);
-  polygons.push({ id, label, latlngs, holes, wkt: latlngsToWKT(latlngs, holes), layer, obscuredOnly: !!opts.obscuredOnly });
+  polygons.push({ id, label, latlngs, holes, wkt: latlngsToWKT(latlngs, holes), layer, obscuredOnly: !!opts.obscuredOnly, mergeGroup: opts.mergeGroup || null });
   renderPolyList();
   map.fitBounds(polyLayer.getBounds(), { padding: [50, 50] });
   runBtn.disabled = false; clearAllBtn.style.display = 'block'; clearResults();
@@ -2406,7 +2406,11 @@ function renderPolyList() {
       [1,2,5,10].map(km => '<button class="poly-buf-btn" data-km="' + km + '" data-unit="km">' + km + ' km</button>').join('') +
       '<button class="poly-buf-btn" data-km="0.2" data-unit="deg" title="0.2° buffer — matches the iNaturalist obscured-record grid square.">0.2°</button>' +
       '</div>';
-    bufRow.querySelector('.poly-kml-btn').addEventListener('click', () => downloadAreasKml([p]));
+    // A part of a merged area exports with its sibling parts (those still listed), as one KML.
+    bufRow.querySelector('.poly-kml-btn').addEventListener('click', () => {
+      const sibs = p.mergeGroup ? polygons.filter(q => q.mergeGroup === p.mergeGroup) : [p];
+      downloadAreasKml(sibs, sibs.length > 1 ? p.label.replace(/ \(part \d+ of \d+\)/, '') : null);
+    });
     bufRow.querySelector('#' + _obscId).addEventListener('change', function() {
       p.obscuredOnly     = this.checked;
       p._bufObscuredOnly = this.checked;
@@ -2445,6 +2449,7 @@ function renderPolyList() {
       '<div class="poly-buf-btns" style="border-top:none;padding-top:0;" title="Buffers all ' + polys.length +
       ' polygons and merges the buffers, so they don\'t overlap. The merged area includes the polygons themselves.">' +
       '<span class="poly-buffer-label">Buffer all, merged:</span>' +
+      '<button class="poly-buf-btn" data-km="0" data-unit="km" title="No buffer: merge the polygons as they are into one area, e.g. to export them as a single KML">0 m</button>' +
       '<button class="poly-buf-btn" data-km="0.5" data-unit="km">500 m</button>' +
       [1,2,5,10].map(km => '<button class="poly-buf-btn" data-km="' + km + '" data-unit="km">' + km + ' km</button>').join('') +
       '<button class="poly-buf-btn" data-km="0.2" data-unit="deg">0.2°</button>' +
@@ -2524,20 +2529,25 @@ function addMergedBuffer(polys, amount, unit) {
     const turfUnit = unit === 'deg' ? 'degrees' : 'kilometers';
     const toRing = lls => closeRingCoords(lls.map(llToGeoJSON));
     let merged = null;
+    // amount 0 = merge only: the polygons are unioned as they are (turf.buffer at 0
+    // would re-trace their edges), so shared edges dissolve and overlaps count once.
     polys.forEach(p => {
-      const b = turf.buffer(turf.polygon([toRing(p.latlngs), ...(p.holes || []).map(toRing)]), amount, { units: turfUnit });
+      const poly = turf.polygon([toRing(p.latlngs), ...(p.holes || []).map(toRing)]);
+      const b = amount > 0 ? turf.buffer(poly, amount, { units: turfUnit }) : poly;
       merged = merged ? turf.union(merged, b) : b;
     });
     if (!merged) return;
     const g = merged.geometry;
     const parts = g.type === 'MultiPolygon' ? g.coordinates : [g.coordinates];
     const toLL = ring => ring.slice(0, -1).map(c => [c[1], c[0]]);
-    const label = 'All areas + ' + (unit === 'deg' ? amount + '° buffer'
+    const label = !(amount > 0) ? 'All areas merged'
+      : 'All areas + ' + (unit === 'deg' ? amount + '° buffer'
       : amount < 1 ? Math.round(amount * 1000) + 'm buffer' : amount + 'km buffer');
     const obscuredOnly = polys.every(p => p.obscuredOnly);
+    const mergeGroup = parts.length > 1 ? 'm' + Date.now() : null; // parts export together as one KML
     parts.forEach((rings, i) => addPolygon(toLL(rings[0]),
       label + (parts.length > 1 ? ' (part ' + (i + 1) + ' of ' + parts.length + ')' : '') + (obscuredOnly ? ' (obscured only)' : ''),
-      rings.slice(1).map(toLL), { obscuredOnly }));
+      rings.slice(1).map(toLL), { obscuredOnly, mergeGroup }));
   } catch(e) { console.warn('Merged buffer failed:', e); }
 }
 
@@ -7447,7 +7457,7 @@ document.getElementById('dlKmlBtn').addEventListener('click', () => {
 });
 
 // One drawn or imported area (or several) as KML — available before any fetch
-function downloadAreasKml(list) {
+function downloadAreasKml(list, name) {
   const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   const ringStr = ll => closeRingCoords(unwrappedRingCoords(ll)).map(([x, y]) => wrapLng180(x).toFixed(7) + ',' + (+y).toFixed(7) + ',0').join(' ');
   const geom = (list || []).filter(p => p && p.type !== 'species' && p.latlngs && p.latlngs.length >= 3);
@@ -7459,10 +7469,10 @@ function downloadAreasKml(list) {
     '    </Polygon>\n  </Placemark>').join('\n');
   const day = new Date().toISOString().split('T')[0];
   const kml = '<?xml version="1.0" encoding="UTF-8"?>\n<kml xmlns="http://www.opengis.net/kml/2.2">\n<Document>\n' +
-    '  <name>' + esc(geom.length === 1 ? geom[0].label : 'Search areas') + ' ' + day + '</name>\n' +
+    '  <name>' + esc(name || (geom.length === 1 ? geom[0].label : 'Search areas')) + ' ' + day + '</name>\n' +
     '  <Style id="area"><LineStyle><color>ff2a7a3f</color><width>2</width></LineStyle><PolyStyle><color>332a7a3f</color></PolyStyle></Style>\n' +
     placemarks + '\n</Document>\n</kml>';
-  const base = geom.length === 1 ? geom[0].label.replace(/[^A-Za-z0-9 _+-]/g, '').trim().replace(/\s+/g, '_') : 'search_areas';
+  const base = (name || geom.length === 1) ? (name || geom[0].label).replace(/[^A-Za-z0-9 _+-]/g, '').trim().replace(/\s+/g, '_') : 'search_areas';
   downloadBlob(kml, (base || 'search_area') + '_' + fileStamp() + '.kml', 'application/vnd.google-earth.kml+xml');
 }
 
@@ -8272,6 +8282,13 @@ window.LAYERS_HOST = {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v7.53</span>
+      <span class="changelog-date">Nov 2026</span>
+      <ul>
+        <li>Buffer all, merged: a 0 m option merges your polygons as they are, with no buffer, into one area. Shared edges dissolve and overlaps count once, so you can export several blocks as a single KML with the area's KML button. Where the blocks don't touch, the merged area has several parts, and the KML button on any of them downloads all the parts in one file</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v7.52</span>
       <span class="changelog-date">Nov 2026</span>
