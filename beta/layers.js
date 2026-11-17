@@ -234,6 +234,94 @@
     return LRIS_BASE + ';key=' + encodeURIComponent(getKey()) + '/wfs/layer-' + layerId + '/?' + p.toString();
   }
 
+  // ── LRIS request cache ────────────────────────────────────────────────────
+  // LRIS is a free service with a small monthly WFS allowance shared by all its
+  // users, and every request here counts against one account. So each answer
+  // is kept (in memory and, for LRIS_DAYS, in this browser's IndexedDB) and
+  // reused for any box inside it. Map views are asked for with LRIS_PAD of a
+  // view's margin each side, so panning and zooming in don't ask again. An
+  // answer that hit MAX_LRIS is incomplete: it is reused only for the same box.
+  const LRIS_PAD = 0.5, LRIS_DAYS = 14, LRIS_KEEP = 8;   // boxes kept per layer
+  const LC_DB = 'occurd_lris_cache', LC_STORE = 'boxes';
+  const lrisMem = {};            // layerId -> [{ k, layer, bbox, ask, fc, capped, t }]
+  const lrisPending = {};        // request box key -> Promise, so one box is asked for once
+  const lrisLoaded = {};         // layerId -> Promise (stored boxes read back)
+  const lrisStats = { requests: 0, reused: 0 };
+  window._layersLrisStats = () => Object.assign({}, lrisStats);
+  let lcDbP = null;
+  function lcDb() {
+    if (!lcDbP) lcDbP = new Promise(res => {
+      try {
+        const q = indexedDB.open(LC_DB, 1);
+        q.onupgradeneeded = () => q.result.createObjectStore(LC_STORE, { keyPath: 'k' });
+        q.onsuccess = () => res(q.result); q.onerror = () => res(null);
+      } catch (e) { res(null); }
+    });
+    return lcDbP;
+  }
+  async function lcTx(mode, fn) {
+    const db = await lcDb(); if (!db) return null;
+    return new Promise(res => {
+      try {
+        const tx = db.transaction(LC_STORE, mode), q = fn(tx.objectStore(LC_STORE));
+        tx.oncomplete = () => res(q && 'result' in q ? q.result : null); tx.onerror = tx.onabort = () => res(null);
+      } catch (e) { res(null); }
+    });
+  }
+  function lrisLoad(layerId) {
+    if (!lrisLoaded[layerId]) lrisLoaded[layerId] = (async () => {
+      const all = (await lcTx('readonly', st => st.getAll())) || [];
+      const cutoff = Date.now() - LRIS_DAYS * 864e5;
+      const mine = all.filter(e => e.layer === layerId);
+      const keep = mine.filter(e => e.t >= cutoff).sort((a, b) => b.t - a.t).slice(0, LRIS_KEEP);
+      const drop = mine.filter(e => !keep.includes(e));
+      if (drop.length) lcTx('readwrite', st => { drop.forEach(e => st.delete(e.k)); });
+      const list = lrisMem[layerId] || (lrisMem[layerId] = []);
+      keep.forEach(e => { if (!list.some(x => x.k === e.k)) list.push(e); });
+    })();
+    return lrisLoaded[layerId];
+  }
+  const boxIn = (o, i) => o[0] <= i[0] && o[1] <= i[1] && o[2] >= i[2] && o[3] >= i[3];
+  const r6 = v => +v.toFixed(6);
+  // Features of LRIS layer layerId in bbox [w,s,e,n]: { fc, capped }. pad widens
+  // the box actually asked for (a share of its width and height each side).
+  async function lrisGet(layerId, bbox, pad) {
+    if (!getKey()) throw new Error('no LRIS key');
+    const plain = bbox[0] <= bbox[2];   // false across the antimeridian: not cached
+    const pick = (e) => ({ fc: { type: 'FeatureCollection', features: e.capped ? e.fc.features : e.fc.features.filter(f => bboxHits(featBBox(f), bbox)) }, capped: e.capped });
+    if (plain) {
+      await lrisLoad(layerId);
+      const hit = (lrisMem[layerId] || []).find(e => e.capped ? e.ask === bbox.join() : boxIn(e.bbox, bbox));
+      if (hit) { hit.t = Date.now(); lrisStats.reused++; return pick(hit); }
+    }
+    let fb = bbox;
+    if (plain && pad) {
+      const w = (bbox[2] - bbox[0]) * pad, h = (bbox[3] - bbox[1]) * pad;
+      fb = [Math.max(-180, bbox[0] - w), Math.max(-90, bbox[1] - h), Math.min(180, bbox[2] + w), Math.min(90, bbox[3] + h)].map(r6);
+    }
+    const pk = layerId + ':' + fb.join();
+    if (!lrisPending[pk]) lrisPending[pk] = (async () => {
+      lrisStats.requests++;
+      const r = await fetch(lrisWfsUrl(layerId, fb, MAX_LRIS));
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      const fc = await r.json();
+      const e = { k: pk, layer: layerId, bbox: fb, ask: bbox.join(), fc, capped: (fc.features || []).length >= MAX_LRIS, t: Date.now() };
+      fc.features = fc.features || [];
+      if (plain) {
+        const list = lrisMem[layerId] || (lrisMem[layerId] = []);
+        const i = list.findIndex(x => x.k === pk); if (i >= 0) list.splice(i, 1);
+        list.unshift(e);
+        const gone = list.splice(LRIS_KEEP);
+        lcTx('readwrite', st => { gone.forEach(g => st.delete(g.k)); try { st.put(e); } catch (err) {} });
+      }
+      return e;
+    })().finally(() => { delete lrisPending[pk]; });
+    const e = await lrisPending[pk];
+    // A padded box that hit the limit: ask again for the bare box, which may fit.
+    if (fb !== bbox && e.capped) return lrisGet(layerId, bbox, 0);
+    return pick(e);
+  }
+
   async function arcgisQuery(url, sub, params) {
     const body = new URLSearchParams(Object.assign({ f: 'json', outFields: '*', inSR: '4326', outSR: '4326' }, params));
     const r = await fetch(url + '/' + sub + '/query', { method: 'POST', body });
@@ -551,11 +639,7 @@
     } else if (l.source === 'local') {
       fc = { type: 'FeatureCollection', features: l.fc.features.filter(f => bboxHits(featBBox(f), bbox)) };
     } else {
-      if (!getKey()) throw new Error('no LRIS key');
-      const r = await fetch(lrisWfsUrl(l.layer, bbox, MAX_LRIS));
-      if (!r.ok) throw new Error('HTTP ' + r.status);
-      fc = await r.json();
-      capped = (fc.features || []).length >= MAX_LRIS;
+      ({ fc, capped } = await lrisGet(l.layer, bbox, LRIS_PAD));
     }
     return { fc, capped };
   }
@@ -642,14 +726,11 @@
     } else if (l.source === 'local') {
       l.fc.features.forEach(f => { if (featureIntersects(poly, refLng, f.geometry)) found.push(f.properties || {}); });
     } else {
-      if (!getKey()) throw new Error('no LRIS key');
       const bb = turf.bbox(poly);
-      const bbox = [G.wrapLng180(bb[0]), bb[1], G.wrapLng180(bb[2]), bb[3]];
-      const r = await fetch(lrisWfsUrl(l.layer, bbox, MAX_LRIS));
-      if (!r.ok) throw new Error('HTTP ' + r.status);
-      const fc = await r.json();
-      (fc.features || []).forEach(f => { if (featureIntersects(poly, refLng, f.geometry)) found.push(f.properties || {}); });
-      if ((fc.features || []).length >= MAX_LRIS) note = 'result limit reached, polygon may be too large';
+      const bbox = [G.wrapLng180(bb[0]), bb[1], G.wrapLng180(bb[2]), bb[3]].map(r6);
+      const { fc, capped } = await lrisGet(l.layer, bbox, 0);
+      fc.features.forEach(f => { if (featureIntersects(poly, refLng, f.geometry)) found.push(f.properties || {}); });
+      if (capped) note = 'result limit reached, polygon may be too large';
     }
     return { found, note };
   }
@@ -661,6 +742,28 @@
     const time = new Date().toISOString();
     const rows = [], out = [], total = polys.length * register.layers.length;
     let done = 0;
+    // Areas close together share one LRIS request per layer: their boxes are
+    // gathered into groups no wider than GROUP_DEG, each asked for once, and
+    // every area's own check below is then answered from the cache.
+    const GROUP_DEG = 0.1;
+    const lrisLayers = register.layers.filter(l => l.source === 'lris');
+    if (lrisLayers.length && polys.length > 1 && getKey()) {
+      const groups = [];
+      polys.forEach(p => {
+        let bb;
+        try { bb = turf.bbox(G.llToTurfPolygon(p.latlngs, p.holes).poly); } catch (e) { return; }
+        bb = [G.wrapLng180(bb[0]), bb[1], G.wrapLng180(bb[2]), bb[3]];
+        if (bb[0] > bb[2]) return;
+        const g = groups.find(x => {
+          const m = [Math.min(x.bb[0], bb[0]), Math.min(x.bb[1], bb[1]), Math.max(x.bb[2], bb[2]), Math.max(x.bb[3], bb[3])];
+          return m[2] - m[0] <= GROUP_DEG && m[3] - m[1] <= GROUP_DEG && (x.bb = m);
+        });
+        if (g) g.n++; else groups.push({ bb, n: 1 });
+      });
+      for (const g of groups.filter(x => x.n > 1)) {
+        for (const l of lrisLayers) { try { await lrisGet(l.layer, g.bb.map(r6), 0); } catch (e) { /* each area's own check reports it */ } }
+      }
+    }
     for (const p of polys) {
       const res = { label: p.label, hits: [], errors: [] };
       for (const l of register.layers) {
@@ -1018,13 +1121,10 @@
     } else if (l.source === 'local') {
       l.fc.features.forEach(f => { try { if (f.geometry && turf.booleanIntersects(target, f)) out.push(f); } catch (e) {} });
     } else {
-      if (!getKey()) throw new Error('no LRIS key');
       const bb = turf.bbox(target);
-      const r = await fetch(lrisWfsUrl(l.layer, [G.wrapLng180(bb[0]), bb[1], G.wrapLng180(bb[2]), bb[3]], MAX_LRIS));
-      if (!r.ok) throw new Error('HTTP ' + r.status);
-      const fc = await r.json();
-      if ((fc.features || []).length >= MAX_LRIS) throw new Error('more than ' + MAX_LRIS + ' features; use a smaller area');
-      (fc.features || []).forEach(f => { try { if (f.geometry && turf.booleanIntersects(target, f)) out.push(f); } catch (e) {} });
+      const { fc, capped } = await lrisGet(l.layer, [G.wrapLng180(bb[0]), bb[1], G.wrapLng180(bb[2]), bb[3]].map(r6), 0);
+      if (capped) throw new Error('more than ' + MAX_LRIS + ' features; use a smaller area');
+      fc.features.forEach(f => { try { if (f.geometry && turf.booleanIntersects(target, f)) out.push(f); } catch (e) {} });
     }
     return out.filter(f => f.geometry).map(f => ({ type: 'Feature', geometry: f.geometry, properties: f.properties || {}, label: labelFor(l, f.properties) || l.name }));
   };
