@@ -505,6 +505,23 @@
   .month-lbls { display: grid; grid-template-columns: repeat(12, 1fr); gap: 3px; margin-top: 3px; }
   .month-lbls span { text-align: center; font-size: 0.6rem; font-weight: 800; color: rgba(253,248,240,0.45); }
   .month-lbls span.now { color: var(--gold); }
+
+  /* Conditions meter: recent weather scored against what slime moulds like. */
+  .cond-wrap { max-width: 640px; margin: 0 auto; padding: 14px 16px 0; }
+  .cond {
+    display: flex; gap: 12px; align-items: flex-start;
+    padding: 12px 14px; border-radius: var(--radius);
+    background: rgba(20,29,13,0.5); border: 1px solid rgba(143,174,70,0.35);
+  }
+  .cond-dot { width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0; margin-top: 4px; background: rgba(253,248,240,0.3); }
+  .cond.good    .cond-dot { background: var(--gold); box-shadow: 0 0 10px rgba(247,194,27,0.7); }
+  .cond.average .cond-dot { background: var(--lichen); }
+  .cond.poor    .cond-dot { background: #8c97a8; }
+  .cond-title { font-family: var(--font-display); font-weight: 600; font-size: 1rem; color: var(--cream); }
+  .cond-title b { color: var(--gold); font-weight: 600; }
+  .cond.poor .cond-title b { color: #c4d0e0; }
+  .cond-why { font-size: 0.78rem; font-weight: 600; line-height: 1.5; color: rgba(253,248,240,0.7); margin-top: 3px; }
+  .cond-note { font-size: 0.68rem; font-weight: 600; line-height: 1.5; color: rgba(253,248,240,0.42); margin-top: 4px; }
 </style>
 </head>
 <body>
@@ -538,7 +555,7 @@
     <button class="icon-btn" data-back="home" aria-label="Back">&#8592;</button>
     <div class="topbar-grow">
       <div class="topbar-title">About</div>
-      <div class="topbar-meta">Slime Moulds Near Me v1.0</div>
+      <div class="topbar-meta">Slime Moulds Near Me v1.1</div>
     </div>
   </div>
   <div class="page prose">
@@ -574,6 +591,24 @@
        fruit. Records follow observers as well as slime moulds: wet weekends, summer
        holidays and organised forays all bunch them up. Open any card to see the month
        by month counts it is based on.</p>
+
+    <h3>Slime conditions (New Zealand only)</h3>
+    <p>Above the list, the app rates the recent weather as <b>good</b>, <b>average</b> or
+       <b>poor</b> for finding slime moulds. It comes from comparing the weather before
+       about 6,700 New Zealand slime mould records with the weather before plant records
+       taken in the same months, which cancels out the days people simply happened to be
+       out walking. No observer counts more than 50 records, so one keen recorder can't
+       tilt it.</p>
+    <p>What showed up: everywhere, a <b>humid past week</b> (more humid than usual for
+       the place and time of year) is the main sign. In the North Island a <b>warmer
+       than usual fortnight</b> helps too; in the South Island, a <b>wetter than usual
+       spell one to two weeks earlier</b>. Records turn up roughly one and a half to two
+       times as often in good conditions as in poor ones. That is a nudge, not a
+       forecast &mdash; a damp gully can be full of them in a dry week.</p>
+    <p>The weather is NASA POWER's daily data for the roughly 50 km grid square you are
+       in, which runs a few days behind, so the rating says which date it is up to. Only
+       the grid square is sent to NASA, never your position. Outside New Zealand the
+       rating is left off, because the model was only fitted to New Zealand records.</p>
 
     <h3>Crowded places</h3>
     <p>When a search returns more than 25 species the app pulls the radius in until it
@@ -751,6 +786,7 @@
     <button class="icon-btn settings-btn" data-settings="results" aria-label="Settings" title="Settings">&#9881;</button>
     <button class="icon-btn" id="btnRestart" aria-label="Start again" title="Start again">&#8635;</button>
   </div>
+  <div class="cond-wrap" id="condBox" hidden></div>
   <div class="mode-pills">
     <button class="pill" data-mode="season">In season now</button>
     <button class="pill" data-mode="any">Any time</button>
@@ -769,6 +805,7 @@
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="conditions.js"></script>
 <script>
 (function () {
   'use strict';
@@ -1029,6 +1066,7 @@
 
     state.page = 0;
     renderLoading();
+    loadConditions();          // independent of the species search; fills its own box
     try {
       state.radius = await chooseRadius();
       state.species = await fetchSpecies();
@@ -1629,6 +1667,133 @@
         });
       });
     } catch (e) { /* the card still works without the strip */ }
+  }
+
+  // ── Conditions meter ─────────────────────────────────────────────────────
+  /* Scores the recent weather in the user's grid square with the North or South
+     Island model baked into conditions.js (see the About screen). NZ only. The
+     request goes to NASA POWER for the CENTRE of the ~50 km grid square, never
+     the user's own position. */
+  const COND = window.SlimeConditions;
+  let condFor = null;   // grid key the box currently describes, or is loading
+
+  function nzIsland(lat, lng) {
+    if (lng < 166 || lat < -47.5 || lat > -34) return null;          // Chathams, subantarctics, abroad
+    if ((lat < -40.4 && lng < 174.3) || lat < -42) return 'South';
+    return 'North';
+  }
+
+  function climCell(lat, lng) {
+    const g = COND.grid;
+    const cl = Math.round(lat / g[0]) * g[0], cg = Math.round(lng / g[1]) * g[1];
+    const key = cl.toFixed(2) + ',' + cg.toFixed(3);
+    if (COND.clim[key]) return { key: key, lat: cl, lng: cg };
+    // A square with no records of its own borrows the nearest one within about a degree.
+    let best = null, bestD = 1.1;
+    Object.keys(COND.clim).forEach(function (k) {
+      const p = k.split(',').map(Number);
+      const d = Math.hypot(p[0] - lat, (p[1] - lng) * Math.cos(lat * Math.PI / 180));
+      if (d < bestD) { bestD = d; best = { key: k, lat: cl, lng: cg }; }
+    });
+    return best;
+  }
+
+  /* The usual value of a feature for this day of year, interpolated round the year. */
+  function normalFor(cell, featIdx, doy) {
+    const pts = COND.doy, vals = COND.clim[cell.key][featIdx];
+    for (let i = 0; i < pts.length; i++) {
+      const a = pts[i], b = i + 1 < pts.length ? pts[i + 1] : pts[0] + 365;
+      const d = doy < pts[0] ? doy + 365 : doy;
+      if (d >= a && d < b) {
+        const t = (d - a) / (b - a);
+        return vals[i] * (1 - t) + vals[(i + 1) % vals.length] * t;
+      }
+    }
+    return vals[0];
+  }
+
+  const ymd = d => d.getUTCFullYear() + String(d.getUTCMonth() + 1).padStart(2, '0') +
+                   String(d.getUTCDate()).padStart(2, '0');
+
+  async function loadConditions() {
+    const box = $('#condBox');
+    const island = COND && nzIsland(state.lat, state.lng);
+    const cell = island && climCell(state.lat, state.lng);
+    if (!cell) { box.hidden = true; condFor = null; return; }
+    if (condFor === cell.key + island) return;     // already showing (or fetching) this square
+    condFor = cell.key + island;
+
+    box.hidden = false;
+    box.innerHTML = '<div class="cond"><div class="cond-dot"></div><div>' +
+      '<div class="cond-title">Checking recent weather&hellip;</div></div></div>';
+
+    try {
+      const end = new Date(), start = new Date(end.getTime() - 45 * 864e5);
+      const url = 'https://power.larc.nasa.gov/api/temporal/daily/point' +
+        '?parameters=PRECTOTCORR,T2M,RH2M&community=AG&format=JSON' +
+        '&latitude=' + cell.lat + '&longitude=' + cell.lng +
+        '&start=' + ymd(start) + '&end=' + ymd(end);
+      const res = await fetch(url);
+      if (!res.ok) throw new Error('POWER ' + res.status);
+      const p = (await res.json()).properties.parameter;
+      const days = Object.keys(p.PRECTOTCORR).sort().filter(function (d) {
+        return p.PRECTOTCORR[d] > -998 && p.T2M[d] > -998 && p.RH2M[d] > -998;
+      });
+      if (days.length < 30) throw new Error('too little weather');
+      if (condFor !== cell.key + island) return;   // the user moved on meanwhile
+
+      /* Windows exactly as in the fit, with the last day of data standing in for
+         "yesterday": humidity over its 7 days, temperature over 14, and rain over
+         days 8–14 before the day after it. */
+      const n = days.length, last = days[n - 1];
+      const pick = (arr, a, b) => days.slice(n - b, n - a).map(d => arr[d]);
+      const mean = xs => xs.reduce((s, x) => s + x, 0) / xs.length;
+      const now = {
+        rh_7:      mean(pick(p.RH2M, 0, 7)),
+        rain_8_14: pick(p.PRECTOTCORR, 7, 14).reduce((s, x) => s + x, 0),
+        temp_14:   mean(pick(p.T2M, 0, 14))
+      };
+      const lastDate = new Date(Date.UTC(+last.slice(0, 4), +last.slice(4, 6) - 1, +last.slice(6, 8)));
+      const doy = Math.floor((lastDate - Date.UTC(lastDate.getUTCFullYear(), 0, 0)) / 864e5) + 1;
+
+      const m = COND.model[island];
+      const order = COND.climOrder;     // rh_7, rain_8_14, temp_14
+      let score = 0;
+      const parts = order.map(function (f, i) {
+        const usual = normalFor(cell, i, doy);
+        let x = now[f] - usual;
+        if (f.indexOf('rain') === 0) x = Math.sign(x) * Math.log1p(Math.abs(x));
+        const contrib = m.coef[i] * (x - m.mean[i]) / m.sd[i];
+        score += contrib;
+        return { f: f, now: now[f], usual: usual, coef: m.coef[i], contrib: contrib };
+      });
+      const band = score < m.cut[0] ? 'poor' : score > m.cut[1] ? 'good' : 'average';
+      renderConditions(band, parts, island, lastDate, m.goodVsPoor);
+    } catch (e) {
+      if (condFor === cell.key + island) { box.hidden = true; condFor = null; }
+    }
+  }
+
+  function renderConditions(band, parts, island, lastDate, ratio) {
+    const label = { good: 'Good', average: 'Average', poor: 'Poor' }[band];
+    const fmt = {
+      rh_7:      (v, u) => 'humidity over the past week ' + Math.round(v) + '% (usual ' + Math.round(u) + '%)',
+      rain_8_14: (v, u) => 'rain 8–14 days ago ' + Math.round(v) + ' mm (usual ' + Math.round(u) + ' mm)',
+      temp_14:   (v, u) => 'past fortnight ' + v.toFixed(1) + '°C (usual ' + u.toFixed(1) + '°C)'
+    };
+    // Only the factors this island's model actually leans on.
+    const why = parts.filter(q => Math.abs(q.coef) > 0.03).map(function (q) {
+      return (q.contrib > 0.02 ? '▲ ' : q.contrib < -0.02 ? '▼ ' : '• ') + fmt[q.f](q.now, q.usual);
+    });
+    const upTo = lastDate.getUTCDate() + ' ' + MONTH_ABBR[lastDate.getUTCMonth()];
+    $('#condBox').innerHTML =
+      '<div class="cond ' + band + '"><div class="cond-dot"></div><div>' +
+        '<div class="cond-title">Slime conditions: <b>' + label + '</b></div>' +
+        '<div class="cond-why">' + why.map(esc).join('<br>') + '</div>' +
+        '<div class="cond-note">' + island + ' Island model, weather to ' + upTo +
+          ' for this ~50 km square. Good conditions see about ' + ratio.toFixed(1) +
+          '× the records of poor ones &mdash; a nudge, not a forecast.</div>' +
+      '</div></div>';
   }
 
   function attribHtml() {
