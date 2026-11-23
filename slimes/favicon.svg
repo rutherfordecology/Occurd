@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- A yellow plasmodium on a log, after the title art. -->
+  <rect x="4" y="44" width="56" height="13" rx="6.5" fill="#6b4423" stroke="#2b1a0c" stroke-width="2.5"/>
+  <path d="M32 9c5 0 7 3 9.5 3.5S48 13 49.5 18s4 6.5 4 11-2 5 1.5 8.5 3.5 7-1 8.5-6-1.5-8 .5-3 5.5-6.5 3.5-2.5-3.5-6-3.5-3.5 4-7.5 3.5-3-4.5-6.5-4-6 2-8.5-.5 1-5.5-1-7.5S8 35 10.5 30.5s2-6 4.5-8.5 1.5-6 5.5-8S27 9 32 9z"
+        fill="#f7c21b" stroke="#a35a06" stroke-width="2.5" stroke-linejoin="round"/>
+  <circle cx="25" cy="25" r="6" fill="#fdf6dc" stroke="#2b1a0c" stroke-width="2"/>
+  <circle cx="39" cy="25" r="6" fill="#fdf6dc" stroke="#2b1a0c" stroke-width="2"/>
+  <circle cx="25.5" cy="25.5" r="3.2" fill="#1b1410"/>
+  <circle cx="39.5" cy="25.5" r="3.2" fill="#1b1410"/>
+  <path d="M27 34q5 6 10 0z" fill="#e2687a" stroke="#2b1a0c" stroke-width="1.8" stroke-linejoin="round"/>
+</svg>
