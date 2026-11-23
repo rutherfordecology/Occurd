@@ -391,10 +391,53 @@
         }
       } catch(e2) {}
     }
+    const moved = await movedGenusMembers(genusName);
     if (typeof window.addSpeciesEntry === 'function') {
-      window.addSpeciesEntry('all ' + genusName, resolvedKey, genusName);
+      window.addSpeciesEntry('all ' + genusName, resolvedKey, genusName,
+        { extraKeys: moved.map(m => m.key), extraNames: moved.map(m => m.name) });
     }
     input.value = ''; input.classList.remove('sp-active');
+  }
+
+  // NZ species that NZOR still lists under this genus but GBIF's checklist (COL XR)
+  // has moved to another genus — e.g. NZOR's Porzana tabuensis / pusilla are Zapornia
+  // in COL XR, so the COL XR genus Porzana holds no NZ crakes. The genus key alone
+  // would miss them, so "all <genus>" adds their accepted keys too. One search finds
+  // COL XR's species synonyms starting with the genus name; only names NZOR accepts
+  // under this genus, and whose COL XR accepted name sits in a different genus, count.
+  async function movedGenusMembers(genusName) {
+    if (!nzor) return [];
+    const prefix = genusName.toLowerCase() + ' ';
+    const nzNames = new Set(nzor.index
+      // NZOR's own synonyms are skipped: "Coprosma dichondrifolia" is a Nertera in NZOR
+      // too, so it isn't an NZ Coprosma that GBIF has moved.
+      .filter(x => x.cls !== 'v' && !x.acc && x.status !== 'Synonym' && x.kd && x.kd.startsWith(prefix))
+      .map(x => x.kd));
+    if (!nzNames.size) return [];
+    let candidates = [];
+    try {
+      const r = await gbifFetch('https://api.gbif.org/v1/species/search?datasetKey=' + COL_XR_CHECKLIST_KEY +
+        '&q=' + encodeURIComponent(genusName) + '&rank=SPECIES&status=SYNONYM&limit=500');
+      if (!r.ok) return [];
+      const j = await r.json();
+      candidates = (j.results || []).filter(x => x.canonicalName &&
+        nzNames.has(x.canonicalName.toLowerCase()) &&
+        x.genus && x.genus.toLowerCase() !== genusName.toLowerCase());
+    } catch(e) { return []; }
+    // v1 search gives the accepted name's numeric key; occurrence search needs COL XR's
+    // alphanumeric code, which v2 match returns for the synonym's accepted usage.
+    const out = await Promise.all(candidates.map(async c => {
+      try {
+        const r = await gbifFetch('https://api.gbif.org/v2/species/match?scientificName=' +
+          encodeURIComponent(c.canonicalName) + '&checklistKey=' + COL_XR_CHECKLIST_KEY);
+        if (!r.ok) return null;
+        const j = await r.json();
+        const acc = j.usage && j.usage.status === 'SYNONYM' && j.acceptedUsage;
+        return acc ? { key: acc.key, name: acc.canonicalName } : null;
+      } catch(e) { return null; }
+    }));
+    const seen = new Set();
+    return out.filter(m => m && !seen.has(m.key) && seen.add(m.key));
   }
 
   async function commitSpecies(sciName, displayLabel) {
