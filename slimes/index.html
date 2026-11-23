@@ -522,6 +522,19 @@
   .cond.poor .cond-title b { color: #c4d0e0; }
   .cond-why { font-size: 0.78rem; font-weight: 600; line-height: 1.5; color: rgba(253,248,240,0.7); margin-top: 3px; }
   .cond-note { font-size: 0.68rem; font-weight: 600; line-height: 1.5; color: rgba(253,248,240,0.42); margin-top: 4px; }
+  .cond-text { flex: 1; min-width: 0; }
+  .cond.tappable { cursor: pointer; -webkit-tap-highlight-color: transparent; transition: background 0.15s, border-color 0.15s; }
+  .cond.tappable:hover, .cond.tappable:focus-visible { background: rgba(20,29,13,0.7); border-color: var(--gold); outline: none; }
+  .cond-more { font-family: var(--font-display); font-weight: 500; font-size: 0.8rem; color: var(--gold); margin-top: 6px; }
+
+  .cond-table { width: 100%; border-collapse: collapse; margin: 16px 0 6px; font-size: 0.82rem; }
+  .cond-table th, .cond-table td { padding: 8px 6px; text-align: left; border-bottom: 1px solid rgba(143,174,70,0.25); }
+  .cond-table thead th { font-size: 0.68rem; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; color: rgba(253,248,240,0.5); }
+  .cond-table tbody th { font-weight: 700; color: var(--cream); }
+  .cond-table td { font-weight: 700; color: rgba(253,248,240,0.8); white-space: nowrap; }
+  .cond-table td:last-child { color: var(--gold); }
+  .cond-table .ok { color: var(--gold); }
+  .cond-foot { font-size: 0.74rem !important; color: rgba(253,248,240,0.5) !important; }
 </style>
 </head>
 <body>
@@ -555,7 +568,7 @@
     <button class="icon-btn" data-back="home" aria-label="Back">&#8592;</button>
     <div class="topbar-grow">
       <div class="topbar-title">About</div>
-      <div class="topbar-meta">Slime Moulds Near Me v1.1</div>
+      <div class="topbar-meta">Slime Moulds Near Me v1.2</div>
     </div>
   </div>
   <div class="page prose">
@@ -792,6 +805,18 @@
     <button class="pill" data-mode="any">Any time</button>
   </div>
   <div class="page" id="resultsPage"></div>
+</section>
+
+<!-- ══ CONDITIONS EXPLAINER ══════════════════════════════════════════════ -->
+<section id="screen-conditions" class="screen">
+  <div class="topbar">
+    <button class="icon-btn" data-back="results" aria-label="Back">&#8592;</button>
+    <div class="topbar-grow">
+      <div class="topbar-title">What slime moulds like</div>
+      <div class="topbar-meta">Good conditions, explained</div>
+    </div>
+  </div>
+  <div class="page prose" id="condExplain"></div>
 </section>
 
 <!-- ══ LIGHTBOX ══════════════════════════════════════════════════════════ -->
@@ -1768,6 +1793,7 @@
         return { f: f, now: now[f], usual: usual, coef: m.coef[i], contrib: contrib };
       });
       const band = score < m.cut[0] ? 'poor' : score > m.cut[1] ? 'good' : 'average';
+      state.cond = { band: band, parts: parts, island: island, lastDate: lastDate, score: score, m: m };
       renderConditions(band, parts, island, lastDate, m.goodVsPoor);
     } catch (e) {
       if (condFor === cell.key + island) { box.hidden = true; condFor = null; }
@@ -1787,13 +1813,119 @@
     });
     const upTo = lastDate.getUTCDate() + ' ' + MONTH_ABBR[lastDate.getUTCMonth()];
     $('#condBox').innerHTML =
-      '<div class="cond ' + band + '"><div class="cond-dot"></div><div>' +
+      '<div class="cond tappable ' + band + '" role="button" tabindex="0" id="condCard"' +
+        ' aria-label="Slime conditions ' + label + '. Show what makes good conditions.">' +
+        '<div class="cond-dot"></div><div class="cond-text">' +
         '<div class="cond-title">Slime conditions: <b>' + label + '</b></div>' +
         '<div class="cond-why">' + why.map(esc).join('<br>') + '</div>' +
         '<div class="cond-note">' + island + ' Island model, weather to ' + upTo +
           ' for this ~50 km square. Good conditions see about ' + ratio.toFixed(1) +
           '× the records of poor ones &mdash; a nudge, not a forecast.</div>' +
+        '<div class="cond-more">What makes good conditions &rsaquo;</div>' +
       '</div></div>';
+    const card = $('#condCard');
+    const open = function () { renderCondExplainer(); show('conditions'); };
+    card.addEventListener('click', open);
+    card.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); }
+    });
+  }
+
+  /* ── Conditions explainer ───────────────────────────────────────────────
+     What "good" means, for this square right now and in general. The "for
+     Good here" column solves the island's score for each factor alone, holding
+     the others where they are, so it answers "what would it take?". */
+  const COND_INFO = {
+    rh_7: {
+      name: 'Humidity, past week',
+      unit: v => Math.round(v) + '%',
+      tip: 'Damp air keeps plasmodia active and fruiting bodies from drying out before anyone sees them.'
+    },
+    rain_8_14: {
+      name: 'Rain 8–14 days ago',
+      unit: v => Math.round(v) + ' mm',
+      tip: 'A soaking one to two weeks back wets logs and litter right through; fruiting tends to follow as it settles.'
+    },
+    temp_14: {
+      name: 'Temperature, past fortnight',
+      unit: v => v.toFixed(1) + '°C',
+      tip: 'Mild, warmer-than-usual spells speed up feeding and fruiting.'
+    }
+  };
+
+  function neededFor(q, i, c) {
+    // The value of factor i that would lift the score just over the "good" line on its own.
+    const m = c.m, target = m.cut[1] + 0.01;
+    const x = m.mean[i] + m.sd[i] * (q.contrib + target - c.score) / m.coef[i];
+    const anom = q.f.indexOf('rain') === 0 ? Math.sign(x) * Math.expm1(Math.abs(x)) : x;
+    return q.usual + anom;
+  }
+
+  function renderCondExplainer() {
+    const c = state.cond;
+    if (!c) return;
+    const label = { good: 'Good', average: 'Average', poor: 'Poor' }[c.band];
+    const order = COND.climOrder;
+    const active = c.parts.map((q, i) => Object.assign({ i: i }, q)).filter(q => Math.abs(q.coef) > 0.03);
+
+    const rows = active.map(function (q) {
+      const info = COND_INFO[q.f];
+      let need;
+      if (c.band === 'good') need = '<span class="ok">already there</span>';
+      else {
+        const v = neededFor(q, q.i, c);
+        if (q.f === 'rh_7' && v > 99) need = 'out of reach on its own';
+        else if (q.f === 'rain_8_14' && v <= 0) need = 'any';
+        else if (q.f === 'temp_14' && v - q.usual > 6) need = 'out of reach on its own';
+        else need = (q.coef > 0 ? '≥ ' : '≤ ') + info.unit(v);
+      }
+      return '<tr><th>' + info.name + '</th><td>' + info.unit(q.now) + '</td><td>' +
+        info.unit(q.usual) + '</td><td>' + need + '</td></tr>';
+    }).join('');
+
+    const other = c.island === 'North' ? 'South' : 'North';
+    const recipe = {
+      North: 'a <b>humid week</b> on top of a <b>warmer than usual fortnight</b>. Rain a week or two back made no measurable difference in the North Island records.',
+      South: 'a <b>humid week</b> following a <b>wetter than usual spell 8–14 days earlier</b>. Temperature made little difference in the South Island records.'
+    };
+
+    $('#condExplain').innerHTML =
+      '<div class="cond ' + c.band + '"><div class="cond-dot"></div><div class="cond-text">' +
+        '<div class="cond-title">Here, now: <b>' + label + '</b></div>' +
+        '<div class="cond-note">Weather to ' + c.lastDate.getUTCDate() + ' ' +
+          MONTH_ABBR[c.lastDate.getUTCMonth()] + ', ' + c.island + ' Island model.</div>' +
+      '</div></div>' +
+
+      '<table class="cond-table"><thead><tr><th></th><th>Now</th><th>Usual</th><th>For Good</th></tr></thead>' +
+      '<tbody>' + rows + '</tbody></table>' +
+      '<p class="cond-foot">"Usual" is the long-run normal for this square at this time of year. ' +
+        '"For Good" is what that one factor would need to be, with the others as they are now.</p>' +
+
+      '<h3>The recipe</h3>' +
+      '<p>In the ' + c.island + ' Island it is ' + recipe[c.island] + '</p>' +
+      '<p>In the ' + other + ' Island it is ' + recipe[other] + '</p>' +
+      '<p>Everywhere, humidity matters most. What counts is damper than usual <i>for that place</i>: ' +
+        'a humid week in Canterbury and a humid week on the West Coast are very different numbers, ' +
+        'and both are good news locally.</p>' +
+
+      '<h3>Why these, biologically</h3>' +
+      active.map(q => '<p><b>' + COND_INFO[q.f].name + '.</b> ' + COND_INFO[q.f].tip + '</p>').join('') +
+      '<p>Slime moulds spend most of their lives out of sight as plasmodia or single cells in rotting ' +
+        'wood, leaf litter and bark. The fruiting bodies people photograph appear when that stage ' +
+        'moves out into the open and sets spore, which usually happens some days after a wet spell, ' +
+        'once things start to settle.</p>' +
+
+      '<h3>Where to look when it is good</h3>' +
+      '<p>Undersides and ends of fallen logs well into decay, the bark of dead branches, deep leaf ' +
+        'litter, mossy stumps, and garden bark mulch, which is where dog vomit slime mould turns up ' +
+        'most. Look closely: many fruiting bodies are a millimetre or two tall.</p>' +
+
+      '<h3>How sure is this?</h3>' +
+      '<p>It is learned from when people photographed slime moulds compared with plants in the ' +
+        'same months, across about 6,700 New Zealand records, with each observer limited to 50. Good ' +
+        'conditions see about ' + c.m.goodVsPoor.toFixed(1) + '× the records of poor ones. The ' +
+        'weather is for a ~50 km square, not the gully you are standing in, so treat it as a nudge. ' +
+        'A sheltered damp spot can be productive in a dry week.</p>';
   }
 
   function attribHtml() {
