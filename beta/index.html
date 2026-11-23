@@ -50,7 +50,7 @@
     </div>
     <span id="bigdataHeaderLabel" style="display:none;font-size:13px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:0.01em;font-family:inherit;"><strong>Big Data Mode</strong></span>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.75);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.7);letter-spacing:0.04em;">v7.54 (beta)</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.7);letter-spacing:0.04em;">v7.56 (beta)</span></h1>
   </div>
   <span class="occ-loading-msg" id="occLoadingMsg" style="display:none"></span>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
@@ -170,9 +170,10 @@
             <label class="taxon-item"><input type="checkbox" value="7228684" class="taxon-cb" data-group="plants"> Ferns &amp; allies</label>
             <label class="taxon-item"><input type="checkbox" value="bryophytes" class="taxon-cb" data-group="plants"> Bryophytes</label>
             <label class="taxon-item" id="envWeedsItem" style="display:none" title="The 386 environmental weeds of New Zealand (DOC, McAlpine &amp; Howell 2024). Offered while the map is over New Zealand"><input type="checkbox" value="envweeds" class="taxon-cb" data-group="envweeds"> Environmental weeds</label>
-            <div class="taxon-group-label taxon-group-toggle" data-group="other" title="Click to toggle algae, fungi &amp; other">Other</div>
+            <div class="taxon-group-label taxon-group-toggle" data-group="other" title="Click to toggle algae, fungi &amp; slime moulds">Other</div>
             <label class="taxon-item"><input type="checkbox" value="algae" class="taxon-cb" data-group="other"> Algae</label>
             <label class="taxon-item"><input type="checkbox" value="5" class="taxon-cb" data-group="other"> Fungi</label>
+            <label class="taxon-item" title="Not one lineage: plasmodial and cellular slime moulds (Amoebozoa), plus the unrelated lineages that also fruit like them: Acrasids, Fonticula, Copromyxa, Guttulinopsids, Labyrinthulids (slime nets) and Phytomyxids (clubroot)"><input type="checkbox" value="slimemoulds" class="taxon-cb" data-group="other"> Slime moulds</label>
           </div>
         </div>
       </div>
@@ -800,6 +801,7 @@ const TAXON_COLOURS = {
   'Bryophytes':      { colour: '#86EFAC', label: 'Bryophytes' },
   'Algae':           { colour: '#06B6D4', label: 'Algae' },
   'Fungi':           { colour: '#D97706', label: 'Fungi' },
+  'SlimeMoulds':     { colour: '#C026D3', label: 'Slime moulds' },
   'Other':           { colour: '#6B7280', label: 'Other' }
 };
 // Categorical palette for colour-by-species mode — distinct hues chosen to stay
@@ -830,7 +832,7 @@ const CB_TO_GROUP = {
   '52': 'Mollusca', 'nudibranchia': 'Mollusca', '50': 'Echinodermata', '43': 'Cnidaria', '42': 'Annelida',
   '1': 'Other',
   'angiosperms': 'Angiosperms', '194': 'Gymnosperms', '7228684': 'Ferns', 'bryophytes': 'Bryophytes',
-  'algae': 'Algae', '5': 'Fungi',
+  'algae': 'Algae', '5': 'Fungi', 'slimemoulds': 'SlimeMoulds',
   // Env. Weeds spans several groups: mostly flowering plants, plus conifers, ferns,
   // two seaweeds, and Selaginella (a lycophyte, grouped Angiosperms by the Plantae fallback).
   'envweeds': ['Angiosperms', 'Gymnosperms', 'Ferns', 'Algae'],
@@ -1798,6 +1800,14 @@ const ANGIO_CLASSES    = new Set(['Magnoliopsida','Liliopsida','Equisetopsida'])
 const FERN_CLASSES     = new Set(['Polypodiopsida','Marattiopsida','Psilotopsida','Equisetopsida']);
 const BRYO_CLASSES     = new Set(['Bryopsida','Jungermanniopsida','Marchantiopsida','Anthocerotopsida','Polytrichopsida','Sphagnopsida']);
 const GYMNO_CLASSES    = new Set(['Pinopsida','Cycadopsida','Gnetopsida','Ginkgoopsida']);
+// Slime moulds are polyphyletic, so they are matched lineage by lineage. Old and
+// alternative names are listed too, since records carry whatever class their source used.
+const SLIME_CLASSES    = new Set(['Myxomycetes','Myxogastria','Myxogastrea','Dictyosteliomycetes','Dictyostelia',
+  'Dictyostelea','Protosteliomycetes','Protostelea','Ceratiomyxomycetes','Phytomyxea','Plasmodiophoromycetes',
+  'Labyrinthulea','Labyrinthulomycetes']);
+const SLIME_ORDERS     = new Set(['Acrasida','Acrasiales','Fonticulida','Plasmodiophorida','Plasmodiophorales']);
+const SLIME_FAMILIES   = new Set(['Acrasidae','Guttulinopsidae','Fonticulidae']);
+const SLIME_GENERA     = new Set(['Copromyxa']);
 const ALGAE_PHYLA      = new Set(['Ochrophyta','Phaeophyta','Rhodophyta','Chlorophyta','Charophyta','Cyanobacteria','Bacillariophyta']);
 
 function getTaxonGroup(r) {
@@ -1841,6 +1851,13 @@ function getTaxonGroup(r) {
   if (GYMNO_CLASSES.has(cls)) return 'Gymnosperms';
   if (FERN_CLASSES.has(cls)) return 'Ferns';
   if (BRYO_CLASSES.has(cls)) return 'Bryophytes';
+
+  // Slime moulds — before Algae and Fungi: labyrinthulids and phytomyxids sit in
+  // Chromista, and some sources still file myxomycetes under Fungi. An iNat-only record
+  // carries just its iconic group, and iNat's Protozoa there is almost all slime moulds.
+  if (phylum === 'Mycetozoa' || SLIME_CLASSES.has(cls) || SLIME_ORDERS.has(ordOrig) || SLIME_FAMILIES.has((r.family || '').trim()) ||
+      SLIME_GENERA.has((r.genus || '').trim())) return 'SlimeMoulds';
+  if (kingdom === 'Protozoa' && !cls && !phylum) return 'SlimeMoulds';
 
   // Algae — multiple kingdoms
   if (kingdom === 'Chromista') return 'Algae';
@@ -1906,7 +1923,7 @@ function generateShareState(opts) {
     v: 2,
     // Polygons
     polys:   geomPolys.map(p => ({ latlngs: p.latlngs.map(_llToArr), label: p.label, holes: (p.holes||[]).map(h => h.map(_llToArr)), obscuredOnly: !!p.obscuredOnly })),
-    species: speciesPolys.map(p => ({ name: p.name, taxonKey: p.taxonKey, sciName: p.sciName })),
+    species: speciesPolys.map(p => ({ name: p.name, taxonKey: p.taxonKey, sciName: p.sciName, extraKeys: p.extraKeys || [], extraNames: p.extraNames || [] })),
     // Filters
     dateFrom: document.getElementById('dateFrom').value,
     dateTo:   document.getElementById('dateTo').value,
@@ -1986,7 +2003,7 @@ function restoreFromShare(state, opts) {
   // ── Pre-fetch: polygons, species, dates, taxa, basis, cluster, map view ──
   state.polys.forEach(p => addPolygon(p.latlngs, p.label, p.holes || [], { obscuredOnly: !!p.obscuredOnly }));
   if (state.species && state.species.length) {
-    state.species.forEach(s => addSpeciesEntry(s.name, s.taxonKey || null, s.sciName || ''));
+    state.species.forEach(s => addSpeciesEntry(s.name, s.taxonKey || null, s.sciName || '', { extraKeys: s.extraKeys, extraNames: s.extraNames }));
   }
   if (state.dateFrom) document.getElementById('dateFrom').value = state.dateFrom;
   if (state.dateTo)   document.getElementById('dateTo').value   = state.dateTo;
@@ -2463,8 +2480,10 @@ function renderPolyList() {
   function renderSpecies(p) {
     const el = document.createElement('div'); el.className = 'poly-item species-entry';
     const topRow = document.createElement('div'); topRow.className = 'poly-item-row';
-    const sciSuffix = (p.sciName && p.sciName.toLowerCase() !== p.name.toLowerCase())
-      ? ' <em style="opacity:0.65;font-style:italic;">(' + p.sciName + ')</em>' : '';
+    const sciSuffix = ((p.sciName && p.sciName.toLowerCase() !== p.name.toLowerCase())
+      ? ' <em style="opacity:0.65;font-style:italic;">(' + p.sciName + ')</em>' : '') +
+      ((p.extraNames && p.extraNames.length)
+        ? ' <span style="opacity:0.65;">+ <em>' + p.extraNames.join(', ') + '</em></span>' : '');
     topRow.innerHTML =
       '<span class="poly-item-name"><span style="vertical-align:-2px;margin-right:3px;">' + icon('search', { size: 13 }) + '</span>' + p.name + sciSuffix + '</span>' +
       '<span class="poly-remove" data-id="' + p.id + '">' + icon('x', { size: 13 }) + '</span>';
@@ -2554,10 +2573,13 @@ function addMergedBuffer(polys, amount, unit) {
 // Add a species search as a virtual polygon entry in the list.
 // Each species entry fetches within all drawn geometry polygons, tagged
 // with its own id so it can be removed independently from the checklist.
-function addSpeciesEntry(name, taxonKey, sciName) {
+// extra.extraKeys / extraNames: for "all <genus>", NZ species GBIF has moved to
+// another genus (see movedGenusMembers in species-search.js), searched alongside.
+function addSpeciesEntry(name, taxonKey, sciName, extra) {
   hideDrawHint();
   const id = nextPolyId++;
-  polygons.push({ id, type: 'species', name, label: name, taxonKey: taxonKey || null, sciName: sciName || '' });
+  polygons.push({ id, type: 'species', name, label: name, taxonKey: taxonKey || null, sciName: sciName || '',
+    extraKeys: (extra && extra.extraKeys) || [], extraNames: (extra && extra.extraNames) || [] });
   renderPolyList();
   clearAllBtn.style.display = 'block';
   clearResults(); // results are stale until next fetch
@@ -6236,6 +6258,11 @@ const COL_XR_GROUP_KEYS = {
   '194': ['C7ZVJ'],         // Pinopsida (gymnosperms)
   '7228684': ['GV'],        // Polypodiopsida (ferns & allies)
   '5':   ['F'],             // Fungi
+  // Slime moulds (polyphyletic): Myxomycetes, Dictyosteliomycetes, Protosteliomycetes
+  // (Amoebozoa); Phytomyxea, Labyrinthulea, Guttulinopsidae (Chromista in COL XR);
+  // Acrasida (Excavata); Fonticula (Opisthokonta); Copromyxa (Tubulinea). Resolved
+  // 2026-11-23 against COL XR.
+  'slimemoulds': ['F2','622CR','H3','GB','DJ','NRG7T','VPY3Z','4KPZ','N5ZRV'],
 };
 
 // Build taxon key params for the GBIF occurrence search API
@@ -6642,6 +6669,7 @@ runBtn.addEventListener('click', async () => {
       case 'Mollusca':       return { phylum: 'Mollusca',      kingdom: 'Animalia' };
       case 'Fungi':          return { kingdom: 'Fungi' };
       case 'Chromista':      return { kingdom: 'Chromista' };
+      case 'Protozoa':       return { kingdom: 'Protozoa' };
       case 'Plantae':        return { kingdom: 'Plantae' };
       default:               return {};
     }
@@ -6707,7 +6735,7 @@ runBtn.addEventListener('click', async () => {
         '216': 'Insecta', '367': 'Arachnida', 'crustacea': 'Animalia', '52': 'Mollusca', 'nudibranchia': 'Mollusca',
         '50': 'Animalia', '43': 'Animalia', '42': 'Animalia', '1': 'Animalia',
         'angiosperms': 'Plantae', '194': 'Plantae', '7228684': 'Plantae', 'bryophytes': 'Plantae',
-        'algae': 'Chromista', '5': 'Fungi', 'envweeds': 'Plantae'
+        'algae': 'Chromista', '5': 'Fungi', 'slimemoulds': 'Protozoa', 'envweeds': 'Plantae'
       };
       const _selectedCbVals = [...document.querySelectorAll('.taxon-cb')]
         .filter(cb => cb.closest('label').classList.contains('selected'))
@@ -6844,7 +6872,10 @@ runBtn.addEventListener('click', async () => {
     if (poly.type === 'species') {
       // Species entry: fetch only this taxon. taxonKey is COL XR's alphanumeric code,
       // which only resolves against occurrence data when checklistKey is also present.
-      if (poly.taxonKey) baseParams.push(['taxonKey', String(poly.taxonKey)], ['checklistKey', COL_XR_CHECKLIST_KEY]);
+      // Repeated taxonKey params are OR'd, so a genus entry's moved members come along.
+      const _extra = (poly.extraKeys || []).map(k => ['taxonKey', String(k)]);
+      // (scientificName would AND with taxonKey, so the literal-name fallback goes alone.)
+      if (poly.taxonKey) baseParams.push(['taxonKey', String(poly.taxonKey)], ..._extra, ['checklistKey', COL_XR_CHECKLIST_KEY]);
       else baseParams.push(['scientificName', poly.sciName]);
     } else {
       // Geometry polygon: use taxon group filter
@@ -7033,8 +7064,16 @@ runBtn.addEventListener('click', async () => {
     });
 
     let _inatAdded = 0;
+    // A genus entry also asks iNat for its moved members (iNat follows the same
+    // genus changes as GBIF, so "Porzana" alone misses the NZ crakes there too).
+    const _inatTasks = [];
     for (const sp of _speciesEntries) {
-      for (const gp of _geomPolys) {
+      for (const _sciName of [sp.sciName || sp.name, ...(sp.extraNames || [])]) {
+        for (const gp of _geomPolys) _inatTasks.push({ sp, gp, _sciName });
+      }
+    }
+    for (const { sp, gp, _sciName } of _inatTasks) {
+      {
         // Wrapped bounds for iNat's bbox query — it reads sw > ne as a dateline
         // crossing, but silently clamps longitudes above 180 (see ringBounds).
         const _b = ringBounds(gp.latlngs);
@@ -7048,7 +7087,6 @@ runBtn.addEventListener('click', async () => {
           _turfClip = _tc.poly; _clipRefLng = _tc.refLng;
         } catch(e) {}
 
-        const _sciName = sp.sciName || sp.name;
         let _inatPage = 1;
 
         while (true) {
@@ -7929,7 +7967,7 @@ function _buildGbifDownloadPredicate(simplifyTol) {
   else if (wkts.length > 1)  geomPredicate = { type: 'or', predicates: wkts.map(g => ({ type: 'within', geometry: g })) };
 
   const rawParams = buildTaxonParams(getSelectedTaxonKeys());
-  _speciesEntries.forEach(s => { if (s.taxonKey) rawParams.push(['taxonKey', String(s.taxonKey)]); }); // COL XR alphanumeric keys
+  _speciesEntries.forEach(s => { if (s.taxonKey) [s.taxonKey, ...(s.extraKeys || [])].forEach(k => rawParams.push(['taxonKey', String(k)])); }); // COL XR alphanumeric keys
   const allTaxonKeys = [...new Set(rawParams.filter(([k]) => k === 'taxonKey').map(([, v]) => v))];
   let taxonPredicate = null;
   if (allTaxonKeys.length === 1)     taxonPredicate = { type: 'equals', key: 'TAXON_KEY', value: allTaxonKeys[0] };
@@ -8092,7 +8130,7 @@ if (window._pendingShare) {
 <script src="../name-resolver.js"></script>
 <script src="../but-is-it-threatened/nzor-source.js"></script>
 <script src="../but-is-it-threatened/locality-core.js"></script>
-<script src="species-search.js"></script>
+<script src="species-search.js?v=7.55"></script>
 <script src="qeii.js"></script>
 <script>
 // Layers and QEII popups get a "Select" button (layers.js HOST.featureAction; qeii.js
@@ -8282,6 +8320,20 @@ window.LAYERS_HOST = {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v7.56</span>
+      <span class="changelog-date">Nov 2026</span>
+      <ul>
+        <li>New "Slime moulds" taxon group under Other. Slime moulds are not one lineage, so the group pulls together each of them: plasmodial, cellular and protostelid slime moulds (Amoebozoa), acrasids, Fonticula, Copromyxa, guttulinopsids, labyrinthulids (slime nets) and phytomyxids (clubroot and relatives). They get their own colour and checklist heading, and labyrinthulids and phytomyxids no longer show up as Algae</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v7.55</span>
+      <span class="changelog-date">Nov 2026</span>
+      <ul>
+        <li>"all &lt;genus&gt;" now finds NZ species that GBIF has moved to another genus. NZOR still lists the NZ crakes as Porzana, but GBIF files them under Zapornia, so "all Porzana" found nothing. The genus search now adds those moved species too, and shows them next to the entry (e.g. "all Porzana + Zapornia tabuensis, Zapornia pusilla")</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v7.54</span>
       <span class="changelog-date">Nov 2026</span>
