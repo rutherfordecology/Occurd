@@ -507,6 +507,8 @@
     font-size: 0.72rem; font-weight: 600; color: rgba(253,248,240,0.45); line-height: 1.65; text-align: center;
   }
   .attrib a { color: rgba(253,248,240,0.7); }
+  .attrib a.bmc-link { color: #ffdd00; font-weight: 700; text-decoration: none; white-space: nowrap; }
+  .attrib a.bmc-link:hover { text-decoration: underline; }
 
   /* ── About ───────────────────────────────────────────────────────────── */
   .prose h3 {
@@ -599,7 +601,7 @@
     <button class="icon-btn" data-back="home" aria-label="Back">&#8592;</button>
     <div class="topbar-grow">
       <div class="topbar-title">About</div>
-      <div class="topbar-meta">Nudis Near Me v3.7</div>
+      <div class="topbar-meta">Nudis Near Me v3.8</div>
     </div>
   </div>
   <div class="page prose">
@@ -1781,7 +1783,8 @@
       ($('#optGbif').checked ? ' and <a href="https://www.gbif.org" target="_blank" rel="noopener">GBIF</a>' : '') +
       '. Photos are CC-licensed and credited to their photographers; all-rights-reserved images are not shown.<br>' +
       'Depth and habitat notes are a hand-maintained table in this app, not taken from any field guide.<br>' +
-      'Your location is rounded to about 100 m before any search is sent.' +
+      'Your location is rounded to about 100 m before any search is sent.<br>' +
+      '<a class="bmc-link" href="https://buymeacoffee.com/rutherfordecology" target="_blank" rel="noopener">&#9749; Buy me a coffee</a>' +
       '</p>';
   }
 })();
